@@ -30,9 +30,24 @@ export default function Partners() {
   const typeKeyMap: Record<string, string> = { promoter: 'partners_type_promoter', gym: 'partners_type_gym', manager: 'partners_type_manager', brand: 'partners_type_brand', organizer: 'partners_type_organizer' };
 
   const whyCards = [
-    { icon: 'ri-boxing-line', roleKey: 'partners_role_fighters', accent: '#E10600', img: 'https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=800&q=85&fit=crop&crop=top', points: ['partners_fighters_p1', 'partners_fighters_p2', 'partners_fighters_p3', 'partners_fighters_p4'] },
-    { icon: 'ri-trophy-line', roleKey: 'partners_role_promoters', accent: '#C9A84C', img: 'https://images.unsplash.com/photo-1544117519-31a4b719223d?w=800&q=85&fit=crop', points: ['partners_promoters_p1', 'partners_promoters_p2', 'partners_promoters_p3', 'partners_promoters_p4'] },
-    { icon: 'ri-store-2-line', roleKey: 'partners_role_brands', accent: '#ffffff', img: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800&q=85&fit=crop', points: ['partners_brands_p1', 'partners_brands_p2', 'partners_brands_p3', 'partners_brands_p4'] },
+    {
+      icon: 'ri-boxing-line', roleKey: 'partners_role_fighters', accent: '#E10600',
+      // Peleador de boxeo con guantes, postura de combate
+      img: 'https://images.unsplash.com/photo-1555597673-b21d5c935865?w=800&q=85&fit=crop&crop=top',
+      points: ['partners_fighters_p1', 'partners_fighters_p2', 'partners_fighters_p3', 'partners_fighters_p4']
+    },
+    {
+      icon: 'ri-trophy-line', roleKey: 'partners_role_promoters', accent: '#C9A84C',
+      // Ring de boxeo con luces, velada deportiva
+      img: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=85&fit=crop',
+      points: ['partners_promoters_p1', 'partners_promoters_p2', 'partners_promoters_p3', 'partners_promoters_p4']
+    },
+    {
+      icon: 'ri-store-2-line', roleKey: 'partners_role_brands', accent: '#ffffff',
+      // Equipo de boxeo / guantes / equipamiento deportivo de combate
+      img: 'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=800&q=85&fit=crop',
+      points: ['partners_brands_p1', 'partners_brands_p2', 'partners_brands_p3', 'partners_brands_p4']
+    },
   ];
 
   return (
@@ -41,7 +56,6 @@ export default function Partners() {
       {/* ═══ PARA QUIÉN ═══ */}
       <div style={{ padding: '120px 0 100px' }}>
         <div style={{ maxWidth: 1300, margin: '0 auto', padding: '0 48px' }}>
-          {/* Header */}
           <div style={{ marginBottom: 64 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
               <div style={{ width: 40, height: 3, background: '#E10600', borderRadius: 2 }} />
@@ -55,25 +69,20 @@ export default function Partners() {
             </div>
           </div>
 
-          {/* Cards con imagen de fondo real */}
+          {/* Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }} className="why-grid">
             {whyCards.map((card) => (
               <div key={card.roleKey} style={{ borderRadius: 24, overflow: 'hidden', position: 'relative', minHeight: 520, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', transition: 'transform 0.35s', cursor: 'default' }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-8px)'; const img = (e.currentTarget as HTMLDivElement).querySelector('img') as HTMLImageElement; if (img) img.style.transform = 'scale(1.06)'; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.transform = 'none'; const img = (e.currentTarget as HTMLDivElement).querySelector('img') as HTMLImageElement; if (img) img.style.transform = 'scale(1)'; }}>
-                {/* Imagen fondo */}
                 <img src={card.img} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', transition: 'transform 0.6s ease' }} />
-                {/* Overlay */}
-                <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(0deg, rgba(5,5,5,0.98) 0%, rgba(5,5,5,0.75) 45%, rgba(5,5,5,0.2) 100%)` }} />
+                <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(0deg, rgba(5,5,5,0.98) 0%, rgba(5,5,5,0.7) 45%, rgba(5,5,5,0.15) 100%)` }} />
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: card.accent }} />
-                {/* Badge esquina */}
                 <div style={{ position: 'absolute', top: 20, right: 20, padding: '6px 14px', borderRadius: 100, background: `${card.accent}20`, border: `1px solid ${card.accent}40`, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', color: card.accent }}>
-                  <i className={card.icon} style={{ marginRight: 6 }} />
-                  {t(card.roleKey).split(' ')[0]}
+                  <i className={card.icon} style={{ marginRight: 6 }} />{t(card.roleKey).split(' ')[0]}
                 </div>
-                {/* Content */}
                 <div style={{ position: 'relative', zIndex: 1, padding: '0 32px 36px' }}>
-                  <h4 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 38, color: 'white', marginBottom: 20, lineHeight: 1, letterSpacing: -0.5 }}>{t(card.roleKey)}</h4>
+                  <h4 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 38, color: 'white', marginBottom: 20, lineHeight: 1 }}>{t(card.roleKey)}</h4>
                   <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {card.points.map((pk) => (
                       <li key={pk} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, color: 'rgba(255,255,255,0.65)', lineHeight: 1.4 }}>
@@ -110,7 +119,7 @@ export default function Partners() {
                       {org.logo_url ? <img src={org.logo_url} alt={org.org_name} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 6, borderRadius: 14 }} /> : initials}
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, fontWeight: 700, color: 'white', letterSpacing: 0.5 }}>{org.org_name || profile?.full_name}</div>
+                      <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, fontWeight: 700, color: 'white' }}>{org.org_name || profile?.full_name}</div>
                       <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.25)', marginTop: 3, letterSpacing: 2, textTransform: 'uppercase' }}>{t(typeKeyMap[org.org_type || ''] || 'partners_type_organizer')}</div>
                     </div>
                   </div>
@@ -121,10 +130,11 @@ export default function Partners() {
         </div>
       )}
 
-      {/* ═══ CTA FINAL ═══ */}
+      {/* ═══ CTA FINAL con imagen de ring de boxeo ═══ */}
       <div style={{ position: 'relative', overflow: 'hidden', minHeight: 500, display: 'flex', alignItems: 'center' }}>
-        <img src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=1920&q=85&fit=crop&crop=center" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.3 }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(225,6,0,0.2) 0%, rgba(5,5,5,0.9) 50%, rgba(5,5,5,0.85) 100%)' }} />
+        {/* Ring de boxeo con ambiente de velada */}
+        <img src="https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=1920&q=85&fit=crop" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.35 }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(225,6,0,0.25) 0%, rgba(5,5,5,0.92) 55%, rgba(5,5,5,0.88) 100%)' }} />
         <div style={{ position: 'relative', zIndex: 1, maxWidth: 1300, margin: '0 auto', padding: '80px 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 60, flexWrap: 'wrap', width: '100%' }} className="cta-inner">
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
