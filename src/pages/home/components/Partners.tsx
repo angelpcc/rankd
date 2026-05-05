@@ -31,21 +31,27 @@ export default function Partners() {
 
   const whyCards = [
     {
-      icon: 'ri-boxing-line', roleKey: 'partners_role_fighters', accent: '#E10600',
-      // Peleador de boxeo con guantes, postura de combate
-      img: 'https://images.unsplash.com/photo-1555597673-b21d5c935865?w=800&q=85&fit=crop&crop=top',
+      icon: 'ri-boxing-line',
+      roleKey: 'partners_role_fighters',
+      accent: '#E10600',
+      // Peleador entrenando en saco — plano medio, sin cara, esfuerzo real
+      img: 'https://images.unsplash.com/photo-1517438322307-e67111335449?w=800&q=85&fit=crop&crop=center',
       points: ['partners_fighters_p1', 'partners_fighters_p2', 'partners_fighters_p3', 'partners_fighters_p4']
     },
     {
-      icon: 'ri-trophy-line', roleKey: 'partners_role_promoters', accent: '#C9A84C',
-      // Ring de boxeo con luces, velada deportiva
-      img: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=85&fit=crop',
+      icon: 'ri-trophy-line',
+      roleKey: 'partners_role_promoters',
+      accent: '#C9A84C',
+      // Ring vacío con luces preparado para velada — organización, gestión
+      img: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=85&fit=crop&crop=center',
       points: ['partners_promoters_p1', 'partners_promoters_p2', 'partners_promoters_p3', 'partners_promoters_p4']
     },
     {
-      icon: 'ri-store-2-line', roleKey: 'partners_role_brands', accent: '#ffffff',
-      // Equipo de boxeo / guantes / equipamiento deportivo de combate
-      img: 'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=800&q=85&fit=crop',
+      icon: 'ri-store-2-line',
+      roleKey: 'partners_role_brands',
+      accent: '#ffffff',
+      // Boxeador con guantes mirando cámara — lifestyle, branding, visibilidad
+      img: 'https://images.unsplash.com/photo-1600180758890-6b94519a8ba6?w=800&q=85&fit=crop&crop=top',
       points: ['partners_brands_p1', 'partners_brands_p2', 'partners_brands_p3', 'partners_brands_p4']
     },
   ];
@@ -69,14 +75,14 @@ export default function Partners() {
             </div>
           </div>
 
-          {/* Cards */}
+          {/* Cards con imagen de fondo */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }} className="why-grid">
             {whyCards.map((card) => (
               <div key={card.roleKey} style={{ borderRadius: 24, overflow: 'hidden', position: 'relative', minHeight: 520, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', transition: 'transform 0.35s', cursor: 'default' }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-8px)'; const img = (e.currentTarget as HTMLDivElement).querySelector('img') as HTMLImageElement; if (img) img.style.transform = 'scale(1.06)'; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.transform = 'none'; const img = (e.currentTarget as HTMLDivElement).querySelector('img') as HTMLImageElement; if (img) img.style.transform = 'scale(1)'; }}>
                 <img src={card.img} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', transition: 'transform 0.6s ease' }} />
-                <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(0deg, rgba(5,5,5,0.98) 0%, rgba(5,5,5,0.7) 45%, rgba(5,5,5,0.15) 100%)` }} />
+                <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(0deg, rgba(5,5,5,0.98) 0%, rgba(5,5,5,0.65) 45%, rgba(5,5,5,0.1) 100%)` }} />
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: card.accent }} />
                 <div style={{ position: 'absolute', top: 20, right: 20, padding: '6px 14px', borderRadius: 100, background: `${card.accent}20`, border: `1px solid ${card.accent}40`, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', color: card.accent }}>
                   <i className={card.icon} style={{ marginRight: 6 }} />{t(card.roleKey).split(' ')[0]}
@@ -130,11 +136,14 @@ export default function Partners() {
         </div>
       )}
 
-      {/* ═══ CTA FINAL con imagen de ring de boxeo ═══ */}
+      {/* ═══ CTA — Peleador en ring, atmósfera real de combate ═══ */}
       <div style={{ position: 'relative', overflow: 'hidden', minHeight: 500, display: 'flex', alignItems: 'center' }}>
-        {/* Ring de boxeo con ambiente de velada */}
-        <img src="https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=1920&q=85&fit=crop" alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.35 }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(225,6,0,0.25) 0%, rgba(5,5,5,0.92) 55%, rgba(5,5,5,0.88) 100%)' }} />
+        <img
+          src="https://images.unsplash.com/photo-1593811167562-9cef47bfc4d7?w=1920&q=85&fit=crop&crop=center"
+          alt=""
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.3 }}
+        />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(225,6,0,0.2) 0%, rgba(5,5,5,0.92) 55%, rgba(5,5,5,0.88) 100%)' }} />
         <div style={{ position: 'relative', zIndex: 1, maxWidth: 1300, margin: '0 auto', padding: '80px 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 60, flexWrap: 'wrap', width: '100%' }} className="cta-inner">
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
