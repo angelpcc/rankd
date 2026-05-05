@@ -4,15 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import LanguageSelector from '@/components/feature/LanguageSelector';
 
-function RankdLogo() {
-  return (
-    <div className="flex items-center gap-0 select-none">
-      <span className="font-unbounded font-black leading-none" style={{ fontSize: '20px', color: '#FFFFFF', letterSpacing: '-0.05em' }}>RAN</span>
-      <span className="font-unbounded font-black leading-none" style={{ fontSize: '20px', color: '#E10600', letterSpacing: '-0.05em' }}>KD</span>
-    </div>
-  );
-}
-
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -21,7 +12,7 @@ export default function Navbar() {
   const { t } = useTranslation();
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 40);
+    const handleScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -45,75 +36,86 @@ export default function Navbar() {
   };
 
   return (
-    <nav
-      className="fixed top-0 left-0 w-full z-50 transition-all duration-300"
-      style={{
-        background: scrolled ? 'rgba(8,8,8,0.97)' : 'transparent',
-        borderBottom: scrolled ? '1px solid rgba(255,255,255,0.06)' : '1px solid transparent',
-        backdropFilter: scrolled ? 'blur(20px)' : 'none',
-      }}
-    >
-      <div
-        className="absolute top-0 left-0 h-[2px] bg-[#E10600] transition-all duration-700"
-        style={{ width: scrolled ? '100%' : '0%' }}
-      />
-      <div className="max-w-7xl mx-auto px-6 md:px-10 flex items-center justify-between" style={{ height: '72px' }}>
-        <a href="#home" onClick={(e) => { e.preventDefault(); handleNav('#home'); }} className="cursor-pointer">
-          <RankdLogo />
+    <nav style={{
+      position: 'fixed', top: 0, left: 0, width: '100%', zIndex: 100,
+      background: scrolled ? 'rgba(5,5,5,0.96)' : 'transparent',
+      backdropFilter: scrolled ? 'blur(24px)' : 'none',
+      borderBottom: scrolled ? '1px solid rgba(255,255,255,0.04)' : '1px solid transparent',
+      transition: 'all 0.4s ease',
+    }}>
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 40px', height: 68, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        
+        {/* Logo */}
+        <a href="#home" onClick={(e) => { e.preventDefault(); handleNav('#home'); }} style={{ cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 2 }}>
+          <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 28, color: '#ffffff', letterSpacing: 4, lineHeight: 1 }}>RAN</span>
+          <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 28, color: '#E10600', letterSpacing: 4, lineHeight: 1 }}>KD</span>
+          <span style={{ width: 6, height: 6, background: '#C9A84C', borderRadius: '50%', marginLeft: 4, marginTop: 2 }}></span>
         </a>
-        <ul className="hidden md:flex items-center gap-8">
+
+        {/* Desktop Links */}
+        <ul style={{ display: 'flex', alignItems: 'center', gap: 36, listStyle: 'none', margin: 0, padding: 0 }} className="nav-desktop">
           {navLinks.map((link) => (
             <li key={link.href}>
-              <a
-                href={link.href}
-                onClick={(e) => { e.preventDefault(); handleNav(link.href); }}
-                className="text-sm font-medium tracking-wide transition-colors cursor-pointer whitespace-nowrap font-inter text-white/50 hover:text-white"
+              <a href={link.href} onClick={(e) => { e.preventDefault(); handleNav(link.href); }}
+                style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,255,255,0.45)', textDecoration: 'none', transition: 'color 0.2s', cursor: 'pointer' }}
+                onMouseEnter={(e) => (e.currentTarget as HTMLAnchorElement).style.color = 'white'}
+                onMouseLeave={(e) => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.45)'}
               >
                 {t(link.labelKey)}
               </a>
             </li>
           ))}
         </ul>
-        <div className="hidden md:flex items-center gap-3">
+
+        {/* Auth */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }} className="nav-desktop">
           <LanguageSelector scrolled={false} />
           {user && profile ? (
             <>
-              <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-full border border-white/15 text-white/70 hover:border-white/40 hover:text-white transition-colors cursor-pointer whitespace-nowrap">
-                <div className="w-5 h-5 flex items-center justify-center rounded-full bg-[#E10600] text-white text-xs font-bold">
-                  {(profile.full_name || 'U')[0].toUpperCase()}
-                </div>
+              <button onClick={() => navigate('/dashboard')} style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '9px 18px', cursor: 'pointer', transition: 'all 0.2s' }}>
+                <span style={{ width: 20, height: 20, background: '#E10600', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'white', fontWeight: 900 }}>{(profile.full_name || 'U')[0].toUpperCase()}</span>
                 {t('nav_my_profile')}
               </button>
-              <button onClick={() => signOut()} className="text-sm font-medium text-white/30 hover:text-white transition-colors cursor-pointer whitespace-nowrap">{t('nav_sign_out')}</button>
+              <button onClick={() => signOut()} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, letterSpacing: 2, color: 'rgba(255,255,255,0.2)', background: 'none', border: 'none', cursor: 'pointer', textTransform: 'uppercase' }}>{t('nav_sign_out')}</button>
             </>
           ) : (
             <>
-              <button onClick={() => navigate('/auth')} className="text-sm font-medium text-white/50 hover:text-white transition-colors cursor-pointer whitespace-nowrap">{t('nav_sign_in')}</button>
-              <button onClick={() => navigate('/auth')} className="flex items-center gap-2 bg-[#E10600] text-white text-sm font-semibold px-5 py-2.5 rounded-full hover:bg-red-700 transition-colors cursor-pointer whitespace-nowrap">
-                {t('nav_create_account')} <i className="ri-arrow-right-line" />
+              <button onClick={() => navigate('/auth')} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 600, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.color = 'white'} onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.4)'}>{t('nav_sign_in')}</button>
+              <button onClick={() => navigate('/auth')} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'white', background: '#E10600', border: 'none', borderRadius: 6, padding: '10px 22px', cursor: 'pointer', transition: 'background 0.2s' }} onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.background = '#b50009'} onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.background = '#E10600'}>
+                {t('nav_create_account')} →
               </button>
             </>
           )}
         </div>
-        <button className="md:hidden w-10 h-10 flex items-center justify-center rounded-lg text-white/70 hover:text-white transition-colors" onClick={() => setMenuOpen(!menuOpen)}>
-          <i className={`text-xl ${menuOpen ? 'ri-close-line' : 'ri-menu-3-line'}`} />
+
+        {/* Hamburger */}
+        <button onClick={() => setMenuOpen(!menuOpen)} style={{ display: 'none', background: 'none', border: 'none', color: 'white', fontSize: 22, cursor: 'pointer' }} className="nav-mobile">
+          <i className={menuOpen ? 'ri-close-line' : 'ri-menu-3-line'} />
         </button>
       </div>
+
+      {/* Mobile Menu */}
       {menuOpen && (
-        <div className="md:hidden px-6 py-5 flex flex-col gap-2" style={{ background: 'rgba(8,8,8,0.98)', borderTop: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(20px)' }}>
+        <div style={{ background: 'rgba(5,5,5,0.98)', borderTop: '1px solid rgba(255,255,255,0.06)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 4 }}>
           {navLinks.map((link) => (
-            <a key={link.href} href={link.href} onClick={(e) => { e.preventDefault(); handleNav(link.href); }} className="text-white/60 font-medium text-sm py-3 px-2 cursor-pointer hover:text-white transition-colors border-b border-white/5 last:border-0">
+            <a key={link.href} href={link.href} onClick={(e) => { e.preventDefault(); handleNav(link.href); }}
+              style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', textDecoration: 'none', padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
               {t(link.labelKey)}
             </a>
           ))}
-          <div className="pt-2 pb-1"><LanguageSelector dark /></div>
-          {user && profile ? (
-            <button onClick={() => { navigate('/dashboard'); setMenuOpen(false); }} className="mt-2 bg-[#E10600] text-white text-sm font-semibold px-5 py-3.5 rounded-full text-center cursor-pointer">{t('nav_my_profile')}</button>
-          ) : (
-            <button onClick={() => { navigate('/auth'); setMenuOpen(false); }} className="mt-2 bg-[#E10600] text-white text-sm font-semibold px-5 py-3.5 rounded-full text-center cursor-pointer">{t('nav_create_account')}</button>
+          <div style={{ paddingTop: 16 }}><LanguageSelector dark /></div>
+          {!user && (
+            <button onClick={() => { navigate('/auth'); setMenuOpen(false); }} style={{ marginTop: 12, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'white', background: '#E10600', border: 'none', borderRadius: 8, padding: '14px', cursor: 'pointer' }}>{t('nav_create_account')}</button>
           )}
         </div>
       )}
+
+      <style>{`
+        @media (max-width: 900px) {
+          .nav-desktop { display: none !important; }
+          .nav-mobile { display: flex !important; }
+        }
+      `}</style>
     </nav>
   );
 }
