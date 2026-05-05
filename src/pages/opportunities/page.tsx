@@ -1,0 +1,229 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { supabase, Opportunity, Profile } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
+import Navbar from '@/pages/home/components/Navbar';
+import OpportunityCard from './components/OpportunityCard';
+import OpportunitiesFilters from './components/OpportunitiesFilters';
+import ApplyModal from './components/ApplyModal';
+import { isSponsorshipType } from './components/OpportunityCard';
+
+export default function OpportunitiesPage() {
+  const navigate = useNavigate();
+  const { t } = useTranslation();
+  const { user, profile } = useAuth();
+  const [opportunities, setOpportunities] = useState<(Opportunity & { publisher?: Profile })[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
+  const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set());
+  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+
+  const [filterType, setFilterType] = useState('');
+  const [filterDiscipline, setFilterDiscipline] = useState('');
+  const [filterWeight, setFilterWeight] = useState('');
+  const [filterLocation, setFilterLocation] = useState('');
+  const [search, setSearch] = useState('');
+
+  const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase
+        .from('opportunities')
+        .select('*, publisher:profiles(id, full_name, avatar_url, user_type, location)')
+        .eq('status', 'open')
+        .order('created_at', { ascending: false });
+      setOpportunities((data as (Opportunity & { publisher?: Profile })[]) || []);
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    const loadApplied = async () => {
+      const { data } = await supabase
+        .from('applications')
+        .select('opportunity_id')
+        .eq('fighter_profile_id', user.id);
+      if (data) setAppliedIds(new Set(data.map((a) => a.opportunity_id)));
+    };
+    loadApplied();
+  }, [user]);
+
+  const filtered = opportunities.filter((o) => {
+    if (filterType && o.type !== filterType) return false;
+    if (filterDiscipline && o.discipline !== filterDiscipline) return false;
+    if (filterWeight && o.weight_class !== filterWeight) return false;
+    if (filterLocation && !o.location?.toLowerCase().includes(filterLocation.toLowerCase())) return false;
+    if (search && !o.title.toLowerCase().includes(search.toLowerCase()) && !o.description?.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  const handleApply = async (message: string) => {
+    if (!user || !selectedOpp) return;
+    const { error } = await supabase.from('applications').insert({
+      opportunity_id: selectedOpp.id,
+      fighter_profile_id: user.id,
+      message: message.trim() || null,
+    });
+    if (error) {
+      showToast('Error al postularse. Inténtalo de nuevo.', 'error');
+    } else {
+      setAppliedIds((prev) => new Set([...prev, selectedOpp.id]));
+      showToast('¡Postulación enviada correctamente!');
+    }
+    setSelectedOpp(null);
+  };
+
+  const typeLabels: Record<string, string> = {
+    combate: 'Combate', contrato: 'Contrato', patrocinio: 'Patrocinio',
+    sparring: 'Sparring', campamento: 'Campamento', entrenamiento: 'Entrenamiento', scouting: 'Scouting',
+  };
+
+  return (
+    <div className="min-h-screen bg-zinc-50">
+      <Navbar />
+
+      {/* Header */}
+      <div className="bg-zinc-950 pt-24 sm:pt-28 pb-10 sm:pb-16 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col gap-4 sm:gap-6">
+            <div>
+              <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight">{t('opp_page_title')}</h1>
+              <p className="text-zinc-400 mt-2 sm:mt-3 text-sm sm:text-base max-w-xl">{t('opp_page_desc')}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              {profile && profile.user_type !== 'fighter' && (
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
+                >
+                  <i className="ri-add-line"></i> {t('opp_page_publish')}
+                </button>
+              )}
+              {!user && (
+                <button
+                  onClick={() => navigate('/auth')}
+                  className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
+                >
+                  <i className="ri-login-box-line"></i>
+                  <span className="hidden sm:inline">{t('opp_page_join')}</span>
+                  <span className="sm:hidden">{t('opp_page_join_short')}</span>
+                </button>
+              )}
+            </div>
+          </div>
+          {/* Stats bar */}
+          <div className="flex items-center gap-4 sm:gap-6 mt-6 sm:mt-8 pt-5 sm:pt-6 border-t border-zinc-800 overflow-x-auto">
+            <div className="text-center flex-shrink-0">
+              <p className="text-xl sm:text-2xl font-black text-white">{opportunities.length}</p>
+              <p className="text-xs text-zinc-500 mt-0.5">{t('opp_page_active')}</p>
+            </div>
+            {(['combate','sparring','contrato','patrocinio'] as const).map((t) => (
+              <div key={t} className="text-center flex-shrink-0">
+                <p className="text-base sm:text-lg font-bold text-red-400">{opportunities.filter(o => o.type === t).length}</p>
+                <p className="text-xs text-zinc-500 mt-0.5 capitalize">{typeLabels[t]}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-4 md:px-6 py-6 sm:py-8">
+        {/* Search + Filters */}
+        <div className="mb-6">
+          <div className="relative mb-4">
+            <i className="ri-search-line absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 text-sm"></i>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t('opp_page_search_placeholder')}
+              className="w-full bg-white border border-zinc-200 text-zinc-900 text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-red-400"
+            />
+          </div>
+          <OpportunitiesFilters
+            filterType={filterType} setFilterType={setFilterType}
+            filterDiscipline={filterDiscipline} setFilterDiscipline={setFilterDiscipline}
+            filterWeight={filterWeight} setFilterWeight={setFilterWeight}
+            filterLocation={filterLocation} setFilterLocation={setFilterLocation}
+          />
+        </div>
+
+        {/* Results count */}
+        <div className="flex items-center justify-between mb-5">
+          <p className="text-sm text-zinc-500">
+            {loading ? t('opp_page_loading') : `${filtered.length} ${filtered.length !== 1 ? t('opp_page_count_plural') : t('opp_page_count')}`}
+          </p>
+          {(filterType || filterDiscipline || filterWeight || filterLocation || search) && (
+            <button
+              onClick={() => { setFilterType(''); setFilterDiscipline(''); setFilterWeight(''); setFilterLocation(''); setSearch(''); }}
+              className="text-xs text-red-500 hover:text-red-700 cursor-pointer flex items-center gap-1"
+            >
+              <i className="ri-close-line"></i> {t('opp_page_clear')}
+            </button>
+          )}
+        </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-24">
+            <div className="w-10 h-10 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-24">
+            <div className="w-16 h-16 flex items-center justify-center mx-auto mb-4 text-zinc-300">
+              <i className="ri-search-line text-5xl"></i>
+            </div>
+            <p className="text-zinc-500 text-base">{t('opp_page_empty_title')}</p>
+            <p className="text-zinc-400 text-sm mt-1">{t('opp_page_empty_desc')}</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            {filtered.map((opp) => {
+              const isSponsorship = isSponsorshipType(opp.type);
+              // Fighters NO pueden postularse a patrocinios
+              const canApplyToThis = !!user && profile?.user_type === 'fighter' && !isSponsorship;
+              return (
+                <OpportunityCard
+                  key={opp.id}
+                  opportunity={opp}
+                  publisher={(opp as Opportunity & { publisher?: Profile }).publisher}
+                  isApplied={appliedIds.has(opp.id)}
+                  canApply={canApplyToThis}
+                  userType={profile?.user_type ?? null}
+                  onApply={() => {
+                    if (!user) { navigate('/auth'); return; }
+                    // Bloquear si es patrocinio y el usuario es fighter
+                    if (isSponsorship && profile?.user_type === 'fighter') return;
+                    setSelectedOpp(opp);
+                  }}
+                />
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Apply Modal */}
+      {selectedOpp && (
+        <ApplyModal
+          opportunity={selectedOpp}
+          onClose={() => setSelectedOpp(null)}
+          onSubmit={handleApply}
+        />
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 z-50 text-white text-sm px-5 py-3 rounded-xl flex items-center gap-2 ${toast.type === 'error' ? 'bg-red-600' : 'bg-green-600'}`}>
+          <i className={toast.type === 'error' ? 'ri-error-warning-line' : 'ri-check-line'}></i>
+          {toast.msg}
+        </div>
+      )}
+    </div>
+  );
+}

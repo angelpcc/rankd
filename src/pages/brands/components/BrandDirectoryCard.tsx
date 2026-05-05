@@ -1,0 +1,218 @@
+import type { BrandWithItems } from '@/hooks/useBrands';
+
+interface Props {
+  brand: BrandWithItems;
+}
+
+const MODALITY_ICONS: Record<string, string> = {
+  online: 'ri-wifi-line',
+  presencial: 'ri-map-pin-line',
+  ambos: 'ri-global-line',
+};
+
+const TYPE_CONFIG = {
+  product: {
+    headerBg: 'bg-gradient-to-br from-[#0B0B0B] to-[#1A1A1A]',
+    badge: { label: 'Producto', icon: 'ri-shopping-bag-line', cls: 'bg-white/10 text-white/70 border-white/15' },
+    ctaColor: 'bg-[#E10600] hover:bg-red-700',
+    ctaLabel: 'Ir a la web',
+  },
+  service: {
+    headerBg: 'bg-gradient-to-br from-[#1A1200] to-[#2A1F00]',
+    badge: { label: 'Servicio', icon: 'ri-service-line', cls: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
+    ctaColor: 'bg-amber-500 hover:bg-amber-600',
+    ctaLabel: 'Contactar',
+  },
+  both: {
+    headerBg: 'bg-gradient-to-br from-[#001A0D] to-[#002A18]',
+    badge: { label: 'Prod. & Serv.', icon: 'ri-store-3-line', cls: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
+    ctaColor: 'bg-emerald-600 hover:bg-emerald-700',
+    ctaLabel: 'Ver marca',
+  },
+};
+
+export default function BrandDirectoryCard({ brand }: Props) {
+  const initials = brand.name
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
+  const type = brand.type || 'product';
+  const cfg = TYPE_CONFIG[type] || TYPE_CONFIG.product;
+
+  const showProducts = type === 'product' || type === 'both';
+  const showServices = type === 'service' || type === 'both';
+
+  const featuredProducts = brand.products.slice(0, type === 'both' ? 2 : 3);
+  const featuredServices = brand.services.slice(0, type === 'both' ? 2 : 3);
+
+  const hasProducts = brand.products.length > 0;
+  const hasServices = brand.services.length > 0;
+
+  return (
+    <article className="group bg-white border border-gray-100 rounded-2xl overflow-hidden hover:border-gray-200 hover:-translate-y-0.5 transition-all duration-300 flex flex-col">
+      {/* Brand header */}
+      <div className={`relative p-5 flex items-center gap-4 ${cfg.headerBg}`}>
+        {/* Logo */}
+        <div className="w-12 h-12 flex-shrink-0 rounded-xl overflow-hidden bg-white/10 flex items-center justify-center border border-white/10">
+          {brand.logo_url ? (
+            <img src={brand.logo_url} alt={brand.name} className="w-full h-full object-contain p-1" />
+          ) : (
+            <span className="font-unbounded font-bold text-white text-base">{initials}</span>
+          )}
+        </div>
+
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <h3 className="font-unbounded font-bold text-white text-sm leading-tight truncate">{brand.name}</h3>
+          {brand.category && (
+            <span className="text-xs text-white/45 font-inter mt-0.5 block truncate">{brand.category}</span>
+          )}
+        </div>
+
+        {/* Type badge */}
+        <div className={`flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold font-inter border ${cfg.badge.cls}`}>
+          <i className={cfg.badge.icon}></i>
+          {cfg.badge.label}
+        </div>
+      </div>
+
+      {/* Description */}
+      <div className="px-5 pt-4 pb-3">
+        <p className="text-gray-500 text-xs font-inter leading-relaxed line-clamp-2">
+          {brand.description}
+        </p>
+      </div>
+
+      {/* ── PRODUCTS section ── */}
+      {showProducts && (
+        <div className="px-5 pb-3">
+          <p className="text-xs font-semibold text-[#0B0B0B] font-inter mb-2 flex items-center gap-1.5">
+            <i className="ri-shopping-bag-line text-[#E10600]"></i>
+            Productos
+            {hasProducts && <span className="text-gray-400 font-normal">({brand.products.length})</span>}
+          </p>
+          {hasProducts ? (
+            <>
+              <div className={`grid gap-2 ${type === 'both' ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                {featuredProducts.map((product) => (
+                  <div key={product.id} className="group/prod relative rounded-xl overflow-hidden bg-gray-50 border border-gray-100 aspect-square">
+                    {product.image_url ? (
+                      <img src={product.image_url} alt={product.name} className="w-full h-full object-cover object-top" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <i className="ri-image-line text-gray-300 text-xl"></i>
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/0 group-hover/prod:bg-black/50 transition-colors flex items-end">
+                      <div className="w-full p-1.5 translate-y-full group-hover/prod:translate-y-0 transition-transform duration-200">
+                        <p className="text-white text-[10px] font-semibold leading-tight truncate">{product.name}</p>
+                        {product.price && <p className="text-yellow-400 text-[10px] font-bold">{product.price}</p>}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {brand.products.length > featuredProducts.length && (
+                <p className="text-xs text-gray-400 font-inter mt-1.5">+{brand.products.length - featuredProducts.length} más</p>
+              )}
+            </>
+          ) : (
+            <div className="bg-gray-50 rounded-xl px-3 py-2.5 flex items-center gap-2">
+              <i className="ri-shopping-bag-line text-gray-300 text-sm"></i>
+              <span className="text-xs text-gray-400 font-inter">Sin productos publicados aún</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── SERVICES section ── */}
+      {showServices && (
+        <div className="px-5 pb-3">
+          {type === 'both' && <div className="border-t border-gray-100 mb-3"></div>}
+          <p className="text-xs font-semibold text-[#0B0B0B] font-inter mb-2 flex items-center gap-1.5">
+            <i className="ri-service-line text-amber-500"></i>
+            Servicios
+            {hasServices && <span className="text-gray-400 font-normal">({brand.services.length})</span>}
+          </p>
+          {hasServices ? (
+            <div className="space-y-1.5">
+              {featuredServices.map((service) => (
+                <div key={service.id} className="flex items-start gap-2.5 bg-gray-50 rounded-xl p-2.5 border border-gray-100">
+                  {service.image_url ? (
+                    <div className="w-9 h-9 flex-shrink-0 rounded-lg overflow-hidden">
+                      <img src={service.image_url} alt={service.title} className="w-full h-full object-cover object-top" />
+                    </div>
+                  ) : (
+                    <div className="w-9 h-9 flex-shrink-0 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center">
+                      <i className="ri-service-line text-amber-400 text-sm"></i>
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-[#0B0B0B] truncate">{service.title}</p>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      {service.category && <span className="text-[10px] text-amber-600 font-semibold">{service.category}</span>}
+                      {service.modality && (
+                        <span className="text-[10px] text-gray-400 flex items-center gap-0.5">
+                          <i className={`${MODALITY_ICONS[service.modality] || 'ri-global-line'} text-[10px]`}></i>
+                          {service.modality}
+                        </span>
+                      )}
+                      {service.price && <span className="text-[10px] text-amber-600 font-bold">{service.price}</span>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {brand.services.length > featuredServices.length && (
+                <p className="text-xs text-gray-400 font-inter">+{brand.services.length - featuredServices.length} más</p>
+              )}
+            </div>
+          ) : (
+            <div className="bg-gray-50 rounded-xl px-3 py-2.5 flex items-center gap-2">
+              <i className="ri-service-line text-gray-300 text-sm"></i>
+              <span className="text-xs text-gray-400 font-inter">Sin servicios publicados aún</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Footer */}
+      <div className="mt-auto px-5 pb-5 pt-2 flex items-center gap-2">
+        <div className="flex-1 flex items-center gap-2 flex-wrap">
+          {type === 'both' && (
+            <>
+              {hasProducts && (
+                <span className="text-[10px] text-gray-400 font-inter flex items-center gap-0.5">
+                  <i className="ri-shopping-bag-line"></i>{brand.products.length} prod.
+                </span>
+              )}
+              {hasServices && (
+                <span className="text-[10px] text-gray-400 font-inter flex items-center gap-0.5">
+                  <i className="ri-service-line"></i>{brand.services.length} serv.
+                </span>
+              )}
+            </>
+          )}
+        </div>
+        {brand.website ? (
+          <a
+            href={brand.website}
+            target="_blank"
+            rel="nofollow noreferrer"
+            className={`flex items-center justify-center gap-1.5 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap font-inter ${cfg.ctaColor}`}
+          >
+            <i className="ri-external-link-line"></i>
+            {cfg.ctaLabel}
+          </a>
+        ) : (
+          <div className="flex items-center justify-center gap-1.5 text-xs font-semibold px-4 py-2.5 rounded-xl font-inter bg-gray-100 text-gray-400">
+            <i className="ri-store-2-line"></i>
+            Ver marca
+          </div>
+        )}
+      </div>
+    </article>
+  );
+}
