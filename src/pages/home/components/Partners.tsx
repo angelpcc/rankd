@@ -76,7 +76,7 @@ export default function Partners() {
               <h2 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(60px, 8vw, 110px)', lineHeight: 0.88, color: 'white', margin: 0 }}>
                 {t('partners_why_headline_1')}<br /><span style={{ color: '#C9A84C' }}>{t('partners_why_headline_2')}</span>
               </h2>
-              <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, color: 'rgba(255,255,255,0.35)', maxWidth: 400, lineHeight: 1.55 }}>{t('partners_subtext')}</p>
+              <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, color: 'rgba(255,255,255,0.55)', maxWidth: 400, lineHeight: 1.55 }}>{t('partners_subtext')}</p>
             </div>
           </div>
 
@@ -133,7 +133,7 @@ export default function Partners() {
                   <h4 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 38, color: 'white', marginBottom: 20, lineHeight: 1 }}>{t(card.roleKey)}</h4>
                   <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {card.points.map((pk) => (
-                      <li key={pk} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, color: 'rgba(255,255,255,0.65)', lineHeight: 1.4 }}>
+                      <li key={pk} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, color: 'rgba(255,255,255,0.75)', lineHeight: 1.4 }}>
                         <i className="ri-check-line" style={{ color: card.accent, flexShrink: 0, marginTop: 2, fontSize: 15 }} />
                         {t(pk)}
                       </li>
@@ -145,38 +145,6 @@ export default function Partners() {
           </div>
         </div>
       </div>
-
-      {/* ═══ PARTNERS ═══ */}
-      {!loading && orgs.length > 0 && (
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '80px 0' }}>
-          <div style={{ maxWidth: 1300, margin: '0 auto', padding: '0 48px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, marginBottom: 12 }}>
-              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
-              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: 5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.2)', whiteSpace: 'nowrap' }}>{t('partners_eyebrow')}</span>
-              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.06)' }} />
-            </div>
-            <h3 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(44px, 5vw, 72px)', color: 'white', textAlign: 'center', margin: '0 0 48px', lineHeight: 0.95 }}>{t('partners_headline')}</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }} className="orgs-grid">
-              {orgs.slice(0, 4).map(({ org, profile }) => {
-                const initials = (org.org_name || profile?.full_name || 'O').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
-                return (
-                  <div key={org.id} style={{ borderRadius: 16, padding: '28px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', transition: 'all 0.25s', cursor: 'pointer' }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(201,168,76,0.3)'; (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)'; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.07)'; (e.currentTarget as HTMLDivElement).style.transform = 'none'; }}>
-                    <div style={{ width: 56, height: 56, borderRadius: 14, background: '#151515', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, color: 'white', border: '1px solid rgba(255,255,255,0.08)' }}>
-                      {org.logo_url ? <img src={org.logo_url} alt={org.org_name} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 6, borderRadius: 14 }} /> : initials}
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, fontWeight: 700, color: 'white' }}>{org.org_name || profile?.full_name}</div>
-                      <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.25)', marginTop: 3, letterSpacing: 2, textTransform: 'uppercase' }}>{t(typeKeyMap[org.org_type || ''] || 'partners_type_organizer')}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ═══ CTA — solo negro con tipografía potente, sin foto ═══ */}
       <div style={{ position: 'relative', overflow: 'hidden', background: '#080808', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
@@ -196,7 +164,7 @@ export default function Partners() {
               {t('partners_cta_headline_1')}<br />
               <span style={{ color: 'transparent', WebkitTextStroke: '1px rgba(255,255,255,0.15)' }}>{t('partners_cta_headline_2')}</span>
             </h3>
-            <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 20, color: 'rgba(255,255,255,0.4)', maxWidth: 500, lineHeight: 1.5 }}>{t('partners_cta_desc')}</p>
+            <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 20, color: 'rgba(255,255,255,0.6)', maxWidth: 500, lineHeight: 1.5 }}>{t('partners_cta_desc')}</p>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'flex-start' }}>
             <a href="/auth" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 4, color: 'white', background: 'linear-gradient(135deg, #E10600, #c00)', border: 'none', borderRadius: 14, padding: '22px 56px', cursor: 'pointer', textDecoration: 'none', display: 'inline-block', boxShadow: '0 8px 50px rgba(225,6,0,0.4)', transition: 'all 0.25s', whiteSpace: 'nowrap' }}
