@@ -34,7 +34,7 @@ export default function Partners() {
       roleKey: 'partners_role_fighters',
       accent: '#E10600',
       // Dos boxeadores en sparring real — combate, sombra, acción
-      img: 'https://images.unsplash.com/photo-1517438322307-e67111335449?w=800&q=85&fit=crop&crop=center',
+      img: 'https://oqsobiykaaqelgfjgsor.supabase.co/storage/v1/object/public/images/Peleadores.png',
       useImg: true,
       icon: 'ri-boxing-line',
       points: ['partners_fighters_p1', 'partners_fighters_p2', 'partners_fighters_p3', 'partners_fighters_p4']
@@ -43,7 +43,7 @@ export default function Partners() {
       roleKey: 'partners_role_promoters',
       accent: '#C9A84C',
       // Ring vacío preparado con luces — velada, evento, organización
-      img: 'https://images.unsplash.com/photo-1591117207239-788bf8de6c3b?w=800&q=85&fit=crop&crop=center',
+      img: 'https://oqsobiykaaqelgfjgsor.supabase.co/storage/v1/object/public/images/Promotoras%20y%20clubes.png',
       useImg: true,
       icon: 'ri-trophy-line',
       points: ['partners_promoters_p1', 'partners_promoters_p2', 'partners_promoters_p3', 'partners_promoters_p4']
@@ -52,7 +52,8 @@ export default function Partners() {
       roleKey: 'partners_role_brands',
       accent: '#ffffff',
       // Sin foto — icono/ilustración SVG de marca y visibilidad
-      useImg: false,
+      img: 'https://oqsobiykaaqelgfjgsor.supabase.co/storage/v1/object/public/images/Marcas%20y%20patrocinadores.png',
+      useImg: true,
       icon: 'ri-megaphone-line',
       points: ['partners_brands_p1', 'partners_brands_p2', 'partners_brands_p3', 'partners_brands_p4']
     },
