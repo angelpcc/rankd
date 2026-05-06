@@ -19,7 +19,7 @@ export default function Hero() {
       {/* BG — guantes de boxeo, sin persona */}
       <div ref={bgRef} style={{ position: 'absolute', inset: 0, zIndex: 0, opacity: 0, transform: 'scale(1.04)', transition: 'all 1.4s ease' }}>
         <img
-          src="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=1920&q=95&fit=crop&crop=center"
+          src="https://images.unsplash.com/photo-1593811167562-9cef47bfc4d7?w=1920&q=95&fit=crop&crop=center"
           alt=""
           style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
         />
