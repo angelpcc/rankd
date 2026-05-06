@@ -9,24 +9,24 @@ export default function HowItWorks() {
     {
       number: '01', icon: 'ri-user-add-line', titleKey: 'how_step1_title', descKey: 'how_step1_desc', color: '#E10600',
       // Silueta peleador haciendo sombra
-      img: 'https://images.unsplash.com/photo-1549476464-37392f717541?w=400&q=85&fit=crop&crop=center',
+      img: 'https://oqsobiykaaqelgfjgsor.supabase.co/storage/v1/object/public/images/crear%20perfil.png',
       useImg: true,
     },
     {
       number: '02', icon: 'ri-search-eye-line', titleKey: 'how_step2_title', descKey: 'how_step2_desc', color: '#C9A84C',
-      // Sin foto — solo icono grande de lupa
-      useImg: false,
+      img: 'https://oqsobiykaaqelgfjgsor.supabase.co/storage/v1/object/public/images/se%20descubierto.png',
+      useImg: true,
     },
     {
       number: '03', icon: 'ri-shake-hands-line', titleKey: 'how_step3_title', descKey: 'how_step3_desc', color: '#E10600',
       // Apretón de manos profesional
-      img: 'https://images.unsplash.com/photo-1521791136064-7986c2920216?w=400&q=85&fit=crop',
+      img: 'https://oqsobiykaaqelgfjgsor.supabase.co/storage/v1/object/public/images/negocia.png',
       useImg: true,
     },
     {
       number: '04', icon: 'ri-rocket-line', titleKey: 'how_step4_title', descKey: 'how_step4_desc', color: '#C9A84C',
-      // Sin foto — icono de cohete/flecha grande
-      useImg: false,
+      img: 'https://oqsobiykaaqelgfjgsor.supabase.co/storage/v1/object/public/images/impulsa.png',
+      useImg: true,
     },
   ];
 
