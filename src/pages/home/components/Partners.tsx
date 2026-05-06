@@ -43,7 +43,7 @@ export default function Partners() {
       roleKey: 'partners_role_promoters',
       accent: '#C9A84C',
       // Ring vacío preparado con luces — velada, evento, organización
-      img: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=85&fit=crop',
+      img: 'https://images.unsplash.com/photo-1591117207239-788bf8de6c3b?w=800&q=85&fit=crop&crop=center',
       useImg: true,
       icon: 'ri-trophy-line',
       points: ['partners_promoters_p1', 'partners_promoters_p2', 'partners_promoters_p3', 'partners_promoters_p4']
