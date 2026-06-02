@@ -1,68 +1,69 @@
 import { useEffect } from 'react';
 
 interface SEOProps {
-  title?: string;
-  description?: string;
-  image?: string;
-  url?: string;
+  title: string;
+  description: string;
+  canonical?: string;
+  ogImage?: string;
+  jsonLd?: object;
 }
 
-const BASE_TITLE = 'RANKD — Plataforma de Scouting para Deportes de Contacto';
-const BASE_URL = typeof window !== 'undefined' ? window.location.origin : 'https://rankd.es';
+const BASE_URL = 'https://rankd-black.vercel.app';
 
-function setMeta(name: string, content: string, isProperty = false) {
-  const attr = isProperty ? 'property' : 'name';
-  let el = document.querySelector(`meta[${attr}="${name}"]`) as HTMLMetaElement | null;
-  if (!el) {
-    el = document.createElement('meta');
-    el.setAttribute(attr, name);
-    document.head.appendChild(el);
-  }
-  el.setAttribute('content', content);
-}
-
-function setCanonical(url: string) {
-  let el = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
-  if (!el) {
-    el = document.createElement('link');
-    el.setAttribute('rel', 'canonical');
-    document.head.appendChild(el);
-  }
-  el.setAttribute('href', url);
-}
-
-export function useSEO({ title, description, image, url }: SEOProps = {}) {
+export function useSEO({ title, description, canonical, ogImage, jsonLd }: SEOProps) {
   useEffect(() => {
-    const fullTitle = title ? `${title} | RANKD` : BASE_TITLE;
-    const fullUrl = url || (typeof window !== 'undefined' ? window.location.href : BASE_URL);
+    // Title
+    document.title = title;
 
-    document.title = fullTitle;
+    // Helpers
+    const setMeta = (selector: string, value: string) => {
+      let el = document.querySelector(selector) as HTMLMetaElement;
+      if (!el) {
+        el = document.createElement('meta');
+        const attr = selector.includes('property=') ? 'property' : 'name';
+        el.setAttribute(attr, selector.match(/["']([^"']+)["']/)?.[1] || '');
+        document.head.appendChild(el);
+      }
+      el.setAttribute('content', value);
+    };
 
-    if (description) {
-      setMeta('description', description);
+    const setLink = (rel: string, href: string) => {
+      let el = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement;
+      if (!el) { el = document.createElement('link'); el.setAttribute('rel', rel); document.head.appendChild(el); }
+      el.setAttribute('href', href);
+    };
+
+    // Meta tags
+    setMeta('meta[name="description"]', description);
+    setMeta('meta[property="og:title"]', title);
+    setMeta('meta[property="og:description"]', description);
+    setMeta('meta[property="og:url"]', canonical || BASE_URL);
+    setMeta('meta[name="twitter:title"]', title);
+    setMeta('meta[name="twitter:description"]', description);
+
+    if (ogImage) {
+      setMeta('meta[property="og:image"]', ogImage);
+      setMeta('meta[name="twitter:image"]', ogImage);
     }
 
-    setMeta('og:title', fullTitle, true);
-    setMeta('og:type', 'website', true);
-    setMeta('og:url', fullUrl, true);
-    setMeta('og:site_name', 'RANKD', true);
+    // Canonical
+    setLink('canonical', canonical || `${BASE_URL}${window.location.pathname}`);
 
-    if (description) {
-      setMeta('og:description', description, true);
+    // JSON-LD dinámico
+    if (jsonLd) {
+      let script = document.querySelector('#dynamic-jsonld') as HTMLScriptElement;
+      if (!script) {
+        script = document.createElement('script');
+        script.id = 'dynamic-jsonld';
+        script.type = 'application/ld+json';
+        document.head.appendChild(script);
+      }
+      script.textContent = JSON.stringify(jsonLd);
     }
 
-    if (image) {
-      setMeta('og:image', image, true);
-      setMeta('twitter:image', image);
-    }
-
-    setMeta('twitter:card', 'summary_large_image');
-    setMeta('twitter:title', fullTitle);
-
-    if (description) {
-      setMeta('twitter:description', description);
-    }
-
-    setCanonical(fullUrl);
-  }, [title, description, image, url]);
+    return () => {
+      const script = document.querySelector('#dynamic-jsonld');
+      if (script) script.remove();
+    };
+  }, [title, description, canonical, ogImage, jsonLd]);
 }
