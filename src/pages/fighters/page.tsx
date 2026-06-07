@@ -137,17 +137,14 @@ export default function FightersDirectoryPage() {
   // Detectar país del usuario
   useEffect(() => {
     const detectCountry = async () => {
-      // Primero intentar desde el perfil del usuario si está logueado
-      if (userProfile?.location) {
-        const parts = userProfile.location.split(',');
-        const country = parts[parts.length - 1].trim();
-        if (country) {
-          setUserCountry(country);
-          setFilters(f => ({ ...f, location: country }));
-          return;
-        }
+      // Si el usuario está logueado y tiene country guardado, usarlo directamente
+      if ((userProfile as any)?.country) {
+        const country = (userProfile as any).country;
+        setUserCountry(country);
+        setFilters(f => ({ ...f, location: country }));
+        return;
       }
-
+      // Si no, detectar por IP
       const ipCountry = await detectCountryByIP();
       const mapped = COUNTRY_MAP[ipCountry] || ipCountry;
       if (mapped) {
