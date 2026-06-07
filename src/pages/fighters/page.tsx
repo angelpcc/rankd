@@ -153,8 +153,7 @@ export default function FightersDirectoryPage() {
 
   const locations = useMemo(() => {
     const locs = new Set<string>();
-    data.forEach(({ profile, fighter }) => {
-      if (profile.location) locs.add(profile.location);
+    data.forEach(({ fighter }) => {
       if (fighter.nationality) locs.add(fighter.nationality);
     });
     return Array.from(locs).sort();
@@ -169,9 +168,8 @@ export default function FightersDirectoryPage() {
 
       if (filters.location) {
         const loc = filters.location.toLowerCase();
-        const profileLoc = (profile.location || '').toLowerCase();
         const nat = (fighter.nationality || '').toLowerCase();
-        if (!profileLoc.includes(loc) && !nat.includes(loc)) return false;
+        if (!nat.includes(loc)) return false;
       }
 
       const socialCount = getSocialCount(profile);
