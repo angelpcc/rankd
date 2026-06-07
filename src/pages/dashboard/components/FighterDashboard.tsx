@@ -767,7 +767,7 @@ export default function FighterDashboard({ profile }: Props) {
 
         {/* ── OPPORTUNITIES TAB ── */}
         {activeTab === 'opportunities' && (
-          <FighterOpportunities profile={profile} showToast={showToast} />
+          <FighterOpportunities profile={profile} fighter={fighter} showToast={showToast} />
         )}
 
         {/* ── MESSAGES TAB ── */}

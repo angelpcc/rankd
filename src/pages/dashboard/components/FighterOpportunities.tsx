@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase, Opportunity, OpportunityType, Profile } from '@/lib/supabase';
+import { supabase, Opportunity, OpportunityType, Profile, Fighter } from '@/lib/supabase';
 import ApplyModal from '@/pages/opportunities/components/ApplyModal';
 import OpportunityCard from '@/pages/opportunities/components/OpportunityCard';
 
 interface Props {
   profile: Profile;
+  fighter: Fighter | null;
   showToast: (msg: string, type?: 'success' | 'error') => void;
 }
 
@@ -64,7 +65,27 @@ const emptyForm = {
 
 type SubTab = 'explore' | 'mine';
 
-export default function FighterOpportunities({ profile, showToast }: Props) {
+// Comprueba si una oportunidad es compatible con el perfil del peleador
+function isMatchingOpportunity(opp: Opportunity, fighter: Fighter | null): boolean {
+  if (!fighter) return true; // si no hay fighter, mostrar todas
+
+  // Si la oportunidad no tiene ningún filtro, es abierta para todos
+  const hasFilters = opp.discipline || opp.weight_class || opp.experience_level;
+  if (!hasFilters) return true;
+
+  // Comprobar disciplina
+  if (opp.discipline && fighter.discipline && opp.discipline !== fighter.discipline) return false;
+
+  // Comprobar peso
+  if (opp.weight_class && fighter.weight_class && opp.weight_class !== fighter.weight_class) return false;
+
+  // Comprobar nivel
+  if (opp.experience_level && fighter.experience_level && opp.experience_level !== fighter.experience_level) return false;
+
+  return true;
+}
+
+export default function FighterOpportunities({ profile, fighter, showToast }: Props) {
   const navigate = useNavigate();
   const [subTab, setSubTab] = useState<SubTab>('explore');
 
@@ -74,6 +95,7 @@ export default function FighterOpportunities({ profile, showToast }: Props) {
   const [loadingExplore, setLoadingExplore] = useState(true);
   const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
   const [filterType, setFilterType] = useState('');
+  const [showAll, setShowAll] = useState(false);
 
   // ── MY OPPORTUNITIES state ──
   const [myOpps, setMyOpps] = useState<Opportunity[]>([]);
@@ -223,14 +245,14 @@ export default function FighterOpportunities({ profile, showToast }: Props) {
     showToast('Oportunidad eliminada');
   };
 
-  const filteredExplore = filterType
-    ? opportunities.filter((o) => o.type === filterType)
-    : opportunities;
+  // Filtrar por tipo y por compatibilidad con el perfil del peleador
+  const matchingOpps = opportunities.filter((o) => isMatchingOpportunity(o, fighter));
+  const otherOpps = opportunities.filter((o) => !isMatchingOpportunity(o, fighter));
 
-  const exploreTypeOptions = [
-    { value: '', label: 'Todos' },
-    ...typeOptions,
-  ];
+  const filteredExplore = (showAll ? opportunities : matchingOpps)
+    .filter((o) => !filterType || o.type === filterType);
+
+  const exploreTypeOptions = [{ value: '', label: 'Todos' }, ...typeOptions];
 
   return (
     <div className="space-y-5">
@@ -260,18 +282,46 @@ export default function FighterOpportunities({ profile, showToast }: Props) {
         <>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-base font-semibold text-white">Oportunidades disponibles</h2>
+              <h2 className="text-base font-semibold text-white">Oportunidades para ti</h2>
               <p className="text-xs text-zinc-500 mt-0.5">
-                {filteredExplore.length} oportunidad{filteredExplore.length !== 1 ? 'es' : ''} activa{filteredExplore.length !== 1 ? 's' : ''}
+                {showAll
+                  ? `${filteredExplore.length} oportunidad${filteredExplore.length !== 1 ? 'es' : ''} en total`
+                  : `${matchingOpps.length} oportunidad${matchingOpps.length !== 1 ? 'es' : ''} que coinciden con tu perfil`
+                }
               </p>
             </div>
-            <button
-              onClick={() => navigate('/opportunities')}
-              className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 cursor-pointer whitespace-nowrap"
-            >
-              Ver todos los peleadores <i className="ri-external-link-line"></i>
-            </button>
+            <div className="flex items-center gap-3">
+              {/* Toggle ver todas / solo las mías */}
+              {otherOpps.length > 0 && (
+                <button
+                  onClick={() => setShowAll(!showAll)}
+                  className="text-xs text-zinc-400 hover:text-white cursor-pointer whitespace-nowrap flex items-center gap-1 border border-zinc-700 rounded-lg px-3 py-1.5 transition-colors"
+                >
+                  {showAll ? <><i className="ri-filter-line"></i> Solo para mí</> : <><i className="ri-earth-line"></i> Ver todas ({opportunities.length})</>}
+                </button>
+              )}
+              <button
+                onClick={() => navigate('/opportunities')}
+                className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 cursor-pointer whitespace-nowrap"
+              >
+                Ver directorio <i className="ri-external-link-line"></i>
+              </button>
+            </div>
           </div>
+
+          {/* Banner informativo si tiene filtros activos */}
+          {fighter && !showAll && (
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 flex items-center gap-3">
+              <i className="ri-filter-3-line text-red-400 text-sm flex-shrink-0"></i>
+              <p className="text-xs text-zinc-400">
+                Mostrando oportunidades compatibles con tu perfil:
+                {fighter.discipline && <span className="text-white ml-1 font-medium">{fighter.discipline.replace('_', ' ')}</span>}
+                {fighter.weight_class && <span className="text-white ml-1 font-medium">· {fighter.weight_class}</span>}
+                {fighter.experience_level && <span className="text-white ml-1 font-medium">· {fighter.experience_level}</span>}
+                . Las oportunidades abiertas a todos también aparecen aquí.
+              </p>
+            </div>
+          )}
 
           {/* Type filter pills */}
           <div className="flex gap-2 flex-wrap">
@@ -295,8 +345,16 @@ export default function FighterOpportunities({ profile, showToast }: Props) {
               <div className="w-14 h-14 flex items-center justify-center mx-auto mb-4 text-zinc-600">
                 <i className="ri-search-line text-4xl"></i>
               </div>
-              <p className="text-zinc-400 text-sm">No hay oportunidades disponibles ahora mismo.</p>
-              <p className="text-zinc-500 text-xs mt-1">Vuelve pronto, se publican nuevas cada día.</p>
+              <p className="text-zinc-400 text-sm">No hay oportunidades compatibles con tu perfil ahora mismo.</p>
+              <p className="text-zinc-500 text-xs mt-1">Completa tu perfil o pulsa "Ver todas" para ver el resto.</p>
+              {otherOpps.length > 0 && (
+                <button
+                  onClick={() => setShowAll(true)}
+                  className="mt-4 text-xs text-red-400 hover:text-red-300 cursor-pointer border border-red-500/30 rounded-lg px-4 py-2"
+                >
+                  Ver todas las oportunidades ({opportunities.length})
+                </button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -341,7 +399,6 @@ export default function FighterOpportunities({ profile, showToast }: Props) {
             </button>
           </div>
 
-          {/* Info banner */}
           <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-4 flex items-start gap-3">
             <div className="w-8 h-8 flex items-center justify-center text-red-400 flex-shrink-0">
               <i className="ri-lightbulb-line text-lg"></i>
@@ -349,22 +406,18 @@ export default function FighterOpportunities({ profile, showToast }: Props) {
             <div>
               <p className="text-sm text-zinc-300 font-medium">¿Qué puedes publicar?</p>
               <p className="text-xs text-zinc-500 mt-0.5">
-                Busca sparring, compañeros de campamento, rivales para preparación, o anuncia que estás disponible para combates y contratos. Cualquier peleador o promotora puede ver y responder tu publicación.
+                Busca sparring, compañeros de campamento, rivales para preparación, o anuncia que estás disponible para combates y contratos.
               </p>
             </div>
           </div>
 
-          {/* Form */}
           {showForm && (
             <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-white">
                   {editingId ? 'Editar publicación' : 'Nueva publicación'}
                 </h3>
-                <button
-                  onClick={() => setShowForm(false)}
-                  className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-white transition-colors cursor-pointer"
-                >
+                <button onClick={() => setShowForm(false)} className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-white transition-colors cursor-pointer">
                   <i className="ri-close-line"></i>
                 </button>
               </div>
@@ -382,120 +435,54 @@ export default function FighterOpportunities({ profile, showToast }: Props) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs text-zinc-400 mb-1.5">Tipo *</label>
-                  <select
-                    value={form.type}
-                    onChange={(e) => setField('type', e.target.value)}
-                    className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer"
-                  >
-                    {typeOptions.map((t) => (
-                      <option key={t.value} value={t.value}>{t.label}</option>
-                    ))}
+                  <select value={form.type} onChange={(e) => setField('type', e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer">
+                    {typeOptions.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                 </div>
-
                 <div>
                   <label className="block text-xs text-zinc-400 mb-1.5">Disciplina</label>
-                  <select
-                    value={form.discipline}
-                    onChange={(e) => setField('discipline', e.target.value)}
-                    className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer"
-                  >
-                    {disciplines.map((d) => (
-                      <option key={d.value} value={d.value}>{d.label}</option>
-                    ))}
+                  <select value={form.discipline} onChange={(e) => setField('discipline', e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer">
+                    {disciplines.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
                   </select>
                 </div>
-
                 <div>
                   <label className="block text-xs text-zinc-400 mb-1.5">Categoría de peso</label>
-                  <select
-                    value={form.weight_class}
-                    onChange={(e) => setField('weight_class', e.target.value)}
-                    className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer"
-                  >
+                  <select value={form.weight_class} onChange={(e) => setField('weight_class', e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer">
                     <option value="">Cualquier categoría</option>
-                    {weightClasses.filter(Boolean).map((w) => (
-                      <option key={w} value={w}>{w}</option>
-                    ))}
+                    {weightClasses.filter(Boolean).map((w) => <option key={w} value={w}>{w}</option>)}
                   </select>
                 </div>
-
                 <div>
                   <label className="block text-xs text-zinc-400 mb-1.5">Nivel requerido</label>
-                  <select
-                    value={form.experience_level}
-                    onChange={(e) => setField('experience_level', e.target.value)}
-                    className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer"
-                  >
-                    {expLevels.map((lvl) => (
-                      <option key={lvl.value} value={lvl.value}>{lvl.label}</option>
-                    ))}
+                  <select value={form.experience_level} onChange={(e) => setField('experience_level', e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer">
+                    {expLevels.map((lvl) => <option key={lvl.value} value={lvl.value}>{lvl.label}</option>)}
                   </select>
                 </div>
-
                 <div>
                   <label className="block text-xs text-zinc-400 mb-1.5">Ubicación</label>
-                  <input
-                    value={form.location}
-                    onChange={(e) => setField('location', e.target.value)}
-                    className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 placeholder-zinc-600"
-                    placeholder="Madrid, España"
-                  />
+                  <input value={form.location} onChange={(e) => setField('location', e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 placeholder-zinc-600" placeholder="Madrid, España" />
                 </div>
-
                 <div>
                   <label className="block text-xs text-zinc-400 mb-1.5">Fecha del evento</label>
-                  <input
-                    type="date"
-                    value={form.event_date}
-                    onChange={(e) => setField('event_date', e.target.value)}
-                    className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer"
-                  />
+                  <input type="date" value={form.event_date} onChange={(e) => setField('event_date', e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer" />
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs text-zinc-400 mb-1.5">Descripción</label>
-                <textarea
-                  value={form.description}
-                  onChange={(e) => setField('description', e.target.value)}
-                  rows={4}
-                  maxLength={500}
-                  className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 resize-none placeholder-zinc-600"
-                  placeholder="Describe lo que buscas: nivel, condiciones, qué ofreces..."
-                />
+                <textarea value={form.description} onChange={(e) => setField('description', e.target.value)} rows={4} maxLength={500} className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 resize-none placeholder-zinc-600" placeholder="Describe lo que buscas..." />
                 <p className="text-xs text-zinc-500 text-right mt-1">{form.description.length}/500</p>
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => setShowForm(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-zinc-700 text-zinc-400 text-sm hover:border-zinc-500 transition-colors cursor-pointer whitespace-nowrap"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={saveOpportunity}
-                  disabled={saving}
-                  className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60 flex items-center justify-center gap-2"
-                >
-                  {saving ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Guardando...
-                    </>
-                  ) : (
-                    <>
-                      <i className="ri-check-line"></i>
-                      {editingId ? 'Actualizar' : 'Publicar'}
-                    </>
-                  )}
+                <button onClick={() => setShowForm(false)} className="flex-1 py-2.5 rounded-xl border border-zinc-700 text-zinc-400 text-sm hover:border-zinc-500 transition-colors cursor-pointer whitespace-nowrap">Cancelar</button>
+                <button onClick={saveOpportunity} disabled={saving} className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60 flex items-center justify-center gap-2">
+                  {saving ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>Guardando...</> : <><i className="ri-check-line"></i>{editingId ? 'Actualizar' : 'Publicar'}</>}
                 </button>
               </div>
             </div>
           )}
 
-          {/* Empty state */}
           {loadingMine ? (
             <div className="flex items-center justify-center py-16">
               <div className="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
@@ -507,10 +494,7 @@ export default function FighterOpportunities({ profile, showToast }: Props) {
               </div>
               <p className="text-zinc-400 text-sm">No has publicado nada aún.</p>
               <p className="text-zinc-500 text-xs mt-1">Publica lo que buscas y que te encuentren.</p>
-              <button
-                onClick={openCreate}
-                className="mt-5 inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
-              >
+              <button onClick={openCreate} className="mt-5 inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap">
                 <i className="ri-add-line"></i> Crear primera publicación
               </button>
             </div>
@@ -520,10 +504,7 @@ export default function FighterOpportunities({ profile, showToast }: Props) {
                 const cfg = typeConfig[opp.type] || typeConfig.combate;
                 const appCount = applicationsCount[opp.id] || 0;
                 return (
-                  <div
-                    key={opp.id}
-                    className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-4"
-                  >
+                  <div key={opp.id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                         <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border ${cfg.color}`}>
@@ -541,42 +522,19 @@ export default function FighterOpportunities({ profile, showToast }: Props) {
                       </div>
                       <p className="text-sm font-semibold text-white truncate">{opp.title}</p>
                       <div className="flex items-center gap-3 mt-1 flex-wrap">
-                        {opp.location && (
-                          <span className="text-xs text-zinc-500 flex items-center gap-1">
-                            <i className="ri-map-pin-line"></i>{opp.location}
-                          </span>
-                        )}
-                        {opp.event_date && (
-                          <span className="text-xs text-zinc-500 flex items-center gap-1">
-                            <i className="ri-calendar-line"></i>
-                            {new Date(opp.event_date).toLocaleDateString('es-ES')}
-                          </span>
-                        )}
-                        {opp.discipline && (
-                          <span className="text-xs text-zinc-500 capitalize">{opp.discipline.replace('_', ' ')}</span>
-                        )}
+                        {opp.location && <span className="text-xs text-zinc-500 flex items-center gap-1"><i className="ri-map-pin-line"></i>{opp.location}</span>}
+                        {opp.event_date && <span className="text-xs text-zinc-500 flex items-center gap-1"><i className="ri-calendar-line"></i>{new Date(opp.event_date).toLocaleDateString('es-ES')}</span>}
+                        {opp.discipline && <span className="text-xs text-zinc-500 capitalize">{opp.discipline.replace('_', ' ')}</span>}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <button
-                        onClick={() => openEdit(opp)}
-                        title="Editar"
-                        className="w-8 h-8 flex items-center justify-center rounded-lg border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500 transition-colors cursor-pointer"
-                      >
+                      <button onClick={() => openEdit(opp)} title="Editar" className="w-8 h-8 flex items-center justify-center rounded-lg border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500 transition-colors cursor-pointer">
                         <i className="ri-edit-line text-sm"></i>
                       </button>
-                      <button
-                        onClick={() => toggleStatus(opp)}
-                        title={opp.status === 'open' ? 'Cerrar' : 'Abrir'}
-                        className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-colors cursor-pointer ${opp.status === 'open' ? 'border-zinc-700 text-zinc-400 hover:text-yellow-400 hover:border-yellow-500/50' : 'border-green-500/30 text-green-400 hover:border-green-500'}`}
-                      >
+                      <button onClick={() => toggleStatus(opp)} title={opp.status === 'open' ? 'Cerrar' : 'Abrir'} className={`w-8 h-8 flex items-center justify-center rounded-lg border transition-colors cursor-pointer ${opp.status === 'open' ? 'border-zinc-700 text-zinc-400 hover:text-yellow-400 hover:border-yellow-500/50' : 'border-green-500/30 text-green-400 hover:border-green-500'}`}>
                         <i className={opp.status === 'open' ? 'ri-pause-line text-sm' : 'ri-play-line text-sm'}></i>
                       </button>
-                      <button
-                        onClick={() => deleteOpportunity(opp.id)}
-                        title="Eliminar"
-                        className="w-8 h-8 flex items-center justify-center rounded-lg border border-zinc-700 text-zinc-400 hover:text-red-400 hover:border-red-500/50 transition-colors cursor-pointer"
-                      >
+                      <button onClick={() => deleteOpportunity(opp.id)} title="Eliminar" className="w-8 h-8 flex items-center justify-center rounded-lg border border-zinc-700 text-zinc-400 hover:text-red-400 hover:border-red-500/50 transition-colors cursor-pointer">
                         <i className="ri-delete-bin-line text-sm"></i>
                       </button>
                     </div>
