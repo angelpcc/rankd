@@ -102,17 +102,21 @@ export default function FightersDirectoryPage() {
     const detectCountry = async () => {
       // Primero intentar desde el perfil del usuario si está logueado
       if (userProfile?.location) {
-        // Intentar extraer país del location (ej: "Madrid, España" → "España")
         const parts = userProfile.location.split(',');
         const country = parts[parts.length - 1].trim();
-        if (country) { setUserCountry(country); return; }
+        if (country) {
+          setUserCountry(country);
+          setFilters(f => ({ ...f, location: country }));
+          return;
+        }
       }
 
-      // Si tiene nationality en su fighter profile, usarlo
-      // Si no, detectar por IP
       const ipCountry = await detectCountryByIP();
       const mapped = COUNTRY_MAP[ipCountry] || ipCountry;
-      if (mapped) setUserCountry(mapped);
+      if (mapped) {
+        setUserCountry(mapped);
+        setFilters(f => ({ ...f, location: mapped }));
+      }
     };
 
     detectCountry();
@@ -189,19 +193,8 @@ export default function FightersDirectoryPage() {
       return true;
     });
 
-    // Sort — primero por país del usuario, luego por el criterio elegido
+    // Sort
     result = [...result].sort((a, b) => {
-      // Priorizar peleadores del mismo país que el usuario
-      if (userCountry && !filters.location) {
-        const aCountry = (a.fighter.nationality || a.profile.location || '').toLowerCase();
-        const bCountry = (b.fighter.nationality || b.profile.location || '').toLowerCase();
-        const userC = userCountry.toLowerCase();
-        const aMatch = aCountry.includes(userC);
-        const bMatch = bCountry.includes(userC);
-        if (aMatch && !bMatch) return -1;
-        if (!aMatch && bMatch) return 1;
-      }
-
       if (sortBy === 'wins') return b.fighter.wins - a.fighter.wins;
       if (sortBy === 'social') return getSocialCount(b.profile) - getSocialCount(a.profile);
       if (sortBy === 'available') {
@@ -284,12 +277,12 @@ export default function FightersDirectoryPage() {
                 {t('fighters_dir_desc')}
               </p>
               {/* Indicador de país detectado */}
-              {userCountry && !filters.location && (
+              {userCountry && (
                 <div className="mt-4 inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-2">
                   <i className="ri-map-pin-line text-red-400 text-xs"></i>
-                  <span className="text-xs text-zinc-300">Mostrando primero peleadores de <strong className="text-white">{userCountry}</strong></span>
+                  <span className="text-xs text-zinc-300">Viendo peleadores de <strong className="text-white">{userCountry}</strong></span>
                   <button
-                    onClick={() => setUserCountry('')}
+                    onClick={() => { setUserCountry(''); setFilters(f => ({ ...f, location: '' })); }}
                     className="text-zinc-500 hover:text-white transition-colors cursor-pointer ml-1"
                   >
                     <i className="ri-close-line text-xs"></i>
