@@ -6,21 +6,41 @@ import UserTypeSelector from './components/UserTypeSelector';
 
 type AuthMode = 'login' | 'register';
 
+const COUNTRY_MAP: Record<string, string> = {
+  'Spain': 'España', 'Mexico': 'México', 'Argentina': 'Argentina',
+  'Colombia': 'Colombia', 'Chile': 'Chile', 'Peru': 'Perú',
+  'Venezuela': 'Venezuela', 'Ecuador': 'Ecuador', 'Bolivia': 'Bolivia',
+  'Uruguay': 'Uruguay', 'Paraguay': 'Paraguay', 'Cuba': 'Cuba',
+  'Dominican Republic': 'República Dominicana', 'Puerto Rico': 'Puerto Rico',
+  'Guatemala': 'Guatemala', 'Honduras': 'Honduras', 'El Salvador': 'El Salvador',
+  'Nicaragua': 'Nicaragua', 'Costa Rica': 'Costa Rica', 'Panama': 'Panamá',
+  'Brazil': 'Brasil', 'United States': 'Estados Unidos', 'United Kingdom': 'Reino Unido',
+  'France': 'Francia', 'Germany': 'Alemania', 'Italy': 'Italia',
+  'Portugal': 'Portugal', 'Netherlands': 'Países Bajos', 'Belgium': 'Bélgica',
+  'Switzerland': 'Suiza', 'Austria': 'Austria', 'Poland': 'Polonia',
+  'Romania': 'Rumanía', 'Ukraine': 'Ucrania', 'Russia': 'Rusia',
+  'Sweden': 'Suecia', 'Norway': 'Noruega', 'Denmark': 'Dinamarca',
+  'Morocco': 'Marruecos', 'Algeria': 'Argelia', 'Senegal': 'Senegal',
+  'Nigeria': 'Nigeria', 'Philippines': 'Filipinas', 'Japan': 'Japón',
+  'South Korea': 'Corea del Sur', 'Thailand': 'Tailandia', 'Australia': 'Australia',
+};
+
+async function detectCountryByIP(): Promise<string> {
+  try {
+    const res = await fetch('https://ipapi.co/json/');
+    const json = await res.json();
+    const raw = json.country_name || '';
+    return COUNTRY_MAP[raw] || raw;
+  } catch {
+    return '';
+  }
+}
+
 function RankdLogo() {
   return (
     <div className="flex items-center gap-0">
-      <span
-        className="font-unbounded font-black tracking-tighter leading-none"
-        style={{ fontSize: '28px', color: '#FFFFFF', letterSpacing: '-0.04em' }}
-      >
-        RAN
-      </span>
-      <span
-        className="font-unbounded font-black tracking-tighter leading-none"
-        style={{ fontSize: '28px', color: '#E10600', letterSpacing: '-0.04em' }}
-      >
-        KD
-      </span>
+      <span className="font-unbounded font-black tracking-tighter leading-none" style={{ fontSize: '28px', color: '#FFFFFF', letterSpacing: '-0.04em' }}>RAN</span>
+      <span className="font-unbounded font-black tracking-tighter leading-none" style={{ fontSize: '28px', color: '#E10600', letterSpacing: '-0.04em' }}>KD</span>
     </div>
   );
 }
@@ -76,11 +96,7 @@ export default function AuthPage() {
       return;
     }
     if (data.user) {
-      const { data: prof } = await supabase
-        .from('profiles')
-        .select('user_type')
-        .eq('id', data.user.id)
-        .maybeSingle();
+      const { data: prof } = await supabase.from('profiles').select('user_type').eq('id', data.user.id).maybeSingle();
       redirectByRole(prof?.user_type ?? '');
     }
     setLoading(false);
@@ -91,6 +107,9 @@ export default function AuthPage() {
     if (!userType) { setError(t('error_select_account_type')); return; }
     setLoading(true);
     setError('');
+
+    // Detectar país por IP
+    const country = await detectCountryByIP();
 
     const { data, error: signUpErr } = await supabase.auth.signUp({
       email,
@@ -125,6 +144,7 @@ export default function AuthPage() {
           id: data.user.id,
           user_type: userType,
           full_name: fullName,
+          country: country || null,
         }, { onConflict: 'id', ignoreDuplicates: true });
         redirectByRole(userType, true);
       } else {
@@ -136,54 +156,24 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-[#0B0B0B] flex flex-col items-center justify-center relative overflow-hidden px-4 py-8 sm:py-12">
-      {/* Background texture */}
-      <div
-        className="absolute inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage:
-            'linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)',
-          backgroundSize: '52px 52px',
-        }}
-      />
-      <div
-        className="absolute bottom-0 left-0 w-[600px] h-[600px] rounded-full pointer-events-none"
-        style={{ background: 'radial-gradient(circle, rgba(225,6,0,0.07) 0%, transparent 70%)' }}
-      />
-      <div
-        className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full pointer-events-none"
-        style={{ background: 'radial-gradient(circle, rgba(225,6,0,0.04) 0%, transparent 70%)' }}
-      />
+      <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)', backgroundSize: '52px 52px' }} />
+      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(225,6,0,0.07) 0%, transparent 70%)' }} />
+      <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(225,6,0,0.04) 0%, transparent 70%)' }} />
 
-      {/* Logo */}
       <div className="relative z-10 mb-7 sm:mb-10">
-        <a href="/" className="inline-block">
-          <RankdLogo />
-        </a>
+        <a href="/" className="inline-block"><RankdLogo /></a>
       </div>
 
-      {/* Card */}
       <div className="relative z-10 w-full max-w-[420px]">
-        {/* Tabs */}
         <div className="flex bg-[#141414] rounded-2xl p-1 mb-6 sm:mb-8 border border-white/[0.06]">
-          <button
-            onClick={() => { setMode('login'); setStep(1); setError(''); }}
-            className={`flex-1 py-3 text-sm font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap font-inter ${
-              mode === 'login' ? 'bg-[#E10600] text-white' : 'text-white/35 hover:text-white/70'
-            }`}
-          >
+          <button onClick={() => { setMode('login'); setStep(1); setError(''); }} className={`flex-1 py-3 text-sm font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap font-inter ${mode === 'login' ? 'bg-[#E10600] text-white' : 'text-white/35 hover:text-white/70'}`}>
             {t('auth_tab_login')}
           </button>
-          <button
-            onClick={() => { setMode('register'); setStep(1); setError(''); }}
-            className={`flex-1 py-3 text-sm font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap font-inter ${
-              mode === 'register' ? 'bg-[#E10600] text-white' : 'text-white/35 hover:text-white/70'
-            }`}
-          >
+          <button onClick={() => { setMode('register'); setStep(1); setError(''); }} className={`flex-1 py-3 text-sm font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap font-inter ${mode === 'register' ? 'bg-[#E10600] text-white' : 'text-white/35 hover:text-white/70'}`}>
             {t('auth_tab_register')}
           </button>
         </div>
 
-        {/* Form area */}
         <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-5 sm:p-8">
           {mode === 'login' ? (
             <form onSubmit={handleLogin} className="space-y-5">
@@ -193,47 +183,19 @@ export default function AuthPage() {
               </div>
               <div>
                 <label className="block text-xs text-white/40 mb-2 font-inter uppercase tracking-wide font-semibold">{t('label_email')}</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
-                  placeholder="tu@email.com"
-                  className="w-full bg-white/[0.04] border border-white/[0.08] text-white text-sm rounded-xl px-4 py-3.5 focus:outline-none focus:border-[#E10600] placeholder-white/20 font-inter transition-colors"
-                />
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="tu@email.com" className="w-full bg-white/[0.04] border border-white/[0.08] text-white text-sm rounded-xl px-4 py-3.5 focus:outline-none focus:border-[#E10600] placeholder-white/20 font-inter transition-colors" />
               </div>
               <div>
                 <label className="block text-xs text-white/40 mb-2 font-inter uppercase tracking-wide font-semibold">{t('label_password')}</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  required
-                  placeholder="••••••••"
-                  className="w-full bg-white/[0.04] border border-white/[0.08] text-white text-sm rounded-xl px-4 py-3.5 focus:outline-none focus:border-[#E10600] placeholder-white/20 font-inter transition-colors"
-                />
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" className="w-full bg-white/[0.04] border border-white/[0.08] text-white text-sm rounded-xl px-4 py-3.5 focus:outline-none focus:border-[#E10600] placeholder-white/20 font-inter transition-colors" />
               </div>
-              {error && (
-                <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 font-inter">
-                  {error}
-                </p>
-              )}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-[#E10600] hover:bg-red-700 text-white font-semibold py-3.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60 font-inter mt-2"
-              >
+              {error && <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 font-inter">{error}</p>}
+              <button type="submit" disabled={loading} className="w-full bg-[#E10600] hover:bg-red-700 text-white font-semibold py-3.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60 font-inter mt-2">
                 {loading ? t('auth_login_loading') : t('auth_login_btn')}
               </button>
               <p className="text-center text-white/25 text-sm font-inter pt-1">
                 {t('auth_login_no_account')}{' '}
-                <button
-                  type="button"
-                  onClick={() => setMode('register')}
-                  className="text-[#E10600] hover:text-red-400 cursor-pointer font-inter transition-colors"
-                >
-                  {t('auth_login_register_link')}
-                </button>
+                <button type="button" onClick={() => setMode('register')} className="text-[#E10600] hover:text-red-400 cursor-pointer font-inter transition-colors">{t('auth_login_register_link')}</button>
               </p>
             </form>
           ) : (
@@ -245,31 +207,15 @@ export default function AuthPage() {
                     <p className="text-white/30 text-sm font-inter">{t('auth_register_step1_subtitle')}</p>
                   </div>
                   <UserTypeSelector selected={userType} onChange={setUserType} />
-                  {error && (
-                    <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 font-inter">
-                      {error}
-                    </p>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!userType) { setError(t('error_select_account_type')); return; }
-                      setError('');
-                      setStep(2);
-                    }}
-                    className="w-full bg-[#E10600] hover:bg-red-700 text-white font-semibold py-3.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap font-inter"
-                  >
+                  {error && <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 font-inter">{error}</p>}
+                  <button type="button" onClick={() => { if (!userType) { setError(t('error_select_account_type')); return; } setError(''); setStep(2); }} className="w-full bg-[#E10600] hover:bg-red-700 text-white font-semibold py-3.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap font-inter">
                     {t('auth_continue_btn')} <i className="ri-arrow-right-line ml-1"></i>
                   </button>
                 </div>
               ) : (
                 <form onSubmit={handleRegister} className="space-y-5">
                   <div className="flex items-center gap-3 mb-6">
-                    <button
-                      type="button"
-                      onClick={() => setStep(1)}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/[0.05] text-white/40 hover:text-white cursor-pointer border border-white/[0.08] transition-colors"
-                    >
+                    <button type="button" onClick={() => setStep(1)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/[0.05] text-white/40 hover:text-white cursor-pointer border border-white/[0.08] transition-colors">
                       <i className="ri-arrow-left-line text-sm"></i>
                     </button>
                     <div>
@@ -279,53 +225,19 @@ export default function AuthPage() {
                   </div>
                   <div>
                     <label className="block text-xs text-white/40 mb-2 font-inter uppercase tracking-wide font-semibold">{t('label_full_name')}</label>
-                    <input
-                      type="text"
-                      value={fullName}
-                      onChange={e => setFullName(e.target.value)}
-                      required
-                      placeholder="Tu nombre"
-                      className="w-full bg-white/[0.04] border border-white/[0.08] text-white text-sm rounded-xl px-4 py-3.5 focus:outline-none focus:border-[#E10600] placeholder-white/20 font-inter transition-colors"
-                    />
+                    <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} required placeholder="Tu nombre" className="w-full bg-white/[0.04] border border-white/[0.08] text-white text-sm rounded-xl px-4 py-3.5 focus:outline-none focus:border-[#E10600] placeholder-white/20 font-inter transition-colors" />
                   </div>
                   <div>
                     <label className="block text-xs text-white/40 mb-2 font-inter uppercase tracking-wide font-semibold">{t('label_email')}</label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={e => setEmail(e.target.value)}
-                      required
-                      placeholder="tu@email.com"
-                      className="w-full bg-white/[0.04] border border-white/[0.08] text-white text-sm rounded-xl px-4 py-3.5 focus:outline-none focus:border-[#E10600] placeholder-white/20 font-inter transition-colors"
-                    />
+                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="tu@email.com" className="w-full bg-white/[0.04] border border-white/[0.08] text-white text-sm rounded-xl px-4 py-3.5 focus:outline-none focus:border-[#E10600] placeholder-white/20 font-inter transition-colors" />
                   </div>
                   <div>
                     <label className="block text-xs text-white/40 mb-2 font-inter uppercase tracking-wide font-semibold">{t('label_password')}</label>
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      required
-                      minLength={6}
-                      placeholder="Mínimo 6 caracteres"
-                      className="w-full bg-white/[0.04] border border-white/[0.08] text-white text-sm rounded-xl px-4 py-3.5 focus:outline-none focus:border-[#E10600] placeholder-white/20 font-inter transition-colors"
-                    />
+                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} placeholder="Mínimo 6 caracteres" className="w-full bg-white/[0.04] border border-white/[0.08] text-white text-sm rounded-xl px-4 py-3.5 focus:outline-none focus:border-[#E10600] placeholder-white/20 font-inter transition-colors" />
                   </div>
-                  {error && (
-                    <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 font-inter">
-                      {error}
-                    </p>
-                  )}
-                  {success && (
-                    <p className="text-green-400 text-sm bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-3 font-inter">
-                      {success}
-                    </p>
-                  )}
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full bg-[#E10600] hover:bg-red-700 text-white font-semibold py-3.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60 font-inter"
-                  >
+                  {error && <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 font-inter">{error}</p>}
+                  {success && <p className="text-green-400 text-sm bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-3 font-inter">{success}</p>}
+                  <button type="submit" disabled={loading} className="w-full bg-[#E10600] hover:bg-red-700 text-white font-semibold py-3.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60 font-inter">
                     {loading ? t('auth_register_loading') : t('auth_register_btn')}
                   </button>
                   <p className="text-center text-white/20 text-xs font-inter pt-1">
@@ -340,7 +252,6 @@ export default function AuthPage() {
           )}
         </div>
 
-        {/* Bottom indicator */}
         <div className="flex items-center justify-center gap-2.5 mt-8">
           <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse flex-shrink-0"></div>
           <p className="text-white/20 text-xs font-inter">{t('auth_platform_launch')}</p>
