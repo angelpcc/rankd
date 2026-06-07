@@ -6,6 +6,16 @@ interface Props {
   onNext: () => void;
 }
 
+const COUNTRIES = [
+  'España', 'México', 'Argentina', 'Colombia', 'Chile', 'Perú', 'Venezuela',
+  'Ecuador', 'Bolivia', 'Uruguay', 'Paraguay', 'Cuba', 'República Dominicana',
+  'Puerto Rico', 'Guatemala', 'Honduras', 'El Salvador', 'Nicaragua', 'Costa Rica',
+  'Panamá', 'Brasil', 'Estados Unidos', 'Reino Unido', 'Francia', 'Alemania',
+  'Italia', 'Portugal', 'Países Bajos', 'Bélgica', 'Suiza', 'Austria', 'Polonia',
+  'Rumanía', 'Ucrania', 'Rusia', 'Marruecos', 'Argelia', 'Senegal', 'Nigeria',
+  'Filipinas', 'Japón', 'Corea del Sur', 'Tailandia', 'Australia', 'Otro',
+];
+
 export default function OnboardingStep1({ data, onUpdate, onNext }: Props) {
   const canContinue = data.full_name.trim().length >= 2;
 
@@ -57,23 +67,27 @@ export default function OnboardingStep1({ data, onUpdate, onNext }: Props) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-1.5">Nacionalidad</label>
-            <input
+            <label className="block text-sm font-medium text-zinc-300 mb-1.5">País de residencia</label>
+            <select
               value={data.nationality}
               onChange={(e) => onUpdate({ nationality: e.target.value })}
-              className="w-full bg-zinc-900 border border-zinc-700 text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 placeholder-zinc-600"
-              placeholder="España"
-            />
+              className="w-full bg-zinc-900 border border-zinc-700 text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 cursor-pointer"
+            >
+              <option value="">Selecciona país</option>
+              {COUNTRIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-1.5">Ubicación</label>
+          <label className="block text-sm font-medium text-zinc-300 mb-1.5">Ciudad</label>
           <input
             value={data.location}
             onChange={(e) => onUpdate({ location: e.target.value })}
             className="w-full bg-zinc-900 border border-zinc-700 text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 placeholder-zinc-600"
-            placeholder="Madrid, España"
+            placeholder="Madrid, Buenos Aires, Ciudad de México..."
           />
         </div>
 

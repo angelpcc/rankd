@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile, Fighter } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
 import FighterCard from './components/FighterCard';
 import FightersFilters, { Filters } from './components/FightersFilters';
 
@@ -25,15 +26,97 @@ function getSocialCount(profile: Profile): number {
   return [profile.instagram, profile.tiktok, profile.youtube, profile.twitter].filter(Boolean).length;
 }
 
+// Detectar país por IP usando api gratuita
+async function detectCountryByIP(): Promise<string> {
+  try {
+    const res = await fetch('https://ipapi.co/json/');
+    const json = await res.json();
+    return json.country_name || '';
+  } catch {
+    return '';
+  }
+}
+
+// Mapeo de nombres de país en inglés a español
+const COUNTRY_MAP: Record<string, string> = {
+  'Spain': 'España',
+  'Mexico': 'México',
+  'Argentina': 'Argentina',
+  'Colombia': 'Colombia',
+  'Chile': 'Chile',
+  'Peru': 'Perú',
+  'Venezuela': 'Venezuela',
+  'Ecuador': 'Ecuador',
+  'Bolivia': 'Bolivia',
+  'Uruguay': 'Uruguay',
+  'Paraguay': 'Paraguay',
+  'Cuba': 'Cuba',
+  'Dominican Republic': 'República Dominicana',
+  'Puerto Rico': 'Puerto Rico',
+  'Guatemala': 'Guatemala',
+  'Honduras': 'Honduras',
+  'El Salvador': 'El Salvador',
+  'Nicaragua': 'Nicaragua',
+  'Costa Rica': 'Costa Rica',
+  'Panama': 'Panamá',
+  'Brazil': 'Brasil',
+  'United States': 'Estados Unidos',
+  'United Kingdom': 'Reino Unido',
+  'France': 'Francia',
+  'Germany': 'Alemania',
+  'Italy': 'Italia',
+  'Portugal': 'Portugal',
+  'Netherlands': 'Países Bajos',
+  'Belgium': 'Bélgica',
+  'Switzerland': 'Suiza',
+  'Austria': 'Austria',
+  'Poland': 'Polonia',
+  'Romania': 'Rumanía',
+  'Ukraine': 'Ucrania',
+  'Russia': 'Rusia',
+  'Morocco': 'Marruecos',
+  'Algeria': 'Argelia',
+  'Senegal': 'Senegal',
+  'Nigeria': 'Nigeria',
+  'Philippines': 'Filipinas',
+  'Japan': 'Japón',
+  'South Korea': 'Corea del Sur',
+  'Thailand': 'Tailandia',
+  'Australia': 'Australia',
+};
+
 export default function FightersDirectoryPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { profile: userProfile } = useAuth();
   const [data, setData] = useState<FighterWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<Filters>(defaultFilters);
   const [sortBy, setSortBy] = useState('recent');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [userCountry, setUserCountry] = useState<string>('');
+
+  // Detectar país del usuario
+  useEffect(() => {
+    const detectCountry = async () => {
+      // Primero intentar desde el perfil del usuario si está logueado
+      if (userProfile?.location) {
+        // Intentar extraer país del location (ej: "Madrid, España" → "España")
+        const parts = userProfile.location.split(',');
+        const country = parts[parts.length - 1].trim();
+        if (country) { setUserCountry(country); return; }
+      }
+
+      // Si tiene nationality en su fighter profile, usarlo
+      // Si no, detectar por IP
+      const ipCountry = await detectCountryByIP();
+      const mapped = COUNTRY_MAP[ipCountry] || ipCountry;
+      if (mapped) setUserCountry(mapped);
+    };
+
+    detectCountry();
+  }, [userProfile]);
 
   useEffect(() => {
     const load = async () => {
@@ -64,7 +147,6 @@ export default function FightersDirectoryPage() {
     load();
   }, []);
 
-  // Extract unique locations from data
   const locations = useMemo(() => {
     const locs = new Set<string>();
     data.forEach(({ profile, fighter }) => {
@@ -81,7 +163,6 @@ export default function FightersDirectoryPage() {
       if (filters.expLevel && fighter.experience_level !== filters.expLevel) return false;
       if (filters.available && !fighter.is_available) return false;
 
-      // Location filter — match against profile.location or fighter.nationality
       if (filters.location) {
         const loc = filters.location.toLowerCase();
         const profileLoc = (profile.location || '').toLowerCase();
@@ -89,14 +170,12 @@ export default function FightersDirectoryPage() {
         if (!profileLoc.includes(loc) && !nat.includes(loc)) return false;
       }
 
-      // Social / popularity filter
       const socialCount = getSocialCount(profile);
       if (filters.hasSocial && socialCount === 0) return false;
       if (filters.popularity === 'high' && socialCount < 3) return false;
       if (filters.popularity === 'medium' && (socialCount < 1 || socialCount >= 3)) return false;
       if (filters.popularity === 'none' && socialCount > 0) return false;
 
-      // Search
       if (filters.search) {
         const q = filters.search.toLowerCase();
         const name = (profile.full_name || '').toLowerCase();
@@ -110,8 +189,19 @@ export default function FightersDirectoryPage() {
       return true;
     });
 
-    // Sort
+    // Sort — primero por país del usuario, luego por el criterio elegido
     result = [...result].sort((a, b) => {
+      // Priorizar peleadores del mismo país que el usuario
+      if (userCountry && !filters.location) {
+        const aCountry = (a.fighter.nationality || a.profile.location || '').toLowerCase();
+        const bCountry = (b.fighter.nationality || b.profile.location || '').toLowerCase();
+        const userC = userCountry.toLowerCase();
+        const aMatch = aCountry.includes(userC);
+        const bMatch = bCountry.includes(userC);
+        if (aMatch && !bMatch) return -1;
+        if (!aMatch && bMatch) return 1;
+      }
+
       if (sortBy === 'wins') return b.fighter.wins - a.fighter.wins;
       if (sortBy === 'social') return getSocialCount(b.profile) - getSocialCount(a.profile);
       if (sortBy === 'available') {
@@ -119,12 +209,11 @@ export default function FightersDirectoryPage() {
         if (!a.fighter.is_available && b.fighter.is_available) return 1;
         return 0;
       }
-      // recent: already ordered by created_at from DB
       return 0;
     });
 
     return result;
-  }, [data, filters, sortBy]);
+  }, [data, filters, sortBy, userCountry]);
 
   const disciplineLabels: Record<string, string> = {
     boxing: 'Boxeo', mma: 'MMA', kickboxing: 'Kickboxing',
@@ -153,12 +242,20 @@ export default function FightersDirectoryPage() {
             <a href="/fighters" className="text-sm font-semibold text-red-600 cursor-pointer">{t('nav_directory')}</a>
           </nav>
           <div className="flex items-center gap-2 sm:gap-3">
-            <button onClick={() => navigate('/auth')} className="hidden sm:block text-sm text-zinc-600 hover:text-zinc-900 cursor-pointer whitespace-nowrap transition-colors">
-              {t('fighters_dir_login')}
-            </button>
-            <button onClick={() => navigate('/auth')} className="bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold px-3 sm:px-4 py-2 rounded-xl cursor-pointer whitespace-nowrap transition-colors">
-              {t('fighters_dir_join')}
-            </button>
+            {userProfile ? (
+              <button onClick={() => navigate('/dashboard')} className="bg-zinc-900 hover:bg-zinc-700 text-white text-xs sm:text-sm font-semibold px-3 sm:px-4 py-2 rounded-xl cursor-pointer whitespace-nowrap transition-colors">
+                Mi perfil
+              </button>
+            ) : (
+              <>
+                <button onClick={() => navigate('/auth')} className="hidden sm:block text-sm text-zinc-600 hover:text-zinc-900 cursor-pointer whitespace-nowrap transition-colors">
+                  {t('fighters_dir_login')}
+                </button>
+                <button onClick={() => navigate('/auth')} className="bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold px-3 sm:px-4 py-2 rounded-xl cursor-pointer whitespace-nowrap transition-colors">
+                  {t('fighters_dir_join')}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -186,6 +283,19 @@ export default function FightersDirectoryPage() {
               <p className="text-zinc-400 text-sm md:text-base mt-3 sm:mt-4 leading-relaxed max-w-lg">
                 {t('fighters_dir_desc')}
               </p>
+              {/* Indicador de país detectado */}
+              {userCountry && !filters.location && (
+                <div className="mt-4 inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-2">
+                  <i className="ri-map-pin-line text-red-400 text-xs"></i>
+                  <span className="text-xs text-zinc-300">Mostrando primero peleadores de <strong className="text-white">{userCountry}</strong></span>
+                  <button
+                    onClick={() => setUserCountry('')}
+                    className="text-zinc-500 hover:text-white transition-colors cursor-pointer ml-1"
+                  >
+                    <i className="ri-close-line text-xs"></i>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -209,7 +319,6 @@ export default function FightersDirectoryPage() {
 
             {/* Results */}
             <div className="flex-1 min-w-0">
-              {/* Results header */}
               <div className="flex items-center justify-between mb-3 sm:mb-4 flex-wrap gap-2 sm:gap-3">
                 <div>
                   <p className="text-sm font-semibold text-zinc-800">
@@ -218,7 +327,6 @@ export default function FightersDirectoryPage() {
                       `${filtered.length} ${filtered.length === 1 ? t('fighters_dir_count_single') : t('fighters_dir_count_plural')}`
                     )}
                   </p>
-                  {/* Active filter chips */}
                   {activeFilterCount > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {filters.discipline && (
@@ -268,7 +376,6 @@ export default function FightersDirectoryPage() {
                   )}
                 </div>
 
-                {/* View toggle */}
                 <div className="flex items-center gap-1 bg-white border border-zinc-200 rounded-lg p-1">
                   <button
                     onClick={() => setViewMode('grid')}
@@ -285,7 +392,6 @@ export default function FightersDirectoryPage() {
                 </div>
               </div>
 
-              {/* Content */}
               {loading ? (
                 <div className="flex items-center justify-center py-24">
                   <div className="w-10 h-10 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
@@ -322,7 +428,6 @@ export default function FightersDirectoryPage() {
                   ))}
                 </div>
               ) : (
-                /* List view */
                 <div className="space-y-3">
                   {filtered.map(({ fighter, profile }) => {
                     const initials = (profile.full_name || 'F').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
@@ -333,7 +438,6 @@ export default function FightersDirectoryPage() {
                         onClick={() => navigate(`/fighter/${fighter.id}`)}
                         className="bg-white border border-zinc-100 rounded-xl p-4 flex items-center gap-4 hover:border-red-200 hover:shadow-sm transition-all cursor-pointer group"
                       >
-                        {/* Avatar */}
                         {profile.avatar_url ? (
                           <img src={profile.avatar_url} alt={profile.full_name || ''} className="w-14 h-14 rounded-xl object-cover object-top flex-shrink-0" />
                         ) : (
@@ -341,8 +445,6 @@ export default function FightersDirectoryPage() {
                             {initials}
                           </div>
                         )}
-
-                        {/* Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="text-sm font-bold text-zinc-800 group-hover:text-red-600 transition-colors truncate">
@@ -359,44 +461,22 @@ export default function FightersDirectoryPage() {
                             )}
                           </div>
                           <div className="flex items-center gap-3 mt-1 flex-wrap">
-                            {fighter.discipline && (
-                              <span className="text-xs text-zinc-500">{disciplineLabels[fighter.discipline] || fighter.discipline}</span>
-                            )}
-                            {fighter.weight_class && (
-                              <span className="text-xs text-zinc-400">{fighter.weight_class}</span>
-                            )}
+                            {fighter.discipline && <span className="text-xs text-zinc-500">{disciplineLabels[fighter.discipline] || fighter.discipline}</span>}
+                            {fighter.weight_class && <span className="text-xs text-zinc-400">{fighter.weight_class}</span>}
                             {(fighter.nationality || profile.location) && (
                               <span className="flex items-center gap-1 text-xs text-zinc-400">
                                 <i className="ri-map-pin-line"></i>
                                 {fighter.nationality || profile.location}
                               </span>
                             )}
-                            {fighter.gym && (
-                              <span className="flex items-center gap-1 text-xs text-zinc-400 hidden sm:flex">
-                                <i className="ri-building-4-line"></i>
-                                {fighter.gym}
-                              </span>
-                            )}
+                            {fighter.gym && <span className="flex items-center gap-1 text-xs text-zinc-400 hidden sm:flex"><i className="ri-building-4-line"></i>{fighter.gym}</span>}
                           </div>
                         </div>
-
-                        {/* Record */}
                         <div className="hidden sm:flex items-center gap-3 flex-shrink-0">
-                          <div className="text-center">
-                            <p className="text-base font-black text-green-600">{fighter.wins}</p>
-                            <p className="text-xs text-zinc-400">V</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-base font-black text-red-500">{fighter.losses}</p>
-                            <p className="text-xs text-zinc-400">D</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-base font-black text-orange-500">{fighter.kos}</p>
-                            <p className="text-xs text-zinc-400">KO</p>
-                          </div>
+                          <div className="text-center"><p className="text-base font-black text-green-600">{fighter.wins}</p><p className="text-xs text-zinc-400">V</p></div>
+                          <div className="text-center"><p className="text-base font-black text-red-500">{fighter.losses}</p><p className="text-xs text-zinc-400">D</p></div>
+                          <div className="text-center"><p className="text-base font-black text-orange-500">{fighter.kos}</p><p className="text-xs text-zinc-400">KO</p></div>
                         </div>
-
-                        {/* Social badges */}
                         {socialCount > 0 && (
                           <div className="hidden md:flex items-center gap-1 flex-shrink-0">
                             {profile.instagram && <span className="w-7 h-7 flex items-center justify-center rounded-lg bg-gradient-to-br from-pink-500/20 to-orange-400/20 text-pink-500 text-xs"><i className="ri-instagram-line"></i></span>}
@@ -405,7 +485,6 @@ export default function FightersDirectoryPage() {
                             {profile.twitter && <span className="w-7 h-7 flex items-center justify-center rounded-lg bg-zinc-100 text-zinc-600 text-xs"><i className="ri-twitter-x-line"></i></span>}
                           </div>
                         )}
-
                         <i className="ri-arrow-right-line text-zinc-300 group-hover:text-red-500 transition-colors flex-shrink-0"></i>
                       </article>
                     );
