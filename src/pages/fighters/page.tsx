@@ -187,8 +187,8 @@ export default function FightersDirectoryPage() {
 
   const locations = useMemo(() => {
     const locs = new Set<string>();
-    data.forEach(({ profile }) => {
-      const country = (profile as any).country;
+    data.forEach(({ profile, fighter }) => {
+      const country = (profile as any).country || normalizeCountry(fighter.nationality || '');
       if (country) locs.add(country);
     });
     return Array.from(locs).sort();
@@ -203,7 +203,7 @@ export default function FightersDirectoryPage() {
 
       if (filters.location) {
         const loc = filters.location.toLowerCase();
-        const country = ((profile as any).country || '').toLowerCase();
+        const country = ((profile as any).country || normalizeCountry(fighter.nationality || '')).toLowerCase();
         if (!country.includes(loc)) return false;
       }
 
