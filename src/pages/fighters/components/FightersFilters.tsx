@@ -124,6 +124,21 @@ export default function FightersFilters({
           </div>
         </div>
 
+        {/* País — ARRIBA */}
+        <div className="bg-white border border-zinc-200 rounded-xl p-4">
+          <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">País</p>
+          <select
+            value={filters.location}
+            onChange={(e) => set('location', e.target.value)}
+            className="w-full bg-zinc-50 border border-zinc-200 text-zinc-700 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-red-400 cursor-pointer"
+          >
+            <option value="">Todos los países</option>
+            {locations.map((loc) => (
+              <option key={loc} value={loc}>{loc}</option>
+            ))}
+          </select>
+        </div>
+
         {/* Sort */}
         <div className="bg-white border border-zinc-200 rounded-xl p-4">
           <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">Ordenar por</p>
@@ -191,23 +206,6 @@ export default function FightersFilters({
             ))}
           </div>
         </div>
-
-        {/* Location */}
-        {locations.length > 0 && (
-          <div className="bg-white border border-zinc-200 rounded-xl p-4">
-            <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">Ubicación</p>
-            <select
-              value={filters.location}
-              onChange={(e) => set('location', e.target.value)}
-              className="w-full bg-zinc-50 border border-zinc-200 text-zinc-700 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-red-400 cursor-pointer"
-            >
-              <option value="">Todas las ubicaciones</option>
-              {locations.map((loc) => (
-                <option key={loc} value={loc}>{loc}</option>
-              ))}
-            </select>
-          </div>
-        )}
 
         {/* Popularity / Social */}
         <div className="bg-white border border-zinc-200 rounded-xl p-4">

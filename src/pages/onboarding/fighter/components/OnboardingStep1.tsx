@@ -7,13 +7,20 @@ interface Props {
 }
 
 const COUNTRIES = [
-  'España', 'México', 'Argentina', 'Colombia', 'Chile', 'Perú', 'Venezuela',
-  'Ecuador', 'Bolivia', 'Uruguay', 'Paraguay', 'Cuba', 'República Dominicana',
-  'Puerto Rico', 'Guatemala', 'Honduras', 'El Salvador', 'Nicaragua', 'Costa Rica',
-  'Panamá', 'Brasil', 'Estados Unidos', 'Reino Unido', 'Francia', 'Alemania',
-  'Italia', 'Portugal', 'Países Bajos', 'Bélgica', 'Suiza', 'Austria', 'Polonia',
-  'Rumanía', 'Ucrania', 'Rusia', 'Marruecos', 'Argelia', 'Senegal', 'Nigeria',
-  'Filipinas', 'Japón', 'Corea del Sur', 'Tailandia', 'Australia', 'Otro',
+  // LATAM
+  'Argentina', 'Bolivia', 'Brasil', 'Chile', 'Colombia', 'Costa Rica', 'Cuba',
+  'Ecuador', 'El Salvador', 'Guatemala', 'Honduras', 'México', 'Nicaragua',
+  'Panamá', 'Paraguay', 'Perú', 'Puerto Rico', 'República Dominicana',
+  'Uruguay', 'Venezuela',
+  // Europa
+  'España', 'Portugal', 'Reino Unido', 'Francia', 'Alemania', 'Italia',
+  'Países Bajos', 'Bélgica', 'Suiza', 'Austria', 'Polonia', 'Rumanía',
+  'Ucrania', 'Rusia', 'Suecia', 'Noruega', 'Dinamarca', 'Finlandia',
+  'República Checa', 'Hungría', 'Grecia', 'Turquía',
+  // Resto del mundo
+  'Estados Unidos', 'Canadá', 'Marruecos', 'Argelia', 'Senegal', 'Nigeria',
+  'Sudáfrica', 'Filipinas', 'Japón', 'Corea del Sur', 'Tailandia',
+  'Australia', 'Nueva Zelanda', 'Otro',
 ];
 
 export default function OnboardingStep1({ data, onUpdate, onNext }: Props) {

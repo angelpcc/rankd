@@ -37,6 +37,43 @@ async function detectCountryByIP(): Promise<string> {
   }
 }
 
+// Normalizar valores incorrectos de nationality (texto libre → país correcto)
+const NORMALIZE_COUNTRY: Record<string, string> = {
+  'peruano': 'Perú', 'peruana': 'Perú', 'peru': 'Perú',
+  'chileno': 'Chile', 'chilena': 'Chile',
+  'venezolano': 'Venezuela', 'venezolana': 'Venezuela', 'venezuela': 'Venezuela',
+  'colombiano': 'Colombia', 'colombiana': 'Colombia',
+  'argentino': 'Argentina', 'argentina': 'Argentina',
+  'español': 'España', 'española': 'España', 'espana': 'España', 'spain': 'España',
+  'mexicano': 'México', 'mexicana': 'México', 'mexico': 'México',
+  'ecuatoriano': 'Ecuador', 'ecuatoriana': 'Ecuador',
+  'boliviano': 'Bolivia', 'boliviana': 'Bolivia',
+  'uruguayo': 'Uruguay', 'uruguaya': 'Uruguay',
+  'paraguayo': 'Paraguay', 'paraguaya': 'Paraguay',
+  'cubano': 'Cuba', 'cubana': 'Cuba',
+  'dominicano': 'República Dominicana', 'dominicana': 'República Dominicana',
+  'guatemalteco': 'Guatemala', 'guatemalteca': 'Guatemala',
+  'hondureño': 'Honduras', 'hondureña': 'Honduras',
+  'salvadoreño': 'El Salvador', 'salvadoreña': 'El Salvador',
+  'nicaragüense': 'Nicaragua',
+  'costarricense': 'Costa Rica',
+  'panameño': 'Panamá', 'panameña': 'Panamá',
+  'brasileño': 'Brasil', 'brasileña': 'Brasil', 'brasil': 'Brasil',
+  'ucraniano': 'Ucrania', 'ucrania': 'Ucrania',
+  'portugués': 'Portugal', 'portuguesa': 'Portugal',
+  'francés': 'Francia', 'francesa': 'Francia',
+  'alemán': 'Alemania', 'alemana': 'Alemania',
+  'italiano': 'Italia', 'italiana': 'Italia',
+  'inglés': 'Reino Unido', 'inglesa': 'Reino Unido', 'british': 'Reino Unido',
+  'marroquí': 'Marruecos', 'marruecos': 'Marruecos',
+};
+
+function normalizeCountry(raw: string): string {
+  if (!raw) return '';
+  const key = raw.trim().toLowerCase();
+  return NORMALIZE_COUNTRY[key] || raw.trim();
+}
+
 // Mapeo de nombres de país en inglés a español
 const COUNTRY_MAP: Record<string, string> = {
   'Spain': 'España',
@@ -154,7 +191,8 @@ export default function FightersDirectoryPage() {
   const locations = useMemo(() => {
     const locs = new Set<string>();
     data.forEach(({ fighter }) => {
-      if (fighter.nationality) locs.add(fighter.nationality);
+      const nat = normalizeCountry(fighter.nationality || '');
+      if (nat) locs.add(nat);
     });
     return Array.from(locs).sort();
   }, [data]);
@@ -168,7 +206,7 @@ export default function FightersDirectoryPage() {
 
       if (filters.location) {
         const loc = filters.location.toLowerCase();
-        const nat = (fighter.nationality || '').toLowerCase();
+        const nat = normalizeCountry(fighter.nationality || '').toLowerCase();
         if (!nat.includes(loc)) return false;
       }
 
