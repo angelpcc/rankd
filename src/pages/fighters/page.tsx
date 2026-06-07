@@ -187,9 +187,9 @@ export default function FightersDirectoryPage() {
 
   const locations = useMemo(() => {
     const locs = new Set<string>();
-    data.forEach(({ fighter }) => {
-      const nat = normalizeCountry(fighter.nationality || '');
-      if (nat) locs.add(nat);
+    data.forEach(({ profile }) => {
+      const country = (profile as any).country;
+      if (country) locs.add(country);
     });
     return Array.from(locs).sort();
   }, [data]);
@@ -203,8 +203,8 @@ export default function FightersDirectoryPage() {
 
       if (filters.location) {
         const loc = filters.location.toLowerCase();
-        const nat = normalizeCountry(fighter.nationality || '').toLowerCase();
-        if (!nat.includes(loc)) return false;
+        const country = ((profile as any).country || '').toLowerCase();
+        if (!country.includes(loc)) return false;
       }
 
       const socialCount = getSocialCount(profile);
@@ -309,19 +309,7 @@ export default function FightersDirectoryPage() {
               <p className="text-zinc-400 text-sm md:text-base mt-3 sm:mt-4 leading-relaxed max-w-lg">
                 {t('fighters_dir_desc')}
               </p>
-              {/* Indicador de país detectado */}
-              {userCountry && (
-                <div className="mt-4 inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-2">
-                  <i className="ri-map-pin-line text-red-400 text-xs"></i>
-                  <span className="text-xs text-zinc-300">Viendo peleadores de <strong className="text-white">{userCountry}</strong></span>
-                  <button
-                    onClick={() => { setUserCountry(''); setFilters(f => ({ ...f, location: '' })); }}
-                    className="text-zinc-500 hover:text-white transition-colors cursor-pointer ml-1"
-                  >
-                    <i className="ri-close-line text-xs"></i>
-                  </button>
-                </div>
-              )}
+
             </div>
           </div>
         </div>
