@@ -18,6 +18,8 @@ const OpportunitiesPage = lazy(() => import('../pages/opportunities/page'));
 const FighterOnboardingPage = lazy(() => import('../pages/onboarding/fighter/page'));
 const OrgOnboardingPage = lazy(() => import('../pages/onboarding/org/page'));
 const BrandsPage = lazy(() => import('../pages/brands/page'));
+const TermsPage = lazy(() => import('../pages/terms/page'));
+const PrivacyPage = lazy(() => import('../pages/privacy/page'));
 
 const routes: RouteObject[] = [
   {
@@ -121,6 +123,22 @@ const routes: RouteObject[] = [
     element: (
       <Suspense fallback={<LoadingSpinner />}>
         <BrandsPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/terms',
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <TermsPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/privacy',
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <PrivacyPage />
       </Suspense>
     ),
   },
