@@ -18,9 +18,10 @@ interface Props {
   fighter: Fighter | null;
   views?: number;
   onContact: () => void;
+  canContact: boolean;
 }
 
-export default function FighterProfileHero({ profile, fighter, views, onContact }: Props) {
+export default function FighterProfileHero({ profile, fighter, views, onContact, canContact }: Props) {
   const initials = (profile.full_name || 'F').split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
   const totalFights = fighter ? fighter.wins + fighter.losses + fighter.draws : 0;
   const winRate = totalFights > 0 ? Math.round((fighter!.wins / totalFights) * 100) : null;
@@ -195,13 +196,15 @@ export default function FighterProfileHero({ profile, fighter, views, onContact 
             )}
 
             {/* CTA */}
-            <button
-              onClick={onContact}
-              className="flex items-center gap-2.5 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold px-5 sm:px-7 py-3 sm:py-3.5 rounded-xl transition-all cursor-pointer whitespace-nowrap text-sm w-full sm:w-auto justify-center sm:justify-start"
-            >
-              <i className="ri-heart-line text-base"></i>
-              Me interesa este peleador
-            </button>
+            {canContact && (
+              <button
+                onClick={onContact}
+                className="flex items-center gap-2.5 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold px-5 sm:px-7 py-3 sm:py-3.5 rounded-xl transition-all cursor-pointer whitespace-nowrap text-sm w-full sm:w-auto justify-center sm:justify-start"
+              >
+                <i className="ri-heart-line text-base"></i>
+                Me interesa este peleador
+              </button>
+            )}
           </div>
         </div>
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile, Fighter, FighterVideo, FighterAchievement } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
 import FighterProfileHero from './components/FighterProfileHero';
 import FighterProfileBody from './components/FighterProfileBody';
 import FighterContactModal from './components/FighterContactModal';
@@ -10,6 +11,7 @@ export default function FighterPublicPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { user, profile: currentUserProfile } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [fighter, setFighter] = useState<Fighter | null>(null);
   const [views, setViews] = useState<number>(0);
@@ -18,6 +20,9 @@ export default function FighterPublicPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [showContact, setShowContact] = useState(false);
+
+  // Solo promotoras y marcas pueden dar "Me interesa"
+  const canContact = !user || (currentUserProfile?.user_type !== 'fighter');
 
   useEffect(() => {
     if (!id) { setNotFound(true); setLoading(false); return; }
@@ -54,15 +59,10 @@ export default function FighterPublicPage() {
 
       if (!profileData) { setNotFound(true); setLoading(false); return; }
 
-      // Register view — increment counter
       const currentViews = fighterData.profile_views ?? 0;
       const newViews = currentViews + 1;
       setViews(newViews);
-      supabase
-        .from('fighters')
-        .update({ profile_views: newViews })
-        .eq('id', fighterData.id)
-        .then(() => {});
+      supabase.from('fighters').update({ profile_views: newViews }).eq('id', fighterData.id).then(() => {});
 
       setFighter({ ...fighterData, profile_views: newViews });
       setProfile(profileData);
@@ -77,6 +77,15 @@ export default function FighterPublicPage() {
     };
     load();
   }, [id]);
+
+  const handleContactClick = () => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    if (currentUserProfile?.user_type === 'fighter') return;
+    setShowContact(true);
+  };
 
   if (loading) {
     return (
@@ -114,19 +123,38 @@ export default function FighterPublicPage() {
             <span className="font-unbounded font-black tracking-tighter leading-none text-[17px] text-white" style={{ letterSpacing: '-0.04em' }}>RAN</span>
             <span className="font-unbounded font-black tracking-tighter leading-none text-[17px] text-[#E10600]" style={{ letterSpacing: '-0.04em' }}>KD</span>
           </a>
-          <button
-            onClick={() => setShowContact(true)}
-            className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors cursor-pointer whitespace-nowrap"
-          >
-            <i className="ri-heart-line"></i>
-            <span className="hidden sm:inline">Me interesa</span>
-          </button>
+          {/* Botón solo visible para no-peleadores */}
+          {canContact ? (
+            <button
+              onClick={handleContactClick}
+              className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors cursor-pointer whitespace-nowrap"
+            >
+              <i className="ri-heart-line"></i>
+              <span className="hidden sm:inline">Me interesa</span>
+            </button>
+          ) : (
+            <div className="w-20" /> /* Spacer para mantener el logo centrado */
+          )}
         </div>
       </div>
 
       <div className="pt-14">
-        <FighterProfileHero profile={profile} fighter={fighter} views={views} onContact={() => setShowContact(true)} />
-        <FighterProfileBody profile={profile} fighter={fighter} videos={videos} achievements={achievements} views={views} onContact={() => setShowContact(true)} />
+        <FighterProfileHero
+          profile={profile}
+          fighter={fighter}
+          views={views}
+          onContact={handleContactClick}
+          canContact={canContact}
+        />
+        <FighterProfileBody
+          profile={profile}
+          fighter={fighter}
+          videos={videos}
+          achievements={achievements}
+          views={views}
+          onContact={handleContactClick}
+          canContact={canContact}
+        />
       </div>
 
       {showContact && (
