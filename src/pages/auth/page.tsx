@@ -166,10 +166,10 @@ export default function AuthPage() {
 
       <div className="relative z-10 w-full max-w-[420px]">
         <div className="flex bg-[#141414] rounded-2xl p-1 mb-6 sm:mb-8 border border-white/[0.06]">
-          <button onClick={() => { setMode('login'); setStep(1); setError(''); }} className={`flex-1 py-3 text-sm font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap font-inter ${mode === 'login' ? 'bg-[#E10600] text-white' : 'text-white/35 hover:text-white/70'}`}>
+          <button onClick={() => { setMode('login'); setStep(1); setError(''); }} className={`flex-1 py-3 text-sm font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap font-inter ${mode === 'login' ? 'bg-[#E10600] text-white' : 'text-white/55 hover:text-white/85'}`}>
             {t('auth_tab_login')}
           </button>
-          <button onClick={() => { setMode('register'); setStep(1); setError(''); }} className={`flex-1 py-3 text-sm font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap font-inter ${mode === 'register' ? 'bg-[#E10600] text-white' : 'text-white/35 hover:text-white/70'}`}>
+          <button onClick={() => { setMode('register'); setStep(1); setError(''); }} className={`flex-1 py-3 text-sm font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap font-inter ${mode === 'register' ? 'bg-[#E10600] text-white' : 'text-white/55 hover:text-white/85'}`}>
             {t('auth_tab_register')}
           </button>
         </div>
@@ -179,21 +179,21 @@ export default function AuthPage() {
             <form onSubmit={handleLogin} className="space-y-5">
               <div className="mb-6">
                 <h1 className="text-xl font-bold text-white mb-1 font-unbounded">{t('auth_login_title')}</h1>
-                <p className="text-white/30 text-sm font-inter">{t('auth_login_subtitle')}</p>
+                <p className="text-white/55 text-sm font-inter">{t('auth_login_subtitle')}</p>
               </div>
               <div>
-                <label className="block text-xs text-white/40 mb-2 font-inter uppercase tracking-wide font-semibold">{t('label_email')}</label>
+                <label className="block text-xs text-white/60 mb-2 font-inter uppercase tracking-wide font-semibold">{t('label_email')}</label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="tu@email.com" className="w-full bg-white/[0.04] border border-white/[0.08] text-white text-sm rounded-xl px-4 py-3.5 focus:outline-none focus:border-[#E10600] placeholder-white/20 font-inter transition-colors" />
               </div>
               <div>
-                <label className="block text-xs text-white/40 mb-2 font-inter uppercase tracking-wide font-semibold">{t('label_password')}</label>
+                <label className="block text-xs text-white/60 mb-2 font-inter uppercase tracking-wide font-semibold">{t('label_password')}</label>
                 <input type="password" value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••" className="w-full bg-white/[0.04] border border-white/[0.08] text-white text-sm rounded-xl px-4 py-3.5 focus:outline-none focus:border-[#E10600] placeholder-white/20 font-inter transition-colors" />
               </div>
               {error && <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 font-inter">{error}</p>}
               <button type="submit" disabled={loading} className="w-full bg-[#E10600] hover:bg-red-700 text-white font-semibold py-3.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60 font-inter mt-2">
                 {loading ? t('auth_login_loading') : t('auth_login_btn')}
               </button>
-              <p className="text-center text-white/25 text-sm font-inter pt-1">
+              <p className="text-center text-white/50 text-sm font-inter pt-1">
                 {t('auth_login_no_account')}{' '}
                 <button type="button" onClick={() => setMode('register')} className="text-[#E10600] hover:text-red-400 cursor-pointer font-inter transition-colors">{t('auth_login_register_link')}</button>
               </p>
@@ -204,7 +204,7 @@ export default function AuthPage() {
                 <div className="space-y-5">
                   <div className="mb-6">
                     <h1 className="text-xl font-bold text-white mb-1 font-unbounded">{t('auth_register_step1_title')}</h1>
-                    <p className="text-white/30 text-sm font-inter">{t('auth_register_step1_subtitle')}</p>
+                    <p className="text-white/55 text-sm font-inter">{t('auth_register_step1_subtitle')}</p>
                   </div>
                   <UserTypeSelector selected={userType} onChange={setUserType} />
                   {error && <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 font-inter">{error}</p>}
@@ -220,19 +220,19 @@ export default function AuthPage() {
                     </button>
                     <div>
                       <h1 className="text-xl font-bold text-white font-unbounded">{t('auth_register_step2_title')}</h1>
-                      <p className="text-white/30 text-sm font-inter">{t('auth_register_step2_subtitle')}</p>
+                      <p className="text-white/55 text-sm font-inter">{t('auth_register_step2_subtitle')}</p>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs text-white/40 mb-2 font-inter uppercase tracking-wide font-semibold">{t('label_full_name')}</label>
+                    <label className="block text-xs text-white/60 mb-2 font-inter uppercase tracking-wide font-semibold">{t('label_full_name')}</label>
                     <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} required placeholder="Tu nombre" className="w-full bg-white/[0.04] border border-white/[0.08] text-white text-sm rounded-xl px-4 py-3.5 focus:outline-none focus:border-[#E10600] placeholder-white/20 font-inter transition-colors" />
                   </div>
                   <div>
-                    <label className="block text-xs text-white/40 mb-2 font-inter uppercase tracking-wide font-semibold">{t('label_email')}</label>
+                    <label className="block text-xs text-white/60 mb-2 font-inter uppercase tracking-wide font-semibold">{t('label_email')}</label>
                     <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="tu@email.com" className="w-full bg-white/[0.04] border border-white/[0.08] text-white text-sm rounded-xl px-4 py-3.5 focus:outline-none focus:border-[#E10600] placeholder-white/20 font-inter transition-colors" />
                   </div>
                   <div>
-                    <label className="block text-xs text-white/40 mb-2 font-inter uppercase tracking-wide font-semibold">{t('label_password')}</label>
+                    <label className="block text-xs text-white/60 mb-2 font-inter uppercase tracking-wide font-semibold">{t('label_password')}</label>
                     <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} placeholder="Mínimo 6 caracteres" className="w-full bg-white/[0.04] border border-white/[0.08] text-white text-sm rounded-xl px-4 py-3.5 focus:outline-none focus:border-[#E10600] placeholder-white/20 font-inter transition-colors" />
                   </div>
                   {error && <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 font-inter">{error}</p>}
@@ -240,11 +240,11 @@ export default function AuthPage() {
                   <button type="submit" disabled={loading} className="w-full bg-[#E10600] hover:bg-red-700 text-white font-semibold py-3.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60 font-inter">
                     {loading ? t('auth_register_loading') : t('auth_register_btn')}
                   </button>
-                  <p className="text-center text-white/20 text-xs font-inter pt-1">
+                  <p className="text-center text-white/40 text-xs font-inter pt-1">
                     {t('auth_register_terms')}{' '}
-                    <a href="#" rel="nofollow" className="text-white/50 hover:text-white transition-colors">{t('auth_register_terms_link')}</a>
+                    <a href="/terms" className="text-white/70 hover:text-white underline underline-offset-2 transition-colors">{t('auth_register_terms_link')}</a>
                     {' '}{t('auth_register_terms_and')}{' '}
-                    <a href="#" rel="nofollow" className="text-white/50 hover:text-white transition-colors">{t('auth_register_privacy_link')}</a>
+                    <a href="/privacy" className="text-white/70 hover:text-white underline underline-offset-2 transition-colors">{t('auth_register_privacy_link')}</a>
                   </p>
                 </form>
               )}
@@ -254,7 +254,7 @@ export default function AuthPage() {
 
         <div className="flex items-center justify-center gap-2.5 mt-8">
           <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse flex-shrink-0"></div>
-          <p className="text-white/20 text-xs font-inter">{t('auth_platform_launch')}</p>
+          <p className="text-white/45 text-xs font-inter">{t('auth_platform_launch')}</p>
         </div>
       </div>
     </div>

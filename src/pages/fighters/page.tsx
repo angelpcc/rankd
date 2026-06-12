@@ -257,27 +257,27 @@ export default function FightersDirectoryPage() {
   return (
     <div className="min-h-screen bg-zinc-50">
       {/* Top bar */}
-      <div className="fixed top-0 left-0 w-full z-40 bg-white border-b border-zinc-100">
+      <div className="fixed top-0 left-0 w-full z-40 bg-zinc-950/95 backdrop-blur-sm border-b border-zinc-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 h-16 flex items-center justify-between">
           <a href="/" className="flex items-center gap-0 cursor-pointer">
-            <span className="font-unbounded font-black tracking-tighter leading-none text-[18px] text-zinc-900" style={{ letterSpacing: '-0.04em' }}>RAN</span>
+            <span className="font-unbounded font-black tracking-tighter leading-none text-[18px] text-white" style={{ letterSpacing: '-0.04em' }}>RAN</span>
             <span className="font-unbounded font-black tracking-tighter leading-none text-[18px] text-[#E10600]" style={{ letterSpacing: '-0.04em' }}>KD</span>
           </a>
           <nav className="hidden md:flex items-center gap-6">
-            <a href="/" className="text-sm text-zinc-500 hover:text-zinc-800 transition-colors cursor-pointer">{t('fighters_dir_home')}</a>
-            <a href="/fighters" className="text-sm font-semibold text-red-600 cursor-pointer">{t('nav_directory')}</a>
+            <a href="/" className="text-sm text-zinc-400 hover:text-white transition-colors cursor-pointer">{t('fighters_dir_home')}</a>
+            <a href="/fighters" className="text-sm font-semibold text-red-500 cursor-pointer">{t('nav_directory')}</a>
           </nav>
           <div className="flex items-center gap-2 sm:gap-3">
             {userProfile ? (
-              <button onClick={() => navigate('/dashboard')} className="bg-zinc-900 hover:bg-zinc-700 text-white text-xs sm:text-sm font-semibold px-3 sm:px-4 py-2 rounded-xl cursor-pointer whitespace-nowrap transition-colors">
+              <button onClick={() => navigate('/dashboard')} className="bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold px-3 sm:px-4 py-2 rounded-xl cursor-pointer whitespace-nowrap transition-colors">
                 Mi perfil
               </button>
             ) : (
               <>
-                <button onClick={() => navigate('/auth')} className="hidden sm:block text-sm text-zinc-600 hover:text-zinc-900 cursor-pointer whitespace-nowrap transition-colors">
+                <button onClick={() => navigate('/auth')} className="hidden sm:block text-sm text-zinc-300 hover:text-white cursor-pointer whitespace-nowrap transition-colors">
                   {t('fighters_dir_login')}
                 </button>
-                <button onClick={() => navigate('/auth')} className="bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold px-3 sm:px-4 py-2 rounded-xl cursor-pointer whitespace-nowrap transition-colors">
+                <button onClick={() => navigate('/auth')} className="bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold px-3 sm:px-4 py-2 rounded-xl cursor-pointer whitespace-nowrap transition-colors shadow-lg shadow-red-600/30">
                   {t('fighters_dir_join')}
                 </button>
               </>
@@ -294,19 +294,21 @@ export default function FightersDirectoryPage() {
             style={{ backgroundImage: 'url(https://readdy.ai/api/search-image?query=professional%20combat%20sports%20fighters%20silhouettes%20dramatic%20arena%20lighting%20dark%20atmospheric%20boxing%20MMA%20kickboxing%20multiple%20athletes%20training%20gym&width=1400&height=400&seq=fdir1&orientation=landscape)' }}
           />
           <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/80 to-zinc-950/60" />
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 md:px-10 py-8 sm:py-12 md:py-16">
+          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 70% 50%, rgba(225,6,0,0.12) 0%, transparent 55%)' }} />
+          <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: 'linear-gradient(90deg, #E10600 0%, rgba(225,6,0,0.4) 50%, transparent 100%)' }} />
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 md:px-10 py-10 sm:py-14 md:py-20">
             <div className="max-w-2xl">
               <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                <span className="text-xs font-bold bg-red-600 text-white px-3 py-1 rounded-full uppercase tracking-wider">{t('nav_directory')}</span>
+                <span className="text-xs font-bold bg-red-600 text-white px-3 py-1 rounded-full uppercase tracking-wider shadow-lg shadow-red-600/40">{t('nav_directory')}</span>
                 {data.length > 0 && (
-                  <span className="text-xs text-zinc-400">{data.length} {t('fighters_dir_registered')}</span>
+                  <span className="text-xs text-zinc-300">{data.length} {t('fighters_dir_registered')}</span>
                 )}
               </div>
-              <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-white leading-tight">
+              <h1 className="text-3xl sm:text-4xl md:text-6xl font-black text-white leading-tight">
                 {t('fighters_dir_discover')}<br />
-                <strong className="text-red-500">{t('fighters_dir_champion')}</strong>
+                <strong className="text-red-500" style={{ textShadow: '0 0 40px rgba(225,6,0,0.5)' }}>{t('fighters_dir_champion')}</strong>
               </h1>
-              <p className="text-zinc-400 text-sm md:text-base mt-3 sm:mt-4 leading-relaxed max-w-lg">
+              <p className="text-zinc-300 text-sm md:text-base mt-3 sm:mt-4 leading-relaxed max-w-lg">
                 {t('fighters_dir_desc')}
               </p>
 
