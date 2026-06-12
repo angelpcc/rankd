@@ -54,13 +54,13 @@ export default function Fighters() {
               <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: 6, textTransform: 'uppercase', color: '#E10600' }}>{t('fighters_eyebrow')}</span>
             </div>
             <h2 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(44px, 8vw, 88px)', lineHeight: 0.9, color: 'white', margin: 0 }}>
-              {t('fighters_headline_1')}<br /><span style={{ color: 'rgba(255,255,255,0.15)' }}>{t('fighters_headline_2')}</span>
+              {t('fighters_headline_1')}<br /><span style={{ color: 'rgba(255,255,255,0.28)' }}>{t('fighters_headline_2')}</span>
             </h2>
           </div>
           {/* Filtros */}
           <div className="fighters-filters" style={{ display: 'flex', gap: 6, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: 5, flexWrap: 'wrap' }}>
             {disciplines.map((d) => (
-              <button key={d.key} onClick={() => setActive(d.key)} style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 15, letterSpacing: 2, padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', transition: 'all 0.2s', background: active === d.key ? '#E10600' : 'transparent', color: active === d.key ? 'white' : 'rgba(255,255,255,0.35)', boxShadow: active === d.key ? '0 4px 20px rgba(225,6,0,0.35)' : 'none' }}>
+              <button key={d.key} onClick={() => setActive(d.key)} style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 15, letterSpacing: 2, padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', transition: 'all 0.2s', background: active === d.key ? '#E10600' : 'transparent', color: active === d.key ? 'white' : 'rgba(255,255,255,0.6)', boxShadow: active === d.key ? '0 4px 20px rgba(225,6,0,0.35)' : 'none' }}>
                 {d.labelKey ? t(d.labelKey) : d.label}
               </button>
             ))}
@@ -70,7 +70,7 @@ export default function Fighters() {
         {/* Cards */}
         {filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 0' }}>
-            <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, color: 'rgba(255,255,255,0.2)' }}>{t('fighters_home_no_discipline')}</p>
+            <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, color: 'rgba(255,255,255,0.45)' }}>{t('fighters_home_no_discipline')}</p>
           </div>
         ) : (
           <div className="fighters-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
@@ -84,7 +84,7 @@ export default function Fighters() {
                   onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.transform = 'none'; (e.currentTarget as HTMLDivElement).style.boxShadow = 'none'; (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.07)'; }}>
                   <div style={{ height: 3, background: `linear-gradient(to right, ${accentColor}, transparent)` }} />
                   <div style={{ height: 200, background: 'rgba(255,255,255,0.02)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-                    {profile.avatar_url ? <img src={profile.avatar_url} alt={profile.full_name || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }} /> : <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 80, color: 'rgba(255,255,255,0.04)' }}>{initials}</span>}
+                    {profile.avatar_url ? <img src={profile.avatar_url} alt={profile.full_name || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }} /> : <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 80, color: 'rgba(255,255,255,0.08)' }}>{initials}</span>}
                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, #0d0d0d 0%, transparent 55%)' }} />
                     {discipline && <div style={{ position: 'absolute', top: 12, left: 12, fontFamily: "'Bebas Neue', sans-serif", fontSize: 13, letterSpacing: 2, color: accentColor, background: `${accentColor}18`, border: `1px solid ${accentColor}35`, borderRadius: 8, padding: '4px 10px' }}>{disciplineLabels[discipline]}</div>}
                     <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', alignItems: 'center', gap: 5, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 600, color: fighter.is_available ? '#22c55e' : '#f59e0b', background: fighter.is_available ? 'rgba(34,197,94,0.12)' : 'rgba(245,158,11,0.12)', border: `1px solid ${fighter.is_available ? 'rgba(34,197,94,0.3)' : 'rgba(245,158,11,0.3)'}`, borderRadius: 8, padding: '4px 8px' }}>
@@ -95,19 +95,19 @@ export default function Fighters() {
                   <div style={{ padding: '18px 20px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                       <h3 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, color: 'white', margin: 0, lineHeight: 1 }}>{profile.full_name || 'Peleador'}</h3>
-                      {fighter.nationality && <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.25)' }}>{fighter.nationality}</span>}
+                      {fighter.nationality && <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>{fighter.nationality}</span>}
                     </div>
-                    {fighter.nickname && <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, color: 'rgba(255,255,255,0.3)', fontStyle: 'italic', marginBottom: 14 }}>&ldquo;{fighter.nickname}&rdquo;</p>}
+                    {fighter.nickname && <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, color: 'rgba(255,255,255,0.55)', fontStyle: 'italic', marginBottom: 14 }}>&ldquo;{fighter.nickname}&rdquo;</p>}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 14 }}>
                       {[{ val: fighter.wins, label: t('fighters_wins') }, { val: fighter.losses, label: t('fighters_losses') }, { val: fighter.weight_class || '-', label: t('fighters_category') }].map((s) => (
                         <div key={s.label} style={{ textAlign: 'center', padding: '8px 4px', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
                           <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, color: 'white', lineHeight: 1 }}>{s.val}</div>
-                          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 10, color: 'rgba(255,255,255,0.2)', letterSpacing: 1, textTransform: 'uppercase', marginTop: 2 }}>{s.label}</div>
+                          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 10, color: 'rgba(255,255,255,0.45)', letterSpacing: 1, textTransform: 'uppercase', marginTop: 2 }}>{s.label}</div>
                         </div>
                       ))}
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                      <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.2)' }}>{fighter.gym || ''}</span>
+                      <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>{fighter.gym || ''}</span>
                       <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 13, letterSpacing: 1, color: accentColor }}>VER PERFIL →</div>
                     </div>
                   </div>
@@ -118,9 +118,9 @@ export default function Fighters() {
         )}
 
         <div style={{ marginTop: 40, textAlign: 'center' }}>
-          <button onClick={() => navigate('/fighters')} style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 17, letterSpacing: 3, color: 'rgba(255,255,255,0.4)', background: 'transparent', border: '2px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '14px 36px', cursor: 'pointer', transition: 'all 0.2s' }}
+          <button onClick={() => navigate('/fighters')} style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 17, letterSpacing: 3, color: 'rgba(255,255,255,0.75)', background: 'transparent', border: '2px solid rgba(255,255,255,0.25)', borderRadius: 10, padding: '14px 36px', cursor: 'pointer', transition: 'all 0.2s' }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#E10600'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#E10600'; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.4)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.1)'; }}>
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.75)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.25)'; }}>
             {t('btn_view_full_directory')} →
           </button>
         </div>

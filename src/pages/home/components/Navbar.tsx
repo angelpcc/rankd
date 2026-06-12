@@ -69,9 +69,9 @@ export default function Navbar() {
             {navLinks.map((link) => (
               <li key={link.href}>
                 <a href={link.href} onClick={(e) => { e.preventDefault(); handleNav(link.href); }}
-                  style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,255,255,0.45)', textDecoration: 'none', transition: 'color 0.2s', cursor: 'pointer' }}
+                  style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,255,255,0.68)', textDecoration: 'none', transition: 'color 0.2s', cursor: 'pointer' }}
                   onMouseEnter={(e) => (e.currentTarget as HTMLAnchorElement).style.color = 'white'}
-                  onMouseLeave={(e) => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.45)'}>
+                  onMouseLeave={(e) => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.68)'}>
                   {t(link.labelKey)}
                 </a>
               </li>
@@ -83,16 +83,16 @@ export default function Navbar() {
             <LanguageSelector scrolled={false} />
             {user && profile ? (
               <>
-                <button onClick={() => navigate('/dashboard')} style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, padding: '9px 18px', cursor: 'pointer', transition: 'all 0.2s' }}>
+                <button onClick={() => navigate('/dashboard')} style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.85)', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 6, padding: '9px 18px', cursor: 'pointer', transition: 'all 0.2s' }}>
                   <span style={{ width: 20, height: 20, background: '#E10600', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'white', fontWeight: 900 }}>{(profile.full_name || 'U')[0].toUpperCase()}</span>
                   {t('nav_my_profile')}
                 </button>
-                <button onClick={() => signOut()} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, letterSpacing: 2, color: 'rgba(255,255,255,0.2)', background: 'none', border: 'none', cursor: 'pointer', textTransform: 'uppercase' }}>{t('nav_sign_out')}</button>
+                <button onClick={() => signOut()} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, letterSpacing: 2, color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer', textTransform: 'uppercase' }}>{t('nav_sign_out')}</button>
               </>
             ) : (
               <>
-                <button onClick={() => navigate('/auth')} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 600, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.color = 'white'} onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.4)'}>{t('nav_sign_in')}</button>
-                <button onClick={() => navigate('/auth')} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'white', background: '#E10600', border: 'none', borderRadius: 6, padding: '10px 22px', cursor: 'pointer', transition: 'background 0.2s' }} onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.background = '#b50009'} onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.background = '#E10600'}>
+                <button onClick={() => navigate('/auth')} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 600, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.color = 'white'} onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.6)'}>{t('nav_sign_in')}</button>
+                <button onClick={() => navigate('/auth')} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'white', background: '#E10600', border: 'none', borderRadius: 6, padding: '10px 22px', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 24px rgba(225,6,0,0.4)' }} onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#b50009'; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 6px 32px rgba(225,6,0,0.55)'; }} onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#E10600'; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 24px rgba(225,6,0,0.4)'; }}>
                   {t('nav_create_account')} →
                 </button>
               </>
@@ -121,7 +121,7 @@ export default function Navbar() {
           <div style={{ padding: '12px 24px 28px', display: 'flex', flexDirection: 'column', gap: 0 }}>
             {navLinks.map((link) => (
               <a key={link.href} href={link.href} onClick={(e) => { e.preventDefault(); handleNav(link.href); }}
-                style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', textDecoration: 'none', padding: '14px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'block' }}>
+                style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,255,255,0.75)', textDecoration: 'none', padding: '14px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'block' }}>
                 {t(link.labelKey)}
               </a>
             ))}
@@ -130,13 +130,13 @@ export default function Navbar() {
             </div>
             {user && profile ? (
               <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <button onClick={() => { navigate('/dashboard'); setMenuOpen(false); }} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'white', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '14px', cursor: 'pointer' }}>{t('nav_my_profile')}</button>
-                <button onClick={() => { signOut(); setMenuOpen(false); }} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, color: 'rgba(255,255,255,0.25)', background: 'none', border: 'none', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 2 }}>{t('nav_sign_out')}</button>
+                <button onClick={() => { navigate('/dashboard'); setMenuOpen(false); }} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'white', background: '#E10600', border: 'none', borderRadius: 10, padding: '15px', cursor: 'pointer' }}>{t('nav_my_profile')}</button>
+                <button onClick={() => { signOut(); setMenuOpen(false); }} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, color: 'rgba(255,255,255,0.45)', background: 'none', border: 'none', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 2 }}>{t('nav_sign_out')}</button>
               </div>
             ) : (
               <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <button onClick={() => { navigate('/auth'); setMenuOpen(false); }} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'white', background: '#E10600', border: 'none', borderRadius: 10, padding: '16px', cursor: 'pointer' }}>{t('nav_create_account')}</button>
-                <button onClick={() => { navigate('/auth'); setMenuOpen(false); }} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 600, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', background: 'none', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '14px', cursor: 'pointer' }}>{t('nav_sign_in')}</button>
+                <button onClick={() => { navigate('/auth'); setMenuOpen(false); }} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'white', background: '#E10600', border: 'none', borderRadius: 10, padding: '16px', cursor: 'pointer', boxShadow: '0 4px 24px rgba(225,6,0,0.4)' }}>{t('nav_create_account')}</button>
+                <button onClick={() => { navigate('/auth'); setMenuOpen(false); }} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 600, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', background: 'none', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 10, padding: '14px', cursor: 'pointer' }}>{t('nav_sign_in')}</button>
               </div>
             )}
           </div>

@@ -42,7 +42,7 @@ export default function Hero() {
         {/* LEFT */}
         <div>
           {/* Eyebrow dorado */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, marginBottom: 28, padding: '8px 20px', borderRadius: 100, border: '1px solid rgba(201,168,76,0.35)', background: 'rgba(201,168,76,0.07)', backdropFilter: 'blur(8px)' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, marginBottom: 28, padding: '8px 20px', borderRadius: 100, border: '1px solid rgba(201,168,76,0.45)', background: 'rgba(201,168,76,0.09)', backdropFilter: 'blur(8px)' }}>
             <span style={{ width: 7, height: 7, background: '#C9A84C', borderRadius: '50%', boxShadow: '0 0 10px #C9A84C' }} />
             <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: 6, textTransform: 'uppercase', color: '#C9A84C' }}>{t('hero_eyebrow')}</span>
           </div>
@@ -51,35 +51,35 @@ export default function Hero() {
           <h1 style={{ margin: '0 0 24px', lineHeight: 0.86 }}>
             <span style={{ display: 'block', fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(58px, 14vw, 126px)', color: '#ffffff', letterSpacing: -2 }}>{t('hero_headline_1')}</span>
             <span style={{ display: 'block', fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(58px, 14vw, 126px)', color: '#E10600', letterSpacing: -2, textShadow: '0 0 60px rgba(225,6,0,0.55), 0 0 120px rgba(225,6,0,0.2)' }}>{t('hero_headline_2')}</span>
-            <span style={{ display: 'block', fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(36px, 8vw, 78px)', color: 'transparent', letterSpacing: -1, WebkitTextStroke: '1px rgba(255,255,255,0.1)', fontStyle: 'italic' }}>{t('hero_headline_3')}</span>
+            <span style={{ display: 'block', fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(36px, 8vw, 78px)', color: 'transparent', letterSpacing: -1, WebkitTextStroke: '1px rgba(255,255,255,0.22)', fontStyle: 'italic' }}>{t('hero_headline_3')}</span>
           </h1>
 
           {/* SUBTEXT */}
-          <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 'clamp(16px, 2vw, 21px)', fontWeight: 400, color: 'rgba(255,255,255,0.58)', lineHeight: 1.6, maxWidth: 500, marginBottom: 36 }}>{t('hero_subtext')}</p>
+          <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 'clamp(17px, 2vw, 22px)', fontWeight: 400, color: 'rgba(255,255,255,0.78)', lineHeight: 1.6, maxWidth: 520, marginBottom: 36 }}>{t('hero_subtext')}</p>
 
           {/* CTAs */}
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 40 }}>
-            <button onClick={() => navigate('/auth')} style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, letterSpacing: 3, color: 'white', background: 'linear-gradient(135deg, #E10600, #c00)', border: 'none', borderRadius: 12, padding: '16px 36px', cursor: 'pointer', boxShadow: '0 8px 40px rgba(225,6,0,0.5)', transition: 'all 0.25s', whiteSpace: 'nowrap' }}
+            <button onClick={() => navigate('/auth')} style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 19, letterSpacing: 3, color: 'white', background: 'linear-gradient(135deg, #E10600, #c00)', border: 'none', borderRadius: 12, padding: '17px 38px', cursor: 'pointer', boxShadow: '0 8px 40px rgba(225,6,0,0.5)', transition: 'all 0.25s', whiteSpace: 'nowrap' }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-4px)'; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 20px 60px rgba(225,6,0,0.65)'; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'none'; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 8px 40px rgba(225,6,0,0.5)'; }}>
               {t('btn_create_free')} →
             </button>
-            <button onClick={() => { document.querySelector('#how-it-works')?.scrollIntoView({ behavior: 'smooth' }); }} style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, letterSpacing: 3, color: 'rgba(255,255,255,0.55)', background: 'rgba(255,255,255,0.04)', border: '1.5px solid rgba(255,255,255,0.14)', borderRadius: 12, padding: '16px 28px', cursor: 'pointer', transition: 'all 0.25s', backdropFilter: 'blur(8px)', whiteSpace: 'nowrap' }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#C9A84C'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(201,168,76,0.45)'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.55)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.14)'; }}>
+            <button onClick={() => { document.querySelector('#how-it-works')?.scrollIntoView({ behavior: 'smooth' }); }} style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 19, letterSpacing: 3, color: 'rgba(255,255,255,0.85)', background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.25)', borderRadius: 12, padding: '17px 30px', cursor: 'pointer', transition: 'all 0.25s', backdropFilter: 'blur(8px)', whiteSpace: 'nowrap' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#C9A84C'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(201,168,76,0.55)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.85)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.25)'; }}>
               Cómo funciona
             </button>
           </div>
 
           {/* Stats */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20, paddingTop: 24, borderTop: '1px solid rgba(255,255,255,0.07)', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20, paddingTop: 24, borderTop: '1px solid rgba(255,255,255,0.1)', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ width: 8, height: 8, background: '#22c55e', borderRadius: '50%', boxShadow: '0 0 10px #22c55e' }} />
-              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, color: 'rgba(255,255,255,0.45)', letterSpacing: 1 }}>{t('hero_indicator_active')}</span>
+              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, color: 'rgba(255,255,255,0.65)', letterSpacing: 1 }}>{t('hero_indicator_active')}</span>
             </div>
-            <span style={{ color: 'rgba(255,255,255,0.08)', fontSize: 18 }}>·</span>
+            <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: 18 }}>·</span>
             <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, color: '#C9A84C', letterSpacing: 1 }}>100%</span>
-            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.35)', letterSpacing: 2, textTransform: 'uppercase' }}>Gratuito · Sin comisiones</span>
+            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.55)', letterSpacing: 2, textTransform: 'uppercase' }}>Gratuito · Sin comisiones</span>
           </div>
         </div>
 
@@ -88,25 +88,25 @@ export default function Hero() {
           {[
             { icon: 'ri-boxing-line', title: 'Peleadores', desc: 'Crea tu ficha y sé encontrado por promotoras', color: '#E10600' },
             { icon: 'ri-trophy-line', title: 'Promotoras', desc: 'Encuentra el talento exacto para tu velada', color: '#C9A84C' },
-            { icon: 'ri-store-2-line', title: 'Marcas', desc: 'Conecta con atletas con comunidad real', color: 'rgba(255,255,255,0.5)' },
+            { icon: 'ri-store-2-line', title: 'Marcas', desc: 'Conecta con atletas con comunidad real', color: 'rgba(255,255,255,0.75)' },
           ].map((card) => (
-            <div key={card.title} style={{ padding: '18px 20px', borderRadius: 14, background: 'rgba(10,10,10,0.7)', border: `1px solid ${card.color}20`, backdropFilter: 'blur(20px)', display: 'flex', alignItems: 'center', gap: 14, transition: 'all 0.25s', cursor: 'pointer', boxShadow: '0 4px 20px rgba(0,0,0,0.4)' }}
+            <div key={card.title} style={{ padding: '18px 20px', borderRadius: 14, background: 'rgba(10,10,10,0.75)', border: `1px solid ${card.color}30`, backdropFilter: 'blur(20px)', display: 'flex', alignItems: 'center', gap: 14, transition: 'all 0.25s', cursor: 'pointer', boxShadow: '0 4px 20px rgba(0,0,0,0.4)' }}
               onClick={() => navigate('/auth')}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.transform = 'translateX(6px)'; (e.currentTarget as HTMLDivElement).style.borderColor = `${card.color}45`; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.transform = 'none'; (e.currentTarget as HTMLDivElement).style.borderColor = `${card.color}20`; }}>
-              <div style={{ width: 42, height: 42, borderRadius: 11, background: `${card.color}12`, border: `1px solid ${card.color}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.transform = 'translateX(6px)'; (e.currentTarget as HTMLDivElement).style.borderColor = `${card.color}60`; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.transform = 'none'; (e.currentTarget as HTMLDivElement).style.borderColor = `${card.color}30`; }}>
+              <div style={{ width: 42, height: 42, borderRadius: 11, background: `${card.color}15`, border: `1px solid ${card.color}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <i className={card.icon} style={{ color: card.color, fontSize: 18 }} />
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 19, color: 'white', lineHeight: 1, marginBottom: 3 }}>{card.title}</div>
-                <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.42)', lineHeight: 1.3 }}>{card.desc}</div>
+                <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.62)', lineHeight: 1.3 }}>{card.desc}</div>
               </div>
-              <i className="ri-arrow-right-line" style={{ color: 'rgba(255,255,255,0.1)', fontSize: 14, flexShrink: 0 }} />
+              <i className="ri-arrow-right-line" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14, flexShrink: 0 }} />
             </div>
           ))}
-          <div style={{ padding: '12px 18px', borderRadius: 12, background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.12)', display: 'flex', alignItems: 'center', gap: 10, backdropFilter: 'blur(12px)' }}>
+          <div style={{ padding: '12px 18px', borderRadius: 12, background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.18)', display: 'flex', alignItems: 'center', gap: 10, backdropFilter: 'blur(12px)' }}>
             <span style={{ width: 7, height: 7, background: '#22c55e', borderRadius: '50%', boxShadow: '0 0 8px #22c55e', flexShrink: 0 }} />
-            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.42)', letterSpacing: 0.5 }}>Plataforma activa · Únete gratis</span>
+            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.62)', letterSpacing: 0.5 }}>Plataforma activa · Únete gratis</span>
             <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, color: '#C9A84C', marginLeft: 'auto', letterSpacing: 2 }}>100% FREE</span>
           </div>
         </div>
@@ -114,7 +114,7 @@ export default function Hero() {
 
       {/* Scroll indicator */}
       <div style={{ position: 'absolute', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 5, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, animation: 'bounceY 2.5s ease-in-out infinite' }}>
-        <i className="ri-arrow-down-s-line" style={{ color: 'rgba(255,255,255,0.12)', fontSize: 26 }} />
+        <i className="ri-arrow-down-s-line" style={{ color: 'rgba(255,255,255,0.35)', fontSize: 26 }} />
       </div>
 
       <style>{`

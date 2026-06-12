@@ -39,7 +39,7 @@ export default function HowItWorks() {
               {t('how_headline_1')}<br /><span style={{ color: '#E10600', textShadow: '0 0 40px rgba(225,6,0,0.3)' }}>{t('how_headline_2')}</span>
             </h2>
           </div>
-          <p className="how-subtext" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, color: 'rgba(255,255,255,0.58)', maxWidth: 360, lineHeight: 1.55 }}>{t('how_subtext')}</p>
+          <p className="how-subtext" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, color: 'rgba(255,255,255,0.72)', maxWidth: 360, lineHeight: 1.55 }}>{t('how_subtext')}</p>
         </div>
 
         {/* Línea roja separadora */}
@@ -58,7 +58,7 @@ export default function HowItWorks() {
                 <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(0deg, #111 0%, rgba(17,17,17,0.3) 55%, transparent 100%)` }} />
                 <div style={{ position: 'absolute', inset: 0, background: `${step.color}10` }} />
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: step.color }} />
-                <div style={{ position: 'absolute', top: 6, right: 10, fontFamily: "'Bebas Neue', sans-serif", fontSize: 48, color: `${step.color}20`, lineHeight: 1, userSelect: 'none' }}>{step.number}</div>
+                <div style={{ position: 'absolute', top: 6, right: 10, fontFamily: "'Bebas Neue', sans-serif", fontSize: 48, color: `${step.color}30`, lineHeight: 1, userSelect: 'none' }}>{step.number}</div>
               </div>
               <div style={{ padding: '18px 18px 22px' }}>
                 <div style={{ width: 38, height: 38, borderRadius: 10, background: `${step.color}15`, border: `1px solid ${step.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
@@ -66,7 +66,7 @@ export default function HowItWorks() {
                 </div>
                 <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 4, color: step.color, marginBottom: 6 }}>PASO {step.number}</div>
                 <h3 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, color: 'white', marginBottom: 6, lineHeight: 1.05 }}>{t(step.titleKey)}</h3>
-                <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6, margin: 0 }}>{t(step.descKey)}</p>
+                <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14.5, color: 'rgba(255,255,255,0.72)', lineHeight: 1.6, margin: 0 }}>{t(step.descKey)}</p>
               </div>
             </div>
           ))}
@@ -74,12 +74,12 @@ export default function HowItWorks() {
 
         {/* CTA */}
         <div className="reveal" style={{ textAlign: 'center' }}>
-          <button onClick={() => navigate('/auth')} className="btn-glow" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 19, letterSpacing: 4, color: 'white', background: 'linear-gradient(135deg, #E10600, #c00)', border: 'none', borderRadius: 12, padding: '16px 48px', cursor: 'pointer', transition: 'all 0.25s' }}
+          <button onClick={() => navigate('/auth')} className="btn-glow" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 19, letterSpacing: 4, color: 'white', background: 'linear-gradient(135deg, #E10600, #c00)', border: 'none', borderRadius: 12, padding: '16px 48px', cursor: 'pointer', transition: 'all 0.25s', boxShadow: '0 8px 32px rgba(225,6,0,0.4)' }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-4px) scale(1.02)'; }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'none'; }}>
             {t('btn_start_free')} →
           </button>
-          <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.28)', marginTop: 14, letterSpacing: 3, textTransform: 'uppercase' }}>Sin tarjeta · Sin coste · Para siempre</p>
+          <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 14, letterSpacing: 3, textTransform: 'uppercase' }}>Sin tarjeta · Sin coste · Para siempre</p>
         </div>
       </div>
 
