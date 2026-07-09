@@ -8,6 +8,7 @@ const LoadingSpinner = () => (
   </div>
 );
 
+const ComingSoonPage = lazy(() => import('../pages/coming-soon/page'));
 const Home = lazy(() => import('../pages/home/page'));
 const AuthPage = lazy(() => import('../pages/auth/page'));
 const RegistroPage = lazy(() => import('../pages/registro/page'));
@@ -24,6 +25,14 @@ const PrivacyPage = lazy(() => import('../pages/privacy/page'));
 const routes: RouteObject[] = [
   {
     path: '/',
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <ComingSoonPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/beta',
     element: (
       <Suspense fallback={<LoadingSpinner />}>
         <Home />
