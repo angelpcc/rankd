@@ -37,17 +37,20 @@ const COUNTRIES = [
   'Japón', 'Corea del Sur', 'Tailandia', 'Australia', 'Otro',
 ];
 
+type ActiveTab = 'overview' | 'profile' | 'opportunities' | 'videos' | 'achievements' | 'messages' | 'verification' | 'settings';
+
 export default function FighterDashboard({ profile }: Props) {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [fighter, setFighter] = useState<Fighter | null>(null);
   const [videos, setVideos] = useState<FighterVideo[]>([]);
   const [achievements, setAchievements] = useState<FighterAchievement[]>([]);
+  const [applicationsCount, setApplicationsCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
-  const [activeTab, setActiveTab] = useState<'profile' | 'opportunities' | 'videos' | 'achievements' | 'messages' | 'verification' | 'settings'>('profile');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
   const [currentProfile, setCurrentProfile] = useState<Profile>(profile);
   const completion = useFighterCompletion(currentProfile, fighter);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
@@ -119,6 +122,8 @@ export default function FighterDashboard({ profile }: Props) {
         setVideos(vids || []);
         setAchievements(achs || []);
       }
+      const { count } = await supabase.from('applications').select('id', { count: 'exact', head: true }).eq('fighter_profile_id', profile.id);
+      setApplicationsCount(count || 0);
       setLoading(false);
     };
     load();
@@ -222,113 +227,247 @@ export default function FighterDashboard({ profile }: Props) {
     );
   }
 
-  const tabs = [
+  const initials = (fullName || profile.full_name || 'F').split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
+  const totalFights = (parseInt(wins, 10) || 0) + (parseInt(losses, 10) || 0) + (parseInt(draws, 10) || 0);
+  const winRate = totalFights > 0 ? Math.round(((parseInt(wins, 10) || 0) / totalFights) * 100) : null;
+
+  const tabs: { id: ActiveTab; label: string; icon: string; badge?: number }[] = [
+    { id: 'overview', label: 'Inicio', icon: 'ri-dashboard-line' },
     { id: 'profile', label: t('dash_tab_profile'), icon: 'ri-user-line' },
     { id: 'opportunities', label: t('dash_tab_opportunities'), icon: 'ri-megaphone-line' },
     { id: 'messages', label: t('dash_tab_messages'), icon: 'ri-message-3-line' },
     { id: 'verification', label: t('dash_tab_verification'), icon: currentProfile.verified ? 'ri-shield-check-fill' : 'ri-shield-line' },
-    { id: 'videos', label: t('dash_tab_videos'), icon: 'ri-video-line' },
-    { id: 'achievements', label: t('dash_tab_achievements'), icon: 'ri-medal-line' },
+    { id: 'videos', label: t('dash_tab_videos'), icon: 'ri-video-line', badge: videos.length || undefined },
+    { id: 'achievements', label: t('dash_tab_achievements'), icon: 'ri-medal-line', badge: achievements.length || undefined },
     { id: 'settings', label: t('dash_tab_settings'), icon: 'ri-settings-3-line' },
-  ] as const;
+  ];
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
       <DashboardNav profile={profile} />
       {toast && (
-        <div className={`fixed bottom-6 right-6 z-50 text-white text-sm px-5 py-3 rounded-xl flex items-center gap-2 ${toast.type === 'error' ? 'bg-red-600' : 'bg-green-600'}`}>
+        <div className={`fixed bottom-20 lg:bottom-6 right-6 z-50 text-white text-sm px-5 py-3 rounded-xl flex items-center gap-2 ${toast.type === 'error' ? 'bg-red-600' : 'bg-green-600'}`}>
           <i className={toast.type === 'error' ? 'ri-error-warning-line' : 'ri-check-line'}></i>{toast.msg}
         </div>
       )}
 
-      <div className="pt-16 max-w-6xl mx-auto px-4 md:px-6 py-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6 sm:mb-8">
-          <div className="flex items-center gap-4 w-full sm:w-auto">
-            <div className="flex-shrink-0">
-              <AvatarUpload userId={profile.id} currentAvatarUrl={avatarUrl} displayName={fullName || profile.full_name || 'F'}
-                onUploadSuccess={(url) => { setAvatarUrl(url); showToast('Foto de perfil actualizada'); }}
-                onError={(msg) => showToast(msg, 'error')} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-lg sm:text-2xl font-bold text-white truncate">{fullName || profile.full_name || t('dash_tab_profile')}</h1>
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <span className="text-xs bg-red-600/20 text-red-400 border border-red-500/30 px-2.5 py-0.5 rounded-full whitespace-nowrap">{t('dash_fighter_label')}</span>
-                {discipline && <span className="text-xs text-zinc-400 whitespace-nowrap">{disciplineLabels[discipline] || discipline}</span>}
+      <div className="pt-14 sm:pt-16 flex min-h-screen">
+
+        {/* ── SIDEBAR (desktop) ── */}
+        <aside className="hidden lg:flex flex-col w-56 flex-shrink-0 border-r border-zinc-800 bg-zinc-950 fixed top-16 bottom-0 left-0 z-30 overflow-y-auto">
+          <div className="p-5 border-b border-zinc-800">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="" className="w-12 h-12 rounded-xl object-cover object-top border border-red-500/30 mb-3" />
+            ) : (
+              <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-red-500/20 mb-3">
+                <span className="text-sm font-black text-white/40">{initials}</span>
               </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap sm:ml-auto">
-            {fighter && (
-              <button onClick={publishProfile} disabled={publishing}
-                className={`flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl font-semibold border transition-all cursor-pointer whitespace-nowrap disabled:opacity-60 ${isPublic ? 'bg-green-500/15 border-green-500/40 text-green-400 hover:bg-red-500/15 hover:border-red-500/40 hover:text-red-400' : 'bg-zinc-800 border-zinc-600 text-zinc-300 hover:bg-green-500/15 hover:border-green-500/40 hover:text-green-400'}`}>
-                {publishing ? <><div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div> {t('dash_saving')}</> : isPublic ? <><i className="ri-eye-line"></i><span className="hidden sm:inline">{t('dash_fighter_visible')}</span></> : <><i className="ri-eye-off-line"></i><span className="hidden sm:inline">{t('dash_fighter_make_public')}</span></>}
-              </button>
             )}
-            {fighter && isPublic && (
-              <>
-                <Link to={`/fighter/${fighter.id}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-medium transition-colors cursor-pointer whitespace-nowrap">
-                  <i className="ri-external-link-line"></i><span className="hidden sm:inline">{t('dash_fighter_view_public')}</span>
-                </Link>
-                <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/fighter/${fighter.id}`); showToast(t('dash_settings_copied')); }}
-                  className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl border border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:text-white transition-colors cursor-pointer whitespace-nowrap">
-                  <i className="ri-share-line"></i>
-                </button>
-              </>
-            )}
-            <div className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border whitespace-nowrap ${isAvailable ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-zinc-800 border-zinc-700 text-zinc-400'}`}>
-              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isAvailable ? 'bg-green-400' : 'bg-zinc-500'}`}></span>
+            <p className="text-sm font-semibold text-white truncate">{fullName || profile.full_name || t('dash_tab_profile')}</p>
+            <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full border mt-1 bg-red-600/20 text-red-400 border-red-500/30">
+              {t('dash_fighter_label')}
+            </span>
+            <div className={`flex items-center gap-1.5 text-xs mt-2 ${isAvailable ? 'text-green-400' : 'text-zinc-500'}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${isAvailable ? 'bg-green-400' : 'bg-zinc-500'}`}></span>
               {isAvailable ? t('dash_fighter_available') : t('dash_fighter_not_available')}
             </div>
           </div>
-        </div>
 
-        {fighter && !isPublic && (
-          <div className="mb-6 rounded-2xl overflow-hidden border-2 border-amber-500/50">
-            <div className="bg-amber-500/15 px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <div className="flex items-center gap-3 flex-1">
-                <div className="w-11 h-11 flex items-center justify-center rounded-xl bg-amber-500/25 text-amber-400 flex-shrink-0"><i className="ri-eye-off-line text-xl"></i></div>
-                <div>
-                  <p className="text-sm font-bold text-amber-300">{t('dash_fighter_private_title')}</p>
-                  <p className="text-xs text-amber-400/80 mt-0.5 leading-relaxed">{t('dash_fighter_private_desc')}</p>
-                </div>
-              </div>
-              <button onClick={publishProfile} disabled={publishing}
-                className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-zinc-900 text-sm font-bold px-5 py-3 rounded-xl transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60 flex-shrink-0 w-full sm:w-auto justify-center">
-                {publishing ? <><div className="w-4 h-4 border-2 border-zinc-900 border-t-transparent rounded-full animate-spin"></div> {t('dash_saving')}</> : <><i className="ri-eye-line text-base"></i> {t('dash_fighter_private_cta')}</>}
+          <nav className="flex-1 p-3 space-y-1">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer text-left ${activeTab === tab.id ? 'bg-red-600 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
+              >
+                <i className={`${tab.icon} text-base flex-shrink-0`}></i>
+                <span className="flex-1">{tab.label}</span>
+                {tab.badge !== undefined && tab.badge > 0 && (
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-red-600/20 text-red-400'}`}>
+                    {tab.badge}
+                  </span>
+                )}
               </button>
-            </div>
+            ))}
+          </nav>
+
+          <div className="p-3 border-t border-zinc-800 space-y-2">
+            {fighter && isPublic ? (
+              <Link to={`/fighter/${fighter.id}`} target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-2.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap">
+                <i className="ri-external-link-line"></i>
+                {t('dash_fighter_view_profile')}
+              </Link>
+            ) : fighter ? (
+              <button onClick={publishProfile} disabled={publishing} className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-zinc-900 text-xs font-bold px-3 py-2.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60">
+                <i className="ri-eye-line"></i>
+                {publishing ? t('dash_saving') : t('dash_fighter_publish')}
+              </button>
+            ) : null}
           </div>
-        )}
+        </aside>
 
-        <ProfileCompletionBanner completion={completion} onComplete={() => setActiveTab('profile')} userType="fighter" />
-
-        <div className="grid grid-cols-4 gap-2 sm:gap-3 mb-6 sm:mb-8">
-          {[
-            { label: t('dash_fighter_wins'), value: wins, color: 'text-green-400' },
-            { label: t('dash_fighter_losses'), value: losses, color: 'text-red-400' },
-            { label: t('dash_fighter_draws'), value: draws, color: 'text-yellow-400' },
-            { label: t('dash_fighter_kos'), value: kos, color: 'text-orange-400' },
-          ].map((s) => (
-            <div key={s.label} className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 sm:p-4 text-center">
-              <p className={`text-xl sm:text-2xl font-bold ${s.color}`}>{s.value || '0'}</p>
-              <p className="text-[10px] sm:text-xs text-zinc-500 mt-1">{s.label}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="flex gap-1 bg-zinc-900 border border-zinc-800 rounded-xl p-1 mb-5 sm:mb-6 overflow-x-auto scrollbar-hide">
-          {tabs.map((tab) => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all cursor-pointer whitespace-nowrap flex-shrink-0 justify-center ${activeTab === tab.id ? 'bg-red-600 text-white' : 'text-zinc-400 hover:text-white'}`}>
-              <i className={tab.icon}></i>
-              <span className="hidden md:inline">{tab.label}</span>
-              <span className="md:hidden text-[10px]">{tab.label.split(' ')[0]}</span>
+        {/* ── MOBILE BOTTOM TABS ── */}
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-zinc-900 border-t border-zinc-800 flex">
+          {tabs.slice(0, 4).map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[10px] transition-colors cursor-pointer relative ${activeTab === tab.id ? 'text-red-400' : 'text-zinc-500'}`}
+            >
+              <i className={`${tab.icon} text-lg`}></i>
+              <span>{tab.label}</span>
             </button>
           ))}
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[10px] transition-colors cursor-pointer ${['settings', 'videos', 'achievements', 'verification'].includes(activeTab) ? 'text-red-400' : 'text-zinc-500'}`}
+          >
+            <i className="ri-more-line text-lg"></i>
+            <span>Más</span>
+          </button>
         </div>
 
-        {activeTab === 'profile' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* ── MAIN ── */}
+        <main className="flex-1 lg:ml-56 px-4 md:px-6 lg:px-8 py-6 sm:py-8 pb-24 lg:pb-8 max-w-full overflow-x-hidden">
+
+          {/* ══ OVERVIEW ══ */}
+          {activeTab === 'overview' && (
+            <div className="space-y-6 max-w-4xl">
+              <div>
+                <h1 className="text-2xl font-bold text-white">Hola, {(fullName || profile.full_name || '').split(' ')[0] || 'Peleador'} 👊</h1>
+                <p className="text-zinc-400 text-sm mt-1">Este es el estado de tu carrera en Rankd</p>
+              </div>
+
+              {/* Visibility banners */}
+              {fighter && !isPublic && (
+                <div className="rounded-2xl overflow-hidden border-2 border-amber-500/50">
+                  <div className="bg-amber-500/15 px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="w-11 h-11 flex items-center justify-center rounded-xl bg-amber-500/25 text-amber-400 flex-shrink-0"><i className="ri-eye-off-line text-xl"></i></div>
+                      <div>
+                        <p className="text-sm font-bold text-amber-300">{t('dash_fighter_private_title')}</p>
+                        <p className="text-xs text-amber-400/80 mt-0.5 leading-relaxed">{t('dash_fighter_private_desc')}</p>
+                      </div>
+                    </div>
+                    <button onClick={publishProfile} disabled={publishing}
+                      className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-zinc-900 text-sm font-bold px-5 py-3 rounded-xl transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60 flex-shrink-0 w-full sm:w-auto justify-center">
+                      {publishing ? <><div className="w-4 h-4 border-2 border-zinc-900 border-t-transparent rounded-full animate-spin"></div> {t('dash_saving')}</> : <><i className="ri-eye-line text-base"></i> {t('dash_fighter_private_cta')}</>}
+                    </button>
+                  </div>
+                </div>
+              )}
+              {fighter && isPublic && (
+                <div className="bg-green-500/10 border border-green-500/30 rounded-xl px-5 py-3 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-green-500/20 text-green-400 flex-shrink-0"><i className="ri-eye-line"></i></div>
+                    <div>
+                      <p className="text-sm font-semibold text-green-300">Tu perfil está visible</p>
+                      <p className="text-xs text-green-400/70">Promotoras y marcas pueden encontrarte en el directorio</p>
+                    </div>
+                  </div>
+                  <button onClick={publishProfile} disabled={publishing} className="text-xs text-zinc-400 hover:text-red-400 cursor-pointer whitespace-nowrap transition-colors disabled:opacity-60">
+                    {publishing ? t('dash_saving') : 'Ocultar'}
+                  </button>
+                </div>
+              )}
+
+              <ProfileCompletionBanner completion={completion} onComplete={() => setActiveTab('profile')} userType="fighter" />
+
+              {/* KPIs */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                {[
+                  { label: 'Visitas a tu perfil', value: fighter?.profile_views ?? 0, icon: 'ri-eye-line', color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', action: () => { if (fighter && isPublic) window.open(`/fighter/${fighter.id}`, '_blank'); } },
+                  { label: 'Postulaciones enviadas', value: applicationsCount, icon: 'ri-send-plane-line', color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/20', action: () => setActiveTab('opportunities') },
+                  { label: 'Videos subidos', value: videos.length, icon: 'ri-video-line', color: 'text-zinc-300', bg: 'bg-zinc-800 border-zinc-700', action: () => setActiveTab('videos') },
+                  { label: 'Logros y títulos', value: achievements.length, icon: 'ri-medal-line', color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/20', action: () => setActiveTab('achievements') },
+                ].map((kpi) => (
+                  <button key={kpi.label} onClick={kpi.action} className={`${kpi.bg} border rounded-2xl p-5 text-left hover:opacity-80 transition-opacity cursor-pointer`}>
+                    <div className={`w-8 h-8 flex items-center justify-center mb-3 ${kpi.color}`}><i className={`${kpi.icon} text-xl`}></i></div>
+                    <p className={`text-3xl font-black ${kpi.color}`}>{kpi.value}</p>
+                    <p className="text-xs text-zinc-400 mt-1 leading-tight">{kpi.label}</p>
+                  </button>
+                ))}
+              </div>
+
+              {/* Récord */}
+              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-sm font-semibold text-white">Tu récord</h2>
+                  {winRate !== null && (
+                    <span className="text-xs font-bold text-white bg-white/10 border border-white/15 px-2.5 py-1 rounded-full">{winRate}% win rate</span>
+                  )}
+                </div>
+                <div className="grid grid-cols-4 gap-2 sm:gap-3">
+                  {[
+                    { label: t('dash_fighter_wins'), value: wins, color: 'text-green-400' },
+                    { label: t('dash_fighter_losses'), value: losses, color: 'text-red-400' },
+                    { label: t('dash_fighter_draws'), value: draws, color: 'text-yellow-400' },
+                    { label: t('dash_fighter_kos'), value: kos, color: 'text-orange-400' },
+                  ].map((s) => (
+                    <div key={s.label} className="bg-zinc-950 border border-zinc-800 rounded-xl p-3 sm:p-4 text-center">
+                      <p className={`text-xl sm:text-2xl font-bold ${s.color}`}>{s.value || '0'}</p>
+                      <p className="text-[10px] sm:text-xs text-zinc-500 mt-1">{s.label}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Accesos rápidos */}
+              <div>
+                <h2 className="text-sm font-semibold text-white mb-3">Accesos rápidos</h2>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  {[
+                    { label: 'Editar mi perfil', icon: 'ri-edit-line', action: () => setActiveTab('profile') },
+                    { label: 'Ver oportunidades', icon: 'ri-megaphone-line', action: () => setActiveTab('opportunities') },
+                    { label: 'Mensajes', icon: 'ri-message-3-line', action: () => setActiveTab('messages') },
+                    { label: currentProfile.verified ? 'Verificado' : 'Verificar cuenta', icon: currentProfile.verified ? 'ri-shield-check-fill' : 'ri-shield-line', action: () => setActiveTab('verification') },
+                  ].map((q) => (
+                    <button key={q.label} onClick={q.action} className="bg-zinc-900 border border-zinc-800 hover:border-red-500/40 rounded-2xl p-4 flex items-center gap-3 transition-colors cursor-pointer text-left">
+                      <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-600/15 text-red-400 flex-shrink-0"><i className={q.icon}></i></div>
+                      <span className="text-sm font-medium text-white leading-tight">{q.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ══ PROFILE ══ */}
+          {activeTab === 'profile' && (
+            <div className="max-w-4xl">
+              {/* Header con avatar */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6 sm:mb-8">
+                <div className="flex items-center gap-4 w-full sm:w-auto">
+                  <div className="flex-shrink-0">
+                    <AvatarUpload userId={profile.id} currentAvatarUrl={avatarUrl} displayName={fullName || profile.full_name || 'F'}
+                      onUploadSuccess={(url) => { setAvatarUrl(url); showToast('Foto de perfil actualizada'); }}
+                      onError={(msg) => showToast(msg, 'error')} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h1 className="text-lg sm:text-2xl font-bold text-white truncate">{fullName || profile.full_name || t('dash_tab_profile')}</h1>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      <span className="text-xs bg-red-600/20 text-red-400 border border-red-500/30 px-2.5 py-0.5 rounded-full whitespace-nowrap">{t('dash_fighter_label')}</span>
+                      {discipline && <span className="text-xs text-zinc-400 whitespace-nowrap">{disciplineLabels[discipline] || discipline}</span>}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap sm:ml-auto">
+                  {fighter && (
+                    <button onClick={publishProfile} disabled={publishing}
+                      className={`flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl font-semibold border transition-all cursor-pointer whitespace-nowrap disabled:opacity-60 ${isPublic ? 'bg-green-500/15 border-green-500/40 text-green-400 hover:bg-red-500/15 hover:border-red-500/40 hover:text-red-400' : 'bg-zinc-800 border-zinc-600 text-zinc-300 hover:bg-green-500/15 hover:border-green-500/40 hover:text-green-400'}`}>
+                      {publishing ? <><div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div> {t('dash_saving')}</> : isPublic ? <><i className="ri-eye-line"></i><span className="hidden sm:inline">{t('dash_fighter_visible')}</span></> : <><i className="ri-eye-off-line"></i><span className="hidden sm:inline">{t('dash_fighter_make_public')}</span></>}
+                    </button>
+                  )}
+                  {fighter && isPublic && (
+                    <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/fighter/${fighter.id}`); showToast(t('dash_settings_copied')); }}
+                      className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl border border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:text-white transition-colors cursor-pointer whitespace-nowrap">
+                      <i className="ri-share-line"></i>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
               <h2 className="text-base font-semibold text-white mb-2">{t('dash_personal_info')}</h2>
               <div>
@@ -475,135 +614,151 @@ export default function FighterDashboard({ profile }: Props) {
                 </p>
               )}
             </div>
-          </div>
-        )}
-
-        {activeTab === 'opportunities' && <FighterOpportunities profile={profile} fighter={fighter} showToast={showToast} />}
-        {activeTab === 'messages' && <MessagesPanel currentUserId={profile.id} />}
-
-        {activeTab === 'verification' && (
-          <div className="max-w-3xl">
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                {t('dash_verification_title')}{currentProfile.verified && <i className="ri-shield-check-fill text-green-400"></i>}
-              </h2>
-              <p className="text-zinc-400 text-sm mt-1">{t('dash_verification_desc')}</p>
-            </div>
-            <VerificationPanel profile={currentProfile} showToast={showToast} onUpdate={async () => {
-              const { data } = await supabase.from('profiles').select('*').eq('id', profile.id).maybeSingle();
-              if (data) setCurrentProfile(data);
-            }} />
-          </div>
-        )}
-
-        {activeTab === 'videos' && (
-          <div className="space-y-6">
-            {!fighter && <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 text-sm text-yellow-400 flex items-center gap-2"><i className="ri-information-line"></i>{t('dash_video_save_first')}</div>}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-              <h2 className="text-base font-semibold text-white mb-4">{t('dash_video_add')}</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <input value={videoTitle} onChange={(e) => setVideoTitle(e.target.value)} className="bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder={t('dash_video_title_ph')} disabled={!fighter} />
-                <input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} className="bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder={t('dash_video_url_ph')} disabled={!fighter} />
-                <div className="flex gap-2">
-                  <select value={videoType} onChange={(e) => setVideoType(e.target.value)} className="flex-1 bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer" disabled={!fighter}>
-                    <option value="highlight">Highlight</option><option value="fight">Combate</option>
-                    <option value="training">Entrenamiento</option><option value="interview">Entrevista</option>
-                  </select>
-                  <button onClick={addVideo} disabled={!fighter || !videoTitle.trim() || !videoUrl.trim()} className="bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white px-4 rounded-xl transition-colors cursor-pointer whitespace-nowrap"><i className="ri-add-line"></i></button>
-                </div>
               </div>
             </div>
-            {videos.length === 0 ? (
-              <div className="text-center py-16 text-zinc-500"><div className="w-16 h-16 flex items-center justify-center mx-auto mb-4"><i className="ri-video-line text-4xl"></i></div><p className="text-sm">{t('dash_video_empty')}</p></div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {videos.map((v) => (
-                  <div key={v.id} className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden group">
-                    <div className="aspect-video bg-zinc-800 flex items-center justify-center relative">
-                      <i className="ri-play-circle-line text-4xl text-zinc-600"></i>
-                      <span className="absolute top-2 right-2 text-xs bg-zinc-900/80 text-zinc-300 px-2 py-0.5 rounded-full capitalize">{v.video_type}</span>
-                    </div>
-                    <div className="p-3 flex items-center justify-between">
-                      <div className="min-w-0 flex-1"><p className="text-sm font-medium text-white truncate">{v.title}</p><a href={v.url} target="_blank" rel="nofollow noreferrer" className="text-xs text-red-400 hover:text-red-300 truncate block">{t('dash_video_watch')}</a></div>
-                      <button onClick={() => deleteVideo(v.id)} className="w-8 h-8 flex items-center justify-center text-zinc-500 hover:text-red-400 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"><i className="ri-delete-bin-line"></i></button>
-                    </div>
+          )}
+
+          {activeTab === 'opportunities' && <FighterOpportunities profile={profile} fighter={fighter} showToast={showToast} />}
+          {activeTab === 'messages' && <MessagesPanel currentUserId={profile.id} />}
+
+          {activeTab === 'verification' && (
+            <div className="max-w-3xl">
+              <div className="mb-6">
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  {t('dash_verification_title')}{currentProfile.verified && <i className="ri-shield-check-fill text-green-400"></i>}
+                </h2>
+                <p className="text-zinc-400 text-sm mt-1">{t('dash_verification_desc')}</p>
+              </div>
+              <VerificationPanel profile={currentProfile} showToast={showToast} onUpdate={async () => {
+                const { data } = await supabase.from('profiles').select('*').eq('id', profile.id).maybeSingle();
+                if (data) setCurrentProfile(data);
+              }} />
+            </div>
+          )}
+
+          {activeTab === 'videos' && (
+            <div className="space-y-6 max-w-5xl">
+              {!fighter && <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 text-sm text-yellow-400 flex items-center gap-2"><i className="ri-information-line"></i>{t('dash_video_save_first')}</div>}
+              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+                <h2 className="text-base font-semibold text-white mb-4">{t('dash_video_add')}</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <input value={videoTitle} onChange={(e) => setVideoTitle(e.target.value)} className="bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder={t('dash_video_title_ph')} disabled={!fighter} />
+                  <input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} className="bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder={t('dash_video_url_ph')} disabled={!fighter} />
+                  <div className="flex gap-2">
+                    <select value={videoType} onChange={(e) => setVideoType(e.target.value)} className="flex-1 bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer" disabled={!fighter}>
+                      <option value="highlight">Highlight</option><option value="fight">Combate</option>
+                      <option value="training">Entrenamiento</option><option value="interview">Entrevista</option>
+                    </select>
+                    <button onClick={addVideo} disabled={!fighter || !videoTitle.trim() || !videoUrl.trim()} className="bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white px-4 rounded-xl transition-colors cursor-pointer whitespace-nowrap"><i className="ri-add-line"></i></button>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'achievements' && (
-          <div className="space-y-6">
-            {!fighter && <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 text-sm text-yellow-400 flex items-center gap-2"><i className="ri-information-line"></i>{t('dash_ach_save_first')}</div>}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-              <h2 className="text-base font-semibold text-white mb-4">{t('dash_ach_add')}</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <input value={achTitle} onChange={(e) => setAchTitle(e.target.value)} className="bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder={t('dash_ach_title_ph')} disabled={!fighter} />
-                <input type="number" value={achYear} onChange={(e) => setAchYear(e.target.value)} className="bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder={t('dash_ach_year_ph')} disabled={!fighter} />
-                <div className="flex gap-2">
-                  <input value={achDesc} onChange={(e) => setAchDesc(e.target.value)} className="flex-1 bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder={t('dash_ach_desc_ph')} disabled={!fighter} />
-                  <button onClick={addAchievement} disabled={!fighter || !achTitle.trim()} className="bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white px-4 rounded-xl transition-colors cursor-pointer whitespace-nowrap"><i className="ri-add-line"></i></button>
                 </div>
               </div>
-            </div>
-            {achievements.length === 0 ? (
-              <div className="text-center py-16 text-zinc-500"><div className="w-16 h-16 flex items-center justify-center mx-auto mb-4"><i className="ri-medal-line text-4xl"></i></div><p className="text-sm">{t('dash_ach_empty')}</p></div>
-            ) : (
-              <div className="space-y-3">
-                {achievements.map((a) => (
-                  <div key={a.id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex items-center gap-4 group">
-                    <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-yellow-500/10 text-yellow-400 flex-shrink-0"><i className="ri-medal-line text-lg"></i></div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-white">{a.title}</p>
-                      {a.year && <p className="text-xs text-zinc-500">{a.year}</p>}
-                      {a.description && <p className="text-xs text-zinc-400 mt-0.5">{a.description}</p>}
+              {videos.length === 0 ? (
+                <div className="text-center py-16 text-zinc-500"><div className="w-16 h-16 flex items-center justify-center mx-auto mb-4"><i className="ri-video-line text-4xl"></i></div><p className="text-sm">{t('dash_video_empty')}</p></div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {videos.map((v) => (
+                    <div key={v.id} className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden group">
+                      <div className="aspect-video bg-zinc-800 flex items-center justify-center relative">
+                        <i className="ri-play-circle-line text-4xl text-zinc-600"></i>
+                        <span className="absolute top-2 right-2 text-xs bg-zinc-900/80 text-zinc-300 px-2 py-0.5 rounded-full capitalize">{v.video_type}</span>
+                      </div>
+                      <div className="p-3 flex items-center justify-between">
+                        <div className="min-w-0 flex-1"><p className="text-sm font-medium text-white truncate">{v.title}</p><a href={v.url} target="_blank" rel="nofollow noreferrer" className="text-xs text-red-400 hover:text-red-300 truncate block">{t('dash_video_watch')}</a></div>
+                        <button onClick={() => deleteVideo(v.id)} className="w-8 h-8 flex items-center justify-center text-zinc-500 hover:text-red-400 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"><i className="ri-delete-bin-line"></i></button>
+                      </div>
                     </div>
-                    <button onClick={() => deleteAchievement(a.id)} className="w-8 h-8 flex items-center justify-center text-zinc-500 hover:text-red-400 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"><i className="ri-delete-bin-line"></i></button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'settings' && (
-          <div className="max-w-lg space-y-4">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-              <h2 className="text-base font-semibold text-white mb-4">{t('dash_settings_account')}</h2>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between py-3 border-b border-zinc-800">
-                  <div><p className="text-sm text-white">{t('dash_settings_type')}</p><p className="text-xs text-zinc-500">{t('dash_fighter_label')}</p></div>
-                  <span className="text-xs bg-red-600/20 text-red-400 border border-red-500/30 px-2.5 py-1 rounded-full">{t('dash_settings_active')}</span>
+                  ))}
                 </div>
-                <div className="flex items-center justify-between py-3 border-b border-zinc-800">
-                  <div><p className="text-sm text-white">{t('dash_settings_availability')}</p><p className="text-xs text-zinc-500">{t('dash_settings_availability_desc')}</p></div>
-                  <button type="button" onClick={() => setIsAvailable(!isAvailable)} className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${isAvailable ? 'bg-red-600' : 'bg-zinc-700'}`}>
-                    <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${isAvailable ? 'left-7' : 'left-1'}`}></span>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'achievements' && (
+            <div className="space-y-6 max-w-5xl">
+              {!fighter && <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 text-sm text-yellow-400 flex items-center gap-2"><i className="ri-information-line"></i>{t('dash_ach_save_first')}</div>}
+              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+                <h2 className="text-base font-semibold text-white mb-4">{t('dash_ach_add')}</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <input value={achTitle} onChange={(e) => setAchTitle(e.target.value)} className="bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder={t('dash_ach_title_ph')} disabled={!fighter} />
+                  <input type="number" value={achYear} onChange={(e) => setAchYear(e.target.value)} className="bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder={t('dash_ach_year_ph')} disabled={!fighter} />
+                  <div className="flex gap-2">
+                    <input value={achDesc} onChange={(e) => setAchDesc(e.target.value)} className="flex-1 bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder={t('dash_ach_desc_ph')} disabled={!fighter} />
+                    <button onClick={addAchievement} disabled={!fighter || !achTitle.trim()} className="bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white px-4 rounded-xl transition-colors cursor-pointer whitespace-nowrap"><i className="ri-add-line"></i></button>
+                  </div>
+                </div>
+              </div>
+              {achievements.length === 0 ? (
+                <div className="text-center py-16 text-zinc-500"><div className="w-16 h-16 flex items-center justify-center mx-auto mb-4"><i className="ri-medal-line text-4xl"></i></div><p className="text-sm">{t('dash_ach_empty')}</p></div>
+              ) : (
+                <div className="space-y-3">
+                  {achievements.map((a) => (
+                    <div key={a.id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex items-center gap-4 group">
+                      <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-yellow-500/10 text-yellow-400 flex-shrink-0"><i className="ri-medal-line text-lg"></i></div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-white">{a.title}</p>
+                        {a.year && <p className="text-xs text-zinc-500">{a.year}</p>}
+                        {a.description && <p className="text-xs text-zinc-400 mt-0.5">{a.description}</p>}
+                      </div>
+                      <button onClick={() => deleteAchievement(a.id)} className="w-8 h-8 flex items-center justify-center text-zinc-500 hover:text-red-400 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"><i className="ri-delete-bin-line"></i></button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'settings' && (
+            <div className="max-w-lg space-y-4">
+              {/* Acceso rápido móvil a tabs secundarios */}
+              <div className="lg:hidden grid grid-cols-3 gap-2 mb-2">
+                {[
+                  { id: 'videos' as ActiveTab, label: t('dash_tab_videos'), icon: 'ri-video-line' },
+                  { id: 'achievements' as ActiveTab, label: t('dash_tab_achievements'), icon: 'ri-medal-line' },
+                  { id: 'verification' as ActiveTab, label: t('dash_tab_verification'), icon: 'ri-shield-line' },
+                ].map((tb) => (
+                  <button key={tb.id} onClick={() => setActiveTab(tb.id)} className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 flex flex-col items-center gap-1 text-zinc-300 hover:text-white cursor-pointer">
+                    <i className={`${tb.icon} text-lg`}></i>
+                    <span className="text-[10px]">{tb.label}</span>
                   </button>
-                </div>
-                {fighter && (
-                  <div className="py-3">
-                    <p className="text-sm text-white mb-1">{t('dash_settings_public_profile')}</p>
-                    <p className="text-xs text-zinc-500 mb-2">{t('dash_settings_share_desc')}</p>
-                    <div className="flex items-center gap-2 bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2.5">
-                      <span className="text-xs text-zinc-400 flex-1 truncate">/fighter/{fighter.id}</span>
-                      <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/fighter/${fighter.id}`); showToast(t('dash_settings_copied_short')); }} className="text-xs text-red-400 hover:text-red-300 cursor-pointer whitespace-nowrap flex items-center gap-1">
-                        <i className="ri-clipboard-line"></i> {t('dash_settings_copy')}
-                      </button>
-                    </div>
-                  </div>
-                )}
+                ))}
               </div>
+
+              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+                <h2 className="text-base font-semibold text-white mb-4">{t('dash_settings_account')}</h2>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between py-3 border-b border-zinc-800">
+                    <div><p className="text-sm text-white">{t('dash_settings_type')}</p><p className="text-xs text-zinc-500">{t('dash_fighter_label')}</p></div>
+                    <span className="text-xs bg-red-600/20 text-red-400 border border-red-500/30 px-2.5 py-1 rounded-full">{t('dash_settings_active')}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-3 border-b border-zinc-800">
+                    <div><p className="text-sm text-white">{t('dash_settings_availability')}</p><p className="text-xs text-zinc-500">{t('dash_settings_availability_desc')}</p></div>
+                    <button type="button" onClick={() => setIsAvailable(!isAvailable)} className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${isAvailable ? 'bg-red-600' : 'bg-zinc-700'}`}>
+                      <span className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${isAvailable ? 'left-7' : 'left-1'}`}></span>
+                    </button>
+                  </div>
+                  {fighter && (
+                    <div className="py-3">
+                      <p className="text-sm text-white mb-1">{t('dash_settings_public_profile')}</p>
+                      <p className="text-xs text-zinc-500 mb-2">{t('dash_settings_share_desc')}</p>
+                      <div className="flex items-center gap-2 bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2.5">
+                        <span className="text-xs text-zinc-400 flex-1 truncate">/fighter/{fighter.id}</span>
+                        <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/fighter/${fighter.id}`); showToast(t('dash_settings_copied_short')); }} className="text-xs text-red-400 hover:text-red-300 cursor-pointer whitespace-nowrap flex items-center gap-1">
+                          <i className="ri-clipboard-line"></i> {t('dash_settings_copy')}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              {isAvailable !== (fighter?.is_available ?? true) && (
+                <button onClick={saveProfile} disabled={saving} className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-xl transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60 flex items-center justify-center gap-2 text-sm">
+                  {saving ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {t('dash_saving')}</> : <><i className="ri-save-line"></i> {t('dash_settings_save')}</>}
+                </button>
+              )}
             </div>
-            {isAvailable !== (fighter?.is_available ?? true) && (
-              <button onClick={saveProfile} disabled={saving} className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-xl transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60 flex items-center justify-center gap-2 text-sm">
-                {saving ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {t('dash_saving')}</> : <><i className="ri-save-line"></i> {t('dash_settings_save')}</>}
-              </button>
-            )}
-          </div>
-        )}
+          )}
+        </main>
       </div>
     </div>
   );
