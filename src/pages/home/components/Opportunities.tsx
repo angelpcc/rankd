@@ -86,10 +86,10 @@ export default function Opportunities() {
             </div>
             <h2 className="font-unbounded font-black text-white leading-tight" style={{ fontSize: 'clamp(2rem, 4vw, 3.5rem)' }}>
               {t('opp_headline_1')}<br />
-              <span className="font-light text-white/20">{t('opp_headline_2')}</span>
+              <span className="font-light text-white/50">{t('opp_headline_2')}</span>
             </h2>
           </div>
-          <p className="text-white/35 text-base leading-relaxed max-w-md lg:text-right font-inter">{t('opp_subtext')}</p>
+          <p className="text-white/62 text-base leading-relaxed max-w-md lg:text-right font-inter">{t('opp_subtext')}</p>
         </div>
 
         {/* Filtros */}
@@ -99,7 +99,7 @@ export default function Opportunities() {
               className="px-5 py-2.5 rounded-full text-sm font-semibold border transition-all cursor-pointer whitespace-nowrap font-inter"
               style={{
                 background: active === f.key ? '#E10600' : 'transparent',
-                color: active === f.key ? 'white' : 'rgba(255,255,255,0.35)',
+                color: active === f.key ? 'white' : 'rgba(255,255,255,0.6)',
                 borderColor: active === f.key ? '#E10600' : 'rgba(255,255,255,0.1)',
                 boxShadow: active === f.key ? '0 0 20px rgba(225,6,0,0.25)' : 'none',
               }}>
@@ -117,7 +117,7 @@ export default function Opportunities() {
               <i className="ri-boxing-line text-2xl text-[#E10600]" />
             </div>
             <h3 className="font-unbounded font-bold text-white text-sm mb-3">{t('opp_home_empty_title')}</h3>
-            <p className="text-white/25 text-sm font-inter leading-relaxed max-w-sm mb-8">{t('opp_home_empty_desc')}</p>
+            <p className="text-white/55 text-sm font-inter leading-relaxed max-w-sm mb-8">{t('opp_home_empty_desc')}</p>
             <button onClick={() => navigate('/auth')}
               className="inline-flex items-center gap-2 bg-[#E10600] text-white font-semibold text-sm px-6 py-3 rounded-full hover:bg-red-700 transition-colors cursor-pointer whitespace-nowrap font-inter">
               <i className="ri-add-line" /> {t('opp_home_publish_btn')}
@@ -125,7 +125,7 @@ export default function Opportunities() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-16">
-            <p className="text-white/25 text-sm font-inter">{t('opp_home_no_type')}</p>
+            <p className="text-white/55 text-sm font-inter">{t('opp_home_no_type')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -172,27 +172,27 @@ export default function Opportunities() {
                       {opp.title}
                     </h3>
                     {opp.description && (
-                      <p className="text-white/25 text-sm mb-5 font-inter line-clamp-2 leading-relaxed">{opp.description}</p>
+                      <p className="text-white/55 text-sm mb-5 font-inter line-clamp-2 leading-relaxed">{opp.description}</p>
                     )}
 
                     {/* Detalles */}
                     <div className="space-y-2 mb-6 flex-1">
                       {opp.location && (
-                        <div className="flex items-center gap-2 text-sm text-white/35 font-inter">
-                          <i className="ri-map-pin-line text-white/20 text-xs w-4" />
+                        <div className="flex items-center gap-2 text-sm text-white/62 font-inter">
+                          <i className="ri-map-pin-line text-white/50 text-xs w-4" />
                           {opp.location}
                         </div>
                       )}
                       {opp.event_date && (
                         <div className="flex items-center gap-2 text-sm font-inter"
-                          style={{ color: isUrgent ? '#E10600' : 'rgba(255,255,255,0.35)' }}>
-                          <i className="ri-calendar-line text-xs w-4" style={{ color: isUrgent ? '#E10600' : 'rgba(255,255,255,0.2)' }} />
+                          style={{ color: isUrgent ? '#E10600' : 'rgba(255,255,255,0.6)' }}>
+                          <i className="ri-calendar-line text-xs w-4" style={{ color: isUrgent ? '#E10600' : 'rgba(255,255,255,0.45)' }} />
                           {formatDate(opp.event_date)}
                         </div>
                       )}
                       {opp.weight_class && (
-                        <div className="flex items-center gap-2 text-sm text-white/35 font-inter">
-                          <i className="ri-scales-line text-white/20 text-xs w-4" />
+                        <div className="flex items-center gap-2 text-sm text-white/62 font-inter">
+                          <i className="ri-scales-line text-white/50 text-xs w-4" />
                           {opp.weight_class}
                         </div>
                       )}
@@ -200,7 +200,7 @@ export default function Opportunities() {
 
                     {/* Footer */}
                     <div className="flex items-center justify-between pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                      <span className="text-white/20 text-xs font-inter">{t('label_compensation')}</span>
+                      <span className="text-white/50 text-xs font-inter">{t('label_compensation')}</span>
                       <div className="w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200 flex-shrink-0"
                         style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
                         onMouseEnter={(e) => { const el = e.currentTarget as HTMLDivElement; el.style.background = '#E10600'; el.style.borderColor = '#E10600'; }}

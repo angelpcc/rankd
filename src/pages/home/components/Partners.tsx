@@ -74,7 +74,7 @@ export default function Partners() {
               <h2 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(60px, 8vw, 110px)', lineHeight: 0.88, color: 'white', margin: 0 }}>
                 {t('partners_why_headline_1')}<br /><span style={{ color: '#C9A84C', textShadow: '0 0 40px rgba(201,168,76,0.25)' }}>{t('partners_why_headline_2')}</span>
               </h2>
-              <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, color: 'rgba(255,255,255,0.58)', maxWidth: 400, lineHeight: 1.55 }}>{t('partners_subtext')}</p>
+              <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, color: 'rgba(255,255,255,0.78)', maxWidth: 400, lineHeight: 1.55 }}>{t('partners_subtext')}</p>
             </div>
           </div>
 
@@ -125,7 +125,7 @@ export default function Partners() {
               {t('partners_cta_headline_1')}<br />
               <span style={{ color: 'transparent', WebkitTextStroke: '1px rgba(255,255,255,0.15)' }}>{t('partners_cta_headline_2')}</span>
             </h3>
-            <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 19, color: 'rgba(255,255,255,0.58)', maxWidth: 500, lineHeight: 1.5 }}>{t('partners_cta_desc')}</p>
+            <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 19, color: 'rgba(255,255,255,0.78)', maxWidth: 500, lineHeight: 1.5 }}>{t('partners_cta_desc')}</p>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'flex-start', flexShrink: 0 }}>
             <a href="/auth" className="btn-glow" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 4, color: 'white', background: 'linear-gradient(135deg, #E10600, #c00)', border: 'none', borderRadius: 14, padding: '20px 52px', cursor: 'pointer', textDecoration: 'none', display: 'inline-block', transition: 'all 0.25s', whiteSpace: 'nowrap' }}
@@ -133,7 +133,7 @@ export default function Partners() {
               onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.transform = 'none'; }}>
               {t('partners_cta_btn')} →
             </a>
-            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.28)', letterSpacing: 2 }}>Sin tarjeta · Totalmente gratis</span>
+            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.75)', letterSpacing: 2 }}>Sin tarjeta · Totalmente gratis</span>
           </div>
         </div>
       </div>

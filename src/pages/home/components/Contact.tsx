@@ -55,7 +55,7 @@ export default function Contact() {
               <span style={{ color: '#E10600' }}>{t('contact_headline_2')}</span><br />
               <span style={{ color: 'rgba(255,255,255,0.12)' }}>{t('contact_headline_3')}</span>
             </h2>
-            <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, color: 'rgba(255,255,255,0.35)', lineHeight: 1.6, maxWidth: 420, marginBottom: 48 }}>{t('contact_subtext')}</p>
+            <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, color: 'rgba(255,255,255,0.65)', lineHeight: 1.6, maxWidth: 420, marginBottom: 48 }}>{t('contact_subtext')}</p>
 
             {/* Contacto info */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 40 }}>
@@ -66,7 +66,7 @@ export default function Contact() {
                   <i className="ri-phone-line" style={{ color: '#C9A84C', fontSize: 16 }} />
                 </div>
                 <div>
-                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.2)', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 2 }}>{t('contact_phone_label')}</div>
+                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.72)', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 2 }}>{t('contact_phone_label')}</div>
                   <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 600, color: 'white' }}>638 933 153</div>
                 </div>
               </a>
@@ -75,7 +75,7 @@ export default function Contact() {
                   <i className="ri-map-pin-line" style={{ color: '#C9A84C', fontSize: 16 }} />
                 </div>
                 <div>
-                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.2)', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 2 }}>Sede</div>
+                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.72)', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 2 }}>Sede</div>
                   <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 600, color: 'white' }}>Madrid, España</div>
                 </div>
               </div>
@@ -83,10 +83,10 @@ export default function Contact() {
 
             {/* Sociales */}
             <div>
-              <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, letterSpacing: 4, color: 'rgba(255,255,255,0.15)', textTransform: 'uppercase', marginBottom: 14 }}>Síguenos</div>
+              <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, letterSpacing: 4, color: 'rgba(255,255,255,0.68)', textTransform: 'uppercase', marginBottom: 14 }}>Síguenos</div>
               <div style={{ display: 'flex', gap: 8 }}>
                 {[{ icon: 'ri-instagram-line' }, { icon: 'ri-twitter-x-line' }, { icon: 'ri-youtube-line' }, { icon: 'ri-tiktok-line' }].map((s) => (
-                  <a key={s.icon} href="#" rel="nofollow" style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.25)', textDecoration: 'none', transition: 'all 0.2s', cursor: 'pointer' }}
+                  <a key={s.icon} href="#" rel="nofollow" style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.75)', textDecoration: 'none', transition: 'all 0.2s', cursor: 'pointer' }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = '#E10600'; (e.currentTarget as HTMLAnchorElement).style.borderColor = '#E10600'; (e.currentTarget as HTMLAnchorElement).style.color = 'white'; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.03)'; (e.currentTarget as HTMLAnchorElement).style.borderColor = 'rgba(255,255,255,0.07)'; (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.25)'; }}>
                     <i className={s.icon} style={{ fontSize: 15 }} />
@@ -104,13 +104,13 @@ export default function Contact() {
                   <i className="ri-check-line" style={{ color: '#22c55e', fontSize: 26 }} />
                 </div>
                 <h3 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 32, color: 'white', marginBottom: 12 }}>{t('contact_success_title')}</h3>
-                <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, color: 'rgba(255,255,255,0.35)' }}>{t('contact_success_desc')}</p>
+                <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, color: 'rgba(255,255,255,0.65)' }}>{t('contact_success_desc')}</p>
               </div>
             ) : (
               <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                 <div>
                   <h3 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 32, color: 'white', margin: '0 0 6px' }}>{t('contact_form_title')}</h3>
-                  <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, color: 'rgba(255,255,255,0.3)' }}>{t('contact_form_subtitle')}</p>
+                  <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, color: 'rgba(255,255,255,0.6)' }}>{t('contact_form_subtitle')}</p>
                 </div>
                 {[
                   { name: 'name', label: t('contact_label_name'), placeholder: t('contact_placeholder_name'), type: 'text', required: true },
@@ -118,20 +118,20 @@ export default function Contact() {
                   { name: 'discipline', label: t('contact_label_discipline'), placeholder: t('contact_placeholder_discipline'), type: 'text', required: false },
                 ].map((field) => (
                   <div key={field.name}>
-                    <label style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', display: 'block', marginBottom: 8 }}>{field.label}</label>
+                    <label style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: 8 }}>{field.label}</label>
                     <input type={field.type} name={field.name} required={field.required} placeholder={field.placeholder} style={inputStyle(field.name)} onFocus={() => setFocused(field.name)} onBlur={() => setFocused(null)} />
                   </div>
                 ))}
                 <div>
-                  <label style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', display: 'block', marginBottom: 8 }}>{t('contact_label_role')}</label>
+                  <label style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: 8 }}>{t('contact_label_role')}</label>
                   <select name="role" required style={{ ...inputStyle('role'), colorScheme: 'dark' }} onFocus={() => setFocused('role')} onBlur={() => setFocused(null)}>
                     <option value="" style={{ background: '#111' }}>{t('contact_placeholder_role')}</option>
                     {roles.map((r) => <option key={r} value={r} style={{ background: '#111' }}>{r}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', display: 'block', marginBottom: 8 }}>
-                    {t('contact_label_message')} <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: 10, fontWeight: 400 }}>({charCount}/500)</span>
+                  <label style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: 8 }}>
+                    {t('contact_label_message')} <span style={{ color: 'rgba(255,255,255,0.68)', fontSize: 10, fontWeight: 400 }}>({charCount}/500)</span>
                   </label>
                   <textarea name="message" required maxLength={500} rows={4} placeholder={t('contact_placeholder_message')} onChange={(e) => setCharCount(e.target.value.length)} style={{ ...inputStyle('message'), resize: 'none' }} onFocus={() => setFocused('message')} onBlur={() => setFocused(null)} />
                   <div style={{ height: 2, background: 'rgba(255,255,255,0.05)', borderRadius: 1, marginTop: 6, overflow: 'hidden' }}>

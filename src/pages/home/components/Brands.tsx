@@ -31,7 +31,7 @@ export default function BrandsSection() {
             </div>
             <h2 className="font-unbounded font-black text-white leading-tight" style={{ fontSize: 'clamp(2rem, 4vw, 3.5rem)' }}>
               {t('brands_headline_1')}<br />
-              <span className="text-white/20 font-light">{t('brands_headline_2')}</span>
+              <span className="text-white/50 font-light">{t('brands_headline_2')}</span>
             </h2>
           </div>
           <div className="flex-shrink-0">
@@ -67,7 +67,7 @@ export default function BrandsSection() {
                       </div>
                     )}
                     {brand.category && (
-                      <span className="absolute top-3 right-3 text-white/40 text-xs font-semibold px-2.5 py-1 rounded-full font-inter"
+                      <span className="absolute top-3 right-3 text-white/65 text-xs font-semibold px-2.5 py-1 rounded-full font-inter"
                         style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
                         {brand.category}
                       </span>
@@ -75,7 +75,7 @@ export default function BrandsSection() {
                   </div>
                   <div className="p-4" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
                     <h3 className="font-unbounded font-bold text-white text-xs mb-1">{brand.name}</h3>
-                    <p className="text-white/25 text-xs font-inter leading-relaxed line-clamp-2">{brand.description}</p>
+                    <p className="text-white/55 text-xs font-inter leading-relaxed line-clamp-2">{brand.description}</p>
                   </div>
                 </div>
               );
@@ -89,9 +89,9 @@ export default function BrandsSection() {
               <i className="ri-store-2-line text-2xl text-[#E10600]" />
             </div>
             <h3 className="font-unbounded font-bold text-white text-sm mb-3">{t('brands_empty_title')}</h3>
-            <p className="text-white/25 text-sm font-inter leading-relaxed max-w-sm mb-8">Próximamente podrás descubrir equipamiento y marcas dentro de Rankd.</p>
+            <p className="text-white/55 text-sm font-inter leading-relaxed max-w-sm mb-8">Próximamente podrás descubrir equipamiento y marcas dentro de Rankd.</p>
             <button onClick={() => navigate('/brands')}
-              className="inline-flex items-center gap-2 text-white/40 font-semibold text-sm px-6 py-3 rounded-full hover:text-white transition-colors cursor-pointer font-inter"
+              className="inline-flex items-center gap-2 text-white/65 font-semibold text-sm px-6 py-3 rounded-full hover:text-white transition-colors cursor-pointer font-inter"
               style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
               {t('btn_know_more')} <i className="ri-arrow-right-line" />
             </button>
@@ -110,7 +110,7 @@ export default function BrandsSection() {
               </div>
               <div>
                 <div className="text-white font-semibold text-xs font-inter mb-0.5">{t(item.labelKey)}</div>
-                <div className="text-white/25 text-xs font-inter">{t(item.descKey)}</div>
+                <div className="text-white/55 text-xs font-inter">{t(item.descKey)}</div>
               </div>
             </div>
           ))}
