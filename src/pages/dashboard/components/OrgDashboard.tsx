@@ -484,7 +484,7 @@ export default function OrgDashboard({ profile }: Props) {
                 <h2 className="text-xl font-bold text-white">{t('dash_org_applicants_title')}</h2>
                 <p className="text-zinc-400 text-sm mt-1">{t('dash_org_applicants_desc')}</p>
               </div>
-              <OrgApplicants opportunities={opportunities} showToast={showToast} />
+              <OrgApplicants opportunities={opportunities} showToast={showToast} onOpenMessages={() => setActiveTab('messages')} />
             </div>
           )}
 

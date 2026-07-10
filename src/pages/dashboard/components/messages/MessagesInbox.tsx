@@ -91,22 +91,27 @@ export default function MessagesInbox({ conversations, activeConvoId, loading, o
                   {initials}
                 </div>
               )}
-              {/* Online dot placeholder */}
-              <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-zinc-900"></span>
             </div>
 
             {/* Info */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-sm font-semibold text-white truncate">{other.full_name || 'Usuario'}</span>
-                <span className="text-xs text-zinc-500 flex-shrink-0">{formatTime(convo.last_message_at)}</span>
+                <span className="flex items-center gap-1.5 flex-shrink-0">
+                  {convo.unread_count > 0 && (
+                    <span className="min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-red-600 text-white text-[10px] font-bold rounded-full">
+                      {convo.unread_count > 9 ? '9+' : convo.unread_count}
+                    </span>
+                  )}
+                  <span className="text-xs text-zinc-500">{formatTime(convo.last_message_at)}</span>
+                </span>
               </div>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${typeColor}`}>
                   {typeLabel}
                 </span>
                 {convo.last_message && (
-                  <p className="text-xs text-zinc-500 truncate">{convo.last_message}</p>
+                  <p className={`text-xs truncate ${convo.unread_count > 0 ? 'text-white font-semibold' : 'text-zinc-500'}`}>{convo.last_message}</p>
                 )}
               </div>
             </div>

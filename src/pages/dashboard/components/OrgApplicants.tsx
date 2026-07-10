@@ -18,6 +18,7 @@ interface Application {
 interface Props {
   opportunities: Opportunity[];
   showToast: (msg: string, type?: 'success' | 'error') => void;
+  onOpenMessages?: () => void;
 }
 
 const statusConfig = {
@@ -52,7 +53,7 @@ function ApplicantCard({
   app: Application;
   updatingId: string | null;
   onUpdateStatus: (id: string, status: 'accepted' | 'rejected') => void;
-  onContact: (name: string) => void;
+  onContact: (fighterProfileId: string) => void;
 }) {
   const p = app.fighter_profile;
   const f = app.fighter;
@@ -247,11 +248,11 @@ function ApplicantCard({
 
           {/* Contactar */}
           <button
-            onClick={() => onContact(p?.full_name || 'este peleador')}
+            onClick={() => onContact(app.fighter_profile_id)}
             className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-500 transition-colors cursor-pointer whitespace-nowrap"
           >
             <i className="ri-message-3-line"></i>
-            Contactar
+            Enviar mensaje
           </button>
 
           {/* Accept / Reject */}
@@ -303,14 +304,14 @@ function ApplicantCard({
   );
 }
 
-export default function OrgApplicants({ opportunities, showToast }: Props) {
+export default function OrgApplicants({ opportunities, showToast, onOpenMessages }: Props) {
   const { profile: currentProfile } = useAuth();
   const [selectedOppId, setSelectedOppId] = useState<string>(opportunities[0]?.id || '');
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'accepted' | 'rejected'>('all');
-  const [contactModal, setContactModal] = useState<string | null>(null);
+  const [contactingId, setContactingId] = useState<string | null>(null);
 
   const loadApplications = useCallback(async (oppId: string) => {
     if (!oppId) return;
@@ -395,8 +396,32 @@ export default function OrgApplicants({ opportunities, showToast }: Props) {
     setUpdatingId(null);
   };
 
-  const handleContact = (name: string) => {
-    setContactModal(name);
+  const handleContact = async (fighterProfileId: string) => {
+    if (!currentProfile?.id || contactingId) return;
+    setContactingId(fighterProfileId);
+    try {
+      const { data: existing } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(
+          `and(participant_1.eq.${currentProfile.id},participant_2.eq.${fighterProfileId}),and(participant_1.eq.${fighterProfileId},participant_2.eq.${currentProfile.id})`
+        )
+        .maybeSingle();
+      if (!existing) {
+        const { error } = await supabase.from('conversations').insert({
+          participant_1: currentProfile.id,
+          participant_2: fighterProfileId,
+          last_message: null,
+          last_message_at: new Date().toISOString(),
+        });
+        if (error) { showToast('No se pudo iniciar la conversación', 'error'); setContactingId(null); return; }
+      }
+      showToast('Conversación lista en Mensajes');
+      if (onOpenMessages) onOpenMessages();
+    } catch {
+      showToast('No se pudo iniciar la conversación', 'error');
+    }
+    setContactingId(null);
   };
 
   const selectedOpp = opportunities.find((o) => o.id === selectedOppId);
@@ -429,28 +454,6 @@ export default function OrgApplicants({ opportunities, showToast }: Props) {
   return (
     <>
       {/* Contact coming soon modal */}
-      {contactModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-sm w-full">
-            <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-zinc-800 text-zinc-300 mx-auto mb-4">
-              <i className="ri-message-3-line text-2xl"></i>
-            </div>
-            <h3 className="text-base font-bold text-white text-center mb-2">Sistema de mensajes</h3>
-            <p className="text-sm text-zinc-400 text-center leading-relaxed">
-              El sistema de mensajes directos con <strong className="text-white">{contactModal}</strong> estará disponible próximamente.
-            </p>
-            <p className="text-xs text-zinc-500 text-center mt-2">
-              Por ahora puedes contactar a través de sus redes sociales o email.
-            </p>
-            <button
-              onClick={() => setContactModal(null)}
-              className="w-full mt-5 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-medium py-2.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
-            >
-              Entendido
-            </button>
-          </div>
-        </div>
-      )}
 
       <div className="flex flex-col lg:flex-row gap-5 min-h-[500px]">
         {/* Left: opportunity selector */}

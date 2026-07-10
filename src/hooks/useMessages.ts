@@ -64,13 +64,26 @@ export function useMessages(currentUserId: string) {
 
     const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
 
+    // Contar mensajes no leídos por conversación (enviados por el otro)
+    const convoIds = convos.map((c) => c.id);
+    const { data: unreadRows } = await supabase
+      .from('messages')
+      .select('conversation_id')
+      .in('conversation_id', convoIds)
+      .neq('sender_id', currentUserId)
+      .is('read_at', null);
+    const unreadMap = new Map<string, number>();
+    (unreadRows || []).forEach((m) => {
+      unreadMap.set(m.conversation_id, (unreadMap.get(m.conversation_id) || 0) + 1);
+    });
+
     const enriched: Conversation[] = convos.map((c) => {
       const otherId = c.participant_1 === currentUserId ? c.participant_2 : c.participant_1;
       const other = profileMap.get(otherId);
       return {
         ...c,
         other_user: other || { id: otherId, full_name: 'Usuario', avatar_url: null, user_type: 'fighter' },
-        unread_count: 0,
+        unread_count: unreadMap.get(c.id) || 0,
       };
     });
 
@@ -101,6 +114,8 @@ export function useMessages(currentUserId: string) {
   const selectConversation = useCallback((convoId: string) => {
     setActiveConvoId(convoId);
     loadMessages(convoId);
+    // Reset del contador local de no leídos
+    setConversations((prev) => prev.map((c) => c.id === convoId ? { ...c, unread_count: 0 } : c));
   }, [loadMessages]);
 
   const sendMessage = useCallback(async (content: string) => {
