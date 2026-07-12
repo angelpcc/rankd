@@ -63,7 +63,7 @@ const emptyForm = {
   description: '',
 };
 
-type SubTab = 'explore' | 'mine';
+type SubTab = 'explore' | 'applications' | 'mine';
 
 // Comprueba si una oportunidad es compatible con el perfil del peleador
 function isMatchingOpportunity(opp: Opportunity, fighter: Fighter | null): boolean {
@@ -92,6 +92,7 @@ export default function FighterOpportunities({ profile, fighter, showToast }: Pr
   // ── EXPLORE state ──
   const [opportunities, setOpportunities] = useState<(Opportunity & { publisher?: Profile })[]>([]);
   const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set());
+  const [myApplications, setMyApplications] = useState<{ id: string; status: string; created_at: string; opportunity?: Opportunity & { publisher?: Profile } }[]>([]);
   const [loadingExplore, setLoadingExplore] = useState(true);
   const [selectedOpp, setSelectedOpp] = useState<Opportunity | null>(null);
   const [filterType, setFilterType] = useState('');
@@ -116,10 +117,13 @@ export default function FighterOpportunities({ profile, fighter, showToast }: Pr
           .eq('status', 'open')
           .neq('profile_id', profile.id)
           .order('created_at', { ascending: false }),
-        supabase.from('applications').select('opportunity_id').eq('fighter_profile_id', profile.id),
+        supabase.from('applications').select('id, opportunity_id, status, created_at, opportunity:opportunities(*, publisher:profiles(id, full_name, avatar_url, user_type))').eq('fighter_profile_id', profile.id).order('created_at', { ascending: false }),
       ]);
       setOpportunities((opps as (Opportunity & { publisher?: Profile })[]) || []);
-      if (apps) setAppliedIds(new Set(apps.map((a) => a.opportunity_id)));
+      if (apps) {
+        setAppliedIds(new Set(apps.map((a) => a.opportunity_id)));
+        setMyApplications(apps as unknown as { id: string; status: string; created_at: string; opportunity?: Opportunity & { publisher?: Profile } }[]);
+      }
       setLoadingExplore(false);
     };
     load();
@@ -266,6 +270,16 @@ export default function FighterOpportunities({ profile, fighter, showToast }: Pr
           Explorar
         </button>
         <button
+          onClick={() => setSubTab('applications')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${subTab === 'applications' ? 'bg-red-600 text-white' : 'text-zinc-400 hover:text-white'}`}
+        >
+          <i className="ri-send-plane-line"></i>
+          Mis postulaciones
+          {myApplications.length > 0 && (
+            <span className="bg-zinc-700 text-zinc-300 text-xs px-1.5 py-0.5 rounded-full">{myApplications.length}</span>
+          )}
+        </button>
+        <button
           onClick={() => setSubTab('mine')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${subTab === 'mine' ? 'bg-red-600 text-white' : 'text-zinc-400 hover:text-white'}`}
         >
@@ -276,6 +290,70 @@ export default function FighterOpportunities({ profile, fighter, showToast }: Pr
           )}
         </button>
       </div>
+
+      {/* ── MY APPLICATIONS TAB ── */}
+      {subTab === 'applications' && (
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-base font-semibold text-white">Mis postulaciones</h2>
+            <p className="text-xs text-zinc-500 mt-0.5">El estado de las oportunidades a las que te has postulado</p>
+          </div>
+
+          {myApplications.length === 0 ? (
+            <div className="text-center py-16 text-zinc-500">
+              <div className="w-16 h-16 flex items-center justify-center mx-auto mb-4"><i className="ri-send-plane-line text-4xl"></i></div>
+              <p className="text-sm">Aún no te has postulado a ninguna oportunidad.</p>
+              <button onClick={() => setSubTab('explore')} className="mt-4 text-sm text-red-400 hover:text-red-300 cursor-pointer underline underline-offset-2">
+                Explorar oportunidades
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {myApplications.map((app) => {
+                const opp = app.opportunity;
+                const statusCfg = app.status === 'accepted'
+                  ? { label: 'Aceptada', cls: 'bg-green-500/10 text-green-400 border-green-500/30', icon: 'ri-checkbox-circle-line', bar: 'bg-green-500' }
+                  : app.status === 'rejected'
+                  ? { label: 'Rechazada', cls: 'bg-red-500/10 text-red-400 border-red-500/30', icon: 'ri-close-circle-line', bar: 'bg-red-500/40' }
+                  : { label: 'Pendiente', cls: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30', icon: 'ri-time-line', bar: 'bg-yellow-500/60' };
+                return (
+                  <div key={app.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+                    <div className={`h-0.5 w-full ${statusCfg.bar}`} />
+                    <div className="p-4 sm:p-5">
+                      <div className="flex items-start justify-between gap-3 flex-wrap">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <h3 className="text-sm font-bold text-white">{opp?.title || 'Oportunidad eliminada'}</h3>
+                            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${statusCfg.cls}`}>
+                              <i className={statusCfg.icon}></i>
+                              {statusCfg.label}
+                            </span>
+                          </div>
+                          {opp && (
+                            <div className="flex items-center gap-3 text-xs text-zinc-500 flex-wrap">
+                              {opp.publisher?.full_name && (
+                                <span className="flex items-center gap-1"><i className="ri-building-4-line"></i>{opp.publisher.full_name}</span>
+                              )}
+                              {opp.location && <span className="flex items-center gap-1"><i className="ri-map-pin-line"></i>{opp.location}</span>}
+                              <span className="flex items-center gap-1"><i className="ri-calendar-line"></i>Postulado el {new Date(app.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {app.status === 'accepted' && (
+                        <div className="mt-3 bg-green-500/5 border border-green-500/20 rounded-xl px-4 py-2.5 text-xs text-green-300 flex items-center gap-2">
+                          <i className="ri-message-3-line"></i>
+                          ¡Enhorabuena! Revisa tus Mensajes: la organización puede escribirte por ahí.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── EXPLORE TAB ── */}
       {subTab === 'explore' && (

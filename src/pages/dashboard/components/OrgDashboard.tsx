@@ -491,7 +491,7 @@ export default function OrgDashboard({ profile }: Props) {
           {/* ── FIGHTERS TAB ── */}
           {activeTab === 'fighters' && (
             <div className="max-w-5xl">
-              <OrgFighterSearch showToast={showToast} />
+              <OrgFighterSearch showToast={showToast} onOpenMessages={() => setActiveTab('messages')} />
             </div>
           )}
 

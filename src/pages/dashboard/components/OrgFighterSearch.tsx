@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, Profile, Fighter } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
 
 interface FighterWithProfile {
   fighter: Fighter;
@@ -9,6 +10,7 @@ interface FighterWithProfile {
 
 interface Props {
   showToast: (msg: string, type?: 'success' | 'error') => void;
+  onOpenMessages?: () => void;
 }
 
 const disciplineLabels: Record<string, string> = {
@@ -33,7 +35,8 @@ const weightClasses = [
   'Welter', 'Superwelter', 'Medio', 'Supermedio', 'Semipesado', 'Crucero', 'Pesado',
 ];
 
-export default function OrgFighterSearch({ showToast }: Props) {
+export default function OrgFighterSearch({ showToast, onOpenMessages }: Props) {
+  const { profile: currentProfile } = useAuth();
   const navigate = useNavigate();
   const [data, setData] = useState<FighterWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -101,11 +104,33 @@ export default function OrgFighterSearch({ showToast }: Props) {
 
   const hasFilters = search || filterDiscipline || filterWeight || filterLevel || filterAvailable;
 
-  const handleContact = (fighter: FighterWithProfile) => {
-    setContactingId(fighter.fighter.id);
-    setTimeout(() => {
-      navigate(`/fighter/${fighter.fighter.id}`);
-    }, 300);
+  const handleContact = async (item: FighterWithProfile) => {
+    if (!currentProfile?.id || contactingId) return;
+    setContactingId(item.fighter.id);
+    try {
+      const otherId = item.profile.id;
+      const { data: existing } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(
+          `and(participant_1.eq.${currentProfile.id},participant_2.eq.${otherId}),and(participant_1.eq.${otherId},participant_2.eq.${currentProfile.id})`
+        )
+        .maybeSingle();
+      if (!existing) {
+        const { error } = await supabase.from('conversations').insert({
+          participant_1: currentProfile.id,
+          participant_2: otherId,
+          last_message: null,
+          last_message_at: new Date().toISOString(),
+        });
+        if (error) { showToast('No se pudo iniciar la conversación', 'error'); setContactingId(null); return; }
+      }
+      showToast('Conversación lista en Mensajes');
+      if (onOpenMessages) onOpenMessages();
+    } catch {
+      showToast('No se pudo iniciar la conversación', 'error');
+    }
+    setContactingId(null);
   };
 
   const disciplines = [
@@ -308,8 +333,8 @@ export default function OrgFighterSearch({ showToast }: Props) {
                     disabled={contactingId === fighter.id}
                     className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60"
                   >
-                    <i className="ri-send-plane-line"></i>
-                    Contactar
+                    <i className="ri-message-3-line"></i>
+                    Enviar mensaje
                   </button>
                 </div>
               </div>

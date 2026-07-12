@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, Profile, Fighter } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
 
 interface FighterWithProfile {
   fighter: Fighter;
@@ -10,6 +11,7 @@ interface FighterWithProfile {
 
 interface Props {
   showToast: (msg: string, type?: 'success' | 'error') => void;
+  onOpenMessages?: () => void;
 }
 
 const disciplineLabels: Record<string, string> = {
@@ -59,7 +61,37 @@ function fakeFollowers(score: number): string {
 
 type SortMode = 'popularity' | 'wins' | 'recent' | 'available';
 
-export default function BrandTalentSearch({ showToast }: Props) {
+export default function BrandTalentSearch({ showToast, onOpenMessages }: Props) {
+  const { profile: currentProfile } = useAuth();
+  const [startingChat, setStartingChat] = useState(false);
+
+  const startChat = async (otherId: string) => {
+    if (!currentProfile?.id || startingChat) return;
+    setStartingChat(true);
+    try {
+      const { data: existing } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(
+          `and(participant_1.eq.${currentProfile.id},participant_2.eq.${otherId}),and(participant_1.eq.${otherId},participant_2.eq.${currentProfile.id})`
+        )
+        .maybeSingle();
+      if (!existing) {
+        const { error } = await supabase.from('conversations').insert({
+          participant_1: currentProfile.id,
+          participant_2: otherId,
+          last_message: null,
+          last_message_at: new Date().toISOString(),
+        });
+        if (error) { showToast('No se pudo iniciar la conversación', 'error'); setStartingChat(false); return; }
+      }
+      showToast('Conversación lista en Mensajes');
+      if (onOpenMessages) onOpenMessages();
+    } catch {
+      showToast('No se pudo iniciar la conversación', 'error');
+    }
+    setStartingChat(false);
+  };
   const navigate = useNavigate();
   const [data, setData] = useState<FighterWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -515,6 +547,13 @@ export default function BrandTalentSearch({ showToast }: Props) {
                 </div>
               )}
             </div>
+            <button
+              onClick={() => { startChat(selectedFighter.profile.id); setSelectedFighter(null); }}
+              disabled={startingChat}
+              className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-colors cursor-pointer whitespace-nowrap text-sm mb-2 disabled:opacity-60">
+              <i className="ri-message-3-line"></i>
+              Enviar mensaje por Rankd
+            </button>
             <button onClick={() => { navigate(`/fighter/${selectedFighter.fighter.id}`); setSelectedFighter(null); }}
               className="w-full flex items-center justify-center gap-2 bg-yellow-500 hover:bg-yellow-400 text-zinc-900 font-bold py-3 rounded-xl transition-colors cursor-pointer whitespace-nowrap text-sm">
               <i className="ri-external-link-line"></i>

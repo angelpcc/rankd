@@ -467,7 +467,7 @@ export default function BrandDashboard({ profile }: Props) {
           {/* ── TALENT ── */}
           {activeTab === 'talent' && (
             <div className="max-w-6xl">
-              <BrandTalentSearch showToast={showToast} />
+              <BrandTalentSearch showToast={showToast} onOpenMessages={() => setActiveTab('messages')} />
             </div>
           )}
 
