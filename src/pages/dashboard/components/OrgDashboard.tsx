@@ -48,7 +48,32 @@ export default function OrgDashboard({ profile }: Props) {
   const [publishing, setPublishing] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
-  const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
+  const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
+    const p = new URLSearchParams(window.location.search).get('tab');
+    return (p === 'messages' ? 'messages' : 'overview') as ActiveTab;
+  });
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  useEffect(() => {
+    const loadUnread = async () => {
+      const { data: convos } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`participant_1.eq.${profile.id},participant_2.eq.${profile.id}`);
+      if (!convos || convos.length === 0) { setUnreadMessages(0); return; }
+      const { count } = await supabase
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .in('conversation_id', convos.map((c) => c.id))
+        .neq('sender_id', profile.id)
+        .is('read_at', null);
+      setUnreadMessages(count || 0);
+    };
+    loadUnread();
+    const interval = setInterval(loadUnread, 30000);
+    return () => clearInterval(interval);
+  }, [profile.id, activeTab]);
+
 
   // Profile fields
   const [fullName, setFullName] = useState(profile.full_name || '');
@@ -200,7 +225,7 @@ export default function OrgDashboard({ profile }: Props) {
     { id: 'fighters', label: t('dash_org_tab_fighters'), icon: 'ri-search-line' },
     ...(isGym ? [{ id: 'gallery' as ActiveTab, label: t('dash_org_tab_gallery'), icon: 'ri-image-2-line' }] : []),
     ...(isPromoter ? [{ id: 'events' as ActiveTab, label: t('dash_org_tab_events'), icon: 'ri-calendar-event-line' }] : []),
-    { id: 'messages', label: t('dash_org_tab_messages'), icon: 'ri-message-3-line' },
+    { id: 'messages', label: t('dash_org_tab_messages'), icon: 'ri-message-3-line', badge: unreadMessages || undefined },
     { id: 'verification', label: t('dash_org_tab_verification'), icon: 'ri-verified-badge-line' },
     { id: 'profile', label: t('dash_org_tab_profile'), icon: 'ri-building-line' },
   ];

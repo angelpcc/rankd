@@ -23,7 +23,32 @@ const disciplineOptions = ['Boxeo', 'MMA', 'Kickboxing', 'Muay Thai', 'Wrestling
 
 export default function BrandDashboard({ profile }: Props) {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
+  const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
+    const p = new URLSearchParams(window.location.search).get('tab');
+    return (p === 'messages' ? 'messages' : 'overview') as ActiveTab;
+  });
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  useEffect(() => {
+    const loadUnread = async () => {
+      const { data: convos } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`participant_1.eq.${profile.id},participant_2.eq.${profile.id}`);
+      if (!convos || convos.length === 0) { setUnreadMessages(0); return; }
+      const { count } = await supabase
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .in('conversation_id', convos.map((c) => c.id))
+        .neq('sender_id', profile.id)
+        .is('read_at', null);
+      setUnreadMessages(count || 0);
+    };
+    loadUnread();
+    const interval = setInterval(loadUnread, 30000);
+    return () => clearInterval(interval);
+  }, [profile.id, activeTab]);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -191,7 +216,7 @@ export default function BrandDashboard({ profile }: Props) {
     { id: 'talent',        label: t('dash_brand_tab_talent'),        icon: 'ri-user-star-line' },
     { id: 'events',        label: t('dash_brand_tab_events'),        icon: 'ri-calendar-event-line' },
     { id: 'sponsorships',  label: t('dash_brand_tab_sponsorships'),  icon: 'ri-hand-coin-line', badge: openOpps.length || undefined },
-    { id: 'messages',      label: t('dash_brand_tab_messages'),      icon: 'ri-message-3-line' },
+    { id: 'messages',      label: t('dash_brand_tab_messages'),      icon: 'ri-message-3-line', badge: unreadMessages || undefined },
     { id: 'verification',  label: t('dash_brand_tab_verification'),  icon: 'ri-vip-crown-line' },
     { id: 'profile',       label: t('dash_brand_tab_profile'),       icon: 'ri-store-2-line' },
   ];

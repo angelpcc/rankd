@@ -19,9 +19,12 @@ interface Props {
   views?: number;
   onContact: () => void;
   canContact: boolean;
+  onMessage?: () => void;
+  canMessage?: boolean;
+  startingChat?: boolean;
 }
 
-export default function FighterProfileHero({ profile, fighter, views, onContact, canContact }: Props) {
+export default function FighterProfileHero({ profile, fighter, views, onContact, canContact, onMessage, canMessage, startingChat }: Props) {
   const initials = (profile.full_name || 'F').split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
   const totalFights = fighter ? fighter.wins + fighter.losses + fighter.draws : 0;
   const winRate = totalFights > 0 ? Math.round((fighter!.wins / totalFights) * 100) : null;
@@ -195,15 +198,31 @@ export default function FighterProfileHero({ profile, fighter, views, onContact,
               </div>
             )}
 
-            {/* CTA */}
+            {/* CTAs */}
             {canContact && (
-              <button
-                onClick={onContact}
-                className="flex items-center gap-2.5 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold px-5 sm:px-7 py-3 sm:py-3.5 rounded-xl transition-all cursor-pointer whitespace-nowrap text-sm w-full sm:w-auto justify-center sm:justify-start"
-              >
-                <i className="ri-heart-line text-base"></i>
-                Me interesa este peleador
-              </button>
+              <div className="flex flex-col sm:flex-row gap-2.5 w-full sm:w-auto">
+                <button
+                  onClick={onContact}
+                  className="flex items-center gap-2.5 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold px-5 sm:px-7 py-3 sm:py-3.5 rounded-xl transition-all cursor-pointer whitespace-nowrap text-sm w-full sm:w-auto justify-center"
+                >
+                  <i className="ri-heart-line text-base"></i>
+                  Me interesa este peleador
+                </button>
+                {canMessage && onMessage && (
+                  <button
+                    onClick={onMessage}
+                    disabled={startingChat}
+                    className="flex items-center gap-2.5 bg-white/10 hover:bg-white/15 border border-white/25 hover:border-white/40 active:scale-95 text-white font-bold px-5 sm:px-6 py-3 sm:py-3.5 rounded-xl transition-all cursor-pointer whitespace-nowrap text-sm w-full sm:w-auto justify-center disabled:opacity-60"
+                  >
+                    {startingChat ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <i className="ri-message-3-line text-base"></i>
+                    )}
+                    Enviar mensaje
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </div>

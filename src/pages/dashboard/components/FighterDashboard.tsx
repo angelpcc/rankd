@@ -50,7 +50,32 @@ export default function FighterDashboard({ profile }: Props) {
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
-  const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
+  const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
+    const p = new URLSearchParams(window.location.search).get('tab');
+    return (p === 'messages' ? 'messages' : 'overview') as ActiveTab;
+  });
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  useEffect(() => {
+    const loadUnread = async () => {
+      const { data: convos } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(`participant_1.eq.${profile.id},participant_2.eq.${profile.id}`);
+      if (!convos || convos.length === 0) { setUnreadMessages(0); return; }
+      const { count } = await supabase
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .in('conversation_id', convos.map((c) => c.id))
+        .neq('sender_id', profile.id)
+        .is('read_at', null);
+      setUnreadMessages(count || 0);
+    };
+    loadUnread();
+    const interval = setInterval(loadUnread, 30000);
+    return () => clearInterval(interval);
+  }, [profile.id, activeTab]);
+
   const [currentProfile, setCurrentProfile] = useState<Profile>(profile);
   const completion = useFighterCompletion(currentProfile, fighter);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
@@ -235,7 +260,7 @@ export default function FighterDashboard({ profile }: Props) {
     { id: 'overview', label: 'Inicio', icon: 'ri-dashboard-line' },
     { id: 'profile', label: t('dash_tab_profile'), icon: 'ri-user-line' },
     { id: 'opportunities', label: t('dash_tab_opportunities'), icon: 'ri-megaphone-line' },
-    { id: 'messages', label: t('dash_tab_messages'), icon: 'ri-message-3-line' },
+    { id: 'messages', label: t('dash_tab_messages'), icon: 'ri-message-3-line', badge: unreadMessages || undefined },
     { id: 'verification', label: t('dash_tab_verification'), icon: currentProfile.verified ? 'ri-shield-check-fill' : 'ri-shield-line' },
     { id: 'videos', label: t('dash_tab_videos'), icon: 'ri-video-line', badge: videos.length || undefined },
     { id: 'achievements', label: t('dash_tab_achievements'), icon: 'ri-medal-line', badge: achievements.length || undefined },

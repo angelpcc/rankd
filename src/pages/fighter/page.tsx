@@ -20,6 +20,7 @@ export default function FighterPublicPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [showContact, setShowContact] = useState(false);
+  const [startingChat, setStartingChat] = useState(false);
 
   // Solo promotoras y marcas pueden dar "Me interesa"
   const canContact = !user || (currentUserProfile?.user_type !== 'fighter');
@@ -87,6 +88,34 @@ export default function FighterPublicPage() {
     setShowContact(true);
   };
 
+  const handleMessageClick = async () => {
+    if (!user) { navigate('/auth'); return; }
+    if (currentUserProfile?.user_type === 'fighter' || !profile) return;
+    if (startingChat) return;
+    setStartingChat(true);
+    try {
+      const otherId = profile.id;
+      const { data: existing } = await supabase
+        .from('conversations')
+        .select('id')
+        .or(
+          `and(participant_1.eq.${user.id},participant_2.eq.${otherId}),and(participant_1.eq.${otherId},participant_2.eq.${user.id})`
+        )
+        .maybeSingle();
+      if (!existing) {
+        await supabase.from('conversations').insert({
+          participant_1: user.id,
+          participant_2: otherId,
+          last_message: null,
+          last_message_at: new Date().toISOString(),
+        });
+      }
+      navigate('/dashboard?tab=messages');
+    } catch {
+      setStartingChat(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
@@ -145,6 +174,9 @@ export default function FighterPublicPage() {
           views={views}
           onContact={handleContactClick}
           canContact={canContact}
+          onMessage={handleMessageClick}
+          canMessage={canContact && !!user}
+          startingChat={startingChat}
         />
         <FighterProfileBody
           profile={profile}
