@@ -30,26 +30,26 @@ export default function ComingSoonPage() {
       <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', maxWidth: 560, width: '100%' }}>
 
         {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, marginBottom: 40 }}>
+        <div className="anim-fade-up" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, marginBottom: 40 }}>
           <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(52px, 12vw, 76px)', color: '#ffffff', letterSpacing: 8, lineHeight: 1 }}>RAN</span>
           <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(52px, 12vw, 76px)', color: '#E10600', letterSpacing: 8, lineHeight: 1, textShadow: '0 0 60px rgba(225,6,0,0.6)' }}>KD</span>
           <span style={{ width: 10, height: 10, background: '#C9A84C', borderRadius: '50%', marginLeft: 6, marginTop: 8, flexShrink: 0, boxShadow: '0 0 16px rgba(201,168,76,0.8)' }} />
         </div>
 
         {/* Eyebrow */}
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 24, padding: '8px 22px', borderRadius: 100, border: '1px solid rgba(201,168,76,0.4)', background: 'rgba(201,168,76,0.08)' }}>
+        <div className="anim-fade-up anim-d2" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 24, padding: '8px 22px', borderRadius: 100, border: '1px solid rgba(201,168,76,0.4)', background: 'rgba(201,168,76,0.08)' }}>
           <span style={{ width: 7, height: 7, background: '#C9A84C', borderRadius: '50%', boxShadow: '0 0 10px #C9A84C' }} />
           <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, letterSpacing: 5, textTransform: 'uppercase', color: '#C9A84C' }}>Próximamente</span>
         </div>
 
         {/* Headline */}
-        <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(34px, 8vw, 56px)', color: 'white', lineHeight: 0.95, margin: '0 0 16px', letterSpacing: 1 }}>
+        <h1 className="anim-fade-up anim-d3" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(34px, 8vw, 56px)', color: 'white', lineHeight: 0.95, margin: '0 0 16px', letterSpacing: 1 }}>
           Algo grande está<br />
           <span style={{ color: '#E10600', textShadow: '0 0 40px rgba(225,6,0,0.5)' }}>a punto de llegar</span>
         </h1>
 
         {/* Fecha */}
-        <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(22px, 5vw, 30px)', color: 'rgba(255,255,255,0.9)', letterSpacing: 6, marginBottom: 20 }}>
+        <div className="anim-fade-up anim-d4" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(22px, 5vw, 30px)', color: 'rgba(255,255,255,0.9)', letterSpacing: 6, marginBottom: 20 }}>
           1 DE SEPTIEMBRE
         </div>
 

@@ -439,8 +439,10 @@ export default function FightersDirectoryPage() {
                 </div>
               ) : viewMode === 'grid' ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                  {filtered.map(({ fighter, profile }) => (
-                    <FighterCard key={fighter.id} fighter={fighter} profile={profile} />
+                  {filtered.map(({ fighter, profile }, i) => (
+                    <div key={fighter.id} className="anim-fade-up" style={{ animationDelay: `${Math.min(i * 0.06, 0.5)}s` }}>
+                      <FighterCard fighter={fighter} profile={profile} />
+                    </div>
                   ))}
                 </div>
               ) : (

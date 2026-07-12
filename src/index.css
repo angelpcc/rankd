@@ -89,3 +89,64 @@ body::before {
 /* ── MEJORA LEGIBILIDAD ── */
 .text-secondary { color: rgba(255,255,255,0.62) !important; }
 .text-muted     { color: rgba(255,255,255,0.38) !important; }
+
+/* ═══════════════ ANIMACIONES RANKD ═══════════════ */
+
+@keyframes rankd-fade-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes rankd-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes rankd-scale-in {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes rankd-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes rankd-pulse-glow {
+  0%, 100% { box-shadow: 0 0 12px rgba(225,6,0,0.35); }
+  50% { box-shadow: 0 0 28px rgba(225,6,0,0.65); }
+}
+@keyframes rankd-shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+/* Clases utilitarias */
+.anim-fade-up { animation: rankd-fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-fade-in { animation: rankd-fade-in 0.8s ease both; }
+.anim-scale-in { animation: rankd-scale-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-float { animation: rankd-float 3.5s ease-in-out infinite; }
+.anim-pulse-glow { animation: rankd-pulse-glow 2.4s ease-in-out infinite; }
+
+/* Delays escalonados para listas */
+.anim-d1 { animation-delay: 0.05s; }
+.anim-d2 { animation-delay: 0.1s; }
+.anim-d3 { animation-delay: 0.15s; }
+.anim-d4 { animation-delay: 0.2s; }
+.anim-d5 { animation-delay: 0.25s; }
+.anim-d6 { animation-delay: 0.3s; }
+.anim-d7 { animation-delay: 0.35s; }
+.anim-d8 { animation-delay: 0.4s; }
+
+/* Texto con brillo deslizante (para titulares destacados) */
+.text-shimmer {
+  background: linear-gradient(90deg, #fff 0%, #fff 40%, #E10600 50%, #fff 60%, #fff 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: rankd-shimmer 4s linear infinite;
+}
+
+/* Respeto a usuarios con movimiento reducido */
+@media (prefers-reduced-motion: reduce) {
+  .anim-fade-up, .anim-fade-in, .anim-scale-in, .anim-float, .anim-pulse-glow, .text-shimmer {
+    animation: none !important;
+  }
+}
