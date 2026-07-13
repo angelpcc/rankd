@@ -65,11 +65,12 @@ export default function ChatWindow({ conversation, messages, loading, sending, c
               {initials}
             </div>
           )}
-          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-zinc-900"></span>
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-white truncate">{other.full_name || 'Usuario'}</p>
-          <p className="text-xs text-green-400">En línea</p>
+          <p className="text-xs text-zinc-500">
+            {other.user_type === 'fighter' ? 'Peleador' : other.user_type === 'brand' ? 'Marca' : other.user_type === 'promoter' ? 'Promotora' : other.user_type === 'gym' ? 'Gimnasio / Club' : other.user_type === 'manager' ? 'Manager' : 'Usuario'}
+          </p>
         </div>
       </div>
 
