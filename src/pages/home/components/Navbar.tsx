@@ -27,8 +27,9 @@ export default function Navbar() {
     { labelKey: 'nav_how_it_works', href: '#how-it-works', isAnchor: true },
     { labelKey: 'nav_directory', href: '/fighters', isAnchor: false },
     { labelKey: 'nav_opportunities', href: '/opportunities', isAnchor: false },
+    { label: 'Mi Esquina', href: '/esquina', isAnchor: false },
     { labelKey: 'nav_brands', href: '/brands', isAnchor: false },
-    { labelKey: 'nav_contact', href: '#contact', isAnchor: true },
+    { label: 'Tienda', href: '/tienda', isAnchor: false },
   ];
 
   const handleNav = (href: string) => {
@@ -72,7 +73,7 @@ export default function Navbar() {
                   style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,255,255,0.68)', textDecoration: 'none', transition: 'color 0.2s', cursor: 'pointer' }}
                   onMouseEnter={(e) => (e.currentTarget as HTMLAnchorElement).style.color = 'white'}
                   onMouseLeave={(e) => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.68)'}>
-                  {t(link.labelKey)}
+                  {link.labelKey ? t(link.labelKey) : link.label}
                 </a>
               </li>
             ))}
@@ -122,7 +123,7 @@ export default function Navbar() {
             {navLinks.map((link) => (
               <a key={link.href} href={link.href} onClick={(e) => { e.preventDefault(); handleNav(link.href); }}
                 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,255,255,0.75)', textDecoration: 'none', padding: '14px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'block' }}>
-                {t(link.labelKey)}
+                {link.labelKey ? t(link.labelKey) : link.label}
               </a>
             ))}
             <div style={{ paddingTop: 20 }}>

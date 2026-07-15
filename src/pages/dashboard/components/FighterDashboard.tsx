@@ -5,6 +5,7 @@ import { supabase, Profile, Fighter, FighterVideo, FighterAchievement } from '@/
 import DashboardNav from './DashboardNav';
 import AvatarUpload from './AvatarUpload';
 import FighterOpportunities from './FighterOpportunities';
+import FighterTraining from './FighterTraining';
 import MessagesPanel from './messages/MessagesPanel';
 import VerificationPanel from './VerificationPanel';
 import ProfileCompletionBanner from './ProfileCompletionBanner';
@@ -37,7 +38,7 @@ const COUNTRIES = [
   'Japón', 'Corea del Sur', 'Tailandia', 'Australia', 'Otro',
 ];
 
-type ActiveTab = 'overview' | 'profile' | 'opportunities' | 'videos' | 'achievements' | 'messages' | 'verification' | 'settings';
+type ActiveTab = 'overview' | 'profile' | 'training' | 'opportunities' | 'videos' | 'achievements' | 'messages' | 'verification' | 'settings';
 
 export default function FighterDashboard({ profile }: Props) {
   const navigate = useNavigate();
@@ -259,6 +260,7 @@ export default function FighterDashboard({ profile }: Props) {
   const tabs: { id: ActiveTab; label: string; icon: string; badge?: number }[] = [
     { id: 'overview', label: 'Inicio', icon: 'ri-dashboard-line' },
     { id: 'profile', label: t('dash_tab_profile'), icon: 'ri-user-line' },
+    { id: 'training', label: 'Mi Esquina', icon: 'ri-boxing-line' },
     { id: 'opportunities', label: t('dash_tab_opportunities'), icon: 'ri-megaphone-line' },
     { id: 'messages', label: t('dash_tab_messages'), icon: 'ri-message-3-line', badge: unreadMessages || undefined },
     { id: 'verification', label: t('dash_tab_verification'), icon: currentProfile.verified ? 'ri-shield-check-fill' : 'ri-shield-line' },
@@ -442,10 +444,10 @@ export default function FighterDashboard({ profile }: Props) {
                 <h2 className="text-sm font-semibold text-white mb-3">Accesos rápidos</h2>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                   {[
+                    { label: 'Mi Esquina', icon: 'ri-boxing-line', action: () => setActiveTab('training') },
                     { label: 'Editar mi perfil', icon: 'ri-edit-line', action: () => setActiveTab('profile') },
                     { label: 'Ver oportunidades', icon: 'ri-megaphone-line', action: () => setActiveTab('opportunities') },
                     { label: 'Mensajes', icon: 'ri-message-3-line', action: () => setActiveTab('messages') },
-                    { label: currentProfile.verified ? 'Verificado' : 'Verificar cuenta', icon: currentProfile.verified ? 'ri-shield-check-fill' : 'ri-shield-line', action: () => setActiveTab('verification') },
                   ].map((q) => (
                     <button key={q.label} onClick={q.action} className="bg-zinc-900 border border-zinc-800 hover:border-red-500/40 rounded-2xl p-4 flex items-center gap-3 transition-colors cursor-pointer text-left">
                       <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-600/15 text-red-400 flex-shrink-0"><i className={q.icon}></i></div>
@@ -642,6 +644,8 @@ export default function FighterDashboard({ profile }: Props) {
               </div>
             </div>
           )}
+
+          {activeTab === 'training' && <FighterTraining profile={profile} showToast={showToast} />}
 
           {activeTab === 'opportunities' && <FighterOpportunities profile={profile} fighter={fighter} showToast={showToast} />}
           {activeTab === 'messages' && <MessagesPanel currentUserId={profile.id} />}
