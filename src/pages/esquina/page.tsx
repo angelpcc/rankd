@@ -14,7 +14,7 @@ export default function EsquinaPage() {
     description: 'Registra tus entrenamientos, mantén tu racha, consulta a tu Coach IA y lleva tu preparación al siguiente nivel. Gratis en RANKD.',
   });
 
-  const goCta = () => navigate(user ? '/dashboard?tab=training' : '/auth');
+  const goCta = () => navigate(user ? '/mi-esquina' : '/auth');
 
   const previewSessions = [
     { icon: 'ri-boxing-line', label: 'Sparring', time: '90 min', fire: 4, note: '6 asaltos, buen ritmo' },

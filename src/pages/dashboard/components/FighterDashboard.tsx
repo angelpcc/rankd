@@ -5,7 +5,6 @@ import { supabase, Profile, Fighter, FighterVideo, FighterAchievement } from '@/
 import DashboardNav from './DashboardNav';
 import AvatarUpload from './AvatarUpload';
 import FighterOpportunities from './FighterOpportunities';
-import FighterTraining from './FighterTraining';
 import MessagesPanel from './messages/MessagesPanel';
 import VerificationPanel from './VerificationPanel';
 import ProfileCompletionBanner from './ProfileCompletionBanner';
@@ -304,7 +303,7 @@ export default function FighterDashboard({ profile }: Props) {
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => tab.id === 'training' ? navigate('/mi-esquina') : setActiveTab(tab.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer text-left ${activeTab === tab.id ? 'bg-red-600 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
               >
                 <i className={`${tab.icon} text-base flex-shrink-0`}></i>
@@ -338,7 +337,7 @@ export default function FighterDashboard({ profile }: Props) {
           {tabs.slice(0, 4).map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => tab.id === 'training' ? navigate('/mi-esquina') : setActiveTab(tab.id)}
               className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[10px] transition-colors cursor-pointer relative ${activeTab === tab.id ? 'text-red-400' : 'text-zinc-500'}`}
             >
               <i className={`${tab.icon} text-lg`}></i>
@@ -444,7 +443,7 @@ export default function FighterDashboard({ profile }: Props) {
                 <h2 className="text-sm font-semibold text-white mb-3">Accesos rápidos</h2>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                   {[
-                    { label: 'Mi Esquina', icon: 'ri-boxing-line', action: () => setActiveTab('training') },
+                    { label: 'Mi Esquina', icon: 'ri-boxing-line', action: () => navigate('/mi-esquina') },
                     { label: 'Editar mi perfil', icon: 'ri-edit-line', action: () => setActiveTab('profile') },
                     { label: 'Ver oportunidades', icon: 'ri-megaphone-line', action: () => setActiveTab('opportunities') },
                     { label: 'Mensajes', icon: 'ri-message-3-line', action: () => setActiveTab('messages') },
@@ -644,8 +643,6 @@ export default function FighterDashboard({ profile }: Props) {
               </div>
             </div>
           )}
-
-          {activeTab === 'training' && <FighterTraining profile={profile} showToast={showToast} />}
 
           {activeTab === 'opportunities' && <FighterOpportunities profile={profile} fighter={fighter} showToast={showToast} />}
           {activeTab === 'messages' && <MessagesPanel currentUserId={profile.id} />}
