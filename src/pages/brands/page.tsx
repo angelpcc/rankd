@@ -4,6 +4,7 @@ import Navbar from '@/pages/home/components/Navbar';
 import Footer from '@/pages/home/components/Footer';
 import BrandDirectoryCard from './components/BrandDirectoryCard';
 import { useBrands } from '@/hooks/useBrands';
+import { useSEO } from '@/hooks/useSEO';
 
 const PRODUCT_CATEGORIES = [
   'Guantes', 'Vendas', 'Bucales', 'Ropa', 'Protecciones',
@@ -22,6 +23,11 @@ const DISCIPLINES = [
 type TypeFilter = 'all' | 'product' | 'service' | 'both';
 
 export default function BrandsPage() {
+  useSEO({
+    title: 'Marcas y Patrocinadores | RANKD',
+    description: 'Marcas de equipamiento y servicios para deportes de combate. Guantes, nutrición, patrocinio y más, conectadas con peleadores y promotoras.',
+  });
+
   const { t } = useTranslation();
   const { brands, loading } = useBrands();
 
@@ -45,14 +51,9 @@ export default function BrandsPage() {
 
   const filtered = useMemo(() => {
     let result = [...brands];
-
-    if (typeFilter === 'product') {
-      result = result.filter((b) => b.type === 'product' || b.type === 'both');
-    } else if (typeFilter === 'service') {
-      result = result.filter((b) => b.type === 'service' || b.type === 'both');
-    } else if (typeFilter === 'both') {
-      result = result.filter((b) => b.type === 'both');
-    }
+    if (typeFilter === 'product') result = result.filter((b) => b.type === 'product' || b.type === 'both');
+    else if (typeFilter === 'service') result = result.filter((b) => b.type === 'service' || b.type === 'both');
+    else if (typeFilter === 'both') result = result.filter((b) => b.type === 'both');
 
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -83,11 +84,7 @@ export default function BrandsPage() {
     }
 
     if (sortBy === 'items') {
-      result.sort((a, b) => {
-        const aCount = a.products.length + a.services.length;
-        const bCount = b.products.length + b.services.length;
-        return bCount - aCount;
-      });
+      result.sort((a, b) => (b.products.length + b.services.length) - (a.products.length + a.services.length));
     } else if (sortBy === 'name') {
       result.sort((a, b) => a.name.localeCompare(b.name));
     }
@@ -117,19 +114,22 @@ export default function BrandsPage() {
           <img
             src="https://readdy.ai/api/search-image?query=professional%20combat%20sports%20equipment%20collection%20boxing%20gloves%20MMA%20gear%20muay%20thai%20pads%20dark%20studio%20photography%20dramatic%20lighting%20product%20showcase%20high%20contrast%20black%20background%20premium%20quality&width=1400&height=500&seq=brands-dir-hero-v4&orientation=landscape"
             alt={t('brands_page_title')}
-            className="w-full h-full object-cover object-top opacity-10"
+            className="w-full h-full object-cover object-top opacity-15"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-[#0B0B0B] via-[#0B0B0B]/90 to-[#0B0B0B]/60"></div>
+          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 70% 50%, rgba(225,6,0,0.12) 0%, transparent 55%)' }} />
         </div>
+        <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: 'linear-gradient(90deg, #E10600 0%, rgba(225,6,0,0.4) 50%, transparent 100%)' }} />
+
         <div className="relative max-w-7xl mx-auto px-6 md:px-10">
           <div className="flex items-center gap-3 mb-5">
-            <div className="w-6 h-px bg-[#E10600]"></div>
-            <span className="text-[#E10600] text-xs font-semibold tracking-[0.2em] uppercase font-inter">Directorio</span>
+            <div className="w-8 h-[2px] bg-[#E10600]"></div>
+            <span className="text-[#E10600] text-xs font-bold tracking-[0.25em] uppercase font-inter">Directorio</span>
           </div>
-          <h1 className="font-unbounded font-black text-white leading-tight mb-3" style={{ fontSize: 'clamp(2rem, 4.5vw, 3.5rem)' }}>
+          <h1 className="font-unbounded font-black text-white leading-tight mb-3" style={{ fontSize: 'clamp(2.2rem, 5vw, 3.8rem)' }}>
             {t('brands_page_title')}
           </h1>
-          <p className="text-white/45 text-sm md:text-base max-w-xl font-inter leading-relaxed mb-8">
+          <p className="text-white/70 text-sm md:text-base max-w-xl font-inter leading-relaxed mb-8">
             {t('brands_page_desc')}
           </p>
 
@@ -141,12 +141,12 @@ export default function BrandsPage() {
               { icon: 'ri-service-line', value: totalServices, label: t('brands_stat_services') },
             ].map((stat) => (
               <div key={stat.label} className="flex items-center gap-2">
-                <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/8">
+                <div className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/10 border border-white/10">
                   <i className={`${stat.icon} text-[#E10600] text-sm`}></i>
                 </div>
                 <div>
                   <span className="text-white font-bold text-lg font-unbounded">{stat.value}</span>
-                  <span className="text-white/40 text-xs font-inter ml-1.5">{stat.label}</span>
+                  <span className="text-white/60 text-xs font-inter ml-1.5">{stat.label}</span>
                 </div>
               </div>
             ))}
@@ -155,8 +155,7 @@ export default function BrandsPage() {
       </section>
 
       {/* ── TYPE TABS + SEARCH BAR ── */}
-      <div className="sticky top-0 z-30 bg-white border-b border-gray-100">
-        {/* Type tabs */}
+      <div className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 md:px-10 pt-3">
           <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 w-fit flex-wrap">
             {([
@@ -168,23 +167,22 @@ export default function BrandsPage() {
               <button
                 key={opt.value}
                 onClick={() => handleTypeChange(opt.value)}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap font-inter ${typeFilter === opt.value ? 'bg-white text-[#0B0B0B]' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap font-inter ${typeFilter === opt.value ? 'bg-white text-[#0B0B0B] shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
               >
                 <i className={opt.icon}></i>
                 {opt.label}
                 {opt.count > 0 && (
-                  <span className="text-[10px] text-gray-400 font-normal">({opt.count})</span>
+                  <span className="text-[10px] text-gray-500 font-normal">({opt.count})</span>
                 )}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Search + sort + filter */}
         <div className="max-w-7xl mx-auto px-6 md:px-10 py-3">
           <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
             <div className="relative flex-1">
-              <i className="ri-search-line absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+              <i className="ri-search-line absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 text-sm"></i>
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -192,7 +190,7 @@ export default function BrandsPage() {
                 className="w-full bg-gray-50 border border-gray-200 text-[#0B0B0B] text-sm rounded-xl pl-9 pr-4 py-2.5 focus:outline-none focus:border-[#E10600] transition-colors font-inter"
               />
               {search && (
-                <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer">
+                <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-800 cursor-pointer">
                   <i className="ri-close-line text-sm"></i>
                 </button>
               )}
@@ -208,7 +206,7 @@ export default function BrandsPage() {
 
             <button
               onClick={() => setShowFilters((v) => !v)}
-              className={`flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl border transition-colors cursor-pointer whitespace-nowrap font-inter ${showFilters || activeFilterCount > 0 ? 'bg-[#E10600] text-white border-[#E10600]' : 'bg-gray-50 text-[#0B0B0B] border-gray-200 hover:border-gray-300'}`}
+              className={`flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl border transition-colors cursor-pointer whitespace-nowrap font-inter ${showFilters || activeFilterCount > 0 ? 'bg-[#E10600] text-white border-[#E10600]' : 'bg-gray-50 text-[#0B0B0B] border-gray-200 hover:border-gray-400'}`}
             >
               <i className="ri-filter-3-line"></i>
               {t('brands_btn_filters')}
@@ -218,18 +216,16 @@ export default function BrandsPage() {
             </button>
           </div>
 
-          {/* Expanded filters */}
           {showFilters && (
-            <div className="mt-3 pt-3 border-t border-gray-100 flex flex-col sm:flex-row gap-4">
-              {/* Category */}
+            <div className="mt-3 pt-3 border-t border-gray-200 flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
-                <p className="text-xs text-gray-400 font-inter mb-2 font-semibold uppercase tracking-wide">
+                <p className="text-xs text-gray-600 font-inter mb-2 font-semibold uppercase tracking-wide">
                   {typeFilter === 'service' ? t('brands_service_type_label') : t('brands_cat_label')}
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   <button
                     onClick={() => setCategoryFilter('')}
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap font-inter ${!categoryFilter ? 'bg-[#0B0B0B] text-white border-[#0B0B0B]' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'}`}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap font-inter ${!categoryFilter ? 'bg-[#0B0B0B] text-white border-[#0B0B0B]' : 'bg-white text-gray-700 border-gray-300 hover:border-gray-500'}`}
                   >
                     {t('brands_cat_all')}
                   </button>
@@ -237,7 +233,7 @@ export default function BrandsPage() {
                     <button
                       key={c}
                       onClick={() => setCategoryFilter(c === categoryFilter ? '' : c)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap font-inter ${categoryFilter === c ? 'bg-[#E10600] text-white border-[#E10600]' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'}`}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap font-inter ${categoryFilter === c ? 'bg-[#E10600] text-white border-[#E10600]' : 'bg-white text-gray-700 border-gray-300 hover:border-gray-500'}`}
                     >
                       {c}
                     </button>
@@ -245,13 +241,12 @@ export default function BrandsPage() {
                 </div>
               </div>
 
-              {/* Discipline */}
               <div className="sm:w-64">
-                <p className="text-xs text-gray-400 font-inter mb-2 font-semibold uppercase tracking-wide">{t('brands_disc_label')}</p>
+                <p className="text-xs text-gray-600 font-inter mb-2 font-semibold uppercase tracking-wide">{t('brands_disc_label')}</p>
                 <div className="flex flex-wrap gap-1.5">
                   <button
                     onClick={() => setDisciplineFilter('')}
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap font-inter ${!disciplineFilter ? 'bg-[#0B0B0B] text-white border-[#0B0B0B]' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'}`}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap font-inter ${!disciplineFilter ? 'bg-[#0B0B0B] text-white border-[#0B0B0B]' : 'bg-white text-gray-700 border-gray-300 hover:border-gray-500'}`}
                   >
                     {t('brands_disc_all')}
                   </button>
@@ -259,7 +254,7 @@ export default function BrandsPage() {
                     <button
                       key={d}
                       onClick={() => setDisciplineFilter(d === disciplineFilter ? '' : d)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap font-inter ${disciplineFilter === d ? 'bg-[#E10600] text-white border-[#E10600]' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'}`}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap font-inter ${disciplineFilter === d ? 'bg-[#E10600] text-white border-[#E10600]' : 'bg-white text-gray-700 border-gray-300 hover:border-gray-500'}`}
                     >
                       {d}
                     </button>
@@ -271,7 +266,7 @@ export default function BrandsPage() {
                 <div className="flex items-end">
                   <button
                     onClick={() => { setCategoryFilter(''); setDisciplineFilter(''); }}
-                    className="text-xs text-[#E10600] hover:text-red-700 cursor-pointer whitespace-nowrap font-inter flex items-center gap-1"
+                    className="text-xs text-[#E10600] hover:text-red-700 cursor-pointer whitespace-nowrap font-inter flex items-center gap-1 font-semibold"
                   >
                     <i className="ri-close-line"></i>
                     {t('brands_clear_btn')}
@@ -283,42 +278,38 @@ export default function BrandsPage() {
         </div>
       </div>
 
-      {/* ── MAIN CONTENT ── */}
       <main className="max-w-7xl mx-auto px-6 md:px-10 py-10 md:py-14">
 
-        {/* Loading */}
         {loading && (
           <div className="flex items-center justify-center py-32">
             <div className="text-center">
               <div className="w-10 h-10 border-2 border-[#E10600] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-400 text-sm font-inter">{t('brands_loading')}</p>
+              <p className="text-gray-600 text-sm font-inter">{t('brands_loading')}</p>
             </div>
           </div>
         )}
 
-        {/* Empty — no brands at all */}
         {!loading && brands.length === 0 && (
           <div className="flex flex-col items-center justify-center py-32 px-6 text-center">
             <div className="w-24 h-24 flex items-center justify-center rounded-3xl bg-gray-100 border border-gray-200 mb-8">
-              <i className="ri-store-2-line text-5xl text-gray-300"></i>
+              <i className="ri-store-2-line text-5xl text-gray-400"></i>
             </div>
             <h2 className="font-unbounded font-bold text-[#0B0B0B] text-xl mb-3">
               {t('brands_empty_registered')}
             </h2>
-            <p className="text-gray-400 text-sm font-inter leading-relaxed max-w-md">
+            <p className="text-gray-600 text-sm font-inter leading-relaxed max-w-md">
               {t('brands_empty_registered_desc')}
             </p>
           </div>
         )}
 
-        {/* Empty — no results for filters */}
         {!loading && brands.length > 0 && filtered.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
-            <div className="w-16 h-16 flex items-center justify-center rounded-2xl bg-gray-100 border border-gray-100 mb-6">
-              <i className="ri-filter-off-line text-3xl text-gray-300"></i>
+            <div className="w-16 h-16 flex items-center justify-center rounded-2xl bg-gray-100 border border-gray-200 mb-6">
+              <i className="ri-filter-off-line text-3xl text-gray-400"></i>
             </div>
             <h3 className="font-unbounded font-bold text-[#0B0B0B] text-base mb-2">{t('brands_no_results_title')}</h3>
-            <p className="text-gray-400 text-sm font-inter mb-6">{t('brands_no_results_desc')}</p>
+            <p className="text-gray-600 text-sm font-inter mb-6">{t('brands_no_results_desc')}</p>
             <button
               onClick={() => { setSearch(''); setCategoryFilter(''); setDisciplineFilter(''); handleTypeChange('all'); }}
               className="flex items-center gap-2 bg-[#E10600] text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap font-inter hover:bg-red-700"
@@ -329,7 +320,6 @@ export default function BrandsPage() {
           </div>
         )}
 
-        {/* Results header */}
         {!loading && brands.length > 0 && (
           <div className="flex items-center justify-between mb-8">
             <p className="text-sm font-semibold text-[#0B0B0B] font-inter">
@@ -341,7 +331,7 @@ export default function BrandsPage() {
             {(search || categoryFilter || disciplineFilter) && (
               <button
                 onClick={() => { setSearch(''); setCategoryFilter(''); setDisciplineFilter(''); }}
-                className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer font-inter flex items-center gap-1"
+                className="text-xs text-gray-600 hover:text-gray-900 cursor-pointer font-inter flex items-center gap-1 font-medium"
               >
                 <i className="ri-close-line"></i>
                 {t('brands_clear_search')}
@@ -350,7 +340,6 @@ export default function BrandsPage() {
           </div>
         )}
 
-        {/* Brands grid */}
         {!loading && filtered.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {filtered.map((brand) => (
@@ -361,31 +350,32 @@ export default function BrandsPage() {
 
         {/* CTA strip */}
         {!loading && (
-          <div className="mt-16 bg-[#0B0B0B] rounded-2xl p-8 md:p-10">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="mt-16 bg-gradient-to-br from-[#0B0B0B] to-zinc-900 rounded-2xl p-8 md:p-10 relative overflow-hidden border border-zinc-800">
+            <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 90% 50%, rgba(225,6,0,0.12) 0%, transparent 55%)' }} />
+            <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
               <div>
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-5 h-px bg-[#E10600]"></div>
-                  <span className="text-[#E10600] text-xs font-semibold tracking-[0.2em] uppercase font-inter">{t('brands_cta_eyebrow')}</span>
+                  <div className="w-6 h-[2px] bg-[#E10600]"></div>
+                  <span className="text-[#E10600] text-xs font-bold tracking-[0.25em] uppercase font-inter">{t('brands_cta_eyebrow')}</span>
                 </div>
                 <h3 className="font-unbounded font-bold text-white text-lg md:text-xl leading-tight mb-2">
                   {t('brands_cta_publish')}
                 </h3>
-                <p className="text-white/40 text-sm font-inter leading-relaxed max-w-md">
+                <p className="text-white/70 text-sm font-inter leading-relaxed max-w-md">
                   {t('brands_empty_registered_desc')}
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-3 flex-shrink-0">
                 <a
                   href="/auth"
-                  className="inline-flex items-center justify-center gap-2 bg-[#E10600] text-white font-semibold text-sm px-6 py-3 rounded-xl hover:bg-red-700 transition-colors cursor-pointer whitespace-nowrap font-inter"
+                  className="inline-flex items-center justify-center gap-2 bg-[#E10600] text-white font-semibold text-sm px-6 py-3 rounded-xl hover:bg-red-700 transition-colors cursor-pointer whitespace-nowrap font-inter shadow-lg shadow-red-600/30"
                 >
                   <i className="ri-user-add-line"></i>
                   {t('brands_create_account')}
                 </a>
                 <a
                   href="/dashboard"
-                  className="inline-flex items-center justify-center gap-2 border border-white/20 text-white font-semibold text-sm px-6 py-3 rounded-xl hover:border-white/40 transition-colors cursor-pointer whitespace-nowrap font-inter"
+                  className="inline-flex items-center justify-center gap-2 border border-white/25 text-white font-semibold text-sm px-6 py-3 rounded-xl hover:border-white/50 hover:bg-white/5 transition-colors cursor-pointer whitespace-nowrap font-inter"
                 >
                   {t('brands_go_dashboard')}
                   <i className="ri-arrow-right-line"></i>

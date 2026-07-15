@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile, Fighter } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { useSEO } from '@/hooks/useSEO';
 import FighterCard from './components/FighterCard';
 import FightersFilters, { Filters } from './components/FightersFilters';
 
@@ -123,6 +124,11 @@ const COUNTRY_MAP: Record<string, string> = {
 };
 
 export default function FightersDirectoryPage() {
+  useSEO({
+    title: 'Directorio de Peleadores | RANKD',
+    description: 'Descubre peleadores de boxeo, MMA, kickboxing y muay thai. Filtra por país, disciplina y categoría de peso. Encuentra al próximo campeón en RANKD.',
+  });
+
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { profile: userProfile } = useAuth();

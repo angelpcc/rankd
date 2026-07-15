@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase, Opportunity, Profile } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { useSEO } from '@/hooks/useSEO';
 import Navbar from '@/pages/home/components/Navbar';
 import OpportunityCard from './components/OpportunityCard';
 import OpportunitiesFilters from './components/OpportunitiesFilters';
@@ -10,6 +11,11 @@ import ApplyModal from './components/ApplyModal';
 import { isSponsorshipType } from './components/OpportunityCard';
 
 export default function OpportunitiesPage() {
+  useSEO({
+    title: 'Oportunidades de Combate | RANKD',
+    description: 'Combates, sparrings, contratos y patrocinios para peleadores. Postúlate a oportunidades reales de promotoras y marcas del deporte de contacto.',
+  });
+
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { user, profile } = useAuth();
@@ -89,19 +95,27 @@ export default function OpportunitiesPage() {
     <div className="min-h-screen bg-zinc-50">
       <Navbar />
 
-      {/* Header */}
-      <div className="bg-zinc-950 pt-24 sm:pt-28 pb-10 sm:pb-16 px-4">
-        <div className="max-w-6xl mx-auto">
+      {/* Hero cinematográfico */}
+      <div className="relative bg-zinc-950 pt-24 sm:pt-28 pb-10 sm:pb-16 px-4 overflow-hidden">
+        {/* BG decorativo */}
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 70% 50%, rgba(225,6,0,0.10) 0%, transparent 55%)' }} />
+        <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: 'linear-gradient(90deg, #E10600 0%, rgba(225,6,0,0.4) 50%, transparent 100%)' }} />
+
+        <div className="relative max-w-6xl mx-auto">
           <div className="flex flex-col gap-4 sm:gap-6">
             <div>
-              <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight">{t('opp_page_title')}</h1>
-              <p className="text-zinc-400 mt-2 sm:mt-3 text-sm sm:text-base max-w-xl">{t('opp_page_desc')}</p>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-[2px] bg-[#E10600]" />
+                <span className="text-[#E10600] text-xs font-bold tracking-[0.25em] uppercase">Oportunidades</span>
+              </div>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">{t('opp_page_title')}</h1>
+              <p className="text-zinc-300 mt-2 sm:mt-3 text-sm sm:text-base max-w-xl leading-relaxed">{t('opp_page_desc')}</p>
             </div>
             <div className="flex items-center gap-3">
               {profile && profile.user_type !== 'fighter' && (
                 <button
                   onClick={() => navigate('/dashboard')}
-                  className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
+                  className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl transition-colors cursor-pointer whitespace-nowrap shadow-lg shadow-red-600/30"
                 >
                   <i className="ri-add-line"></i> {t('opp_page_publish')}
                 </button>
@@ -109,7 +123,7 @@ export default function OpportunitiesPage() {
               {!user && (
                 <button
                   onClick={() => navigate('/auth')}
-                  className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
+                  className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl transition-colors cursor-pointer whitespace-nowrap shadow-lg shadow-red-600/30"
                 >
                   <i className="ri-login-box-line"></i>
                   <span className="hidden sm:inline">{t('opp_page_join')}</span>
@@ -118,16 +132,17 @@ export default function OpportunitiesPage() {
               )}
             </div>
           </div>
+
           {/* Stats bar */}
           <div className="flex items-center gap-4 sm:gap-6 mt-6 sm:mt-8 pt-5 sm:pt-6 border-t border-zinc-800 overflow-x-auto">
             <div className="text-center flex-shrink-0">
-              <p className="text-xl sm:text-2xl font-black text-white">{opportunities.length}</p>
-              <p className="text-xs text-zinc-500 mt-0.5">{t('opp_page_active')}</p>
+              <p className="text-2xl sm:text-3xl font-black text-white">{opportunities.length}</p>
+              <p className="text-xs text-zinc-400 mt-0.5 uppercase tracking-wider">{t('opp_page_active')}</p>
             </div>
-            {(['combate','sparring','contrato','patrocinio'] as const).map((t) => (
-              <div key={t} className="text-center flex-shrink-0">
-                <p className="text-base sm:text-lg font-bold text-red-400">{opportunities.filter(o => o.type === t).length}</p>
-                <p className="text-xs text-zinc-500 mt-0.5 capitalize">{typeLabels[t]}</p>
+            {(['combate','sparring','contrato','patrocinio'] as const).map((tt) => (
+              <div key={tt} className="text-center flex-shrink-0">
+                <p className="text-lg sm:text-xl font-bold text-red-400">{opportunities.filter(o => o.type === tt).length}</p>
+                <p className="text-xs text-zinc-400 mt-0.5 capitalize">{typeLabels[tt]}</p>
               </div>
             ))}
           </div>
@@ -156,13 +171,13 @@ export default function OpportunitiesPage() {
 
         {/* Results count */}
         <div className="flex items-center justify-between mb-5">
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-zinc-600 font-medium">
             {loading ? t('opp_page_loading') : `${filtered.length} ${filtered.length !== 1 ? t('opp_page_count_plural') : t('opp_page_count')}`}
           </p>
           {(filterType || filterDiscipline || filterWeight || filterLocation || search) && (
             <button
               onClick={() => { setFilterType(''); setFilterDiscipline(''); setFilterWeight(''); setFilterLocation(''); setSearch(''); }}
-              className="text-xs text-red-500 hover:text-red-700 cursor-pointer flex items-center gap-1"
+              className="text-xs text-red-500 hover:text-red-700 cursor-pointer flex items-center gap-1 font-medium"
             >
               <i className="ri-close-line"></i> {t('opp_page_clear')}
             </button>
@@ -178,14 +193,13 @@ export default function OpportunitiesPage() {
             <div className="w-16 h-16 flex items-center justify-center mx-auto mb-4 text-zinc-300">
               <i className="ri-search-line text-5xl"></i>
             </div>
-            <p className="text-zinc-500 text-base">{t('opp_page_empty_title')}</p>
-            <p className="text-zinc-400 text-sm mt-1">{t('opp_page_empty_desc')}</p>
+            <p className="text-zinc-700 text-base font-semibold">{t('opp_page_empty_title')}</p>
+            <p className="text-zinc-500 text-sm mt-1">{t('opp_page_empty_desc')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
             {filtered.map((opp) => {
               const isSponsorship = isSponsorshipType(opp.type);
-              // Fighters NO pueden postularse a patrocinios
               const canApplyToThis = !!user && profile?.user_type === 'fighter' && !isSponsorship;
               return (
                 <OpportunityCard
@@ -197,7 +211,6 @@ export default function OpportunitiesPage() {
                   userType={profile?.user_type ?? null}
                   onApply={() => {
                     if (!user) { navigate('/auth'); return; }
-                    // Bloquear si es patrocinio y el usuario es fighter
                     if (isSponsorship && profile?.user_type === 'fighter') return;
                     setSelectedOpp(opp);
                   }}
@@ -208,7 +221,6 @@ export default function OpportunitiesPage() {
         )}
       </div>
 
-      {/* Apply Modal */}
       {selectedOpp && (
         <ApplyModal
           opportunity={selectedOpp}
@@ -217,7 +229,6 @@ export default function OpportunitiesPage() {
         />
       )}
 
-      {/* Toast */}
       {toast && (
         <div className={`fixed bottom-6 right-6 z-50 text-white text-sm px-5 py-3 rounded-xl flex items-center gap-2 ${toast.type === 'error' ? 'bg-red-600' : 'bg-green-600'}`}>
           <i className={toast.type === 'error' ? 'ri-error-warning-line' : 'ri-check-line'}></i>
