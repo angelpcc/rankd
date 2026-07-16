@@ -4,8 +4,9 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useSEO } from '@/hooks/useSEO';
 import FighterTraining from '@/pages/dashboard/components/FighterTraining';
+import MessagesPanel from '@/pages/dashboard/components/messages/MessagesPanel';
 
-type Section = 'resumen' | 'diario' | 'rutina' | 'coach' | 'material' | 'nutricion';
+type Section = 'resumen' | 'diario' | 'rutina' | 'coach' | 'material' | 'nutricion' | 'mensajes';
 
 const SECTIONS: { id: Section; label: string; icon: string; soon?: boolean }[] = [
   { id: 'resumen', label: 'Resumen', icon: 'ri-dashboard-line' },
@@ -14,6 +15,7 @@ const SECTIONS: { id: Section; label: string; icon: string; soon?: boolean }[] =
   { id: 'coach', label: 'Coach IA', icon: 'ri-sparkling-2-line', soon: true },
   { id: 'material', label: 'Material', icon: 'ri-boxing-line' },
   { id: 'nutricion', label: 'Nutrición', icon: 'ri-restaurant-line' },
+  { id: 'mensajes', label: 'Mensajes', icon: 'ri-message-3-line' },
 ];
 
 const GEAR = [
@@ -188,6 +190,8 @@ export default function MiEsquinaPage() {
           )}
 
           {section === 'diario' && <FighterTraining profile={profile} showToast={showToast} />}
+
+          {section === 'mensajes' && <div className="max-w-5xl"><MessagesPanel currentUserId={profile.id} /></div>}
 
           {section === 'rutina' && (
             <div className="max-w-2xl text-center py-16">

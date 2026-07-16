@@ -252,6 +252,7 @@ export default function FighterDashboard({ profile }: Props) {
     );
   }
 
+  const isHobby = currentProfile.athlete_mode === 'hobby';
   const initials = (fullName || profile.full_name || 'F').split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
   const totalFights = (parseInt(wins, 10) || 0) + (parseInt(losses, 10) || 0) + (parseInt(draws, 10) || 0);
   const winRate = totalFights > 0 ? Math.round(((parseInt(wins, 10) || 0) / totalFights) * 100) : null;
@@ -266,7 +267,7 @@ export default function FighterDashboard({ profile }: Props) {
     { id: 'videos', label: t('dash_tab_videos'), icon: 'ri-video-line', badge: videos.length || undefined },
     { id: 'achievements', label: t('dash_tab_achievements'), icon: 'ri-medal-line', badge: achievements.length || undefined },
     { id: 'settings', label: t('dash_tab_settings'), icon: 'ri-settings-3-line' },
-  ];
+  ].filter((tab) => !isHobby || !['opportunities', 'verification', 'videos', 'achievements'].includes(tab.id));
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
@@ -318,7 +319,7 @@ export default function FighterDashboard({ profile }: Props) {
           </nav>
 
           <div className="p-3 border-t border-zinc-800 space-y-2">
-            {fighter && isPublic ? (
+            {isHobby ? null : fighter && isPublic ? (
               <Link to={`/fighter/${fighter.id}`} target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-2.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap">
                 <i className="ri-external-link-line"></i>
                 {t('dash_fighter_view_profile')}
@@ -365,7 +366,7 @@ export default function FighterDashboard({ profile }: Props) {
               </div>
 
               {/* Visibility banners */}
-              {fighter && !isPublic && (
+              {!isHobby && fighter && !isPublic && (
                 <div className="rounded-2xl overflow-hidden border-2 border-amber-500/50">
                   <div className="bg-amber-500/15 px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <div className="flex items-center gap-3 flex-1">
@@ -382,7 +383,7 @@ export default function FighterDashboard({ profile }: Props) {
                   </div>
                 </div>
               )}
-              {fighter && isPublic && (
+              {!isHobby && fighter && isPublic && (
                 <div className="bg-green-500/10 border border-green-500/30 rounded-xl px-5 py-3 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-green-500/20 text-green-400 flex-shrink-0"><i className="ri-eye-line"></i></div>
@@ -397,15 +398,19 @@ export default function FighterDashboard({ profile }: Props) {
                 </div>
               )}
 
-              <ProfileCompletionBanner completion={completion} onComplete={() => setActiveTab('profile')} userType="fighter" />
+              {!isHobby && <ProfileCompletionBanner completion={completion} onComplete={() => setActiveTab('profile')} userType="fighter" />}
 
               {/* KPIs */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 {[
                   { label: 'Visitas a tu perfil', value: fighter?.profile_views ?? 0, icon: 'ri-eye-line', color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', action: () => { if (fighter && isPublic) window.open(`/fighter/${fighter.id}`, '_blank'); } },
-                  { label: 'Postulaciones enviadas', value: applicationsCount, icon: 'ri-send-plane-line', color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/20', action: () => setActiveTab('opportunities') },
-                  { label: 'Videos subidos', value: videos.length, icon: 'ri-video-line', color: 'text-zinc-300', bg: 'bg-zinc-800 border-zinc-700', action: () => setActiveTab('videos') },
-                  { label: 'Logros y títulos', value: achievements.length, icon: 'ri-medal-line', color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/20', action: () => setActiveTab('achievements') },
+                  ...(!isHobby ? [{ label: 'Postulaciones enviadas', value: applicationsCount, icon: 'ri-send-plane-line', color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/20', action: () => setActiveTab('opportunities') }] : []),
+                  ...(!isHobby ? [
+                    { label: 'Videos subidos', value: videos.length, icon: 'ri-video-line', color: 'text-zinc-300', bg: 'bg-zinc-800 border-zinc-700', action: () => setActiveTab('videos') },
+                    { label: 'Logros y títulos', value: achievements.length, icon: 'ri-medal-line', color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/20', action: () => setActiveTab('achievements') },
+                  ] : [
+                    { label: 'Ir a Mi Esquina', value: '🥊' as unknown as number, icon: 'ri-boxing-line', color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', action: () => navigate('/mi-esquina') },
+                  ]),
                 ].map((kpi) => (
                   <button key={kpi.label} onClick={kpi.action} className={`${kpi.bg} border rounded-2xl p-5 text-left hover:opacity-80 transition-opacity cursor-pointer`}>
                     <div className={`w-8 h-8 flex items-center justify-center mb-3 ${kpi.color}`}><i className={`${kpi.icon} text-xl`}></i></div>
@@ -416,6 +421,7 @@ export default function FighterDashboard({ profile }: Props) {
               </div>
 
               {/* Récord */}
+              {!isHobby && (
               <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-sm font-semibold text-white">Tu récord</h2>
@@ -437,6 +443,7 @@ export default function FighterDashboard({ profile }: Props) {
                   ))}
                 </div>
               </div>
+              )}
 
               {/* Accesos rápidos */}
               <div>
@@ -445,7 +452,7 @@ export default function FighterDashboard({ profile }: Props) {
                   {[
                     { label: 'Mi Esquina', icon: 'ri-boxing-line', action: () => navigate('/mi-esquina') },
                     { label: 'Editar mi perfil', icon: 'ri-edit-line', action: () => setActiveTab('profile') },
-                    { label: 'Ver oportunidades', icon: 'ri-megaphone-line', action: () => setActiveTab('opportunities') },
+                    ...(!isHobby ? [{ label: 'Ver oportunidades', icon: 'ri-megaphone-line', action: () => setActiveTab('opportunities') }] : []),
                     { label: 'Mensajes', icon: 'ri-message-3-line', action: () => setActiveTab('messages') },
                   ].map((q) => (
                     <button key={q.label} onClick={q.action} className="bg-zinc-900 border border-zinc-800 hover:border-red-500/40 rounded-2xl p-4 flex items-center gap-3 transition-colors cursor-pointer text-left">
@@ -484,7 +491,7 @@ export default function FighterDashboard({ profile }: Props) {
                       {publishing ? <><div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div> {t('dash_saving')}</> : isPublic ? <><i className="ri-eye-line"></i><span className="hidden sm:inline">{t('dash_fighter_visible')}</span></> : <><i className="ri-eye-off-line"></i><span className="hidden sm:inline">{t('dash_fighter_make_public')}</span></>}
                     </button>
                   )}
-                  {fighter && isPublic && (
+                  {!isHobby && fighter && isPublic && (
                     <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/fighter/${fighter.id}`); showToast(t('dash_settings_copied')); }}
                       className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl border border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:text-white transition-colors cursor-pointer whitespace-nowrap">
                       <i className="ri-share-line"></i>

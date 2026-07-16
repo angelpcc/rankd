@@ -51,9 +51,9 @@ const MAIN_TYPES = [
     userType: 'fighter' as UserType,
     icon: 'ri-boxing-line',
     title: 'Peleador',
-    desc: 'Crea tu ficha deportiva y sé encontrado por promotoras y marcas',
+    desc: 'Compitas o entrenes por afición, este es tu sitio',
     color: '#E10600',
-    hasSubtypes: false,
+    hasSubtypes: true,
   },
   {
     key: 'org',
@@ -81,6 +81,11 @@ const ORG_SUBTYPES = [
   { userType: 'manager' as UserType, icon: 'ri-user-star-line', label: 'Manager', desc: 'Gestiono carreras de peleadores' },
 ];
 
+const FIGHTER_MODES = [
+  { mode: 'competitor' as const, icon: 'ri-trophy-line', label: 'Compito', desc: 'Tengo récord y busco oportunidades' },
+  { mode: 'hobby' as const, icon: 'ri-heart-pulse-line', label: 'Entreno por afición', desc: 'Entreno sin competir: quiero Mi Esquina' },
+];
+
 const TYPE_LABELS: Record<string, string> = {
   fighter: 'Peleador', promoter: 'Promotora', gym: 'Gimnasio / Club', manager: 'Manager', brand: 'Marca',
 };
@@ -90,7 +95,8 @@ export default function AuthPage() {
   const { t } = useTranslation();
   const [mode, setMode] = useState<AuthMode>('login');
   const [userType, setUserType] = useState<UserType | null>(null);
-  const [expandedOrg, setExpandedOrg] = useState(false);
+  const [athleteMode, setAthleteMode] = useState<'competitor' | 'hobby'>('competitor');
+  const [expanded, setExpanded] = useState<'fighter' | 'org' | null>(null);
   const [step, setStep] = useState<1 | 2>(1);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -138,8 +144,12 @@ export default function AuthPage() {
       return;
     }
     if (data.user) {
-      const { data: prof } = await supabase.from('profiles').select('user_type').eq('id', data.user.id).maybeSingle();
-      redirectByRole(prof?.user_type ?? '');
+      const { data: prof } = await supabase.from('profiles').select('user_type, athlete_mode').eq('id', data.user.id).maybeSingle();
+      if (prof?.user_type === 'fighter' && prof?.athlete_mode === 'hobby') {
+        navigate('/mi-esquina');
+      } else {
+        redirectByRole(prof?.user_type ?? '');
+      }
     }
     setLoading(false);
   };
@@ -159,6 +169,7 @@ export default function AuthPage() {
         data: {
           full_name: fullName,
           user_type: userType,
+          athlete_mode: userType === 'fighter' ? athleteMode : null,
         },
       },
     });
@@ -186,8 +197,13 @@ export default function AuthPage() {
           user_type: userType,
           full_name: fullName,
           country: country || null,
+          athlete_mode: userType === 'fighter' ? athleteMode : null,
         }, { onConflict: 'id', ignoreDuplicates: true });
-        redirectByRole(userType, true);
+        if (userType === 'fighter' && athleteMode === 'hobby') {
+          navigate('/mi-esquina');
+        } else {
+          redirectByRole(userType, true);
+        }
       } else {
         setSuccess(t('success_account_created'));
       }
@@ -195,8 +211,9 @@ export default function AuthPage() {
     setLoading(false);
   };
 
-  const selectType = (ut: UserType) => {
+  const selectType = (ut: UserType, mode: 'competitor' | 'hobby' = 'competitor') => {
     setUserType(ut);
+    setAthleteMode(mode);
     setError('');
     setStep(2);
   };
@@ -214,7 +231,7 @@ export default function AuthPage() {
       <div className="relative z-10 w-full max-w-[440px]">
         {/* Tabs */}
         <div className="flex bg-[#141414] rounded-2xl p-1 mb-6 sm:mb-8 border border-white/[0.06]">
-          <button onClick={() => { setMode('login'); setStep(1); setExpandedOrg(false); setError(''); }} className={`flex-1 py-3 text-sm font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap font-inter ${mode === 'login' ? 'bg-[#E10600] text-white' : 'text-white/55 hover:text-white/85'}`}>
+          <button onClick={() => { setMode('login'); setStep(1); setExpanded(null); setError(''); }} className={`flex-1 py-3 text-sm font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap font-inter ${mode === 'login' ? 'bg-[#E10600] text-white' : 'text-white/55 hover:text-white/85'}`}>
             {t('auth_tab_login')}
           </button>
           <button onClick={() => { setMode('register'); setStep(1); setError(''); }} className={`flex-1 py-3 text-sm font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap font-inter ${mode === 'register' ? 'bg-[#E10600] text-white' : 'text-white/55 hover:text-white/85'}`}>
@@ -263,21 +280,23 @@ export default function AuthPage() {
                     <p className="text-white/55 text-sm font-inter">Elige tu tipo de cuenta para empezar</p>
                   </div>
 
-                  {MAIN_TYPES.map((tp) => (
+                  {MAIN_TYPES.map((tp) => {
+                    const isOpen = expanded === tp.key;
+                    return (
                     <div key={tp.key}>
                       <button
                         type="button"
                         onClick={() => {
-                          if (tp.hasSubtypes) { setExpandedOrg(!expandedOrg); }
-                          else { setExpandedOrg(false); selectType(tp.userType!); }
+                          if (tp.hasSubtypes) { setExpanded(isOpen ? null : (tp.key as 'fighter' | 'org')); }
+                          else { setExpanded(null); selectType(tp.userType!); }
                         }}
                         className="w-full text-left rounded-2xl border transition-all cursor-pointer p-4 flex items-center gap-4 group"
                         style={{
-                          background: expandedOrg && tp.hasSubtypes ? `${tp.color}0d` : 'rgba(255,255,255,0.03)',
-                          borderColor: expandedOrg && tp.hasSubtypes ? `${tp.color}50` : 'rgba(255,255,255,0.08)',
+                          background: isOpen ? `${tp.color}0d` : 'rgba(255,255,255,0.03)',
+                          borderColor: isOpen ? `${tp.color}50` : 'rgba(255,255,255,0.08)',
                         }}
                         onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = `${tp.color}60`; (e.currentTarget as HTMLButtonElement).style.background = `${tp.color}0d`; }}
-                        onMouseLeave={(e) => { if (!(expandedOrg && tp.hasSubtypes)) { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.08)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.03)'; } }}
+                        onMouseLeave={(e) => { if (!isOpen) { (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.08)'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.03)'; } }}
                       >
                         <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 border" style={{ background: `${tp.color}12`, borderColor: `${tp.color}30` }}>
                           <i className={tp.icon} style={{ color: tp.color, fontSize: 20 }}></i>
@@ -286,11 +305,32 @@ export default function AuthPage() {
                           <p className="text-white font-bold text-[15px] font-inter">{tp.title}</p>
                           <p className="text-white/55 text-xs font-inter leading-relaxed mt-0.5">{tp.desc}</p>
                         </div>
-                        <i className={tp.hasSubtypes ? (expandedOrg ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line') : 'ri-arrow-right-line'} style={{ color: 'rgba(255,255,255,0.35)', fontSize: 18, flexShrink: 0 }}></i>
+                        <i className={tp.hasSubtypes ? (isOpen ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line') : 'ri-arrow-right-line'} style={{ color: 'rgba(255,255,255,0.35)', fontSize: 18, flexShrink: 0 }}></i>
                       </button>
 
+                      {/* Sub-opciones Peleador */}
+                      {tp.key === 'fighter' && isOpen && (
+                        <div className="mt-2 ml-4 pl-4 border-l-2 border-[#E10600]/30 space-y-2">
+                          {FIGHTER_MODES.map((fm) => (
+                            <button
+                              key={fm.mode}
+                              type="button"
+                              onClick={() => selectType('fighter' as UserType, fm.mode)}
+                              className="w-full text-left rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-[#E10600]/[0.07] hover:border-[#E10600]/40 transition-all cursor-pointer px-4 py-3 flex items-center gap-3"
+                            >
+                              <i className={fm.icon} style={{ color: '#E10600', fontSize: 16, flexShrink: 0 }}></i>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-white font-semibold text-sm font-inter">{fm.label}</p>
+                                <p className="text-white/50 text-xs font-inter">{fm.desc}</p>
+                              </div>
+                              <i className="ri-arrow-right-line" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}></i>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
                       {/* Sub-opciones de Organización */}
-                      {tp.hasSubtypes && expandedOrg && (
+                      {tp.key === 'org' && isOpen && (
                         <div className="mt-2 ml-4 pl-4 border-l-2 border-[#C9A84C]/25 space-y-2">
                           {ORG_SUBTYPES.map((sub) => (
                             <button
@@ -310,7 +350,8 @@ export default function AuthPage() {
                         </div>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
 
                   {error && <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 font-inter">{error}</p>}
                 </div>
@@ -328,7 +369,7 @@ export default function AuthPage() {
                         <h1 className="text-xl font-bold text-white font-unbounded">Crea tu cuenta</h1>
                         <button type="button" onClick={() => { setStep(1); setError(''); }} className="flex items-center gap-1.5 text-xs text-white/55 hover:text-white/85 font-inter cursor-pointer transition-colors mt-0.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#E10600]"></span>
-                          {TYPE_LABELS[userType || ''] || ''} · cambiar
+                          {userType === 'fighter' && athleteMode === 'hobby' ? 'Entreno por afición' : TYPE_LABELS[userType || ''] || ''} · cambiar
                         </button>
                       </div>
                     </div>

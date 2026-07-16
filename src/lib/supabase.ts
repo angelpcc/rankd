@@ -22,6 +22,8 @@ export interface Profile {
   verified: boolean;
   verification_status: 'unverified' | 'pending' | 'verified' | 'rejected';
   verification_requested_at: string | null;
+  country?: string | null;
+  athlete_mode?: 'competitor' | 'hobby' | null;
   created_at: string;
   updated_at: string;
 }
