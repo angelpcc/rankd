@@ -23,6 +23,7 @@ const TermsPage = lazy(() => import('../pages/terms/page'));
 const EsquinaPage = lazy(() => import('../pages/esquina/page'));
 const MiEsquinaPage = lazy(() => import('../pages/mi-esquina/page'));
 const StorePage = lazy(() => import('../pages/tienda/page'));
+const NewsPage = lazy(() => import('../pages/noticias/page'));
 const PrivacyPage = lazy(() => import('../pages/privacy/page'));
 
 const routes: RouteObject[] = [
@@ -151,6 +152,14 @@ const routes: RouteObject[] = [
     element: (
       <Suspense fallback={<LoadingSpinner />}>
         <MiEsquinaPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/noticias',
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <NewsPage />
       </Suspense>
     ),
   },

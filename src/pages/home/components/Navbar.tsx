@@ -27,6 +27,7 @@ export default function Navbar() {
     { labelKey: 'nav_how_it_works', href: '#how-it-works', isAnchor: true },
     { labelKey: 'nav_directory', href: '/fighters', isAnchor: false },
     { labelKey: 'nav_opportunities', href: '/opportunities', isAnchor: false },
+    { label: 'Noticias', href: '/noticias', isAnchor: false },
     { label: 'Mi Esquina', href: '/esquina', isAnchor: false },
     { labelKey: 'nav_brands', href: '/brands', isAnchor: false },
     { label: 'Tienda', href: '/tienda', isAnchor: false },
