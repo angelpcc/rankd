@@ -1,21 +1,28 @@
 // Función serverless de Vercel — lee RSS de deportes de combate y los sirve limpios.
-// Se ejecuta en el servidor de Vercel, por eso no hay problemas de CORS.
+// Se ejecuta en el servidor de Vercel (no hay CORS). Múltiples fuentes con respaldo.
 
 const FEEDS = [
+  { name: 'Sherdog', url: 'https://www.sherdog.com/rss/news.xml', category: 'MMA' },
+  { name: 'MMA Fighting', url: 'https://www.mmafighting.com/rss/current', category: 'MMA' },
+  { name: 'MMA Junkie', url: 'https://mmajunkie.usatoday.com/feed', category: 'MMA' },
+  { name: 'BadLeftHook', url: 'https://www.badlefthook.com/rss/current', category: 'Boxeo' },
   { name: 'NotiFight', url: 'https://notifight.com/feed/', category: 'Boxeo' },
 ];
 
-// Cache en memoria (dura mientras la función esté "caliente")
 let cache = { data: null, ts: 0 };
-const CACHE_MS = 15 * 60 * 1000; // 15 minutos
+const CACHE_MS = 15 * 60 * 1000;
 
 function decode(str = '') {
   return str
-    .replace(/<!\[CDATA\[(.*?)\]\]>/gs, '$1')
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
     .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"').replace(/&#039;/g, "'").replace(/&#8217;/g, "'")
-    .replace(/&#8220;/g, '"').replace(/&#8221;/g, '"').replace(/&nbsp;/g, ' ')
+    .replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/&#8217;/g, "'")
+    .replace(/&#8216;/g, "'").replace(/&#8220;/g, '"').replace(/&#8221;/g, '"')
+    .replace(/&#8230;/g, '...').replace(/&nbsp;/g, ' ').replace(/&#160;/g, ' ')
+    .replace(/&aacute;/g, 'á').replace(/&eacute;/g, 'é').replace(/&iacute;/g, 'í')
+    .replace(/&oacute;/g, 'ó').replace(/&uacute;/g, 'ú').replace(/&ntilde;/g, 'ñ')
     .replace(/<[^>]+>/g, '')
+    .replace(/\s+/g, ' ')
     .trim();
 }
 
@@ -24,44 +31,59 @@ function extractTag(block, tag) {
   return m ? m[1] : '';
 }
 
-function extractImage(block) {
-  // Buscar imagen en varios formatos comunes de RSS
-  let m = block.match(/<media:content[^>]*url="([^"]+)"/i);
+function extractLink(block) {
+  // RSS estándar: <link>url</link>
+  let m = block.match(/<link>([\s\S]*?)<\/link>/i);
+  if (m && m[1].trim().startsWith('http')) return decode(m[1]);
+  // Atom: <link href="url"/>
+  m = block.match(/<link[^>]*href="([^"]+)"/i);
   if (m) return m[1];
-  m = block.match(/<enclosure[^>]*url="([^"]+)"[^>]*type="image/i);
+  // Guid como fallback
+  m = block.match(/<guid[^>]*>([\s\S]*?)<\/guid>/i);
+  if (m && m[1].trim().startsWith('http')) return decode(m[1]);
+  return '';
+}
+
+function extractImage(block) {
+  let m = block.match(/<media:content[^>]*url="([^"]+)"/i);
   if (m) return m[1];
   m = block.match(/<media:thumbnail[^>]*url="([^"]+)"/i);
   if (m) return m[1];
+  m = block.match(/<enclosure[^>]*url="([^"]+)"[^>]*type="image/i);
+  if (m) return m[1];
+  m = block.match(/<enclosure[^>]*type="image[^>]*url="([^"]+)"/i);
+  if (m) return m[1];
   const content = extractTag(block, 'content:encoded') || extractTag(block, 'description');
-  m = content.match(/<img[^>]*src="([^"]+)"/i);
+  m = content.match(/<img[^>]*src=["']([^"']+)["']/i);
   if (m) return m[1];
   return null;
 }
 
 async function parseFeed(feed) {
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
     const res = await fetch(feed.url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; RankdBot/1.0)' },
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
+        'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+      },
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
     if (!res.ok) return [];
     const xml = await res.text();
-    const items = xml.split(/<item[>\s]/).slice(1);
-    return items.slice(0, 10).map((block) => {
+    // Soporta <item> (RSS) y <entry> (Atom)
+    const isAtom = xml.includes('<entry');
+    const chunks = isAtom ? xml.split(/<entry[>\s]/).slice(1) : xml.split(/<item[>\s]/).slice(1);
+    return chunks.slice(0, 8).map((block) => {
       const title = decode(extractTag(block, 'title'));
-      const link = decode(extractTag(block, 'link')).replace(/<!\[CDATA\[|\]\]>/g, '').trim();
-      const pubDate = extractTag(block, 'pubDate').trim();
-      let desc = decode(extractTag(block, 'description'));
+      const link = extractLink(block);
+      const pubDate = (extractTag(block, 'pubDate') || extractTag(block, 'published') || extractTag(block, 'updated')).trim();
+      let desc = decode(extractTag(block, 'description') || extractTag(block, 'summary'));
       if (desc.length > 180) desc = desc.slice(0, 177) + '...';
-      return {
-        title,
-        link,
-        description: desc,
-        image: extractImage(block),
-        pubDate,
-        source: feed.name,
-        category: feed.category,
-      };
-    }).filter((it) => it.title && it.link);
+      return { title, link, description: desc, image: extractImage(block), pubDate, source: feed.name, category: feed.category };
+    }).filter((it) => it.title && it.link && it.link.startsWith('http'));
   } catch {
     return [];
   }
@@ -71,23 +93,22 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate');
 
-  // Servir cache si es reciente
-  if (cache.data && Date.now() - cache.ts < CACHE_MS) {
+  if (cache.data && cache.data.length > 0 && Date.now() - cache.ts < CACHE_MS) {
     return res.status(200).json({ items: cache.data, cached: true });
   }
 
   const results = await Promise.all(FEEDS.map(parseFeed));
   let items = results.flat();
 
-  // Ordenar por fecha (más reciente primero)
+  // Intercalar fuentes para variedad (no todas de la misma web seguidas)
   items.sort((a, b) => {
     const da = new Date(a.pubDate).getTime() || 0;
     const db = new Date(b.pubDate).getTime() || 0;
     return db - da;
   });
 
-  items = items.slice(0, 12);
+  items = items.slice(0, 15);
 
-  cache = { data: items, ts: Date.now() };
+  if (items.length > 0) cache = { data: items, ts: Date.now() };
   return res.status(200).json({ items, cached: false });
 }
