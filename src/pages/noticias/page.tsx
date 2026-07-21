@@ -13,6 +13,16 @@ interface NewsItem {
   category: string;
 }
 
+const CATEGORY_STYLE: Record<string, { grad: string; icon: string }> = {
+  'Boxeo': { grad: 'linear-gradient(135deg, #1a0505 0%, #2d0a0a 100%)', icon: 'ri-boxing-line' },
+  'MMA': { grad: 'linear-gradient(135deg, #0a0f1a 0%, #1a1420 100%)', icon: 'ri-sword-line' },
+  'default': { grad: 'linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 100%)', icon: 'ri-fire-line' },
+};
+
+function catStyle(cat: string) {
+  return CATEGORY_STYLE[cat] || CATEGORY_STYLE.default;
+}
+
 function timeAgo(dateStr: string): string {
   const d = new Date(dateStr).getTime();
   if (!d) return '';
@@ -99,10 +109,11 @@ export default function NewsPage() {
                 <div className="grid md:grid-cols-2">
                   <div className="relative h-56 md:h-auto bg-zinc-900 overflow-hidden">
                     {featured.image ? (
-                      <img src={featured.image} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <img src={featured.image} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-zinc-900 to-zinc-950">
-                        <i className="ri-boxing-line text-5xl text-zinc-700"></i>
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-3" style={{ background: catStyle(featured.category).grad }}>
+                        <i className={`${catStyle(featured.category).icon} text-6xl`} style={{ color: 'rgba(225,6,0,0.5)' }}></i>
+                        <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 28, letterSpacing: 6, color: 'rgba(255,255,255,0.15)' }}>RANKD</span>
                       </div>
                     )}
                     <div className="absolute top-4 left-4 flex items-center gap-2">
@@ -132,12 +143,12 @@ export default function NewsPage() {
                   className={`group flex flex-col bg-zinc-900/60 border border-zinc-800 rounded-2xl overflow-hidden hover:border-red-500/40 hover:-translate-y-1 transition-all anim-fade-up anim-d${Math.min((i % 6) + 1, 6)}`}>
                   <div className="relative h-40 bg-zinc-900 overflow-hidden">
                     {item.image ? (
-                      <img src={item.image} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-zinc-900 to-zinc-950">
-                        <i className="ri-boxing-line text-4xl text-zinc-700"></i>
-                      </div>
-                    )}
+                      <img src={item.image} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={(e) => { const el = e.currentTarget as HTMLImageElement; el.style.display = 'none'; const sib = el.nextElementSibling as HTMLElement; if (sib) sib.style.display = 'flex'; }} />
+                    ) : null}
+                    <div className={`w-full h-full flex-col items-center justify-center gap-2 ${item.image ? 'hidden' : 'flex'}`} style={{ background: catStyle(item.category).grad }}>
+                      <i className={`${catStyle(item.category).icon} text-4xl`} style={{ color: 'rgba(225,6,0,0.45)' }}></i>
+                      <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, letterSpacing: 4, color: 'rgba(255,255,255,0.12)' }}>RANKD</span>
+                    </div>
                     <span className="absolute top-3 left-3 text-[10px] font-bold text-white bg-black/60 backdrop-blur px-2 py-0.5 rounded-full">{item.category}</span>
                   </div>
                   <div className="p-4 flex flex-col flex-1">

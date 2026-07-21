@@ -2,10 +2,11 @@
 // Se ejecuta en el servidor de Vercel (no hay CORS). Múltiples fuentes con respaldo.
 
 const FEEDS = [
-  { name: 'Sherdog', url: 'https://www.sherdog.com/rss/news.xml', category: 'MMA' },
   { name: 'MMA Fighting', url: 'https://www.mmafighting.com/rss/current', category: 'MMA' },
-  { name: 'MMA Junkie', url: 'https://mmajunkie.usatoday.com/feed', category: 'MMA' },
-  { name: 'BadLeftHook', url: 'https://www.badlefthook.com/rss/current', category: 'Boxeo' },
+  { name: 'Bad Left Hook', url: 'https://www.badlefthook.com/rss/current', category: 'Boxeo' },
+  { name: 'MMA Mania', url: 'https://www.mmamania.com/rss/current', category: 'MMA' },
+  { name: 'Bloody Elbow', url: 'https://www.bloodyelbow.com/rss/current', category: 'MMA' },
+  { name: 'Sherdog', url: 'https://www.sherdog.com/rss/news.xml', category: 'MMA' },
   { name: 'NotiFight', url: 'https://notifight.com/feed/', category: 'Boxeo' },
 ];
 
