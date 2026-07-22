@@ -67,7 +67,7 @@ function extractImage(block) {
 async function parseFeed(feed) {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
+    const timeout = setTimeout(() => controller.abort(), 5000);
     const res = await fetch(feed.url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
@@ -94,6 +94,38 @@ async function parseFeed(feed) {
   }
 }
 
+
+// Extrae la imagen de portada (og:image) de la página de la noticia.
+// Es la imagen que sale al compartir el enlace en redes: siempre relevante.
+async function fetchOgImage(url) {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
+        'Accept': 'text/html',
+      },
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return null;
+    // Solo leemos el principio del HTML: las metas están en el <head>
+    const html = (await res.text()).slice(0, 60000);
+    let m = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i);
+    if (m) return m[1];
+    m = html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+    if (m) return m[1];
+    m = html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i);
+    if (m) return m[1];
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export const config = { maxDuration: 15 };
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate');
@@ -112,10 +144,19 @@ export default async function handler(req, res) {
     return db - da;
   });
 
-  // Priorizar noticias CON imagen (se ven mucho mejor)
+  items = items.slice(0, 12);
+
+  // Para las que no traen imagen en el RSS, la sacamos de la propia noticia
+  const needImage = items.filter((it) => !it.image);
+  if (needImage.length > 0) {
+    const found = await Promise.all(needImage.map((it) => fetchOgImage(it.link)));
+    needImage.forEach((it, i) => { if (found[i]) it.image = found[i]; });
+  }
+
+  // Las que tengan imagen, primero
   const withImg = items.filter((it) => it.image);
   const withoutImg = items.filter((it) => !it.image);
-  items = [...withImg, ...withoutImg].slice(0, 15);
+  items = [...withImg, ...withoutImg];
 
   if (items.length > 0) cache = { data: items, ts: Date.now() };
   return res.status(200).json({ items, cached: false });
