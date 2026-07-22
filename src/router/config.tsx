@@ -24,6 +24,7 @@ const EsquinaPage = lazy(() => import('../pages/esquina/page'));
 const MiEsquinaPage = lazy(() => import('../pages/mi-esquina/page'));
 const StorePage = lazy(() => import('../pages/tienda/page'));
 const NewsPage = lazy(() => import('../pages/noticias/page'));
+const AdminPage = lazy(() => import('../pages/admin/page'));
 const PrivacyPage = lazy(() => import('../pages/privacy/page'));
 
 const routes: RouteObject[] = [
@@ -160,6 +161,14 @@ const routes: RouteObject[] = [
     element: (
       <Suspense fallback={<LoadingSpinner />}>
         <NewsPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/admin',
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <AdminPage />
       </Suspense>
     ),
   },
