@@ -5,13 +5,16 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSEO } from '@/hooks/useSEO';
 import FighterTraining from '@/pages/dashboard/components/FighterTraining';
 import MessagesPanel from '@/pages/dashboard/components/messages/MessagesPanel';
+import RoundTimer from '@/pages/mi-esquina/components/RoundTimer';
+import WeeklyPlanner from '@/pages/mi-esquina/components/WeeklyPlanner';
 
-type Section = 'resumen' | 'diario' | 'rutina' | 'coach' | 'material' | 'nutricion' | 'mensajes';
+type Section = 'resumen' | 'diario' | 'rutina' | 'timer' | 'coach' | 'material' | 'nutricion' | 'mensajes';
 
 const SECTIONS: { id: Section; label: string; icon: string; soon?: boolean }[] = [
   { id: 'resumen', label: 'Resumen', icon: 'ri-dashboard-line' },
   { id: 'diario', label: 'Diario de entrenos', icon: 'ri-calendar-check-line' },
-  { id: 'rutina', label: 'Rutina semanal', icon: 'ri-list-check-2', soon: true },
+  { id: 'rutina', label: 'Mi semana', icon: 'ri-calendar-2-line' },
+  { id: 'timer', label: 'Temporizador', icon: 'ri-timer-flash-line' },
   { id: 'coach', label: 'Coach IA', icon: 'ri-sparkling-2-line', soon: true },
   { id: 'material', label: 'Material', icon: 'ri-boxing-line' },
   { id: 'nutricion', label: 'Nutrición', icon: 'ri-restaurant-line' },
@@ -174,6 +177,8 @@ export default function MiEsquinaPage() {
               <div className="grid sm:grid-cols-2 gap-3">
                 {[
                   { s: 'diario' as Section, icon: 'ri-calendar-check-line', title: 'Registra tu entreno de hoy', desc: 'Suma a tu racha y controla tu carga semanal', cta: 'Ir al diario' },
+                  { s: 'timer' as Section, icon: 'ri-timer-flash-line', title: 'Temporizador de asaltos', desc: 'Entrena con el ritmo real del combate, con campana', cta: 'Abrir timer' },
+                  { s: 'rutina' as Section, icon: 'ri-calendar-2-line', title: 'Planifica tu semana', desc: 'Organiza tus entrenos y ve tachando lo cumplido', cta: 'Ver mi semana' },
                   { s: 'material' as Section, icon: 'ri-boxing-line', title: 'Guía de material', desc: 'Guantes, vendas, protecciones: qué comprar y por qué', cta: 'Ver guía' },
                   { s: 'nutricion' as Section, icon: 'ri-restaurant-line', title: 'Nutrición del peleador', desc: 'Lo esencial para rendir: comida, hidratación y descanso', cta: 'Ver consejos' },
                   { s: 'coach' as Section, icon: 'ri-sparkling-2-line', title: 'Coach IA', desc: 'Tu entrenador personal inteligente está en camino', cta: 'Saber más' },
@@ -193,17 +198,9 @@ export default function MiEsquinaPage() {
 
           {section === 'mensajes' && <div className="max-w-5xl"><MessagesPanel currentUserId={profile.id} /></div>}
 
-          {section === 'rutina' && (
-            <div className="max-w-2xl text-center py-16">
-              <div className="w-20 h-20 mx-auto mb-6 flex items-center justify-center rounded-3xl bg-yellow-500/10 border border-yellow-500/30 anim-float">
-                <i className="ri-list-check-2 text-3xl text-yellow-400"></i>
-              </div>
-              <h2 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 32, letterSpacing: 2 }}>RUTINA SEMANAL <span className="text-yellow-400">MUY PRONTO</span></h2>
-              <p className="text-zinc-400 text-sm mt-3 max-w-md mx-auto leading-relaxed">
-                La IA de RANKD te generará una rutina semanal personalizada según tu disciplina, nivel, objetivos y el tiempo que tengas. Aparecerá aquí, lista para seguir día a día.
-              </p>
-            </div>
-          )}
+          {section === 'rutina' && <WeeklyPlanner profile={profile} showToast={showToast} />}
+
+          {section === 'timer' && <RoundTimer />}
 
           {section === 'coach' && (
             <div className="max-w-2xl text-center py-16">
