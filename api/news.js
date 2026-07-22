@@ -6,8 +6,8 @@ const FEEDS = [
   { name: 'Bad Left Hook', url: 'https://www.badlefthook.com/rss/current', category: 'Boxeo' },
   { name: 'MMA Mania', url: 'https://www.mmamania.com/rss/current', category: 'MMA' },
   { name: 'Bloody Elbow', url: 'https://www.bloodyelbow.com/rss/current', category: 'MMA' },
+  { name: 'Cageside Press', url: 'https://cagesidepress.com/feed/', category: 'MMA' },
   { name: 'Sherdog', url: 'https://www.sherdog.com/rss/news.xml', category: 'MMA' },
-  { name: 'NotiFight', url: 'https://notifight.com/feed/', category: 'Boxeo' },
 ];
 
 let cache = { data: null, ts: 0 };
@@ -46,17 +46,21 @@ function extractLink(block) {
 }
 
 function extractImage(block) {
-  let m = block.match(/<media:content[^>]*url="([^"]+)"/i);
+  let m = block.match(/<media:thumbnail[^>]*url="([^"]+)"/i);
   if (m) return m[1];
-  m = block.match(/<media:thumbnail[^>]*url="([^"]+)"/i);
+  m = block.match(/<media:content[^>]*url="([^"]+)"/i);
+  if (m && /\.(jpg|jpeg|png|webp|gif)/i.test(m[1])) return m[1];
+  m = block.match(/<media:content[^>]*url="([^"]+)"[^>]*medium="image"/i);
   if (m) return m[1];
   m = block.match(/<enclosure[^>]*url="([^"]+)"[^>]*type="image/i);
   if (m) return m[1];
-  m = block.match(/<enclosure[^>]*type="image[^>]*url="([^"]+)"/i);
-  if (m) return m[1];
-  const content = extractTag(block, 'content:encoded') || extractTag(block, 'description');
+  // Buscar en el contenido HTML
+  const content = extractTag(block, 'content:encoded') || extractTag(block, 'description') || '';
   m = content.match(/<img[^>]*src=["']([^"']+)["']/i);
   if (m) return m[1];
+  // Buscar cualquier URL de imagen en el bloque
+  m = block.match(/https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)/i);
+  if (m) return m[0];
   return null;
 }
 
@@ -108,7 +112,10 @@ export default async function handler(req, res) {
     return db - da;
   });
 
-  items = items.slice(0, 15);
+  // Priorizar noticias CON imagen (se ven mucho mejor)
+  const withImg = items.filter((it) => it.image);
+  const withoutImg = items.filter((it) => !it.image);
+  items = [...withImg, ...withoutImg].slice(0, 15);
 
   if (items.length > 0) cache = { data: items, ts: Date.now() };
   return res.status(200).json({ items, cached: false });
