@@ -144,7 +144,7 @@ export default async function handler(req, res) {
     return db - da;
   });
 
-  items = items.slice(0, 12);
+  items = items.slice(0, 16);
 
   // Para las que no traen imagen en el RSS, la sacamos de la propia noticia
   const needImage = items.filter((it) => !it.image);
@@ -153,10 +153,10 @@ export default async function handler(req, res) {
     needImage.forEach((it, i) => { if (found[i]) it.image = found[i]; });
   }
 
-  // Las que tengan imagen, primero
+  // Solo mostramos noticias con foto si hay suficientes; si no, completamos
   const withImg = items.filter((it) => it.image);
   const withoutImg = items.filter((it) => !it.image);
-  items = [...withImg, ...withoutImg];
+  items = withImg.length >= 6 ? withImg : [...withImg, ...withoutImg];
 
   if (items.length > 0) cache = { data: items, ts: Date.now() };
   return res.status(200).json({ items, cached: false });
