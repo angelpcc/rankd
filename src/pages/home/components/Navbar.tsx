@@ -95,7 +95,7 @@ export default function Navbar() {
             <LanguageSelector scrolled={false} />
             {user && profile ? (
               <>
-                <button onClick={() => navigate(isHobby ? '/mi-esquina' : '/dashboard')} style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.85)', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 6, padding: '9px 18px', cursor: 'pointer', transition: 'all 0.2s' }}>
+                <button onClick={() => navigate(isHobby ? '/mi-esquina' : '/dashboard')} style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.85)', background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.13)', borderRadius: 8, padding: '9px 18px', cursor: 'pointer', transition: 'all 0.28s cubic-bezier(0.22,1,0.36,1)', backdropFilter: 'blur(10px)' }}>
                   <span style={{ width: 20, height: 20, background: '#E10600', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'white', fontWeight: 900 }}>{(profile.full_name || 'U')[0].toUpperCase()}</span>
                   {t('nav_my_profile')}
                 </button>

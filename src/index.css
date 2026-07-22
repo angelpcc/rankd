@@ -150,3 +150,193 @@ body::before {
     animation: none !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════
+   SISTEMA DE DISEÑO RANKD · v2
+   Tipografía fluida · Profundidad · Movimiento cinematográfico
+   ═══════════════════════════════════════════════════════ */
+
+:root {
+  /* Paleta */
+  --rk-black: #030303;
+  --rk-ink: #070707;
+  --rk-surface: #0d0d0d;
+  --rk-surface-2: #141414;
+  --rk-line: rgba(255, 255, 255, 0.07);
+  --rk-line-strong: rgba(255, 255, 255, 0.14);
+  --rk-red: #E10600;
+  --rk-red-deep: #A00400;
+  --rk-gold: #C9A84C;
+  --rk-gold-soft: rgba(201, 168, 76, 0.12);
+
+  /* Texto */
+  --rk-text: rgba(255, 255, 255, 0.95);
+  --rk-text-2: rgba(255, 255, 255, 0.72);
+  --rk-text-3: rgba(255, 255, 255, 0.5);
+
+  /* Escala tipográfica fluida */
+  --fs-display: clamp(3.4rem, 11vw, 8.5rem);
+  --fs-h1: clamp(2.6rem, 7vw, 5.5rem);
+  --fs-h2: clamp(2rem, 5vw, 3.6rem);
+  --fs-h3: clamp(1.35rem, 2.6vw, 2rem);
+  --fs-body: clamp(1rem, 1.15vw, 1.15rem);
+  --fs-small: clamp(0.8rem, 0.9vw, 0.875rem);
+
+  /* Ritmo vertical */
+  --sp-section: clamp(5rem, 11vw, 9.5rem);
+
+  /* Curvas */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* ── TIPOGRAFÍA ── */
+.rk-display {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: var(--fs-display);
+  line-height: 0.84;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+.rk-h1 { font-family: 'Bebas Neue', sans-serif; font-size: var(--fs-h1); line-height: 0.88; letter-spacing: -0.01em; text-transform: uppercase; }
+.rk-h2 { font-family: 'Bebas Neue', sans-serif; font-size: var(--fs-h2); line-height: 0.92; letter-spacing: 0.01em; text-transform: uppercase; }
+.rk-h3 { font-family: 'Bebas Neue', sans-serif; font-size: var(--fs-h3); line-height: 1; letter-spacing: 0.02em; text-transform: uppercase; }
+.rk-body { font-family: 'Barlow Condensed', sans-serif; font-size: var(--fs-body); line-height: 1.65; color: var(--rk-text-2); font-weight: 400; }
+.rk-eyebrow {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.42em; text-transform: uppercase;
+  color: var(--rk-gold);
+}
+.rk-outline {
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.25);
+}
+.rk-red-glow { color: var(--rk-red); text-shadow: 0 0 60px rgba(225, 6, 0, 0.5), 0 0 140px rgba(225, 6, 0, 0.18); }
+
+/* ── ETIQUETA / PÍLDORA ── */
+.rk-pill {
+  display: inline-flex; align-items: center; gap: 0.7rem;
+  padding: 0.5rem 1.15rem; border-radius: 100px;
+  border: 1px solid rgba(201, 168, 76, 0.4);
+  background: rgba(201, 168, 76, 0.07);
+  backdrop-filter: blur(10px);
+}
+.rk-pill-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--rk-gold); box-shadow: 0 0 10px var(--rk-gold); flex-shrink: 0; }
+
+/* ── SUPERFICIES ── */
+.rk-card {
+  background: linear-gradient(160deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.015) 100%);
+  border: 1px solid var(--rk-line);
+  border-radius: 18px;
+  backdrop-filter: blur(14px);
+  transition: transform 0.45s var(--ease-out), border-color 0.35s ease, box-shadow 0.45s ease;
+}
+.rk-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(225, 6, 0, 0.35);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(225, 6, 0, 0.1);
+}
+
+/* ── BOTONES ── */
+.rk-btn {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.15rem; letter-spacing: 0.16em;
+  padding: 1rem 2.3rem; border-radius: 11px;
+  border: none; cursor: pointer;
+  transition: transform 0.3s var(--ease-out), box-shadow 0.3s ease, background 0.3s ease;
+  position: relative; overflow: hidden;
+  white-space: nowrap;
+}
+.rk-btn-primary {
+  color: #fff;
+  background: linear-gradient(135deg, var(--rk-red) 0%, var(--rk-red-deep) 100%);
+  box-shadow: 0 10px 40px rgba(225, 6, 0, 0.42);
+}
+.rk-btn-primary:hover { transform: translateY(-4px); box-shadow: 0 20px 60px rgba(225, 6, 0, 0.6); }
+.rk-btn-ghost {
+  color: var(--rk-text-2);
+  background: rgba(255, 255, 255, 0.045);
+  border: 1.5px solid var(--rk-line-strong);
+  backdrop-filter: blur(10px);
+}
+.rk-btn-ghost:hover { color: var(--rk-gold); border-color: rgba(201, 168, 76, 0.5); transform: translateY(-3px); }
+/* Barrido de luz al pasar el ratón */
+.rk-btn::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.22) 50%, transparent 65%);
+  transform: translateX(-120%); transition: transform 0.75s var(--ease-out);
+}
+.rk-btn:hover::before { transform: translateX(120%); }
+
+/* ── TRATAMIENTO CINEMATOGRÁFICO DE IMAGEN ── */
+.rk-img-wrap { position: relative; overflow: hidden; }
+.rk-img-wrap img { transition: transform 1.1s var(--ease-out), filter 0.6s ease; will-change: transform; }
+.rk-img-wrap:hover img { transform: scale(1.06); }
+/* Capa de contraste + tinte rojo sutil (aspecto de cartel de combate) */
+.rk-img-treat::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(to top, rgba(3,3,3,0.96) 0%, rgba(3,3,3,0.35) 45%, transparent 75%),
+    radial-gradient(ellipse at 50% 40%, rgba(225,6,0,0.1) 0%, transparent 65%);
+}
+/* Viñeta de cine */
+.rk-vignette::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+  box-shadow: inset 0 0 180px rgba(0,0,0,0.85), inset 0 0 60px rgba(0,0,0,0.4);
+}
+
+/* ── LÍNEAS Y DETALLES ── */
+.rk-rule { height: 1px; background: linear-gradient(90deg, var(--rk-red) 0%, rgba(225,6,0,0.25) 30%, transparent 100%); }
+.rk-rule-gold { height: 1px; background: linear-gradient(90deg, var(--rk-gold) 0%, rgba(201,168,76,0.2) 35%, transparent 100%); }
+.rk-topline { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--rk-red) 0%, #ff4020 45%, transparent 100%); z-index: 10; }
+
+/* Número de sección estilo ficha técnica */
+.rk-index {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.3em;
+  color: rgba(255,255,255,0.28);
+}
+
+/* ── SCROLL REVEAL ── */
+.rk-reveal {
+  opacity: 0;
+  transform: translateY(38px);
+  transition: opacity 0.95s var(--ease-out), transform 0.95s var(--ease-out);
+  will-change: opacity, transform;
+}
+.rk-reveal.is-visible { opacity: 1; transform: translateY(0); }
+.rk-reveal-scale { opacity: 0; transform: scale(0.965); transition: opacity 1.1s var(--ease-out), transform 1.1s var(--ease-out); }
+.rk-reveal-scale.is-visible { opacity: 1; transform: scale(1); }
+.rk-reveal-left { opacity: 0; transform: translateX(-34px); transition: opacity 0.95s var(--ease-out), transform 0.95s var(--ease-out); }
+.rk-reveal-left.is-visible { opacity: 1; transform: translateX(0); }
+
+/* ── FONDO CON RETÍCULA TÉCNICA ── */
+.rk-grid-bg {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.028) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+/* ── RESPLANDORES AMBIENTALES ── */
+.rk-glow-red { position: absolute; pointer-events: none; background: radial-gradient(circle, rgba(225,6,0,0.14) 0%, transparent 68%); }
+.rk-glow-gold { position: absolute; pointer-events: none; background: radial-gradient(circle, rgba(201,168,76,0.09) 0%, transparent 68%); }
+
+/* ── MARQUESINA (texto en movimiento) ── */
+@keyframes rk-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.rk-marquee { display: flex; overflow: hidden; user-select: none; }
+.rk-marquee > div { display: flex; flex-shrink: 0; animation: rk-marquee 42s linear infinite; }
+.rk-marquee:hover > div { animation-play-state: paused; }
+
+/* ── LATIDO SUAVE ── */
+@keyframes rk-breathe { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+.rk-breathe { animation: rk-breathe 3.2s ease-in-out infinite; }
+
+/* ── ACCESIBILIDAD ── */
+@media (prefers-reduced-motion: reduce) {
+  .rk-reveal, .rk-reveal-scale, .rk-reveal-left { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .rk-marquee > div { animation: none !important; }
+  .rk-breathe { animation: none !important; }
+  .rk-img-wrap img { transition: none !important; }
+}

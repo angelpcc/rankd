@@ -154,25 +154,28 @@ export default function MiEsquinaPage() {
           {section === 'resumen' && (
             <div className="space-y-6 max-w-3xl">
               <div>
-                <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(30px,5vw,44px)', letterSpacing: 1, lineHeight: 1 }}>
-                  BIENVENIDO A TU <span className="text-[#E10600]">ESQUINA</span>, {firstName.toUpperCase()}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+                  <span className="rk-index">TU ESPACIO</span>
+                  <span style={{ flex: '0 0 38px', height: 1, background: 'rgba(255,255,255,0.16)' }} />
+                  <span className="rk-eyebrow">Mi Esquina</span>
+                </div>
+                <h1 className="rk-h1" style={{ margin: 0, color: '#fff' }}>
+                  BIENVENIDO A TU <span className="rk-red-glow">ESQUINA</span>,<br />{firstName.toUpperCase()}
                 </h1>
                 <p className="text-zinc-400 text-sm mt-2">{isHobby ? 'Tu espacio de entrenamiento. Sin competir, pero con la misma disciplina.' : 'Todo lo que necesitas para entrenar mejor, en un solo sitio.'}</p>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-5 text-center">
-                  <p className="text-2xl sm:text-3xl font-black text-white">{stats.total}</p>
-                  <p className="text-[11px] sm:text-xs text-zinc-400 mt-1">Sesiones totales</p>
-                </div>
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-5 text-center">
-                  <p className="text-2xl sm:text-3xl font-black text-red-400">{stats.week}</p>
-                  <p className="text-[11px] sm:text-xs text-zinc-400 mt-1">Esta semana</p>
-                </div>
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-5 text-center">
-                  <p className="text-2xl sm:text-3xl font-black text-green-400">{stats.weekMin >= 60 ? `${Math.floor(stats.weekMin / 60)}h` : `${stats.weekMin}m`}</p>
-                  <p className="text-[11px] sm:text-xs text-zinc-400 mt-1">Tiempo semanal</p>
-                </div>
+                {[
+                  { v: String(stats.total), l: 'Sesiones totales', c: '#ffffff' },
+                  { v: String(stats.week), l: 'Esta semana', c: '#E10600' },
+                  { v: stats.weekMin >= 60 ? `${Math.floor(stats.weekMin / 60)}h ${stats.weekMin % 60}m` : `${stats.weekMin}m`, l: 'Tiempo semanal', c: '#4ade80' },
+                ].map((s) => (
+                  <div key={s.l} className="rk-card" style={{ padding: '22px 14px', textAlign: 'center' }}>
+                    <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(28px,5vw,40px)', lineHeight: 1, color: s.c, margin: 0 }}>{s.v}</p>
+                    <p className="rk-body" style={{ fontSize: '0.72rem', letterSpacing: '0.16em', textTransform: 'uppercase', marginTop: 8 }}>{s.l}</p>
+                  </div>
+                ))}
               </div>
 
               <div className="grid sm:grid-cols-2 gap-3">
@@ -184,7 +187,7 @@ export default function MiEsquinaPage() {
                   { s: 'nutricion' as Section, icon: 'ri-restaurant-line', title: 'Nutrición del peleador', desc: 'Lo esencial para rendir: comida, hidratación y descanso', cta: 'Ver consejos' },
                   { s: 'coach' as Section, icon: 'ri-sparkling-2-line', title: 'Coach IA', desc: 'Tu entrenador personal inteligente está en camino', cta: 'Saber más' },
                 ].map((c) => (
-                  <button key={c.title} onClick={() => setSection(c.s)} className="text-left bg-zinc-900 border border-zinc-800 hover:border-red-500/40 rounded-2xl p-5 transition-colors cursor-pointer group">
+                  <button key={c.title} onClick={() => setSection(c.s)} className="rk-card text-left group" style={{ padding: 20, cursor: 'pointer' }}>
                     <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-600/12 border border-red-500/25 text-red-400 mb-3"><i className={`${c.icon} text-lg`}></i></div>
                     <p className="text-sm font-bold text-white">{c.title}</p>
                     <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{c.desc}</p>
@@ -231,12 +234,12 @@ export default function MiEsquinaPage() {
           {section === 'material' && (
             <div className="space-y-6 max-w-4xl">
               <div>
-                <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(28px,5vw,40px)', letterSpacing: 1 }}>GUÍA DE <span className="text-[#E10600]">MATERIAL</span></h1>
+                <h1 className="rk-h1" style={{ margin: 0, color: '#fff' }}>GUÍA DE <span className="rk-red-glow">MATERIAL</span></h1>
                 <p className="text-zinc-400 text-sm mt-1">Qué necesitas de verdad para entrenar deportes de contacto, sin humo.</p>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 {GEAR.map((g, i) => (
-                  <div key={g.title} className={`bg-zinc-900 border border-zinc-800 rounded-2xl p-5 anim-fade-up anim-d${(i % 6) + 1}`}>
+                  <div key={g.title} className="rk-card" style={{ padding: 20 }}>
                     <div className="flex items-center gap-3 mb-3">
                       <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-600/12 border border-red-500/25 text-red-400"><i className={`${g.icon} text-lg`}></i></div>
                       <h3 className="text-base font-bold text-white">{g.title}</h3>
@@ -258,12 +261,12 @@ export default function MiEsquinaPage() {
           {section === 'nutricion' && (
             <div className="space-y-6 max-w-4xl">
               <div>
-                <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(28px,5vw,40px)', letterSpacing: 1 }}>NUTRICIÓN DEL <span className="text-[#E10600]">PELEADOR</span></h1>
+                <h1 className="rk-h1" style={{ margin: 0, color: '#fff' }}>NUTRICIÓN DEL <span className="rk-red-glow">PELEADOR</span></h1>
                 <p className="text-zinc-400 text-sm mt-1">Los básicos que marcan la diferencia. Sin milagros, sin humo.</p>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 {NUTRITION.map((n, i) => (
-                  <div key={n.title} className={`bg-zinc-900 border border-zinc-800 rounded-2xl p-5 anim-fade-up anim-d${(i % 6) + 1}`}>
+                  <div key={n.title} className="rk-card" style={{ padding: 20 }}>
                     <div className="flex items-center gap-3 mb-2.5">
                       <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-green-500/10 border border-green-500/25 text-green-400"><i className={`${n.icon} text-lg`}></i></div>
                       <h3 className="text-base font-bold text-white">{n.title}</h3>

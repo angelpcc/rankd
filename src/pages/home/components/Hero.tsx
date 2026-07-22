@@ -1,134 +1,188 @@
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+const HERO_IMG =
+  'https://oqsobiykaaqelgfjgsor.supabase.co/storage/v1/object/public/images/0b31c269-e57b-4544-9db5-89b290862f50.png';
+
+const DISCIPLINAS = ['BOXEO', 'MMA', 'KICKBOXING', 'MUAY THAI', 'GRAPPLING', 'K-1'];
 
 export default function Hero() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const bgRef = useRef<HTMLDivElement>(null);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    const el = bgRef.current;
-    if (!el) return;
-    setTimeout(() => { el.style.opacity = '1'; el.style.transform = 'scale(1)'; }, 80);
+    const id = setTimeout(() => setLoaded(true), 60);
+    return () => clearTimeout(id);
   }, []);
 
-  return (
-    <section id="home" style={{ position: 'relative', width: '100%', minHeight: '100vh', display: 'flex', alignItems: 'center', overflow: 'hidden', background: '#030303' }}>
+  // Parallax suave del fondo
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let frame = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const el = bgRef.current;
+        if (!el) return;
+        const y = window.scrollY;
+        if (y > window.innerHeight) return;
+        el.style.transform = `translate3d(0, ${y * 0.26}px, 0) scale(${1.06 + y * 0.0001})`;
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => { window.removeEventListener('scroll', onScroll); cancelAnimationFrame(frame); };
+  }, []);
 
-      {/* ── FONDO CINEMATOGRÁFICO ── */}
-      <div ref={bgRef} style={{ position: 'absolute', inset: 0, zIndex: 0, opacity: 0, transform: 'scale(1.05)', transition: 'all 1.8s ease' }}>
-        <img
-          src="https://oqsobiykaaqelgfjgsor.supabase.co/storage/v1/object/public/images/0b31c269-e57b-4544-9db5-89b290862f50.png"
-          alt=""
-          style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 30%' }}
-        />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(100deg, rgba(3,3,3,1) 0%, rgba(3,3,3,0.95) 35%, rgba(3,3,3,0.7) 60%, rgba(3,3,3,0.2) 100%)' }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg, rgba(3,3,3,1) 0%, rgba(3,3,3,0.5) 25%, transparent 55%)' }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 65% 50%, rgba(225,6,0,0.12) 0%, transparent 50%)' }} />
-        <div style={{ position: 'absolute', top: 0, right: 0, width: '40%', height: '40%', background: 'radial-gradient(ellipse at 100% 0%, rgba(201,168,76,0.06) 0%, transparent 60%)' }} />
-        <div style={{ position: 'absolute', inset: 0, boxShadow: 'inset 0 0 200px rgba(0,0,0,0.7)' }} />
+  const marqueeItems = [...DISCIPLINAS, ...DISCIPLINAS];
+
+  return (
+    <section
+      id="home"
+      className="rk-vignette"
+      style={{ position: 'relative', width: '100%', minHeight: '100svh', display: 'flex', alignItems: 'center', overflow: 'hidden', background: 'var(--rk-black)' }}
+    >
+      {/* ══ FONDO ══ */}
+      <div
+        ref={bgRef}
+        style={{
+          position: 'absolute', inset: '-4% 0 0', zIndex: 0,
+          opacity: loaded ? 1 : 0,
+          transform: 'scale(1.06)',
+          transition: 'opacity 2.2s var(--ease-out)',
+          willChange: 'transform',
+        }}
+      >
+        <img src={HERO_IMG} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 28%' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(102deg, rgba(3,3,3,0.99) 0%, rgba(3,3,3,0.94) 32%, rgba(3,3,3,0.66) 58%, rgba(3,3,3,0.15) 100%)' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg, var(--rk-black) 0%, rgba(3,3,3,0.55) 22%, transparent 58%)' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 68% 48%, rgba(225,6,0,0.16) 0%, transparent 52%)' }} />
+        <div style={{ position: 'absolute', top: 0, right: 0, width: '45%', height: '45%', background: 'radial-gradient(ellipse at 100% 0%, rgba(201,168,76,0.08) 0%, transparent 62%)' }} />
       </div>
 
-      {/* ── LÍNEA ROJA TOP ── */}
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, zIndex: 10, background: 'linear-gradient(90deg, #E10600 0%, #ff4020 50%, transparent 100%)' }} />
+      <div className="rk-grid-bg" style={{ position: 'absolute', inset: 0, zIndex: 1, opacity: 0.5, maskImage: 'linear-gradient(to bottom, black, transparent 70%)', WebkitMaskImage: 'linear-gradient(to bottom, black, transparent 70%)' }} />
 
-      {/* ── LÍNEA DORADA DIAGONAL DECORATIVA (solo desktop) ── */}
-      <div className="hero-diagonal" style={{ position: 'absolute', left: '42%', top: '10%', bottom: '10%', width: 1, background: 'linear-gradient(to bottom, transparent, rgba(201,168,76,0.15), transparent)', zIndex: 2, transform: 'rotate(8deg)' }} />
+      <div className="rk-topline" />
 
-      {/* ── CONTENT ── */}
-      <div className="hero-grid" style={{ position: 'relative', zIndex: 5, width: '100%', maxWidth: 1300, margin: '0 auto', padding: 'clamp(90px,12vw,170px) 24px clamp(60px,8vw,120px)', display: 'grid', gridTemplateColumns: '1fr 360px', gap: 48, alignItems: 'center' }}>
+      <div className="hero-watermark" aria-hidden="true" style={{ position: 'absolute', right: '-4%', bottom: '7%', zIndex: 1, fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(180px, 26vw, 420px)', lineHeight: 0.75, color: 'transparent', WebkitTextStroke: '1px rgba(255,255,255,0.035)', pointerEvents: 'none', userSelect: 'none' }}>
+        RANKD
+      </div>
 
-        {/* LEFT */}
+      {/* ══ CONTENIDO ══ */}
+      <div
+        className="hero-grid"
+        style={{ position: 'relative', zIndex: 5, width: '100%', maxWidth: 1320, margin: '0 auto', padding: 'clamp(96px,13vw,180px) 24px clamp(96px,10vw,140px)', display: 'grid', gridTemplateColumns: '1fr 370px', gap: 56, alignItems: 'center' }}
+      >
         <div>
-          {/* Eyebrow dorado */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, marginBottom: 28, padding: '8px 20px', borderRadius: 100, border: '1px solid rgba(201,168,76,0.45)', background: 'rgba(201,168,76,0.09)', backdropFilter: 'blur(8px)' }}>
-            <span style={{ width: 7, height: 7, background: '#C9A84C', borderRadius: '50%', boxShadow: '0 0 10px #C9A84C' }} />
-            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: 6, textTransform: 'uppercase', color: '#C9A84C' }}>{t('hero_eyebrow')}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 26, opacity: loaded ? 1 : 0, transform: loaded ? 'none' : 'translateY(14px)', transition: 'all 0.9s var(--ease-out) 0.15s' }}>
+            <span className="rk-index">ES · 2026</span>
+            <span style={{ flex: '0 0 42px', height: 1, background: 'rgba(255,255,255,0.16)' }} />
+            <span className="rk-eyebrow">{t('hero_eyebrow')}</span>
           </div>
 
-          {/* HEADLINE */}
-          <h1 style={{ margin: '0 0 24px', lineHeight: 0.86 }}>
-            <span style={{ display: 'block', fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(58px, 14vw, 126px)', color: '#ffffff', letterSpacing: -2 }}>{t('hero_headline_1')}</span>
-            <span style={{ display: 'block', fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(58px, 14vw, 126px)', color: '#E10600', letterSpacing: -2, textShadow: '0 0 60px rgba(225,6,0,0.55), 0 0 120px rgba(225,6,0,0.2)' }}>{t('hero_headline_2')}</span>
-            <span style={{ display: 'block', fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(36px, 8vw, 78px)', color: 'transparent', letterSpacing: -1, WebkitTextStroke: '1px rgba(255,255,255,0.22)', fontStyle: 'italic' }}>{t('hero_headline_3')}</span>
+          <h1 style={{ margin: '0 0 26px' }}>
+            <span className="rk-display" style={{ display: 'block', color: '#fff', opacity: loaded ? 1 : 0, transform: loaded ? 'none' : 'translateY(30px)', transition: 'all 1s var(--ease-out) 0.2s' }}>
+              {t('hero_headline_1')}
+            </span>
+            <span className="rk-display rk-red-glow" style={{ display: 'block', opacity: loaded ? 1 : 0, transform: loaded ? 'none' : 'translateY(30px)', transition: 'all 1s var(--ease-out) 0.31s' }}>
+              {t('hero_headline_2')}
+            </span>
+            <span className="rk-display rk-outline" style={{ display: 'block', fontSize: 'clamp(2.1rem, 6.5vw, 4.6rem)', fontStyle: 'italic', opacity: loaded ? 1 : 0, transform: loaded ? 'none' : 'translateY(30px)', transition: 'all 1s var(--ease-out) 0.42s' }}>
+              {t('hero_headline_3')}
+            </span>
           </h1>
 
-          {/* SUBTEXT */}
-          <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 'clamp(17px, 2vw, 22px)', fontWeight: 400, color: 'rgba(255,255,255,0.78)', lineHeight: 1.6, maxWidth: 520, marginBottom: 36 }}>{t('hero_subtext')}</p>
+          <div className="rk-rule" style={{ width: 92, marginBottom: 26, opacity: loaded ? 1 : 0, transition: 'opacity 1s var(--ease-out) 0.6s' }} />
 
-          {/* CTAs */}
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 40 }}>
-            <button onClick={() => navigate('/auth')} style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 19, letterSpacing: 3, color: 'white', background: 'linear-gradient(135deg, #E10600, #c00)', border: 'none', borderRadius: 12, padding: '17px 38px', cursor: 'pointer', boxShadow: '0 8px 40px rgba(225,6,0,0.5)', transition: 'all 0.25s', whiteSpace: 'nowrap' }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-4px)'; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 20px 60px rgba(225,6,0,0.65)'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'none'; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 8px 40px rgba(225,6,0,0.5)'; }}>
+          <p className="rk-body" style={{ fontSize: 'clamp(1.05rem, 1.6vw, 1.32rem)', maxWidth: 540, marginBottom: 38, opacity: loaded ? 1 : 0, transform: loaded ? 'none' : 'translateY(18px)', transition: 'all 1s var(--ease-out) 0.62s' }}>
+            {t('hero_subtext')}
+          </p>
+
+          <div style={{ display: 'flex', gap: 13, flexWrap: 'wrap', marginBottom: 44, opacity: loaded ? 1 : 0, transform: loaded ? 'none' : 'translateY(18px)', transition: 'all 1s var(--ease-out) 0.74s' }}>
+            <button className="rk-btn rk-btn-primary" onClick={() => navigate('/auth')}>
               {t('btn_create_free')} →
             </button>
-            <button onClick={() => { document.querySelector('#how-it-works')?.scrollIntoView({ behavior: 'smooth' }); }} style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 19, letterSpacing: 3, color: 'rgba(255,255,255,0.85)', background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.25)', borderRadius: 12, padding: '17px 30px', cursor: 'pointer', transition: 'all 0.25s', backdropFilter: 'blur(8px)', whiteSpace: 'nowrap' }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#C9A84C'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(201,168,76,0.55)'; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.85)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.25)'; }}>
+            <button className="rk-btn rk-btn-ghost" onClick={() => document.querySelector('#how-it-works')?.scrollIntoView({ behavior: 'smooth' })}>
               Cómo funciona
             </button>
           </div>
 
-          {/* Stats */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20, paddingTop: 24, borderTop: '1px solid rgba(255,255,255,0.1)', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ width: 8, height: 8, background: '#22c55e', borderRadius: '50%', boxShadow: '0 0 10px #22c55e' }} />
-              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, color: 'rgba(255,255,255,0.65)', letterSpacing: 1 }}>{t('hero_indicator_active')}</span>
-            </div>
-            <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: 18 }}>·</span>
-            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, color: '#C9A84C', letterSpacing: 1 }}>100%</span>
-            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.55)', letterSpacing: 2, textTransform: 'uppercase' }}>Gratuito · Sin comisiones</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 22, paddingTop: 24, borderTop: '1px solid rgba(255,255,255,0.09)', flexWrap: 'wrap', opacity: loaded ? 1 : 0, transition: 'opacity 1.1s var(--ease-out) 0.9s' }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+              <span className="rk-breathe" style={{ width: 7, height: 7, background: '#22c55e', borderRadius: '50%', boxShadow: '0 0 12px #22c55e' }} />
+              <span className="rk-body" style={{ fontSize: '0.88rem', letterSpacing: '0.06em' }}>{t('hero_indicator_active')}</span>
+            </span>
+            <span style={{ color: 'rgba(255,255,255,0.14)' }}>/</span>
+            <span style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+              <span className="rk-h3" style={{ color: 'var(--rk-gold)' }}>100%</span>
+              <span className="rk-body" style={{ fontSize: '0.78rem', letterSpacing: '0.22em', textTransform: 'uppercase' }}>Gratis · Sin comisiones</span>
+            </span>
           </div>
         </div>
 
-        {/* RIGHT — Cards flotantes (solo desktop) */}
-        <div className="hero-right" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="hero-right" style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
           {[
-            { icon: 'ri-boxing-line', title: 'Peleadores', desc: 'Crea tu ficha y sé encontrado por promotoras', color: '#E10600' },
-            { icon: 'ri-trophy-line', title: 'Promotoras', desc: 'Encuentra el talento exacto para tu velada', color: '#C9A84C' },
-            { icon: 'ri-store-2-line', title: 'Marcas', desc: 'Conecta con atletas con comunidad real', color: 'rgba(255,255,255,0.75)' },
-          ].map((card) => (
-            <div key={card.title} style={{ padding: '18px 20px', borderRadius: 14, background: 'rgba(10,10,10,0.75)', border: `1px solid ${card.color}30`, backdropFilter: 'blur(20px)', display: 'flex', alignItems: 'center', gap: 14, transition: 'all 0.25s', cursor: 'pointer', boxShadow: '0 4px 20px rgba(0,0,0,0.4)' }}
+            { icon: 'ri-boxing-line', title: 'Peleadores', desc: 'Crea tu ficha y sé encontrado', color: '#E10600', n: '01' },
+            { icon: 'ri-trophy-line', title: 'Promotoras', desc: 'Encuentra talento para tu velada', color: '#C9A84C', n: '02' },
+            { icon: 'ri-store-2-line', title: 'Marcas', desc: 'Conecta con atletas reales', color: 'rgba(255,255,255,0.8)', n: '03' },
+          ].map((card, i) => (
+            <div
+              key={card.title}
               onClick={() => navigate('/auth')}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.transform = 'translateX(6px)'; (e.currentTarget as HTMLDivElement).style.borderColor = `${card.color}60`; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.transform = 'none'; (e.currentTarget as HTMLDivElement).style.borderColor = `${card.color}30`; }}>
-              <div style={{ width: 42, height: 42, borderRadius: 11, background: `${card.color}15`, border: `1px solid ${card.color}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              style={{
+                padding: '17px 19px', borderRadius: 14,
+                background: 'rgba(8,8,8,0.72)', border: `1px solid ${card.color}26`,
+                backdropFilter: 'blur(22px)', display: 'flex', alignItems: 'center', gap: 14,
+                cursor: 'pointer', boxShadow: '0 6px 26px rgba(0,0,0,0.5)',
+                opacity: loaded ? 1 : 0,
+                transform: loaded ? 'none' : 'translateX(26px)',
+                transition: `opacity 0.85s var(--ease-out) ${0.85 + i * 0.1}s, transform 0.85s var(--ease-out) ${0.85 + i * 0.1}s, border-color 0.3s ease, background 0.3s ease`,
+              }}
+              onMouseEnter={(e) => { const el = e.currentTarget; el.style.borderColor = `${card.color}66`; el.style.background = 'rgba(14,14,14,0.85)'; }}
+              onMouseLeave={(e) => { const el = e.currentTarget; el.style.borderColor = `${card.color}26`; el.style.background = 'rgba(8,8,8,0.72)'; }}
+            >
+              <div style={{ width: 42, height: 42, borderRadius: 11, background: `${card.color}14`, border: `1px solid ${card.color}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <i className={card.icon} style={{ color: card.color, fontSize: 18 }} />
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 19, color: 'white', lineHeight: 1, marginBottom: 3 }}>{card.title}</div>
-                <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.62)', lineHeight: 1.3 }}>{card.desc}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="rk-h3" style={{ fontSize: '1.15rem', color: '#fff', marginBottom: 2 }}>{card.title}</div>
+                <div className="rk-body" style={{ fontSize: '0.82rem', lineHeight: 1.35 }}>{card.desc}</div>
               </div>
-              <i className="ri-arrow-right-line" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14, flexShrink: 0 }} />
+              <span className="rk-index" style={{ fontSize: '0.62rem' }}>{card.n}</span>
             </div>
           ))}
-          <div style={{ padding: '12px 18px', borderRadius: 12, background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.18)', display: 'flex', alignItems: 'center', gap: 10, backdropFilter: 'blur(12px)' }}>
-            <span style={{ width: 7, height: 7, background: '#22c55e', borderRadius: '50%', boxShadow: '0 0 8px #22c55e', flexShrink: 0 }} />
-            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, color: 'rgba(255,255,255,0.62)', letterSpacing: 0.5 }}>Plataforma activa · Únete gratis</span>
-            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 14, color: '#C9A84C', marginLeft: 'auto', letterSpacing: 2 }}>100% FREE</span>
-          </div>
         </div>
       </div>
 
-      {/* Scroll indicator */}
-      <div style={{ position: 'absolute', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 5, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, animation: 'bounceY 2.5s ease-in-out infinite' }}>
-        <i className="ri-arrow-down-s-line" style={{ color: 'rgba(255,255,255,0.35)', fontSize: 26 }} />
+      {/* ══ MARQUESINA ══ */}
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 6, borderTop: '1px solid rgba(255,255,255,0.07)', background: 'rgba(3,3,3,0.72)', backdropFilter: 'blur(14px)', padding: '13px 0' }}>
+        <div className="rk-marquee">
+          <div>
+            {marqueeItems.map((d, i) => (
+              <span key={`a${i}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 26, paddingRight: 26 }}>
+                <span className="rk-h3" style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.42)', letterSpacing: '0.3em' }}>{d}</span>
+                <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--rk-red)', flexShrink: 0 }} />
+              </span>
+            ))}
+          </div>
+          <div aria-hidden="true">
+            {marqueeItems.map((d, i) => (
+              <span key={`b${i}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 26, paddingRight: 26 }}>
+                <span className="rk-h3" style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.42)', letterSpacing: '0.3em' }}>{d}</span>
+                <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--rk-red)', flexShrink: 0 }} />
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
 
       <style>{`
-        @keyframes bounceY { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(10px)} }
-        @media(max-width:860px){
-          .hero-grid {
-            grid-template-columns: 1fr !important;
-            padding-left: 20px !important;
-            padding-right: 20px !important;
-            padding-top: 100px !important;
-            padding-bottom: 60px !important;
-          }
+        @media (max-width: 900px) {
+          .hero-grid { grid-template-columns: 1fr !important; gap: 0 !important; padding: 104px 20px 96px !important; }
           .hero-right { display: none !important; }
-          .hero-diagonal { display: none !important; }
+          .hero-watermark { display: none !important; }
         }
       `}</style>
     </section>
