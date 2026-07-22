@@ -2,12 +2,14 @@
 // Se ejecuta en el servidor de Vercel (no hay CORS). Múltiples fuentes con respaldo.
 
 const FEEDS = [
+  { name: 'Cageside Press', url: 'https://cagesidepress.com/feed/', category: 'MMA' },
+  { name: 'MyMMANews', url: 'https://www.mymmanews.com/feed/', category: 'MMA' },
+  { name: 'BJPenn', url: 'https://www.bjpenn.com/feed/', category: 'MMA' },
+  { name: 'Boxing News', url: 'https://www.boxingnewsonline.net/feed/', category: 'Boxeo' },
+  { name: 'Boxing Insider', url: 'https://www.boxinginsider.com/feed/', category: 'Boxeo' },
+  { name: 'World Boxing News', url: 'https://www.worldboxingnews.net/feed/', category: 'Boxeo' },
   { name: 'MMA Fighting', url: 'https://www.mmafighting.com/rss/current', category: 'MMA' },
   { name: 'Bad Left Hook', url: 'https://www.badlefthook.com/rss/current', category: 'Boxeo' },
-  { name: 'MMA Mania', url: 'https://www.mmamania.com/rss/current', category: 'MMA' },
-  { name: 'Bloody Elbow', url: 'https://www.bloodyelbow.com/rss/current', category: 'MMA' },
-  { name: 'Cageside Press', url: 'https://cagesidepress.com/feed/', category: 'MMA' },
-  { name: 'Sherdog', url: 'https://www.sherdog.com/rss/news.xml', category: 'MMA' },
 ];
 
 let cache = { data: null, ts: 0 };
@@ -153,10 +155,8 @@ export default async function handler(req, res) {
     needImage.forEach((it, i) => { if (found[i]) it.image = found[i]; });
   }
 
-  // Solo mostramos noticias con foto si hay suficientes; si no, completamos
-  const withImg = items.filter((it) => it.image);
-  const withoutImg = items.filter((it) => !it.image);
-  items = withImg.length >= 6 ? withImg : [...withImg, ...withoutImg];
+  // Solo noticias con foto real
+  items = items.filter((it) => it.image);
 
   if (items.length > 0) cache = { data: items, ts: Date.now() };
   return res.status(200).json({ items, cached: false });
