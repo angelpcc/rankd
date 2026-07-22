@@ -5,6 +5,7 @@ import Footer from '@/pages/home/components/Footer';
 import BrandDirectoryCard from './components/BrandDirectoryCard';
 import { useBrands } from '@/hooks/useBrands';
 import { useSEO } from '@/hooks/useSEO';
+import { useAuth } from '@/hooks/useAuth';
 
 const PRODUCT_CATEGORIES = [
   'Guantes', 'Vendas', 'Bucales', 'Ropa', 'Protecciones',
@@ -23,9 +24,14 @@ const DISCIPLINES = [
 type TypeFilter = 'all' | 'product' | 'service' | 'both';
 
 export default function BrandsPage() {
+  const { profile: currentProfile } = useAuth();
+  const isHobby = currentProfile?.athlete_mode === 'hobby';
+
   useSEO({
-    title: 'Marcas y Patrocinadores | RANKD',
-    description: 'Marcas de equipamiento y servicios para deportes de combate. Guantes, nutrición, patrocinio y más, conectadas con peleadores y promotoras.',
+    title: isHobby ? 'Tienda de material y marcas | RANKD' : 'Marcas y Patrocinadores | RANKD',
+    description: isHobby
+      ? 'Descubre marcas de guantes, protecciones, ropa y nutrición para tu entrenamiento. Todo lo que necesitas en un solo sitio.'
+      : 'Marcas de equipamiento y servicios para deportes de combate. Guantes, nutrición, patrocinio y más, conectadas con peleadores y promotoras.',
   });
 
   const { t } = useTranslation();
@@ -124,13 +130,15 @@ export default function BrandsPage() {
         <div className="relative max-w-7xl mx-auto px-6 md:px-10">
           <div className="flex items-center gap-3 mb-5">
             <div className="w-8 h-[2px] bg-[#E10600]"></div>
-            <span className="text-[#E10600] text-xs font-bold tracking-[0.25em] uppercase font-inter">Directorio</span>
+            <span className="text-[#E10600] text-xs font-bold tracking-[0.25em] uppercase font-inter">{isHobby ? 'Tienda' : 'Directorio'}</span>
           </div>
           <h1 className="font-unbounded font-black text-white leading-tight mb-3" style={{ fontSize: 'clamp(2.2rem, 5vw, 3.8rem)' }}>
-            {t('brands_page_title')}
+            {isHobby ? 'Equípate para entrenar' : t('brands_page_title')}
           </h1>
           <p className="text-white/70 text-sm md:text-base max-w-xl font-inter leading-relaxed mb-8">
-            {t('brands_page_desc')}
+            {isHobby
+              ? 'Marcas de guantes, protecciones, ropa y nutrición. Descubre sus productos y encuentra lo que necesitas para tu entrenamiento.'
+              : t('brands_page_desc')}
           </p>
 
           {/* Stats row */}

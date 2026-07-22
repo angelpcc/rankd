@@ -23,15 +23,25 @@ export default function Navbar() {
     return () => { document.body.style.overflow = ''; };
   }, [menuOpen]);
 
-  const navLinks = [
-    { labelKey: 'nav_how_it_works', href: '#how-it-works', isAnchor: true },
-    { labelKey: 'nav_directory', href: '/fighters', isAnchor: false },
-    { labelKey: 'nav_opportunities', href: '/opportunities', isAnchor: false },
-    { label: 'Noticias', href: '/noticias', isAnchor: false },
-    { label: 'Mi Esquina', href: '/esquina', isAnchor: false },
-    { labelKey: 'nav_brands', href: '/brands', isAnchor: false },
-    { label: 'Tienda', href: '/tienda', isAnchor: false },
-  ];
+  const isHobby = profile?.athlete_mode === 'hobby';
+
+  // Los que entrenan por afición no necesitan el marketplace: menú simplificado
+  const navLinks = isHobby
+    ? [
+        { label: 'Mi Esquina', href: '/mi-esquina', isAnchor: false },
+        { label: 'Noticias', href: '/noticias', isAnchor: false },
+        { label: 'Marcas', href: '/brands', isAnchor: false },
+        { label: 'Tienda', href: '/tienda', isAnchor: false },
+      ]
+    : [
+        { labelKey: 'nav_how_it_works', href: '#how-it-works', isAnchor: true },
+        { labelKey: 'nav_directory', href: '/fighters', isAnchor: false },
+        { labelKey: 'nav_opportunities', href: '/opportunities', isAnchor: false },
+        { label: 'Noticias', href: '/noticias', isAnchor: false },
+        { label: 'Mi Esquina', href: '/esquina', isAnchor: false },
+        { labelKey: 'nav_brands', href: '/brands', isAnchor: false },
+        { label: 'Tienda', href: '/tienda', isAnchor: false },
+      ];
 
   const handleNav = (href: string) => {
     setMenuOpen(false);
@@ -85,7 +95,7 @@ export default function Navbar() {
             <LanguageSelector scrolled={false} />
             {user && profile ? (
               <>
-                <button onClick={() => navigate('/dashboard')} style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.85)', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 6, padding: '9px 18px', cursor: 'pointer', transition: 'all 0.2s' }}>
+                <button onClick={() => navigate(isHobby ? '/mi-esquina' : '/dashboard')} style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.85)', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 6, padding: '9px 18px', cursor: 'pointer', transition: 'all 0.2s' }}>
                   <span style={{ width: 20, height: 20, background: '#E10600', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'white', fontWeight: 900 }}>{(profile.full_name || 'U')[0].toUpperCase()}</span>
                   {t('nav_my_profile')}
                 </button>
@@ -132,7 +142,7 @@ export default function Navbar() {
             </div>
             {user && profile ? (
               <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <button onClick={() => { navigate('/dashboard'); setMenuOpen(false); }} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'white', background: '#E10600', border: 'none', borderRadius: 10, padding: '15px', cursor: 'pointer' }}>{t('nav_my_profile')}</button>
+                <button onClick={() => { navigate(isHobby ? '/mi-esquina' : '/dashboard'); setMenuOpen(false); }} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'white', background: '#E10600', border: 'none', borderRadius: 10, padding: '15px', cursor: 'pointer' }}>{t('nav_my_profile')}</button>
                 <button onClick={() => { signOut(); setMenuOpen(false); }} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, color: 'rgba(255,255,255,0.45)', background: 'none', border: 'none', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 2 }}>{t('nav_sign_out')}</button>
               </div>
             ) : (

@@ -87,6 +87,7 @@ export default function MiEsquinaPage() {
     );
   }
 
+  const isHobby = profile.athlete_mode === 'hobby';
   const firstName = (profile.full_name || '').split(' ')[0] || 'campeón';
 
   return (
@@ -94,9 +95,9 @@ export default function MiEsquinaPage() {
       {/* Top bar propia */}
       <div className="fixed top-0 left-0 w-full z-40 bg-zinc-950/95 backdrop-blur-sm border-b border-zinc-800">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors cursor-pointer">
+          <button onClick={() => navigate(isHobby ? '/beta' : '/dashboard')} className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors cursor-pointer">
             <i className="ri-arrow-left-line"></i>
-            <span className="hidden sm:inline">Mi Dashboard</span>
+            <span className="hidden sm:inline">{isHobby ? 'Inicio' : 'Mi Dashboard'}</span>
           </button>
           <div className="flex items-center gap-2">
             <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 3 }} className="text-white">MI</span>
@@ -156,7 +157,7 @@ export default function MiEsquinaPage() {
                 <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(30px,5vw,44px)', letterSpacing: 1, lineHeight: 1 }}>
                   BIENVENIDO A TU <span className="text-[#E10600]">ESQUINA</span>, {firstName.toUpperCase()}
                 </h1>
-                <p className="text-zinc-400 text-sm mt-2">Todo lo que necesitas para entrenar mejor, en un solo sitio.</p>
+                <p className="text-zinc-400 text-sm mt-2">{isHobby ? 'Tu espacio de entrenamiento. Sin competir, pero con la misma disciplina.' : 'Todo lo que necesitas para entrenar mejor, en un solo sitio.'}</p>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
