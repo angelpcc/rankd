@@ -261,6 +261,12 @@ body::before {
   backdrop-filter: blur(10px);
 }
 .rk-btn-ghost:hover { color: var(--rk-gold); border-color: rgba(201, 168, 76, 0.5); transform: translateY(-3px); }
+.rk-btn-gold {
+  color: #0a0a0a;
+  background: linear-gradient(135deg, #dcc06a 0%, var(--rk-gold) 55%, #a8894a 100%);
+  box-shadow: 0 10px 40px rgba(201, 168, 76, 0.32);
+}
+.rk-btn-gold:hover { transform: translateY(-4px); box-shadow: 0 18px 55px rgba(201, 168, 76, 0.48); }
 /* Barrido de luz al pasar el ratón */
 .rk-btn::before {
   content: ''; position: absolute; inset: 0;

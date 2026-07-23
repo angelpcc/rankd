@@ -270,7 +270,7 @@ export default function FighterDashboard({ profile }: Props) {
   ].filter((tab) => !isHobby || !['opportunities', 'verification', 'videos', 'achievements'].includes(tab.id));
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
+    <div className="min-h-screen bg-[#070707] text-white">
       <DashboardNav profile={profile} />
       {toast && (
         <div className={`fixed bottom-20 lg:bottom-6 right-6 z-50 text-white text-sm px-5 py-3 rounded-xl flex items-center gap-2 ${toast.type === 'error' ? 'bg-red-600' : 'bg-green-600'}`}>
@@ -334,7 +334,7 @@ export default function FighterDashboard({ profile }: Props) {
         </aside>
 
         {/* ── MOBILE BOTTOM TABS ── */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-zinc-900 border-t border-zinc-800 flex rk-safe-bottom">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-zinc-950/95 backdrop-blur border-t border-white/10 flex rk-safe-bottom">
           {tabs.slice(0, 4).map((tab) => (
             <button
               key={tab.id}
@@ -361,8 +361,11 @@ export default function FighterDashboard({ profile }: Props) {
           {activeTab === 'overview' && (
             <div className="space-y-6 max-w-4xl">
               <div>
-                <h1 className="text-2xl font-bold text-white">Hola, {(fullName || profile.full_name || '').split(' ')[0] || 'Peleador'} 👊</h1>
-                <p className="text-zinc-400 text-sm mt-1">Este es el estado de tu carrera en Rankd</p>
+                <p className="rk-eyebrow">TU PANEL</p>
+                <h1 className="rk-h2" style={{ fontSize: 'clamp(1.9rem,4.5vw,2.6rem)', color: '#fff', margin: '4px 0 0' }}>
+                  HOLA, <span className="rk-red-glow">{(fullName || profile.full_name || '').split(' ')[0] || 'Peleador'}</span> 👊
+                </h1>
+                <p className="text-zinc-400 text-sm mt-1.5">Este es el estado de tu carrera en Rankd</p>
               </div>
 
               {/* Visibility banners */}
@@ -412,21 +415,21 @@ export default function FighterDashboard({ profile }: Props) {
                     { label: 'Ir a Mi Esquina', value: '🥊' as unknown as number, icon: 'ri-boxing-line', color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', action: () => navigate('/mi-esquina') },
                   ]),
                 ].map((kpi) => (
-                  <button key={kpi.label} onClick={kpi.action} className={`${kpi.bg} border rounded-2xl p-5 text-left hover:opacity-80 transition-opacity cursor-pointer`}>
-                    <div className={`w-8 h-8 flex items-center justify-center mb-3 ${kpi.color}`}><i className={`${kpi.icon} text-xl`}></i></div>
-                    <p className={`text-3xl font-black ${kpi.color}`}>{kpi.value}</p>
-                    <p className="text-xs text-zinc-400 mt-1 leading-tight">{kpi.label}</p>
+                  <button key={kpi.label} onClick={kpi.action} className="rk-card p-5 text-left cursor-pointer">
+                    <div className={`w-9 h-9 flex items-center justify-center rounded-xl border mb-3 ${kpi.bg} ${kpi.color}`}><i className={`${kpi.icon} text-lg`}></i></div>
+                    <p className={kpi.color} style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(28px,4vw,38px)', lineHeight: 1 }}>{kpi.value}</p>
+                    <p className="text-[11px] text-zinc-400 mt-1.5 uppercase tracking-wider leading-tight">{kpi.label}</p>
                   </button>
                 ))}
               </div>
 
               {/* Récord */}
               {!isHobby && (
-              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+              <div className="rk-card p-5">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-sm font-semibold text-white">Tu récord</h2>
+                  <h2 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>TU RÉCORD</h2>
                   {winRate !== null && (
-                    <span className="text-xs font-bold text-white bg-white/10 border border-white/15 px-2.5 py-1 rounded-full">{winRate}% win rate</span>
+                    <span className="text-xs font-bold text-[#C9A84C] bg-[#C9A84C]/10 border border-[#C9A84C]/30 px-2.5 py-1 rounded-full">{winRate}% victorias</span>
                   )}
                 </div>
                 <div className="grid grid-cols-4 gap-2 sm:gap-3">
@@ -436,9 +439,9 @@ export default function FighterDashboard({ profile }: Props) {
                     { label: t('dash_fighter_draws'), value: draws, color: 'text-yellow-400' },
                     { label: t('dash_fighter_kos'), value: kos, color: 'text-orange-400' },
                   ].map((s) => (
-                    <div key={s.label} className="bg-zinc-950 border border-zinc-800 rounded-xl p-3 sm:p-4 text-center">
-                      <p className={`text-xl sm:text-2xl font-bold ${s.color}`}>{s.value || '0'}</p>
-                      <p className="text-[10px] sm:text-xs text-zinc-500 mt-1">{s.label}</p>
+                    <div key={s.label} className="bg-white/[0.03] border border-white/[0.07] rounded-xl p-3 sm:p-4 text-center">
+                      <p className={s.color} style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(22px,4vw,32px)', lineHeight: 1 }}>{s.value || '0'}</p>
+                      <p className="text-[10px] sm:text-xs text-zinc-500 mt-1.5 uppercase tracking-wider">{s.label}</p>
                     </div>
                   ))}
                 </div>
@@ -447,16 +450,16 @@ export default function FighterDashboard({ profile }: Props) {
 
               {/* Accesos rápidos */}
               <div>
-                <h2 className="text-sm font-semibold text-white mb-3">Accesos rápidos</h2>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <h2 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>ACCESOS RÁPIDOS</h2>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
                   {[
                     { label: 'Mi Esquina', icon: 'ri-boxing-line', action: () => navigate('/mi-esquina') },
                     { label: 'Editar mi perfil', icon: 'ri-edit-line', action: () => setActiveTab('profile') },
                     ...(!isHobby ? [{ label: 'Ver oportunidades', icon: 'ri-megaphone-line', action: () => setActiveTab('opportunities') }] : []),
                     { label: 'Mensajes', icon: 'ri-message-3-line', action: () => setActiveTab('messages') },
                   ].map((q) => (
-                    <button key={q.label} onClick={q.action} className="bg-zinc-900 border border-zinc-800 hover:border-red-500/40 rounded-2xl p-4 flex items-center gap-3 transition-colors cursor-pointer text-left">
-                      <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-600/15 text-red-400 flex-shrink-0"><i className={q.icon}></i></div>
+                    <button key={q.label} onClick={q.action} className="rk-card p-4 flex items-center gap-3 cursor-pointer text-left">
+                      <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-600/15 border border-red-500/25 text-red-400 flex-shrink-0"><i className={q.icon}></i></div>
                       <span className="text-sm font-medium text-white leading-tight">{q.label}</span>
                     </button>
                   ))}
@@ -501,24 +504,24 @@ export default function FighterDashboard({ profile }: Props) {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+            <div className="rk-card p-6 space-y-4">
               <h2 className="text-base font-semibold text-white mb-2">{t('dash_personal_info')}</h2>
               <div>
                 <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_full_name')}</label>
-                <input value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder={t('dash_full_name')} />
+                <input value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder={t('dash_full_name')} />
               </div>
               <div>
                 <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_nickname')}</label>
-                <input value={nickname} onChange={(e) => setNickname(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder="El Toro, The Machine..." />
+                <input value={nickname} onChange={(e) => setNickname(e.target.value)} className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder="El Toro, The Machine..." />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_age')}</label>
-                  <input type="number" min="14" max="60" value={age} onChange={(e) => setAge(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder="25" />
+                  <input type="number" min="14" max="60" value={age} onChange={(e) => setAge(e.target.value)} className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder="25" />
                 </div>
                 <div>
                   <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_nationality')}</label>
-                  <select value={nationality} onChange={(e) => setNationality(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer">
+                  <select value={nationality} onChange={(e) => setNationality(e.target.value)} className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer">
                     <option value="">Selecciona país</option>
                     {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
@@ -526,26 +529,26 @@ export default function FighterDashboard({ profile }: Props) {
               </div>
               <div>
                 <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_location')}</label>
-                <input value={location} onChange={(e) => setLocation(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder="Madrid, España" />
+                <input value={location} onChange={(e) => setLocation(e.target.value)} className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder="Madrid, España" />
               </div>
               <div>
                 <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_bio')}</label>
-                <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 resize-none" placeholder="..." />
+                <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 resize-none" placeholder="..." />
               </div>
             </div>
 
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+            <div className="rk-card p-6 space-y-4">
               <h2 className="text-base font-semibold text-white mb-2">{t('dash_sport_info')}</h2>
               <div>
                 <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_discipline')}</label>
-                <select value={discipline} onChange={(e) => setDiscipline(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer">
+                <select value={discipline} onChange={(e) => setDiscipline(e.target.value)} className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer">
                   <option value="">Seleccionar...</option>
                   {disciplines.map((d) => <option key={d} value={d}>{disciplineLabels[d]}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_weight_class')}</label>
-                <select value={weightClass} onChange={(e) => setWeightClass(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer">
+                <select value={weightClass} onChange={(e) => setWeightClass(e.target.value)} className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer">
                   <option value="">Seleccionar...</option>
                   {weightClasses.map((w) => <option key={w} value={w}>{w}</option>)}
                 </select>
@@ -555,7 +558,7 @@ export default function FighterDashboard({ profile }: Props) {
                 <div className="flex gap-2">
                   {expLevels.map((e) => (
                     <button key={e.value} type="button" onClick={() => setExpLevel(e.value)}
-                      className={`flex-1 py-2 text-xs font-medium rounded-lg border transition-all cursor-pointer whitespace-nowrap ${expLevel === e.value ? 'bg-red-600 border-red-600 text-white' : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}>
+                      className={`flex-1 py-2 text-xs font-medium rounded-lg border transition-all cursor-pointer whitespace-nowrap ${expLevel === e.value ? 'bg-red-600 border-red-600 text-white' : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:border-white/25'}`}>
                       {e.label}
                     </button>
                   ))}
@@ -564,11 +567,11 @@ export default function FighterDashboard({ profile }: Props) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_gym')}</label>
-                  <input value={gym} onChange={(e) => setGym(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder="..." />
+                  <input value={gym} onChange={(e) => setGym(e.target.value)} className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder="..." />
                 </div>
                 <div>
                   <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_coach')}</label>
-                  <input value={coach} onChange={(e) => setCoach(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder="..." />
+                  <input value={coach} onChange={(e) => setCoach(e.target.value)} className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder="..." />
                 </div>
               </div>
               <div>
@@ -582,26 +585,26 @@ export default function FighterDashboard({ profile }: Props) {
                   ].map((s) => (
                     <div key={s.label}>
                       <p className={`text-xs text-center mb-1 font-semibold ${s.color}`}>{s.label}</p>
-                      <input type="number" min="0" value={s.val} onChange={(e) => s.set(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-500 text-center" />
+                      <input type="number" min="0" value={s.val} onChange={(e) => s.set(e.target.value)} className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-500 text-center" />
                     </div>
                   ))}
                 </div>
               </div>
             </div>
 
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+            <div className="rk-card p-6 space-y-4">
               <h2 className="text-base font-semibold text-white mb-2">{t('dash_looking_for')}</h2>
               <div className="flex flex-wrap gap-2">
                 {lookingForOptions.map((opt) => (
                   <button key={opt} type="button" onClick={() => toggleLookingFor(opt)}
-                    className={`px-3 py-1.5 text-xs rounded-full border transition-all cursor-pointer whitespace-nowrap ${lookingFor.includes(opt) ? 'bg-red-600 border-red-600 text-white' : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}>
+                    className={`px-3 py-1.5 text-xs rounded-full border transition-all cursor-pointer whitespace-nowrap ${lookingFor.includes(opt) ? 'bg-red-600 border-red-600 text-white' : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:border-white/25'}`}>
                     {opt}
                   </button>
                 ))}
               </div>
               <div>
                 <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_highlight_video')}</label>
-                <input value={highlightVideo} onChange={(e) => setHighlightVideo(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder="https://youtube.com/watch?v=..." />
+                <input value={highlightVideo} onChange={(e) => setHighlightVideo(e.target.value)} className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder="https://youtube.com/watch?v=..." />
               </div>
               <div className="flex items-center justify-between pt-2">
                 <div>
@@ -614,7 +617,7 @@ export default function FighterDashboard({ profile }: Props) {
               </div>
             </div>
 
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+            <div className="rk-card p-6 space-y-4">
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-base font-semibold text-white">{t('dash_digital_presence')}</h2>
                 <span className="text-xs text-zinc-500">{t('dash_digital_visible')}</span>
@@ -631,14 +634,14 @@ export default function FighterDashboard({ profile }: Props) {
                       <span className={`w-5 h-5 flex items-center justify-center rounded ${s.iconBg} text-white text-xs`}><i className={s.icon}></i></span>
                       {s.label}
                     </label>
-                    <input value={s.val} onChange={(e) => s.set(e.target.value)} className={`w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none ${s.focus}`} placeholder={s.ph} />
+                    <input value={s.val} onChange={(e) => s.set(e.target.value)} className={`w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none ${s.focus}`} placeholder={s.ph} />
                   </div>
                 ))}
               </div>
             </div>
 
             <div className="lg:col-span-2">
-              <button onClick={saveProfile} disabled={saving} className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60 flex items-center justify-center gap-2">
+              <button onClick={saveProfile} disabled={saving} className="rk-btn rk-btn-primary w-full disabled:opacity-60 flex items-center justify-center gap-2" style={{ fontSize: '1rem' }}>
                 {saving ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {t('dash_saving')}</> : <><i className="ri-save-line"></i> {t('dash_save_profile')}</>}
               </button>
               {fighter && (
@@ -657,7 +660,7 @@ export default function FighterDashboard({ profile }: Props) {
           {activeTab === 'verification' && (
             <div className="max-w-3xl">
               <div className="mb-6">
-                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <h2 className="rk-h3 text-white flex items-center gap-2">
                   {t('dash_verification_title')}{currentProfile.verified && <i className="ri-shield-check-fill text-green-400"></i>}
                 </h2>
                 <p className="text-zinc-400 text-sm mt-1">{t('dash_verification_desc')}</p>
@@ -672,13 +675,13 @@ export default function FighterDashboard({ profile }: Props) {
           {activeTab === 'videos' && (
             <div className="space-y-6 max-w-5xl">
               {!fighter && <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 text-sm text-yellow-400 flex items-center gap-2"><i className="ri-information-line"></i>{t('dash_video_save_first')}</div>}
-              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+              <div className="rk-card p-6">
                 <h2 className="text-base font-semibold text-white mb-4">{t('dash_video_add')}</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <input value={videoTitle} onChange={(e) => setVideoTitle(e.target.value)} className="bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder={t('dash_video_title_ph')} disabled={!fighter} />
-                  <input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} className="bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder={t('dash_video_url_ph')} disabled={!fighter} />
+                  <input value={videoTitle} onChange={(e) => setVideoTitle(e.target.value)} className="bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder={t('dash_video_title_ph')} disabled={!fighter} />
+                  <input value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} className="bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder={t('dash_video_url_ph')} disabled={!fighter} />
                   <div className="flex gap-2">
-                    <select value={videoType} onChange={(e) => setVideoType(e.target.value)} className="flex-1 bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer" disabled={!fighter}>
+                    <select value={videoType} onChange={(e) => setVideoType(e.target.value)} className="flex-1 bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer" disabled={!fighter}>
                       <option value="highlight">Highlight</option><option value="fight">Combate</option>
                       <option value="training">Entrenamiento</option><option value="interview">Entrevista</option>
                     </select>
@@ -687,12 +690,16 @@ export default function FighterDashboard({ profile }: Props) {
                 </div>
               </div>
               {videos.length === 0 ? (
-                <div className="text-center py-16 text-zinc-500"><div className="w-16 h-16 flex items-center justify-center mx-auto mb-4"><i className="ri-video-line text-4xl"></i></div><p className="text-sm">{t('dash_video_empty')}</p></div>
+                <div className="rk-card text-center py-14 px-6">
+                  <div className="w-14 h-14 mx-auto mb-4 flex items-center justify-center rounded-2xl bg-red-600/10 border border-red-500/25"><i className="ri-video-line text-2xl text-red-400"></i></div>
+                  <p className="text-sm text-zinc-300 font-medium">{t('dash_video_empty')}</p>
+                  <p className="text-xs text-zinc-500 mt-1.5">Un buen highlight es tu mejor carta de presentación ante promotoras y marcas.</p>
+                </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {videos.map((v) => (
-                    <div key={v.id} className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden group">
-                      <div className="aspect-video bg-zinc-800 flex items-center justify-center relative">
+                    <div key={v.id} className="rk-card overflow-hidden group">
+                      <div className="aspect-video bg-white/[0.04] flex items-center justify-center relative">
                         <i className="ri-play-circle-line text-4xl text-zinc-600"></i>
                         <span className="absolute top-2 right-2 text-xs bg-zinc-900/80 text-zinc-300 px-2 py-0.5 rounded-full capitalize">{v.video_type}</span>
                       </div>
@@ -710,24 +717,28 @@ export default function FighterDashboard({ profile }: Props) {
           {activeTab === 'achievements' && (
             <div className="space-y-6 max-w-5xl">
               {!fighter && <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 text-sm text-yellow-400 flex items-center gap-2"><i className="ri-information-line"></i>{t('dash_ach_save_first')}</div>}
-              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+              <div className="rk-card p-6">
                 <h2 className="text-base font-semibold text-white mb-4">{t('dash_ach_add')}</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <input value={achTitle} onChange={(e) => setAchTitle(e.target.value)} className="bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder={t('dash_ach_title_ph')} disabled={!fighter} />
-                  <input type="number" value={achYear} onChange={(e) => setAchYear(e.target.value)} className="bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder={t('dash_ach_year_ph')} disabled={!fighter} />
+                  <input value={achTitle} onChange={(e) => setAchTitle(e.target.value)} className="bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder={t('dash_ach_title_ph')} disabled={!fighter} />
+                  <input type="number" value={achYear} onChange={(e) => setAchYear(e.target.value)} className="bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder={t('dash_ach_year_ph')} disabled={!fighter} />
                   <div className="flex gap-2">
-                    <input value={achDesc} onChange={(e) => setAchDesc(e.target.value)} className="flex-1 bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder={t('dash_ach_desc_ph')} disabled={!fighter} />
+                    <input value={achDesc} onChange={(e) => setAchDesc(e.target.value)} className="flex-1 bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder={t('dash_ach_desc_ph')} disabled={!fighter} />
                     <button onClick={addAchievement} disabled={!fighter || !achTitle.trim()} className="bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white px-4 rounded-xl transition-colors cursor-pointer whitespace-nowrap"><i className="ri-add-line"></i></button>
                   </div>
                 </div>
               </div>
               {achievements.length === 0 ? (
-                <div className="text-center py-16 text-zinc-500"><div className="w-16 h-16 flex items-center justify-center mx-auto mb-4"><i className="ri-medal-line text-4xl"></i></div><p className="text-sm">{t('dash_ach_empty')}</p></div>
+                <div className="rk-card text-center py-14 px-6">
+                  <div className="w-14 h-14 mx-auto mb-4 flex items-center justify-center rounded-2xl bg-[#C9A84C]/10 border border-[#C9A84C]/30"><i className="ri-medal-line text-2xl text-[#C9A84C]"></i></div>
+                  <p className="text-sm text-zinc-300 font-medium">{t('dash_ach_empty')}</p>
+                  <p className="text-xs text-zinc-500 mt-1.5">Cada título y cada cinturón cuentan tu historia. Añádelos a tu palmarés.</p>
+                </div>
               ) : (
                 <div className="space-y-3">
                   {achievements.map((a) => (
-                    <div key={a.id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex items-center gap-4 group">
-                      <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-yellow-500/10 text-yellow-400 flex-shrink-0"><i className="ri-medal-line text-lg"></i></div>
+                    <div key={a.id} className="rk-card p-4 flex items-center gap-4 group">
+                      <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[#C9A84C] flex-shrink-0"><i className="ri-medal-line text-lg"></i></div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-white">{a.title}</p>
                         {a.year && <p className="text-xs text-zinc-500">{a.year}</p>}
@@ -750,14 +761,14 @@ export default function FighterDashboard({ profile }: Props) {
                   { id: 'achievements' as ActiveTab, label: t('dash_tab_achievements'), icon: 'ri-medal-line' },
                   { id: 'verification' as ActiveTab, label: t('dash_tab_verification'), icon: 'ri-shield-line' },
                 ].map((tb) => (
-                  <button key={tb.id} onClick={() => setActiveTab(tb.id)} className="bg-zinc-900 border border-zinc-800 rounded-xl p-3 flex flex-col items-center gap-1 text-zinc-300 hover:text-white cursor-pointer">
+                  <button key={tb.id} onClick={() => setActiveTab(tb.id)} className="rk-card p-3 flex flex-col items-center gap-1 text-zinc-300 hover:text-white cursor-pointer">
                     <i className={`${tb.icon} text-lg`}></i>
                     <span className="text-[10px]">{tb.label}</span>
                   </button>
                 ))}
               </div>
 
-              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+              <div className="rk-card p-6">
                 <h2 className="text-base font-semibold text-white mb-4">{t('dash_settings_account')}</h2>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between py-3 border-b border-zinc-800">
@@ -774,7 +785,7 @@ export default function FighterDashboard({ profile }: Props) {
                     <div className="py-3">
                       <p className="text-sm text-white mb-1">{t('dash_settings_public_profile')}</p>
                       <p className="text-xs text-zinc-500 mb-2">{t('dash_settings_share_desc')}</p>
-                      <div className="flex items-center gap-2 bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2.5">
+                      <div className="flex items-center gap-2 bg-white/[0.04] border border-white/10 rounded-xl px-4 py-2.5">
                         <span className="text-xs text-zinc-400 flex-1 truncate">/fighter/{fighter.id}</span>
                         <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/fighter/${fighter.id}`); showToast(t('dash_settings_copied_short')); }} className="text-xs text-red-400 hover:text-red-300 cursor-pointer whitespace-nowrap flex items-center gap-1">
                           <i className="ri-clipboard-line"></i> {t('dash_settings_copy')}
@@ -785,7 +796,7 @@ export default function FighterDashboard({ profile }: Props) {
                 </div>
               </div>
               {isAvailable !== (fighter?.is_available ?? true) && (
-                <button onClick={saveProfile} disabled={saving} className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-xl transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60 flex items-center justify-center gap-2 text-sm">
+                <button onClick={saveProfile} disabled={saving} className="rk-btn rk-btn-primary w-full disabled:opacity-60 flex items-center justify-center gap-2" style={{ fontSize: '0.95rem', padding: '0.8rem 1.6rem' }}>
                   {saving ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {t('dash_saving')}</> : <><i className="ri-save-line"></i> {t('dash_settings_save')}</>}
                 </button>
               )}

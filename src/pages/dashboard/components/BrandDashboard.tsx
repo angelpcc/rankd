@@ -196,7 +196,7 @@ export default function BrandDashboard({ profile }: Props) {
   if (loading) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <div className="w-10 h-10 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-10 h-10 border-2 border-[#C9A84C] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -222,7 +222,7 @@ export default function BrandDashboard({ profile }: Props) {
   ];
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
+    <div className="min-h-screen bg-[#070707] text-white">
       <DashboardNav profile={profile} />
 
       {/* Toast */}
@@ -238,11 +238,11 @@ export default function BrandDashboard({ profile }: Props) {
         <aside className="hidden lg:flex flex-col w-56 flex-shrink-0 border-r border-zinc-800 bg-zinc-950 fixed bottom-0 left-0 z-30 overflow-y-auto" style={{ top: 'calc(4rem + env(safe-area-inset-top, 0px))' }}>
           {/* Brand identity */}
           <div className="p-5 border-b border-zinc-800">
-            <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-xl mb-3">
+            <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-[#C9A84C]/12 border border-[#C9A84C]/28 text-[#C9A84C] text-xl mb-3">
               <i className="ri-store-2-line"></i>
             </div>
             <p className="text-sm font-semibold text-white truncate">{brandName || profile.full_name || t('dash_brand_tab_profile')}</p>
-            <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full border mt-1 bg-yellow-500/10 border-yellow-500/20 text-yellow-400">
+            <span className="inline-flex items-center text-xs px-2 py-0.5 rounded-full border mt-1 bg-[#C9A84C]/12 border-[#C9A84C]/28 text-[#C9A84C]">
               {t('dash_brand_label')}
             </span>
             {location && (
@@ -258,12 +258,12 @@ export default function BrandDashboard({ profile }: Props) {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer text-left ${activeTab === tab.id ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer text-left ${activeTab === tab.id ? 'bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/35' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
               >
                 <i className={`${tab.icon} text-base flex-shrink-0`}></i>
                 <span className="flex-1">{tab.label}</span>
                 {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${activeTab === tab.id ? 'bg-yellow-500/30 text-yellow-300' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${activeTab === tab.id ? 'bg-[#C9A84C]/30 text-[#dcc06a]' : 'bg-[#C9A84C]/20 text-[#C9A84C]'}`}>
                     {tab.badge}
                   </span>
                 )}
@@ -275,7 +275,7 @@ export default function BrandDashboard({ profile }: Props) {
           <div className="p-3 border-t border-zinc-800">
             <button
               onClick={() => setActiveTab('talent')}
-              className="w-full flex items-center gap-2 bg-yellow-500 hover:bg-yellow-400 text-zinc-900 text-xs font-bold px-3 py-2.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
+              className="w-full flex items-center gap-2 bg-[#C9A84C] hover:bg-[#dcc06a] text-zinc-950 text-xs font-bold px-3 py-2.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
             >
               <i className="ri-search-line"></i>
               {t('dash_brand_search_athletes')}
@@ -284,16 +284,16 @@ export default function BrandDashboard({ profile }: Props) {
         </aside>
 
         {/* ── MOBILE BOTTOM NAV ── */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-zinc-900 border-t border-zinc-800 flex rk-safe-bottom">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-zinc-950/95 backdrop-blur border-t border-white/10 flex rk-safe-bottom">
           {tabs.slice(0, 5).map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-xs transition-colors cursor-pointer relative ${activeTab === tab.id ? 'text-yellow-400' : 'text-zinc-500'}`}
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-xs transition-colors cursor-pointer relative ${activeTab === tab.id ? 'text-[#C9A84C]' : 'text-zinc-500'}`}
             >
               <i className={`${tab.icon} text-lg`}></i>
               {tab.badge !== undefined && tab.badge > 0 && (
-                <span className="absolute top-1.5 right-1/4 w-4 h-4 bg-yellow-500 text-zinc-900 text-xs rounded-full flex items-center justify-center font-bold">
+                <span className="absolute top-1.5 right-1/4 w-4 h-4 bg-[#C9A84C] text-zinc-950 text-xs rounded-full flex items-center justify-center font-bold">
                   {tab.badge > 9 ? '9+' : tab.badge}
                 </span>
               )}
@@ -308,10 +308,11 @@ export default function BrandDashboard({ profile }: Props) {
           {activeTab === 'overview' && (
             <div className="space-y-6 max-w-5xl">
               <div>
-                <h1 className="text-2xl font-bold text-white">
-                  {t('dash_brand_welcome')} {brandName || profile.full_name?.split(' ')[0] || t('dash_brand_tab_profile')}
+                <p className="rk-eyebrow">{t('dash_brand_label')}</p>
+                <h1 className="rk-h2" style={{ fontSize: 'clamp(1.9rem,4.5vw,2.6rem)', color: '#fff', margin: '4px 0 0' }}>
+                  {t('dash_brand_welcome')} <span style={{ color: '#C9A84C', textShadow: '0 0 50px rgba(201,168,76,0.45)' }}>{brandName || profile.full_name?.split(' ')[0] || t('dash_brand_tab_profile')}</span>
                 </h1>
-                <p className="text-zinc-400 text-sm mt-1">{t('dash_brand_panel')}</p>
+                <p className="text-zinc-400 text-sm mt-1.5">{t('dash_brand_panel')}</p>
               </div>
 
               {/* Visibility banner */}
@@ -361,18 +362,18 @@ export default function BrandDashboard({ profile }: Props) {
               {/* KPIs */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 {[
-                  { label: t('dash_brand_sponsorships'), value: parseInt(sponsorshipsCount, 10) || 0, icon: 'ri-hand-coin-line', color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/20', action: () => setActiveTab('sponsorships') },
+                  { label: t('dash_brand_sponsorships'), value: parseInt(sponsorshipsCount, 10) || 0, icon: 'ri-hand-coin-line', color: 'text-[#C9A84C]', bg: 'bg-[#C9A84C]/12 border-[#C9A84C]/28', action: () => setActiveTab('sponsorships') },
                   { label: t('dash_brand_opps_published'), value: openOpps.length, icon: 'ri-megaphone-line', color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', action: () => setActiveTab('sponsorships') },
                   { label: t('dash_brand_disciplines'), value: targetDisciplines.length || '—', icon: 'ri-boxing-line', color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/20', action: () => setActiveTab('talent') },
                   { label: t('dash_brand_status'), value: t('dash_brand_active'), icon: 'ri-checkbox-circle-line', color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20', action: () => {} },
                 ].map((kpi) => (
                   <button key={kpi.label} onClick={kpi.action}
-                    className={`${kpi.bg} border rounded-2xl p-5 text-left hover:opacity-80 transition-opacity cursor-pointer`}>
-                    <div className={`w-8 h-8 flex items-center justify-center mb-3 ${kpi.color}`}>
-                      <i className={`${kpi.icon} text-xl`}></i>
+                    className="rk-card p-5 text-left cursor-pointer">
+                    <div className={`w-9 h-9 flex items-center justify-center rounded-xl border mb-3 ${kpi.bg} ${kpi.color}`}>
+                      <i className={`${kpi.icon} text-lg`}></i>
                     </div>
-                    <p className={`text-3xl font-black ${kpi.color}`}>{kpi.value}</p>
-                    <p className="text-xs text-zinc-400 mt-1 leading-tight">{kpi.label}</p>
+                    <p className={kpi.color} style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(28px,4vw,38px)', lineHeight: 1 }}>{kpi.value}</p>
+                    <p className="text-[11px] text-zinc-400 mt-1.5 uppercase tracking-wider leading-tight">{kpi.label}</p>
                   </button>
                 ))}
               </div>
@@ -386,10 +387,10 @@ export default function BrandDashboard({ profile }: Props) {
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/90 via-zinc-950/60 to-transparent flex items-center px-8">
                   <div>
-                    <p className="text-xs text-yellow-400 font-semibold uppercase tracking-wider mb-2">{t('dash_brand_discover')}</p>
+                    <p className="text-xs text-[#C9A84C] font-semibold uppercase tracking-wider mb-2">{t('dash_brand_discover')}</p>
                     <h2 className="text-xl font-black text-white mb-3">{t('dash_brand_discover_title')}</h2>
                     <button onClick={() => setActiveTab('talent')}
-                      className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-400 text-zinc-900 text-sm font-bold px-5 py-2.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap">
+                      className="flex items-center gap-2 bg-[#C9A84C] hover:bg-[#dcc06a] text-zinc-950 text-sm font-bold px-5 py-2.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap">
                       <i className="ri-user-star-line"></i>
                       {t('dash_brand_explore_athletes')}
                     </button>
@@ -403,15 +404,15 @@ export default function BrandDashboard({ profile }: Props) {
                   brandType === 'both'
                     ? { label: t('dash_brand_products_services'), icon: 'ri-store-3-line', desc: t('dash_brand_products_services_desc'), action: () => setActiveTab('products'), accent: 'text-emerald-400', bg: 'hover:border-emerald-500/30' }
                     : brandType === 'product'
-                    ? { label: t('dash_brand_products_label'), icon: 'ri-shopping-bag-line', desc: t('dash_brand_products_desc'), action: () => setActiveTab('products'), accent: 'text-yellow-400', bg: 'hover:border-yellow-500/30' }
+                    ? { label: t('dash_brand_products_label'), icon: 'ri-shopping-bag-line', desc: t('dash_brand_products_desc'), action: () => setActiveTab('products'), accent: 'text-[#C9A84C]', bg: 'hover:border-[#C9A84C]/35' }
                     : { label: t('dash_brand_services_label'), icon: 'ri-service-line', desc: t('dash_brand_services_desc'), action: () => setActiveTab('services'), accent: 'text-amber-400', bg: 'hover:border-amber-500/30' },
                   { label: t('dash_brand_talent_label'), icon: 'ri-user-star-line', desc: t('dash_brand_talent_desc'), action: () => setActiveTab('talent'), accent: 'text-orange-400', bg: 'hover:border-orange-500/30' },
                   { label: t('dash_brand_events_label'), icon: 'ri-calendar-event-line', desc: t('dash_brand_events_desc'), action: () => setActiveTab('events'), accent: 'text-sky-400', bg: 'hover:border-sky-500/30' },
                   { label: t('dash_brand_create_opp'), icon: 'ri-add-circle-line', desc: t('dash_brand_create_opp_desc'), action: () => setActiveTab('sponsorships'), accent: 'text-red-400', bg: 'hover:border-red-500/30' },
                 ].map((qa) => (
                   <button key={qa.label} onClick={qa.action}
-                    className={`bg-zinc-900 border border-zinc-800 rounded-xl p-5 text-left transition-colors cursor-pointer group ${qa.bg}`}>
-                    <div className={`w-9 h-9 flex items-center justify-center rounded-lg bg-zinc-800 mb-3 ${qa.accent} group-hover:bg-zinc-700 transition-colors`}>
+                    className="rk-card p-5 text-left cursor-pointer group">
+                    <div className={`w-9 h-9 flex items-center justify-center rounded-xl bg-white/[0.05] border border-white/10 mb-3 ${qa.accent} group-hover:bg-white/[0.08] transition-colors`}>
                       <i className={`${qa.icon} text-lg`}></i>
                     </div>
                     <p className="text-sm font-semibold text-white">{qa.label}</p>
@@ -422,15 +423,15 @@ export default function BrandDashboard({ profile }: Props) {
 
               {/* Recent sponsorships */}
               {myOpps.length > 0 && (
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-                  <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
-                    <h2 className="text-sm font-semibold text-white">{t('dash_brand_recent_opps')}</h2>
+                <div className="rk-card overflow-hidden">
+                  <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07]">
+                    <h2 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>{t('dash_brand_recent_opps')}</h2>
                     <button onClick={() => setActiveTab('sponsorships')}
-                      className="text-xs text-yellow-400 hover:text-yellow-300 cursor-pointer whitespace-nowrap flex items-center gap-1">
+                      className="text-xs text-[#C9A84C] hover:text-[#dcc06a] cursor-pointer whitespace-nowrap flex items-center gap-1">
                       {t('dash_brand_view_all')} <i className="ri-arrow-right-line"></i>
                     </button>
                   </div>
-                  <div className="divide-y divide-zinc-800">
+                  <div className="divide-y divide-white/[0.06]">
                     {myOpps.slice(0, 4).map((opp) => (
                       <div key={opp.id} className="flex items-center gap-4 px-5 py-3.5">
                         <div className={`w-2 h-2 rounded-full flex-shrink-0 ${opp.status === 'open' ? 'bg-green-400' : 'bg-zinc-600'}`}></div>
@@ -451,9 +452,9 @@ export default function BrandDashboard({ profile }: Props) {
               )}
 
               {/* Tips */}
-              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+              <div className="rk-card p-5">
                 <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-                  <i className="ri-lightbulb-line text-yellow-400"></i>
+                  <i className="ri-lightbulb-line text-[#C9A84C]"></i>
                   {t('dash_brand_tips_title')}
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -462,8 +463,8 @@ export default function BrandDashboard({ profile }: Props) {
                     { icon: 'ri-instagram-line', titleKey: 'dash_brand_tip2_title', descKey: 'dash_brand_tip2_desc' },
                     { icon: 'ri-hand-coin-line', titleKey: 'dash_brand_tip3_title', descKey: 'dash_brand_tip3_desc' },
                   ].map((tip) => (
-                    <div key={tip.titleKey} className="bg-zinc-800 rounded-xl p-4">
-                      <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-yellow-500/10 text-yellow-400 mb-2">
+                    <div key={tip.titleKey} className="bg-white/[0.04] border border-white/[0.07] rounded-xl p-4">
+                      <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#C9A84C]/12 text-[#C9A84C] mb-2">
                         <i className={`${tip.icon} text-base`}></i>
                       </div>
                       <p className="text-xs font-semibold text-white mb-1">{t(tip.titleKey)}</p>
@@ -507,7 +508,7 @@ export default function BrandDashboard({ profile }: Props) {
           {activeTab === 'sponsorships' && (
             <div className="max-w-4xl">
               <div className="mb-5">
-                <h2 className="text-xl font-bold text-white">{t('dash_brand_sponsorships_title')}</h2>
+                <h2 className="rk-h3 text-white">{t('dash_brand_sponsorships_title')}</h2>
                 <p className="text-zinc-400 text-sm mt-1">{t('dash_brand_sponsorships_desc')}</p>
               </div>
               <OrgOpportunities profile={profile} showToast={showToast} onDataChange={loadData} />
@@ -518,7 +519,7 @@ export default function BrandDashboard({ profile }: Props) {
           {activeTab === 'messages' && (
             <div className="max-w-6xl">
               <div className="mb-5">
-                <h2 className="text-xl font-bold text-white">{t('dash_brand_messages_title')}</h2>
+                <h2 className="rk-h3 text-white">{t('dash_brand_messages_title')}</h2>
                 <p className="text-zinc-400 text-sm mt-1">{t('dash_brand_messages_desc')}</p>
               </div>
               <MessagesPanel currentUserId={profile.id} />
@@ -529,9 +530,9 @@ export default function BrandDashboard({ profile }: Props) {
           {activeTab === 'verification' && (
             <div className="max-w-3xl">
               <div className="mb-6">
-                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <h2 className="rk-h3 text-white flex items-center gap-2">
                   {t('dash_brand_verification_title')}
-                  {profile.verified && <i className="ri-vip-crown-fill text-yellow-400"></i>}
+                  {profile.verified && <i className="ri-vip-crown-fill text-[#C9A84C]"></i>}
                 </h2>
                 <p className="text-zinc-400 text-sm mt-1">{t('dash_brand_verification_desc')}</p>
               </div>
@@ -543,30 +544,30 @@ export default function BrandDashboard({ profile }: Props) {
           {activeTab === 'profile' && (
             <div className="max-w-4xl">
               <div className="mb-6">
-                <h2 className="text-xl font-bold text-white">{t('dash_brand_profile_title')}</h2>
+                <h2 className="rk-h3 text-white">{t('dash_brand_profile_title')}</h2>
                 <p className="text-zinc-400 text-sm mt-1">{t('dash_brand_profile_desc')}</p>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Brand info */}
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+                <div className="rk-card p-6 space-y-4">
                   <h3 className="text-sm font-semibold text-white">{t('dash_brand_info_title')}</h3>
                   <div>
                     <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_brand_name_label')}</label>
                     <input value={brandName} onChange={(e) => setBrandName(e.target.value)}
-                      className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-yellow-500"
+                      className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#C9A84C]"
                       placeholder="..." />
                   </div>
                   <div>
                     <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_brand_contact_label')}</label>
                     <input value={fullName} onChange={(e) => setFullName(e.target.value)}
-                      className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-yellow-500"
+                      className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#C9A84C]"
                       placeholder="..." />
                   </div>
                   <div>
                     <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_brand_sector_label')}</label>
                     <select value={industry} onChange={(e) => setIndustry(e.target.value)}
-                      className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-yellow-500 cursor-pointer">
+                      className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#C9A84C] cursor-pointer">
                       <option value="">{t('dash_brand_sector_ph')}</option>
                       {industries.map((i) => <option key={i} value={i}>{i}</option>)}
                     </select>
@@ -575,34 +576,34 @@ export default function BrandDashboard({ profile }: Props) {
                     <div>
                       <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_brand_founded_label')}</label>
                       <input type="number" value={foundedYear} onChange={(e) => setFoundedYear(e.target.value)}
-                        className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-yellow-500"
+                        className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#C9A84C]"
                         placeholder="2015" />
                     </div>
                     <div>
                       <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_brand_location_label')}</label>
                       <input value={location} onChange={(e) => setLocation(e.target.value)}
-                        className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-yellow-500"
+                        className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#C9A84C]"
                         placeholder="Madrid, España" />
                     </div>
                   </div>
                   <div>
                     <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_brand_desc_label')}</label>
                     <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3}
-                      className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-yellow-500 resize-none"
+                      className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#C9A84C] resize-none"
                       placeholder={t('dash_brand_desc_ph')} />
                   </div>
                 </div>
 
                 {/* Preferences + Social */}
                 <div className="space-y-5">
-                  <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+                  <div className="rk-card p-6 space-y-4">
                     <h3 className="text-sm font-semibold text-white">{t('dash_brand_prefs_title')}</h3>
                     <div>
                       <label className="block text-xs text-zinc-400 mb-2">{t('dash_brand_disciplines_label')}</label>
                       <div className="flex flex-wrap gap-2">
                         {disciplineOptions.map((d) => (
                           <button key={d} type="button" onClick={() => toggleDiscipline(d)}
-                            className={`px-3 py-1.5 text-xs rounded-full border transition-all cursor-pointer whitespace-nowrap ${targetDisciplines.includes(d) ? 'bg-yellow-500/20 border-yellow-500/40 text-yellow-400' : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}>
+                            className={`px-3 py-1.5 text-xs rounded-full border transition-all cursor-pointer whitespace-nowrap ${targetDisciplines.includes(d) ? 'bg-[#C9A84C]/20 border-[#C9A84C]/45 text-[#C9A84C]' : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}>
                             {d}
                           </button>
                         ))}
@@ -611,7 +612,7 @@ export default function BrandDashboard({ profile }: Props) {
                     <div>
                       <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_brand_budget_label')}</label>
                       <select value={budget} onChange={(e) => setBudget(e.target.value)}
-                        className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-yellow-500 cursor-pointer">
+                        className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#C9A84C] cursor-pointer">
                         <option value="">{t('dash_brand_budget_ph')}</option>
                         {budgetRanges.map((b) => <option key={b} value={b}>{b}</option>)}
                       </select>
@@ -619,29 +620,29 @@ export default function BrandDashboard({ profile }: Props) {
                     <div>
                       <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_brand_active_sponsorships')}</label>
                       <input type="number" min="0" value={sponsorshipsCount} onChange={(e) => setSponsorshipsCount(e.target.value)}
-                        className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-yellow-500"
+                        className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#C9A84C]"
                         placeholder="0" />
                     </div>
                   </div>
 
-                  <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+                  <div className="rk-card p-6 space-y-4">
                     <h3 className="text-sm font-semibold text-white">{t('dash_brand_contact_social')}</h3>
                     <div>
                       <label className="block text-xs text-zinc-400 mb-1.5"><i className="ri-global-line mr-1"></i>{t('dash_brand_website_label')}</label>
                       <input value={website} onChange={(e) => setWebsite(e.target.value)}
-                        className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-yellow-500"
+                        className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#C9A84C]"
                         placeholder="https://..." />
                     </div>
                     <div>
                       <label className="block text-xs text-zinc-400 mb-1.5"><i className="ri-instagram-line mr-1"></i>Instagram</label>
                       <input value={instagram} onChange={(e) => setInstagram(e.target.value)}
-                        className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-yellow-500"
+                        className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#C9A84C]"
                         placeholder="@..." />
                     </div>
                     <div>
                       <label className="block text-xs text-zinc-400 mb-1.5"><i className="ri-twitter-x-line mr-1"></i>Twitter / X</label>
                       <input value={twitter} onChange={(e) => setTwitter(e.target.value)}
-                        className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-yellow-500"
+                        className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#C9A84C]"
                         placeholder="@..." />
                     </div>
                   </div>
@@ -649,7 +650,7 @@ export default function BrandDashboard({ profile }: Props) {
 
                 <div className="lg:col-span-2">
                   <button onClick={saveProfile} disabled={saving}
-                    className="w-full bg-yellow-500 hover:bg-yellow-400 text-zinc-900 font-bold py-3.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60 flex items-center justify-center gap-2">
+                    className="rk-btn rk-btn-gold w-full disabled:opacity-60 flex items-center justify-center gap-2" style={{ fontSize: '1rem' }}>
                     {saving
                       ? <><div className="w-4 h-4 border-2 border-zinc-900 border-t-transparent rounded-full animate-spin"></div> {t('dash_saving')}</>
                       : <><i className="ri-save-line"></i> {t('dash_brand_save_profile')}</>

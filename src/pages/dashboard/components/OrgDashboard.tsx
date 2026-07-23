@@ -231,7 +231,7 @@ export default function OrgDashboard({ profile }: Props) {
   ];
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
+    <div className="min-h-screen bg-[#070707] text-white">
       <DashboardNav profile={profile} />
 
       {/* Toast */}
@@ -293,7 +293,7 @@ export default function OrgDashboard({ profile }: Props) {
         </aside>
 
         {/* ── MOBILE TABS ── */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-zinc-900 border-t border-zinc-800 flex rk-safe-bottom">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-zinc-950/95 backdrop-blur border-t border-white/10 flex rk-safe-bottom">
           {tabs.slice(0, 4).map((tab) => (
             <button
               key={tab.id}
@@ -319,10 +319,11 @@ export default function OrgDashboard({ profile }: Props) {
             <div className="space-y-6 max-w-4xl">
               {/* Welcome */}
               <div>
-                <h1 className="text-2xl font-bold text-white">
-                  {t('dash_org_welcome')} {profile.full_name?.split(' ')[0] || typeLabel}
+                <p className="rk-eyebrow">{typeLabel}</p>
+                <h1 className="rk-h2" style={{ fontSize: 'clamp(1.9rem,4.5vw,2.6rem)', color: '#fff', margin: '4px 0 0' }}>
+                  {t('dash_org_welcome')} <span className="rk-red-glow">{profile.full_name?.split(' ')[0] || typeLabel}</span>
                 </h1>
-                <p className="text-zinc-400 text-sm mt-1">
+                <p className="text-zinc-400 text-sm mt-1.5">
                   {t('dash_org_panel')} · {typeLabel}
                 </p>
               </div>
@@ -417,21 +418,21 @@ export default function OrgDashboard({ profile }: Props) {
                   <button
                     key={kpi.label}
                     onClick={kpi.action}
-                    className={`${kpi.bg} border rounded-2xl p-5 text-left hover:opacity-80 transition-opacity cursor-pointer`}
+                    className="rk-card p-5 text-left cursor-pointer"
                   >
-                    <div className={`w-8 h-8 flex items-center justify-center mb-3 ${kpi.color}`}>
-                      <i className={`${kpi.icon} text-xl`}></i>
+                    <div className={`w-9 h-9 flex items-center justify-center rounded-xl border mb-3 ${kpi.bg} ${kpi.color}`}>
+                      <i className={`${kpi.icon} text-lg`}></i>
                     </div>
-                    <p className={`text-3xl font-black ${kpi.color}`}>{kpi.value}</p>
-                    <p className="text-xs text-zinc-400 mt-1 leading-tight">{kpi.label}</p>
+                    <p className={kpi.color} style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(28px,4vw,38px)', lineHeight: 1 }}>{kpi.value}</p>
+                    <p className="text-[11px] text-zinc-400 mt-1.5 uppercase tracking-wider leading-tight">{kpi.label}</p>
                   </button>
                 ))}
               </div>
 
               {/* Recent opportunities */}
-              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-800">
-                  <h2 className="text-sm font-semibold text-white">{t('dash_org_recent_opps')}</h2>
+              <div className="rk-card overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07]">
+                  <h2 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>{t('dash_org_recent_opps')}</h2>
                   <button
                     onClick={() => setActiveTab('opportunities')}
                     className="text-xs text-red-400 hover:text-red-300 cursor-pointer whitespace-nowrap flex items-center gap-1"
@@ -450,7 +451,7 @@ export default function OrgDashboard({ profile }: Props) {
                     </button>
                   </div>
                 ) : (
-                  <div className="divide-y divide-zinc-800">
+                  <div className="divide-y divide-white/[0.06]">
                     {opportunities.slice(0, 5).map((opp) => (
                       <div key={opp.id} className="flex items-center gap-4 px-5 py-3.5">
                         <div className={`w-2 h-2 rounded-full flex-shrink-0 ${opp.status === 'open' ? 'bg-green-400' : 'bg-zinc-600'}`}></div>
@@ -482,9 +483,9 @@ export default function OrgDashboard({ profile }: Props) {
                   <button
                     key={qa.label}
                     onClick={qa.action}
-                    className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-left hover:border-zinc-600 transition-colors cursor-pointer group"
+                    className="rk-card p-4 text-left cursor-pointer group"
                   >
-                    <div className="w-9 h-9 flex items-center justify-center rounded-lg bg-zinc-800 text-red-400 mb-3 group-hover:bg-red-600/20 transition-colors">
+                    <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-600/12 border border-red-500/25 text-red-400 mb-3 group-hover:bg-red-600/20 transition-colors">
                       <i className={`${qa.icon} text-lg`}></i>
                     </div>
                     <p className="text-sm font-semibold text-white">{qa.label}</p>
@@ -506,7 +507,7 @@ export default function OrgDashboard({ profile }: Props) {
           {activeTab === 'applicants' && (
             <div className="max-w-5xl">
               <div className="mb-5">
-                <h2 className="text-xl font-bold text-white">{t('dash_org_applicants_title')}</h2>
+                <h2 className="rk-h3 text-white">{t('dash_org_applicants_title')}</h2>
                 <p className="text-zinc-400 text-sm mt-1">{t('dash_org_applicants_desc')}</p>
               </div>
               <OrgApplicants opportunities={opportunities} showToast={showToast} onOpenMessages={() => setActiveTab('messages')} />
@@ -538,7 +539,7 @@ export default function OrgDashboard({ profile }: Props) {
           {activeTab === 'messages' && (
             <div className="max-w-6xl">
               <div className="mb-5">
-                <h2 className="text-xl font-bold text-white">{t('dash_org_messages_title')}</h2>
+                <h2 className="rk-h3 text-white">{t('dash_org_messages_title')}</h2>
                 <p className="text-zinc-400 text-sm mt-1">{t('dash_org_messages_desc')}</p>
               </div>
               <MessagesPanel currentUserId={profile.id} />
@@ -549,7 +550,7 @@ export default function OrgDashboard({ profile }: Props) {
           {activeTab === 'verification' && (
             <div className="max-w-3xl">
               <div className="mb-6">
-                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <h2 className="rk-h3 text-white flex items-center gap-2">
                   {t('dash_org_verification_title')}
                   {profile.verified && <i className="ri-verified-badge-fill text-red-400"></i>}
                 </h2>
@@ -563,20 +564,20 @@ export default function OrgDashboard({ profile }: Props) {
           {activeTab === 'profile' && (
             <div className="max-w-4xl">
               <div className="mb-6">
-                <h2 className="text-xl font-bold text-white">{t('dash_org_profile_title')}</h2>
+                <h2 className="rk-h3 text-white">{t('dash_org_profile_title')}</h2>
                 <p className="text-zinc-400 text-sm mt-1">{t('dash_org_profile_desc')}</p>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Org info */}
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+                <div className="rk-card p-6 space-y-4">
                   <h3 className="text-sm font-semibold text-white">{t('dash_org_info_title')}</h3>
                   <div>
                     <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_org_name_label')}</label>
                     <input
                       value={orgName}
                       onChange={(e) => setOrgName(e.target.value)}
-                      className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500"
+                      className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500"
                       placeholder="..."
                     />
                   </div>
@@ -585,7 +586,7 @@ export default function OrgDashboard({ profile }: Props) {
                     <input
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500"
+                      className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500"
                       placeholder="..."
                     />
                   </div>
@@ -595,7 +596,7 @@ export default function OrgDashboard({ profile }: Props) {
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       rows={4}
-                      className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 resize-none"
+                      className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 resize-none"
                       placeholder="..."
                     />
                   </div>
@@ -605,7 +606,7 @@ export default function OrgDashboard({ profile }: Props) {
                       value={bio}
                       onChange={(e) => setBio(e.target.value)}
                       rows={3}
-                      className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 resize-none"
+                      className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 resize-none"
                       placeholder="..."
                     />
                   </div>
@@ -616,7 +617,7 @@ export default function OrgDashboard({ profile }: Props) {
                         type="number"
                         value={foundedYear}
                         onChange={(e) => setFoundedYear(e.target.value)}
-                        className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500"
+                        className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500"
                         placeholder="2010"
                       />
                     </div>
@@ -625,7 +626,7 @@ export default function OrgDashboard({ profile }: Props) {
                       <input
                         value={location}
                         onChange={(e) => setLocation(e.target.value)}
-                        className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500"
+                        className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500"
                         placeholder="Madrid, España"
                       />
                     </div>
@@ -634,7 +635,7 @@ export default function OrgDashboard({ profile }: Props) {
 
                 {/* Stats & Social */}
                 <div className="space-y-5">
-                  <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+                  <div className="rk-card p-6 space-y-4">
                     <h3 className="text-sm font-semibold text-white">{t('dash_org_stats_title')}</h3>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -644,7 +645,7 @@ export default function OrgDashboard({ profile }: Props) {
                           min="0"
                           value={eventsOrganized}
                           onChange={(e) => setEventsOrganized(e.target.value)}
-                          className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500"
+                          className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500"
                         />
                       </div>
                       <div>
@@ -656,20 +657,20 @@ export default function OrgDashboard({ profile }: Props) {
                           min="0"
                           value={fightersManaged}
                           onChange={(e) => setFightersManaged(e.target.value)}
-                          className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500"
+                          className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500"
                         />
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+                  <div className="rk-card p-6 space-y-4">
                     <h3 className="text-sm font-semibold text-white">{t('dash_org_contact_social')}</h3>
                     <div>
                       <label className="block text-xs text-zinc-400 mb-1.5"><i className="ri-global-line mr-1"></i>{t('dash_org_website_label')}</label>
                       <input
                         value={website}
                         onChange={(e) => setWebsite(e.target.value)}
-                        className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500"
+                        className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500"
                         placeholder="https://..."
                       />
                     </div>
@@ -678,7 +679,7 @@ export default function OrgDashboard({ profile }: Props) {
                       <input
                         value={instagram}
                         onChange={(e) => setInstagram(e.target.value)}
-                        className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500"
+                        className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500"
                         placeholder="@..."
                       />
                     </div>
@@ -687,14 +688,14 @@ export default function OrgDashboard({ profile }: Props) {
                       <input
                         value={twitter}
                         onChange={(e) => setTwitter(e.target.value)}
-                        className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500"
+                        className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500"
                         placeholder="@..."
                       />
                     </div>
                   </div>
 
                   {/* Verification status */}
-                  <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+                  <div className="rk-card p-5">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium text-white">{t('dash_org_verification_status')}</p>
@@ -711,7 +712,8 @@ export default function OrgDashboard({ profile }: Props) {
                   <button
                     onClick={saveProfile}
                     disabled={saving}
-                    className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60 flex items-center justify-center gap-2"
+                    className="rk-btn rk-btn-primary w-full disabled:opacity-60 flex items-center justify-center gap-2"
+                    style={{ fontSize: '1rem' }}
                   >
                     {saving
                       ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {t('dash_saving')}</>
