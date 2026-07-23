@@ -85,7 +85,7 @@ export default function BrandDashboard({ profile }: Props) {
     const [{ data: orgData }, { data: opps }, { data: brandData }] = await Promise.all([
       supabase.from('organizations').select('*').eq('profile_id', profile.id).maybeSingle(),
       supabase.from('opportunities').select('*').eq('profile_id', profile.id).order('created_at', { ascending: false }),
-      supabase.from('brands').select('id, type, status').eq('user_id', profile.id).maybeSingle(),
+      supabase.from('brands').select('id, type, status, is_public').eq('user_id', profile.id).maybeSingle(),
     ]);
     if (orgData) {
       setBrandName(orgData.org_name || '');
@@ -364,8 +364,8 @@ export default function BrandDashboard({ profile }: Props) {
                 {[
                   { label: t('dash_brand_sponsorships'), value: parseInt(sponsorshipsCount, 10) || 0, icon: 'ri-hand-coin-line', color: 'text-[#C9A84C]', bg: 'bg-[#C9A84C]/12 border-[#C9A84C]/28', action: () => setActiveTab('sponsorships') },
                   { label: t('dash_brand_opps_published'), value: openOpps.length, icon: 'ri-megaphone-line', color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', action: () => setActiveTab('sponsorships') },
-                  { label: t('dash_brand_disciplines'), value: targetDisciplines.length || '—', icon: 'ri-boxing-line', color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/20', action: () => setActiveTab('talent') },
-                  { label: t('dash_brand_status'), value: t('dash_brand_active'), icon: 'ri-checkbox-circle-line', color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20', action: () => {} },
+                  { label: t('dash_brand_total_opps'), value: myOpps.length, icon: 'ri-file-list-3-line', color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/20', action: () => setActiveTab('sponsorships') },
+                  { label: t('dash_brand_status'), value: isPublic ? t('dash_brand_active') : t('dash_brand_hidden_status'), icon: isPublic ? 'ri-checkbox-circle-line' : 'ri-eye-off-line', color: isPublic ? 'text-green-400' : 'text-zinc-400', bg: isPublic ? 'bg-green-500/10 border-green-500/20' : 'bg-white/[0.05] border-white/10', action: () => setActiveTab('profile') },
                 ].map((kpi) => (
                   <button key={kpi.label} onClick={kpi.action}
                     className="rk-card p-5 text-left cursor-pointer">
@@ -378,19 +378,17 @@ export default function BrandDashboard({ profile }: Props) {
                 ))}
               </div>
 
-              {/* Hero banner */}
-              <div className="relative rounded-2xl overflow-hidden">
-                <img
-                  src="https://readdy.ai/api/search-image?query=professional%20combat%20sports%20athlete%20champion%20fighter%20dramatic%20studio%20lighting%20dark%20background%20powerful%20athletic%20pose%20brand%20sponsorship%20marketing%20campaign%20high%20contrast%20cinematic%20photography&width=1200&height=320&seq=brand-hero-01&orientation=landscape"
-                  alt="Brand hero"
-                  className="w-full h-44 object-cover object-top"
-                />
-                <div className="absolute inset-0 bg-gradient-to-r from-zinc-950/90 via-zinc-950/60 to-transparent flex items-center px-8">
+              {/* Hero banner — tratamiento cinematográfico sin imágenes de relleno */}
+              <div className="relative rounded-2xl overflow-hidden rk-grid-bg border border-white/[0.08]" style={{ background: '#080808' }}>
+                <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 88% 30%, rgba(201,168,76,0.16) 0%, transparent 58%)' }} />
+                <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 8% 100%, rgba(225,6,0,0.10) 0%, transparent 55%)' }} />
+                <span aria-hidden="true" className="pointer-events-none select-none absolute right-4 -bottom-3 hidden sm:block" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 96, lineHeight: 0.8, color: 'transparent', WebkitTextStroke: '1px rgba(201,168,76,0.14)' }}>RANKD</span>
+                <div className="relative flex items-center px-6 sm:px-8 py-8">
                   <div>
-                    <p className="text-xs text-[#C9A84C] font-semibold uppercase tracking-wider mb-2">{t('dash_brand_discover')}</p>
-                    <h2 className="text-xl font-black text-white mb-3">{t('dash_brand_discover_title')}</h2>
+                    <p className="rk-eyebrow mb-2">{t('dash_brand_discover')}</p>
+                    <h2 className="rk-h3 text-white mb-3" style={{ fontSize: 'clamp(1.3rem,2.6vw,1.9rem)', maxWidth: 460 }}>{t('dash_brand_discover_title')}</h2>
                     <button onClick={() => setActiveTab('talent')}
-                      className="flex items-center gap-2 bg-[#C9A84C] hover:bg-[#dcc06a] text-zinc-950 text-sm font-bold px-5 py-2.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap">
+                      className="rk-btn rk-btn-gold flex items-center gap-2" style={{ fontSize: '0.85rem', padding: '0.7rem 1.4rem' }}>
                       <i className="ri-user-star-line"></i>
                       {t('dash_brand_explore_athletes')}
                     </button>
