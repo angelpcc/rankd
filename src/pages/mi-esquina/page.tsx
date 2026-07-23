@@ -7,6 +7,7 @@ import FighterTraining from '@/pages/dashboard/components/FighterTraining';
 import MessagesPanel from '@/pages/dashboard/components/messages/MessagesPanel';
 import RoundTimer from '@/pages/mi-esquina/components/RoundTimer';
 import WeeklyPlanner from '@/pages/mi-esquina/components/WeeklyPlanner';
+import NutritionTracker from '@/pages/mi-esquina/components/NutritionTracker';
 import Reveal from '@/components/base/Reveal';
 
 type Section = 'resumen' | 'diario' | 'rutina' | 'timer' | 'coach' | 'material' | 'nutricion' | 'mensajes';
@@ -274,11 +275,18 @@ export default function MiEsquinaPage() {
           )}
 
           {section === 'nutricion' && (
-            <div className="space-y-6 max-w-4xl">
+            <div className="space-y-8 max-w-4xl">
+              {/* Herramienta real: peso e hidratación */}
+              <NutritionTracker profile={profile} showToast={showToast} />
+
+              <div className="rk-rule" style={{ width: '100%', opacity: 0.5 }} />
+
+              {/* Guía informativa */}
               <Reveal>
                 <div>
-                  <h1 className="rk-h1" style={{ margin: 0, color: '#fff' }}>NUTRICIÓN DEL <span className="rk-red-glow">PELEADOR</span></h1>
-                  <p className="text-zinc-400 text-sm mt-1">Los básicos que marcan la diferencia. Sin milagros, sin humo.</p>
+                  <p className="rk-eyebrow">SIN HUMO</p>
+                  <h2 className="rk-h2" style={{ fontSize: 'clamp(1.6rem,3.5vw,2.1rem)', margin: '4px 0 0', color: '#fff' }}>GUÍA DE <span className="rk-red-glow">NUTRICIÓN</span></h2>
+                  <p className="text-zinc-400 text-sm mt-1.5">Los básicos que marcan la diferencia. Sin milagros.</p>
                 </div>
               </Reveal>
               <div className="grid sm:grid-cols-2 gap-4">
