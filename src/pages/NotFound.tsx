@@ -4,7 +4,7 @@ export default function NotFound() {
   const navigate = useNavigate();
 
   return (
-    <div style={{ minHeight: '100vh', background: '#030303', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', padding: 24, textAlign: 'center' }}>
+    <div style={{ minHeight: '100vh', background: '#030303', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', padding: 'calc(24px + env(safe-area-inset-top, 0px)) 24px calc(24px + env(safe-area-inset-bottom, 0px))', textAlign: 'center' }}>
 
       {/* Glow rojo */}
       <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 45%, rgba(225,6,0,0.12) 0%, transparent 55%)', pointerEvents: 'none' }} />

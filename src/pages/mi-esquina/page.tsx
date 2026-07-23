@@ -93,7 +93,7 @@ export default function MiEsquinaPage() {
   return (
     <div className="min-h-screen bg-[#070707] text-white">
       {/* Top bar propia */}
-      <div className="fixed top-0 left-0 w-full z-40 bg-zinc-950/95 backdrop-blur-sm border-b border-zinc-800">
+      <div className="fixed top-0 left-0 w-full z-40 bg-zinc-950/95 backdrop-blur-sm border-b border-zinc-800 rk-safe-top">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <button onClick={() => navigate(isHobby ? '/beta' : '/dashboard')} className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors cursor-pointer">
             <i className="ri-arrow-left-line"></i>
@@ -117,9 +117,9 @@ export default function MiEsquinaPage() {
         </div>
       )}
 
-      <div className="pt-14 flex min-h-screen max-w-[1400px] mx-auto">
+      <div className="flex min-h-screen max-w-[1400px] mx-auto" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
         {/* Sidebar propia (desktop) */}
-        <aside className="hidden lg:flex flex-col w-60 flex-shrink-0 border-r border-zinc-800/70 py-6 px-3 sticky top-14 h-[calc(100vh-3.5rem)]">
+        <aside className="hidden lg:flex flex-col w-60 flex-shrink-0 border-r border-zinc-800/70 py-6 px-3 sticky h-[calc(100vh-3.5rem)]" style={{ top: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
           <nav className="space-y-1 flex-1">
             {SECTIONS.map((s) => (
               <button key={s.id} onClick={() => setSection(s.id)}
@@ -137,7 +137,7 @@ export default function MiEsquinaPage() {
         </aside>
 
         {/* Tabs móvil */}
-        <div className="lg:hidden fixed top-14 left-0 right-0 z-30 bg-zinc-950/95 backdrop-blur border-b border-zinc-800 overflow-x-auto">
+        <div className="lg:hidden fixed left-0 right-0 z-30 bg-zinc-950/95 backdrop-blur border-b border-zinc-800 overflow-x-auto" style={{ top: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
           <div className="flex px-3 py-2 gap-1 min-w-max">
             {SECTIONS.map((s) => (
               <button key={s.id} onClick={() => setSection(s.id)}

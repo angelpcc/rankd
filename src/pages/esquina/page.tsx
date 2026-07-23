@@ -28,7 +28,7 @@ export default function EsquinaPage() {
       <Navbar />
 
       {/* HERO */}
-      <section className="relative pt-28 sm:pt-32 pb-10 overflow-hidden">
+      <section className="relative pb-10 overflow-hidden" style={{ paddingTop: 'calc(7rem + env(safe-area-inset-top, 0px))' }}>
         <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(225,6,0,0.12) 0%, transparent 55%)' }} />
         <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: 'linear-gradient(90deg, transparent, #E10600 50%, transparent)' }} />
         <div className="relative max-w-5xl mx-auto px-5 text-center">

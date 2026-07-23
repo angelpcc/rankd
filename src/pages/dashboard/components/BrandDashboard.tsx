@@ -235,7 +235,7 @@ export default function BrandDashboard({ profile }: Props) {
 
       <div className="pt-16 flex min-h-screen">
         {/* ── SIDEBAR ── */}
-        <aside className="hidden lg:flex flex-col w-56 flex-shrink-0 border-r border-zinc-800 bg-zinc-950 fixed top-16 bottom-0 left-0 z-30 overflow-y-auto">
+        <aside className="hidden lg:flex flex-col w-56 flex-shrink-0 border-r border-zinc-800 bg-zinc-950 fixed bottom-0 left-0 z-30 overflow-y-auto" style={{ top: 'calc(4rem + env(safe-area-inset-top, 0px))' }}>
           {/* Brand identity */}
           <div className="p-5 border-b border-zinc-800">
             <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-xl mb-3">
@@ -284,7 +284,7 @@ export default function BrandDashboard({ profile }: Props) {
         </aside>
 
         {/* ── MOBILE BOTTOM NAV ── */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-zinc-900 border-t border-zinc-800 flex">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-zinc-900 border-t border-zinc-800 flex rk-safe-bottom">
           {tabs.slice(0, 5).map((tab) => (
             <button
               key={tab.id}

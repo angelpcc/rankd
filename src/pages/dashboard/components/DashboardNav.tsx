@@ -50,7 +50,7 @@ export default function DashboardNav({ profile }: Props) {
   const initials = (profile.full_name || 'U').split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
 
   return (
-    <nav className="fixed top-0 left-0 w-full z-50 bg-zinc-900 border-b border-zinc-800">
+    <nav className="fixed top-0 left-0 w-full z-50 bg-zinc-900 border-b border-zinc-800 rk-safe-top">
       <div className="mx-auto px-3 sm:px-4 md:px-6 flex items-center justify-between h-14 sm:h-16 min-w-0">
 
         {/* Left: Logo + Dashboard link */}

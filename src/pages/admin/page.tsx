@@ -115,7 +115,7 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-[#070707] text-white">
       {/* Barra */}
-      <div className="fixed top-0 left-0 w-full z-40 bg-zinc-950/95 backdrop-blur border-b border-zinc-800">
+      <div className="fixed top-0 left-0 w-full z-40 bg-zinc-950/95 backdrop-blur border-b border-zinc-800 rk-safe-top">
         <div className="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between">
           <button onClick={() => navigate('/beta')} className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white cursor-pointer transition-colors">
             <i className="ri-arrow-left-line"></i> Inicio
@@ -136,7 +136,7 @@ export default function AdminPage() {
         </div>
       )}
 
-      <main className="max-w-5xl mx-auto px-5 pt-24 pb-16">
+      <main className="max-w-5xl mx-auto px-5 pb-16" style={{ paddingTop: 'calc(6rem + env(safe-area-inset-top, 0px))' }}>
         <div className="mb-7">
           <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(30px,5vw,44px)', letterSpacing: 1, lineHeight: 1 }}>
             SOLICITUDES DE <span className="text-[#E10600]">VERIFICACIÓN</span>

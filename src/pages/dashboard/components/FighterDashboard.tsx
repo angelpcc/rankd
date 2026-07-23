@@ -278,10 +278,10 @@ export default function FighterDashboard({ profile }: Props) {
         </div>
       )}
 
-      <div className="pt-14 sm:pt-16 flex min-h-screen">
+      <div className="flex min-h-screen" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
 
         {/* ── SIDEBAR (desktop) ── */}
-        <aside className="hidden lg:flex flex-col w-56 flex-shrink-0 border-r border-zinc-800 bg-zinc-950 fixed top-16 bottom-0 left-0 z-30 overflow-y-auto">
+        <aside className="hidden lg:flex flex-col w-56 flex-shrink-0 border-r border-zinc-800 bg-zinc-950 fixed bottom-0 left-0 z-30 overflow-y-auto" style={{ top: 'calc(4rem + env(safe-area-inset-top, 0px))' }}>
           <div className="p-5 border-b border-zinc-800">
             {avatarUrl ? (
               <img src={avatarUrl} alt="" className="w-12 h-12 rounded-xl object-cover object-top border border-red-500/30 mb-3" />
@@ -334,7 +334,7 @@ export default function FighterDashboard({ profile }: Props) {
         </aside>
 
         {/* ── MOBILE BOTTOM TABS ── */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-zinc-900 border-t border-zinc-800 flex">
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-zinc-900 border-t border-zinc-800 flex rk-safe-bottom">
           {tabs.slice(0, 4).map((tab) => (
             <button
               key={tab.id}
