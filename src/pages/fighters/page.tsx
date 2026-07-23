@@ -261,9 +261,9 @@ export default function FightersDirectoryPage() {
   ].filter(Boolean).length;
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-screen bg-[#070707]">
       {/* Top bar */}
-      <div className="fixed top-0 left-0 w-full z-40 bg-zinc-950/95 backdrop-blur-sm border-b border-zinc-800">
+      <div className="fixed top-0 left-0 w-full z-40 bg-zinc-950/95 backdrop-blur-sm border-b border-zinc-800 rk-safe-top">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 h-16 flex items-center justify-between">
           <a href="/" className="flex items-center gap-0 cursor-pointer">
             <span className="font-unbounded font-black tracking-tighter leading-none text-[18px] text-white" style={{ letterSpacing: '-0.04em' }}>RAN</span>
@@ -294,30 +294,30 @@ export default function FightersDirectoryPage() {
 
       <div className="pt-16">
         {/* Hero */}
-        <div className="relative bg-zinc-950 overflow-hidden">
-          <div
-            className="absolute inset-0 bg-cover bg-center opacity-30"
-            style={{ backgroundImage: 'url(https://readdy.ai/api/search-image?query=professional%20combat%20sports%20fighters%20silhouettes%20dramatic%20arena%20lighting%20dark%20atmospheric%20boxing%20MMA%20kickboxing%20multiple%20athletes%20training%20gym&width=1400&height=400&seq=fdir1&orientation=landscape)' }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/80 to-zinc-950/60" />
-          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 70% 50%, rgba(225,6,0,0.12) 0%, transparent 55%)' }} />
-          <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: 'linear-gradient(90deg, #E10600 0%, rgba(225,6,0,0.4) 50%, transparent 100%)' }} />
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 md:px-10 py-10 sm:py-14 md:py-20">
+        <div className="relative bg-[#050505] overflow-hidden rk-grid-bg">
+          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 72% 45%, rgba(225,6,0,0.16) 0%, transparent 55%)' }} />
+          <div className="absolute top-0 right-0 w-1/2 h-full" style={{ background: 'radial-gradient(ellipse at 100% 0%, rgba(201,168,76,0.06) 0%, transparent 60%)' }} />
+          <div className="absolute inset-0" style={{ maskImage: 'linear-gradient(to bottom, black, transparent)', WebkitMaskImage: 'linear-gradient(to bottom, black, transparent)' }} />
+          <div className="rk-topline" />
+          <span aria-hidden="true" className="pointer-events-none select-none absolute -right-6 bottom-0 hidden md:block" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(120px,16vw,260px)', lineHeight: 0.7, color: 'transparent', WebkitTextStroke: '1px rgba(255,255,255,0.04)' }}>RANKD</span>
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 md:px-10 py-12 sm:py-16 md:py-24">
             <div className="max-w-2xl">
-              <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                <span className="text-xs font-bold bg-red-600 text-white px-3 py-1 rounded-full uppercase tracking-wider shadow-lg shadow-red-600/40">{t('nav_directory')}</span>
+              <div className="flex items-center gap-3 mb-4">
+                <span className="rk-index">EL RÓSTER</span>
+                <span style={{ flex: '0 0 34px', height: 1, background: 'rgba(255,255,255,0.16)' }} />
+                <span className="rk-eyebrow">Directorio</span>
                 {data.length > 0 && (
-                  <span className="text-xs text-zinc-300">{data.length} {t('fighters_dir_registered')}</span>
+                  <span className="text-xs text-zinc-400">· {data.length} {t('fighters_dir_registered')}</span>
                 )}
               </div>
-              <h1 className="text-3xl sm:text-4xl md:text-6xl font-black text-white leading-tight">
+              <h1 className="rk-h1" style={{ color: '#fff', margin: 0 }}>
                 {t('fighters_dir_discover')}<br />
-                <strong className="text-red-500" style={{ textShadow: '0 0 40px rgba(225,6,0,0.5)' }}>{t('fighters_dir_champion')}</strong>
+                <span className="rk-red-glow">{t('fighters_dir_champion')}</span>
               </h1>
-              <p className="text-zinc-300 text-sm md:text-base mt-3 sm:mt-4 leading-relaxed max-w-lg">
+              <div className="rk-rule" style={{ width: 88, margin: '20px 0' }} />
+              <p className="rk-body max-w-lg" style={{ margin: 0 }}>
                 {t('fighters_dir_desc')}
               </p>
-
             </div>
           </div>
         </div>
@@ -343,7 +343,7 @@ export default function FightersDirectoryPage() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-3 sm:mb-4 flex-wrap gap-2 sm:gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-zinc-800">
+                  <p className="text-sm font-semibold text-white">
                     {loading ? t('fighters_dir_loading') : (
                       filtered.length === 0 ? t('fighters_dir_no_results') :
                       `${filtered.length} ${filtered.length === 1 ? t('fighters_dir_count_single') : t('fighters_dir_count_plural')}`
@@ -352,62 +352,62 @@ export default function FightersDirectoryPage() {
                   {activeFilterCount > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {filters.discipline && (
-                        <span className="flex items-center gap-1 text-xs bg-red-50 border border-red-100 text-red-600 px-2.5 py-1 rounded-full">
+                        <span className="flex items-center gap-1 text-xs bg-red-600/15 border border-red-500/30 text-red-400 px-2.5 py-1 rounded-full">
                           {disciplineLabels[filters.discipline] || filters.discipline}
-                          <button onClick={() => setFilters((f) => ({ ...f, discipline: '' }))} className="cursor-pointer hover:text-red-800 ml-0.5"><i className="ri-close-line text-xs"></i></button>
+                          <button onClick={() => setFilters((f) => ({ ...f, discipline: '' }))} className="cursor-pointer hover:text-white ml-0.5"><i className="ri-close-line text-xs"></i></button>
                         </span>
                       )}
                       {filters.weightClass && (
-                        <span className="flex items-center gap-1 text-xs bg-zinc-100 border border-zinc-200 text-zinc-600 px-2.5 py-1 rounded-full">
+                        <span className="flex items-center gap-1 text-xs bg-white/[0.06] border border-white/12 text-zinc-300 px-2.5 py-1 rounded-full">
                           {filters.weightClass}
-                          <button onClick={() => setFilters((f) => ({ ...f, weightClass: '' }))} className="cursor-pointer hover:text-zinc-800 ml-0.5"><i className="ri-close-line text-xs"></i></button>
+                          <button onClick={() => setFilters((f) => ({ ...f, weightClass: '' }))} className="cursor-pointer hover:text-white ml-0.5"><i className="ri-close-line text-xs"></i></button>
                         </span>
                       )}
                       {filters.expLevel && (
-                        <span className="flex items-center gap-1 text-xs bg-zinc-100 border border-zinc-200 text-zinc-600 px-2.5 py-1 rounded-full">
+                        <span className="flex items-center gap-1 text-xs bg-white/[0.06] border border-white/12 text-zinc-300 px-2.5 py-1 rounded-full">
                           {expLabels[filters.expLevel] || filters.expLevel}
-                          <button onClick={() => setFilters((f) => ({ ...f, expLevel: '' }))} className="cursor-pointer hover:text-zinc-800 ml-0.5"><i className="ri-close-line text-xs"></i></button>
+                          <button onClick={() => setFilters((f) => ({ ...f, expLevel: '' }))} className="cursor-pointer hover:text-white ml-0.5"><i className="ri-close-line text-xs"></i></button>
                         </span>
                       )}
                       {filters.location && (
-                        <span className="flex items-center gap-1 text-xs bg-zinc-100 border border-zinc-200 text-zinc-600 px-2.5 py-1 rounded-full">
+                        <span className="flex items-center gap-1 text-xs bg-white/[0.06] border border-white/12 text-zinc-300 px-2.5 py-1 rounded-full">
                           <i className="ri-map-pin-line text-xs"></i>{filters.location}
-                          <button onClick={() => setFilters((f) => ({ ...f, location: '' }))} className="cursor-pointer hover:text-zinc-800 ml-0.5"><i className="ri-close-line text-xs"></i></button>
+                          <button onClick={() => setFilters((f) => ({ ...f, location: '' }))} className="cursor-pointer hover:text-white ml-0.5"><i className="ri-close-line text-xs"></i></button>
                         </span>
                       )}
                       {filters.available && (
-                        <span className="flex items-center gap-1 text-xs bg-green-50 border border-green-100 text-green-600 px-2.5 py-1 rounded-full">
+                        <span className="flex items-center gap-1 text-xs bg-green-500/12 border border-green-500/30 text-green-400 px-2.5 py-1 rounded-full">
                           {t('fighters_dir_available')}
-                          <button onClick={() => setFilters((f) => ({ ...f, available: false }))} className="cursor-pointer hover:text-green-800 ml-0.5"><i className="ri-close-line text-xs"></i></button>
+                          <button onClick={() => setFilters((f) => ({ ...f, available: false }))} className="cursor-pointer hover:text-white ml-0.5"><i className="ri-close-line text-xs"></i></button>
                         </span>
                       )}
                       {filters.hasSocial && (
-                        <span className="flex items-center gap-1 text-xs bg-pink-50 border border-pink-100 text-pink-600 px-2.5 py-1 rounded-full">
+                        <span className="flex items-center gap-1 text-xs bg-pink-500/12 border border-pink-500/30 text-pink-400 px-2.5 py-1 rounded-full">
                           {t('fighters_dir_with_social')}
-                          <button onClick={() => setFilters((f) => ({ ...f, hasSocial: false }))} className="cursor-pointer hover:text-pink-800 ml-0.5"><i className="ri-close-line text-xs"></i></button>
+                          <button onClick={() => setFilters((f) => ({ ...f, hasSocial: false }))} className="cursor-pointer hover:text-white ml-0.5"><i className="ri-close-line text-xs"></i></button>
                         </span>
                       )}
                       {filters.popularity && (
-                        <span className="flex items-center gap-1 text-xs bg-orange-50 border border-orange-100 text-orange-600 px-2.5 py-1 rounded-full">
+                        <span className="flex items-center gap-1 text-xs bg-orange-500/12 border border-orange-500/30 text-orange-400 px-2.5 py-1 rounded-full">
                           <i className="ri-star-line text-xs"></i>
                           {filters.popularity === 'high' ? t('fighters_dir_high_pop') : filters.popularity === 'medium' ? t('fighters_dir_med_pop') : t('fighters_dir_no_social')}
-                          <button onClick={() => setFilters((f) => ({ ...f, popularity: '' }))} className="cursor-pointer hover:text-orange-800 ml-0.5"><i className="ri-close-line text-xs"></i></button>
+                          <button onClick={() => setFilters((f) => ({ ...f, popularity: '' }))} className="cursor-pointer hover:text-white ml-0.5"><i className="ri-close-line text-xs"></i></button>
                         </span>
                       )}
                     </div>
                   )}
                 </div>
 
-                <div className="flex items-center gap-1 bg-white border border-zinc-200 rounded-lg p-1">
+                <div className="flex items-center gap-1 bg-white/[0.04] border border-white/10 rounded-lg p-1">
                   <button
                     onClick={() => setViewMode('grid')}
-                    className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors cursor-pointer ${viewMode === 'grid' ? 'bg-zinc-900 text-white' : 'text-zinc-400 hover:text-zinc-700'}`}
+                    className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors cursor-pointer ${viewMode === 'grid' ? 'bg-red-600 text-white' : 'text-zinc-500 hover:text-white'}`}
                   >
                     <i className="ri-grid-line text-sm"></i>
                   </button>
                   <button
                     onClick={() => setViewMode('list')}
-                    className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors cursor-pointer ${viewMode === 'list' ? 'bg-zinc-900 text-white' : 'text-zinc-400 hover:text-zinc-700'}`}
+                    className={`w-8 h-8 flex items-center justify-center rounded-md transition-colors cursor-pointer ${viewMode === 'list' ? 'bg-red-600 text-white' : 'text-zinc-500 hover:text-white'}`}
                   >
                     <i className="ri-list-check-2 text-sm"></i>
                   </button>
@@ -419,26 +419,26 @@ export default function FightersDirectoryPage() {
                   <div className="w-10 h-10 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
                 </div>
               ) : data.length === 0 ? (
-                <div className="text-center py-24">
-                  <div className="w-20 h-20 flex items-center justify-center mx-auto mb-5 rounded-full bg-zinc-100">
-                    <i className="ri-user-search-line text-4xl text-zinc-400"></i>
+                <div className="text-center py-24 rk-card">
+                  <div className="w-20 h-20 flex items-center justify-center mx-auto mb-5 rounded-2xl bg-red-600/10 border border-red-500/25">
+                    <i className="ri-user-search-line text-4xl text-red-400"></i>
                   </div>
-                  <h2 className="text-xl font-bold text-zinc-800 mb-2">{t('fighters_dir_empty_title')}</h2>
-                  <p className="text-sm text-zinc-500 mb-6">{t('fighters_dir_empty_desc')}</p>
-                  <button onClick={() => navigate('/auth')} className="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-6 py-3 rounded-xl cursor-pointer whitespace-nowrap transition-colors">
+                  <h2 className="rk-h3 text-white mb-2">{t('fighters_dir_empty_title')}</h2>
+                  <p className="text-sm text-zinc-400 mb-6 max-w-sm mx-auto">{t('fighters_dir_empty_desc')}</p>
+                  <button onClick={() => navigate('/auth')} className="rk-btn rk-btn-primary" style={{ fontSize: '0.9rem' }}>
                     {t('fighters_dir_empty_btn')}
                   </button>
                 </div>
               ) : filtered.length === 0 ? (
-                <div className="text-center py-24">
-                  <div className="w-20 h-20 flex items-center justify-center mx-auto mb-5 rounded-full bg-zinc-100">
-                    <i className="ri-filter-off-line text-4xl text-zinc-400"></i>
+                <div className="text-center py-24 rk-card">
+                  <div className="w-20 h-20 flex items-center justify-center mx-auto mb-5 rounded-2xl bg-white/[0.04] border border-white/10">
+                    <i className="ri-filter-off-line text-4xl text-zinc-500"></i>
                   </div>
-                  <h2 className="text-xl font-bold text-zinc-800 mb-2">{t('fighters_dir_no_filter_title')}</h2>
-                  <p className="text-sm text-zinc-500 mb-4">{t('fighters_dir_no_filter_desc')}</p>
+                  <h2 className="rk-h3 text-white mb-2">{t('fighters_dir_no_filter_title')}</h2>
+                  <p className="text-sm text-zinc-400 mb-4 max-w-sm mx-auto">{t('fighters_dir_no_filter_desc')}</p>
                   <button
                     onClick={() => setFilters(defaultFilters)}
-                    className="text-sm bg-red-600 hover:bg-red-700 text-white font-semibold px-5 py-2.5 rounded-xl cursor-pointer whitespace-nowrap transition-colors"
+                    className="rk-btn rk-btn-ghost" style={{ fontSize: '0.85rem', padding: '0.7rem 1.4rem' }}
                   >
                     {t('fighters_dir_clear_filters')}
                   </button>
@@ -460,56 +460,56 @@ export default function FightersDirectoryPage() {
                       <article
                         key={fighter.id}
                         onClick={() => navigate(`/fighter/${fighter.id}`)}
-                        className="bg-white border border-zinc-100 rounded-xl p-4 flex items-center gap-4 hover:border-red-200 hover:shadow-sm transition-all cursor-pointer group"
+                        className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 flex items-center gap-4 hover:border-red-500/40 hover:bg-white/[0.05] transition-all cursor-pointer group"
                       >
                         {profile.avatar_url ? (
                           <img src={profile.avatar_url} alt={profile.full_name || ''} className="w-14 h-14 rounded-xl object-cover object-top flex-shrink-0" />
                         ) : (
-                          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center text-white font-black text-lg flex-shrink-0">
+                          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-red-600 to-red-800 flex items-center justify-center text-white flex-shrink-0" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20 }}>
                             {initials}
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="text-sm font-bold text-zinc-800 group-hover:text-red-600 transition-colors truncate">
+                            <h3 className="text-sm font-bold text-white group-hover:text-red-400 transition-colors truncate">
                               {profile.full_name || 'Peleador'}
                             </h3>
                             {fighter.nickname && (
                               <span className="text-xs text-red-400 italic hidden sm:inline">&ldquo;{fighter.nickname}&rdquo;</span>
                             )}
                             {fighter.is_available && (
-                              <span className="flex items-center gap-1 text-xs bg-green-50 text-green-600 border border-green-100 px-2 py-0.5 rounded-full whitespace-nowrap">
+                              <span className="flex items-center gap-1 text-xs bg-green-500/12 text-green-400 border border-green-500/30 px-2 py-0.5 rounded-full whitespace-nowrap">
                                 <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
                                 Disponible
                               </span>
                             )}
                           </div>
                           <div className="flex items-center gap-3 mt-1 flex-wrap">
-                            {fighter.discipline && <span className="text-xs text-zinc-500">{disciplineLabels[fighter.discipline] || fighter.discipline}</span>}
-                            {fighter.weight_class && <span className="text-xs text-zinc-400">{fighter.weight_class}</span>}
+                            {fighter.discipline && <span className="text-xs text-zinc-400">{disciplineLabels[fighter.discipline] || fighter.discipline}</span>}
+                            {fighter.weight_class && <span className="text-xs text-zinc-500">{fighter.weight_class}</span>}
                             {(fighter.nationality || profile.location) && (
-                              <span className="flex items-center gap-1 text-xs text-zinc-400">
+                              <span className="flex items-center gap-1 text-xs text-zinc-500">
                                 <i className="ri-map-pin-line"></i>
                                 {fighter.nationality || profile.location}
                               </span>
                             )}
-                            {fighter.gym && <span className="flex items-center gap-1 text-xs text-zinc-400 hidden sm:flex"><i className="ri-building-4-line"></i>{fighter.gym}</span>}
+                            {fighter.gym && <span className="flex items-center gap-1 text-xs text-zinc-500 hidden sm:flex"><i className="ri-building-4-line"></i>{fighter.gym}</span>}
                           </div>
                         </div>
-                        <div className="hidden sm:flex items-center gap-3 flex-shrink-0">
-                          <div className="text-center"><p className="text-base font-black text-green-600">{fighter.wins}</p><p className="text-xs text-zinc-400">V</p></div>
-                          <div className="text-center"><p className="text-base font-black text-red-500">{fighter.losses}</p><p className="text-xs text-zinc-400">D</p></div>
-                          <div className="text-center"><p className="text-base font-black text-orange-500">{fighter.kos}</p><p className="text-xs text-zinc-400">KO</p></div>
+                        <div className="hidden sm:flex items-center gap-3 flex-shrink-0" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
+                          <div className="text-center"><p className="text-lg text-green-400 leading-none">{fighter.wins}</p><p className="text-[10px] text-zinc-500 mt-0.5">V</p></div>
+                          <div className="text-center"><p className="text-lg text-red-400 leading-none">{fighter.losses}</p><p className="text-[10px] text-zinc-500 mt-0.5">D</p></div>
+                          <div className="text-center"><p className="text-lg text-orange-400 leading-none">{fighter.kos}</p><p className="text-[10px] text-zinc-500 mt-0.5">KO</p></div>
                         </div>
                         {socialCount > 0 && (
                           <div className="hidden md:flex items-center gap-1 flex-shrink-0">
-                            {profile.instagram && <span className="w-7 h-7 flex items-center justify-center rounded-lg bg-gradient-to-br from-pink-500/20 to-orange-400/20 text-pink-500 text-xs"><i className="ri-instagram-line"></i></span>}
-                            {profile.tiktok && <span className="w-7 h-7 flex items-center justify-center rounded-lg bg-zinc-100 text-zinc-600 text-xs"><i className="ri-tiktok-line"></i></span>}
-                            {profile.youtube && <span className="w-7 h-7 flex items-center justify-center rounded-lg bg-red-50 text-red-500 text-xs"><i className="ri-youtube-line"></i></span>}
-                            {profile.twitter && <span className="w-7 h-7 flex items-center justify-center rounded-lg bg-zinc-100 text-zinc-600 text-xs"><i className="ri-twitter-x-line"></i></span>}
+                            {profile.instagram && <span className="w-7 h-7 flex items-center justify-center rounded-lg bg-pink-500/15 text-pink-400 text-xs"><i className="ri-instagram-line"></i></span>}
+                            {profile.tiktok && <span className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/[0.06] text-zinc-300 text-xs"><i className="ri-tiktok-line"></i></span>}
+                            {profile.youtube && <span className="w-7 h-7 flex items-center justify-center rounded-lg bg-red-500/15 text-red-400 text-xs"><i className="ri-youtube-line"></i></span>}
+                            {profile.twitter && <span className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/[0.06] text-zinc-300 text-xs"><i className="ri-twitter-x-line"></i></span>}
                           </div>
                         )}
-                        <i className="ri-arrow-right-line text-zinc-300 group-hover:text-red-500 transition-colors flex-shrink-0"></i>
+                        <i className="ri-arrow-right-line text-zinc-600 group-hover:text-red-400 transition-colors flex-shrink-0"></i>
                       </article>
                     );
                   })}

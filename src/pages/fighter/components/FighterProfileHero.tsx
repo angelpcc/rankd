@@ -30,14 +30,13 @@ export default function FighterProfileHero({ profile, fighter, views, onContact,
   const winRate = totalFights > 0 ? Math.round((fighter!.wins / totalFights) * 100) : null;
 
   return (
-    <div className="relative w-full overflow-hidden bg-zinc-950">
-      {/* Background */}
-      <div
-        className="absolute inset-0 bg-cover bg-center scale-105"
-        style={{ backgroundImage: 'url(https://readdy.ai/api/search-image?query=dark%20dramatic%20professional%20combat%20sports%20arena%20octagon%20boxing%20ring%20atmospheric%20moody%20cinematic%20lighting%20smoke%20fog%20dark%20background%20minimal&width=1400&height=700&seq=fhero-v2-01&orientation=landscape)' }}
-      />
-      <div className="absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/85 to-zinc-950/50" />
-      <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/20 to-transparent" />
+    <div className="relative w-full overflow-hidden bg-[#050505] rk-grid-bg">
+      {/* Background: tratamiento cinematográfico (sin imágenes de relleno) */}
+      <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 78% 42%, rgba(225,6,0,0.18) 0%, transparent 55%)' }} />
+      <div className="absolute top-0 right-0 w-1/2 h-full" style={{ background: 'radial-gradient(ellipse at 100% 0%, rgba(201,168,76,0.06) 0%, transparent 60%)' }} />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#050505] via-[#050505]/85 to-[#050505]/40" />
+      <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-transparent" />
+      <div className="rk-topline" />
 
       {/* Views badge */}
       {views !== undefined && views > 0 && (
