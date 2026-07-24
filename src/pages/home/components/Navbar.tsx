@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import LanguageSelector from '@/components/feature/LanguageSelector';
+import RankdLogo from '@/components/base/RankdLogo';
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -111,11 +112,10 @@ export default function Navbar() {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between'
         }}>
 
-          {/* Logo */}
-          <a href="#home" onClick={(e) => { e.preventDefault(); handleNav('#home'); }} style={{ cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
-            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 26, color: '#ffffff', letterSpacing: 4, lineHeight: 1 }}>RAN</span>
-            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 26, color: '#E10600', letterSpacing: 4, lineHeight: 1 }}>KD</span>
-            <span style={{ width: 6, height: 6, background: '#C9A84C', borderRadius: '50%', marginLeft: 4, marginTop: 2, flexShrink: 0 }} />
+          {/* Logo oficial — siempre lleva al inicio (antes usaba un ancla frágil) */}
+          <a href="/beta" onClick={(e) => { e.preventDefault(); handleNav('/beta'); }} aria-label="RANKD — Inicio" style={{ cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+            <RankdLogo size={30} />
+            <span style={{ width: 6, height: 6, background: '#C9A84C', borderRadius: '50%', marginLeft: 7, marginTop: 2, flexShrink: 0 }} />
           </a>
 
           {/* Desktop Links */}

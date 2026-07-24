@@ -1,5 +1,5 @@
 // Service Worker básico de RANKD — permite instalar la web como app
-const CACHE = 'rankd-v1';
+const CACHE = 'rankd-v2';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
