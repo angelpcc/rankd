@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import SupportModal from '@/components/feature/SupportModal';
 
 const NAV = [
   { label: 'Peleadores', href: '/fighters' },
@@ -19,8 +21,11 @@ export default function Footer() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const year = new Date().getFullYear();
+  const [supportOpen, setSupportOpen] = useState(false);
 
   return (
+    <>
+    <SupportModal open={supportOpen} onClose={() => setSupportOpen(false)} />
     <footer style={{ position: 'relative', background: 'var(--rk-black)', borderTop: '1px solid rgba(255,255,255,0.07)', overflow: 'hidden' }}>
       {/* Ambiente */}
       <div className="rk-glow-red" style={{ bottom: '-40%', left: '50%', transform: 'translateX(-50%)', width: '90%', height: '90%' }} />
@@ -114,6 +119,16 @@ export default function Footer() {
                 <i className="ri-map-pin-line" style={{ opacity: 0.5 }} />
                 {t('footer_headquarters')}
               </span>
+              <button
+                onClick={() => setSupportOpen(true)}
+                className="rk-body"
+                style={{ fontSize: '0.95rem', background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, width: 'fit-content', transition: 'color 0.24s', fontFamily: "'Barlow Condensed', sans-serif" }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--rk-gold)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--rk-text-2)')}
+              >
+                <i className="ri-lifebuoy-line" style={{ opacity: 0.6 }} />
+                Reportar un problema
+              </button>
             </div>
 
             <button className="rk-btn rk-btn-primary" style={{ fontSize: '0.95rem', padding: '0.8rem 1.6rem', marginTop: 22 }} onClick={() => navigate('/auth')}>
@@ -152,5 +167,6 @@ export default function Footer() {
         }
       `}</style>
     </footer>
+    </>
   );
 }

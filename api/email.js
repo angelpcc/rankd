@@ -23,7 +23,9 @@ const ADMIN_EMAILS = ['angelpc2005@gmail.com'];
 // Resend acepta hasta 100 correos por llamada al endpoint de lote.
 const BATCH_SIZE = 100;
 
-const SITE_URL = process.env.SITE_URL || 'https://rankd.es';
+// Mismo dominio que el <link rel="canonical"> de index.html.
+// Cuando haya dominio propio, basta con definir SITE_URL en Vercel.
+const SITE_URL = process.env.SITE_URL || 'https://rankd-black.vercel.app';
 
 function env() {
   return {
