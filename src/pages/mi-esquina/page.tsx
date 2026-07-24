@@ -9,6 +9,8 @@ import RoundTimer from '@/pages/mi-esquina/components/RoundTimer';
 import WeeklyPlanner from '@/pages/mi-esquina/components/WeeklyPlanner';
 import NutritionTracker from '@/pages/mi-esquina/components/NutritionTracker';
 import GearChecklist from '@/pages/mi-esquina/components/GearChecklist';
+import SectionCoach from '@/pages/mi-esquina/components/SectionCoach';
+import MealLog from '@/pages/mi-esquina/components/MealLog';
 import Reveal from '@/components/base/Reveal';
 
 type Section = 'resumen' | 'diario' | 'rutina' | 'timer' | 'coach' | 'material' | 'nutricion' | 'mensajes';
@@ -18,7 +20,7 @@ const SECTIONS: { id: Section; label: string; icon: string; soon?: boolean }[] =
   { id: 'diario', label: 'Diario de entrenos', icon: 'ri-calendar-check-line' },
   { id: 'rutina', label: 'Mi semana', icon: 'ri-calendar-2-line' },
   { id: 'timer', label: 'Temporizador', icon: 'ri-timer-flash-line' },
-  { id: 'coach', label: 'Coach IA', icon: 'ri-sparkling-2-line', soon: true },
+  { id: 'coach', label: 'Coach IA', icon: 'ri-sparkling-2-line' },
   { id: 'material', label: 'Material', icon: 'ri-boxing-line' },
   { id: 'nutricion', label: 'Nutrición', icon: 'ri-restaurant-line' },
   { id: 'mensajes', label: 'Mensajes', icon: 'ri-message-3-line' },
@@ -216,30 +218,25 @@ export default function MiEsquinaPage() {
           {section === 'timer' && <RoundTimer />}
 
           {section === 'coach' && (
-            <div className="max-w-2xl text-center py-16">
-              <Reveal variant="scale">
-                <div className="w-20 h-20 mx-auto mb-6 flex items-center justify-center rounded-3xl bg-red-600/10 border border-red-500/30 anim-pulse-glow" style={{ borderRadius: 24 }}>
-                  <i className="ri-sparkling-2-line text-3xl text-red-400"></i>
+            <div className="space-y-5 max-w-3xl">
+              <Reveal>
+                <div>
+                  <p className="rk-eyebrow">TU ESQUINA INTELIGENTE</p>
+                  <h2 className="rk-h2" style={{ fontSize: 'clamp(1.8rem,4vw,2.4rem)', color: '#fff', margin: '4px 0 0' }}>
+                    COACH DE <span className="rk-red-glow">ENTRENAMIENTO</span>
+                  </h2>
+                  <p className="text-zinc-400 text-sm mt-1.5 max-w-md">Planifica sesiones y rutinas con una IA que conoce tu disciplina, nivel y objetivo. Pídele un plan, ajústalo en conversación y llévalo a tu diario.</p>
                 </div>
-                <h2 className="rk-h2" style={{ color: '#fff' }}>COACH IA <span className="rk-red-glow">MUY PRONTO</span></h2>
-                <p className="text-zinc-400 text-sm mt-3 max-w-md mx-auto leading-relaxed">
-                  Un entrenador con inteligencia artificial que conocerá tu perfil, tu récord y tu diario. Pregúntale sobre planificación, estrategia, preparación de combates o cualquier duda de tu deporte. Disponible las 24 horas, en tu esquina.
-                </p>
               </Reveal>
-              <Reveal delay={120}>
-                <div className="mt-8 grid sm:grid-cols-3 gap-3 text-left">
-                  {[
-                    { icon: 'ri-question-answer-line', t: 'Pregunta lo que sea', d: '"¿Cómo mejoro mi jab?" "¿Qué entreno si me duele el hombro?"' },
-                    { icon: 'ri-calendar-2-line', t: 'Planifica contigo', d: 'Te ayudará a organizar tu semana según tus objetivos' },
-                    { icon: 'ri-user-heart-line', t: 'Te conoce', d: 'Sabe tu disciplina, nivel y cómo vienes entrenando' },
-                  ].map((f) => (
-                    <div key={f.t} className="rk-card" style={{ padding: 16 }}>
-                      <i className={`${f.icon} text-red-400 text-lg`}></i>
-                      <p className="text-xs font-bold text-white mt-2">{f.t}</p>
-                      <p className="text-[11px] text-zinc-500 mt-1 leading-relaxed">{f.d}</p>
-                    </div>
-                  ))}
-                </div>
+              <Reveal delay={80}>
+                <SectionCoach
+                  section="training"
+                  profile={profile}
+                  accent="red"
+                  title="Coach de entrenamiento"
+                  intro="Cuéntame tu objetivo y te armo un plan. Por ejemplo, una semana de entreno o la preparación de una pelea."
+                  suggestions={['Plan de esta semana', 'Quiero ganar fuerza este mes', 'Prepárame para una pelea en 6 semanas', 'Rutina para mejorar el cardio']}
+                />
               </Reveal>
             </div>
           )}
@@ -248,6 +245,25 @@ export default function MiEsquinaPage() {
             <div className="space-y-8 max-w-4xl">
               {/* Herramienta real: inventario de material */}
               <GearChecklist profile={profile} showToast={showToast} />
+
+              <div className="rk-rule" style={{ width: '100%', opacity: 0.5 }} />
+
+              {/* IA de material: recomendaciones concretas por disciplina/nivel */}
+              <Reveal>
+                <div className="mb-4">
+                  <p className="rk-eyebrow">RECOMENDACIONES A MEDIDA</p>
+                  <h2 className="rk-h2" style={{ fontSize: 'clamp(1.6rem,3.5vw,2.1rem)', margin: '4px 0 0', color: '#fff' }}>ASESOR DE <span className="rk-red-glow">MATERIAL</span></h2>
+                  <p className="text-zinc-400 text-sm mt-1.5">Dile qué buscas y te recomienda marcas y características según tu disciplina y nivel.</p>
+                </div>
+                <SectionCoach
+                  section="gear"
+                  profile={profile}
+                  accent="red"
+                  title="Asesor de material"
+                  intro="Dime qué necesitas comprar y para qué, y te oriento con características y marcas según tu nivel."
+                  suggestions={['¿Qué guantes me compro?', 'Equipo para empezar de cero', 'Espinilleras para Muay Thai', 'Bucal: cuál merece la pena']}
+                />
+              </Reveal>
 
               <div className="rk-rule" style={{ width: '100%', opacity: 0.5 }} />
 
@@ -286,6 +302,28 @@ export default function MiEsquinaPage() {
             <div className="space-y-8 max-w-4xl">
               {/* Herramienta real: peso e hidratación */}
               <NutritionTracker profile={profile} showToast={showToast} />
+
+              <div className="rk-rule" style={{ width: '100%', opacity: 0.5 }} />
+
+              {/* Diario de comidas + IA de nutrición */}
+              <Reveal>
+                <div className="mb-4">
+                  <p className="rk-eyebrow">TU DIETA, A DIARIO</p>
+                  <h2 className="rk-h2" style={{ fontSize: 'clamp(1.6rem,3.5vw,2.1rem)', margin: '4px 0 0', color: '#fff' }}>COACH DE <span className="rk-red-glow">NUTRICIÓN</span></h2>
+                  <p className="text-zinc-400 text-sm mt-1.5">Apunta lo que comes y pide a la IA que te planifique o ajuste la dieta según tu peso y objetivo.</p>
+                </div>
+                <div className="grid lg:grid-cols-2 gap-4 items-start">
+                  <MealLog profile={profile} showToast={showToast} />
+                  <SectionCoach
+                    section="nutrition"
+                    profile={profile}
+                    accent="sky"
+                    title="Coach de nutrición"
+                    intro="Cuéntame tu objetivo o pídeme un plan de comidas. Puedo ajustarlo si me dices qué quitar o reforzar."
+                    suggestions={['Planifícame el día de hoy', 'Quítame los lácteos', 'Necesito más proteína esta semana', 'Menú para bajar al peso objetivo']}
+                  />
+                </div>
+              </Reveal>
 
               <div className="rk-rule" style={{ width: '100%', opacity: 0.5 }} />
 
