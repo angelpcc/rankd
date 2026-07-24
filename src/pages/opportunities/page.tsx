@@ -5,6 +5,7 @@ import { supabase, Opportunity, Profile } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useSEO } from '@/hooks/useSEO';
 import Navbar from '@/pages/home/components/Navbar';
+import Footer from '@/pages/home/components/Footer';
 import OpportunityCard from './components/OpportunityCard';
 import OpportunitiesFilters from './components/OpportunitiesFilters';
 import ApplyModal from './components/ApplyModal';
@@ -91,6 +92,10 @@ export default function OpportunitiesPage() {
     sparring: 'Sparring', campamento: 'Campamento', entrenamiento: 'Entrenamiento', scouting: 'Scouting',
   };
 
+  // "Sin resultados" y "todavía no hay nada publicado" son cosas distintas
+  // y merecen mensajes distintos.
+  const hasFilters = !!(filterType || filterDiscipline || filterWeight || filterLocation || search);
+
   return (
     <div className="min-h-screen bg-[#070707]">
       <Navbar />
@@ -174,7 +179,7 @@ export default function OpportunitiesPage() {
           <p className="text-sm text-zinc-300 font-medium">
             {loading ? t('opp_page_loading') : `${filtered.length} ${filtered.length !== 1 ? t('opp_page_count_plural') : t('opp_page_count')}`}
           </p>
-          {(filterType || filterDiscipline || filterWeight || filterLocation || search) && (
+          {hasFilters && (
             <button
               onClick={() => { setFilterType(''); setFilterDiscipline(''); setFilterWeight(''); setFilterLocation(''); setSearch(''); }}
               className="text-xs text-red-500 hover:text-red-400 cursor-pointer flex items-center gap-1 font-medium"
@@ -185,16 +190,51 @@ export default function OpportunitiesPage() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-24">
-            <div className="w-10 h-10 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-white/[0.02] border border-white/[0.07] rounded-2xl p-5 space-y-3">
+                <div className="h-5 w-24 rounded-full opp-skeleton" />
+                <div className="h-5 w-full rounded opp-skeleton" />
+                <div className="h-5 w-3/5 rounded opp-skeleton" />
+                <div className="h-3 w-full rounded opp-skeleton mt-4" />
+                <div className="h-3 w-4/5 rounded opp-skeleton" />
+                <div className="h-10 w-full rounded-xl opp-skeleton mt-5" />
+              </div>
+            ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-24">
-            <div className="w-16 h-16 flex items-center justify-center mx-auto mb-4 text-zinc-300">
-              <i className="ri-search-line text-5xl"></i>
+          <div className="text-center py-20 rk-card" style={{ transform: 'none' }}>
+            <div className="w-16 h-16 flex items-center justify-center mx-auto mb-4 rounded-2xl bg-white/[0.04] border border-white/[0.08]">
+              <i className={`text-3xl text-zinc-500 ${hasFilters ? 'ri-search-eye-line' : 'ri-megaphone-line'}`}></i>
             </div>
-            <p className="text-zinc-200 text-base font-semibold">{t('opp_page_empty_title')}</p>
-            <p className="text-zinc-500 text-sm mt-1">{t('opp_page_empty_desc')}</p>
+            {hasFilters ? (
+              <>
+                <p className="text-zinc-200 text-base font-semibold">{t('opp_page_empty_title')}</p>
+                <p className="text-zinc-500 text-sm mt-1">{t('opp_page_empty_desc')}</p>
+                <button
+                  onClick={() => { setFilterType(''); setFilterDiscipline(''); setFilterWeight(''); setFilterLocation(''); setSearch(''); }}
+                  className="mt-5 text-sm font-bold text-red-400 hover:text-red-300 cursor-pointer"
+                >
+                  Ver todas las oportunidades
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-zinc-200 text-base font-semibold">Todavía no hay oportunidades abiertas</p>
+                <p className="text-zinc-500 text-sm mt-1.5 max-w-sm mx-auto leading-relaxed">
+                  Promotoras, gimnasios y marcas publican aquí combates, sparrings, campamentos y patrocinios.
+                </p>
+                {profile && profile.user_type !== 'fighter' ? (
+                  <button onClick={() => navigate('/dashboard')} className="rk-btn rk-btn-primary mt-6" style={{ fontSize: '0.85rem', padding: '0.75rem 1.6rem' }}>
+                    PUBLICAR LA PRIMERA
+                  </button>
+                ) : (
+                  <button onClick={() => navigate('/fighters')} className="mt-5 text-sm font-bold text-red-400 hover:text-red-300 cursor-pointer">
+                    Explorar el directorio de peleadores
+                  </button>
+                )}
+              </>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
@@ -235,6 +275,17 @@ export default function OpportunitiesPage() {
           {toast.msg}
         </div>
       )}
+
+      <style>{`
+        .opp-skeleton {
+          background: linear-gradient(90deg, rgba(255,255,255,0.035) 25%, rgba(255,255,255,0.07) 50%, rgba(255,255,255,0.035) 75%);
+          background-size: 200% 100%;
+          animation: rankd-shimmer 1.6s linear infinite;
+        }
+        @media (prefers-reduced-motion: reduce) { .opp-skeleton { animation: none; } }
+      `}</style>
+
+      <Footer />
     </div>
   );
 }
