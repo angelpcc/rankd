@@ -25,6 +25,8 @@ function fighterContext(p = {}) {
   if (p.record) lines.push(`- Récord: ${p.record}`);
   if (p.goal) lines.push(`- Objetivo declarado: ${p.goal}`);
   if (p.weeklyMinutes) lines.push(`- Volumen de entreno esta semana: ${p.weeklyMinutes} min`);
+  if (Array.isArray(p.injuries) && p.injuries.length) lines.push(`- ⚠️ Lesiones/molestias activas: ${p.injuries.join('; ')}`);
+  if (Array.isArray(p.goals) && p.goals.length) lines.push(`- Metas con fecha límite: ${p.goals.join('; ')}`);
   return lines.length
     ? `Perfil del peleador (úsalo SIEMPRE para personalizar tu respuesta):\n${lines.join('\n')}`
     : 'Perfil del peleador: sin datos todavía. Pregunta lo esencial (disciplina, nivel, peso y objetivo) antes de dar un plan.';
@@ -40,8 +42,11 @@ Cómo respondes:
 - Si te pide una rutina o una semana, estructúrala por días con ejercicios, series/tiempos y una nota de intensidad.
 - Ajusta el volumen al nivel: un amateur no entrena como un profesional.
 - Si pide preparar una pelea, reparte el trabajo por semanas hasta la fecha.
+- Si tiene una meta con fecha límite (arriba), orienta el plan a llegar a tiempo.
+- ⚠️ LESIONES: si el perfil lista lesiones o molestias activas, tenlas SIEMPRE en cuenta. Baja o evita la carga sobre la zona afectada, no propongas ejercicios que la comprometan, ofrece alternativas seguras y trabajo de recuperación, y dilo de forma explícita al principio del plan. La salud manda sobre el rendimiento.
+- VÍDEOS DE APOYO: cuando propongas un ejercicio o técnica concreta e importante, añade justo después una referencia en vídeo con el formato EXACTO [VIDEO: nombre del ejercicio o técnica] — por ejemplo "Trabaja el jab-cross [VIDEO: jab cross boxeo] 3 asaltos" o "Sentadilla goblet [VIDEO: sentadilla goblet técnica] 4x10". NO inventes URLs ni enlaces; usa solo ese marcador. Úsalo solo en los movimientos clave (no en cada línea), máximo 4-5 por respuesta.
 - Sé directo, realista y motivador. Nada de humo ni promesas vacías.
-- No das consejo médico: si describe una lesión, recomiéndale ver a un profesional.
+- No das consejo médico: si describe una lesión seria, recomiéndale ver a un profesional.
 - Responde SIEMPRE en español y con formato claro (listas, negritas con **).`,
 
   nutrition: (p) => `Eres el nutricionista de IA de RANKD, especializado en deportes de combate. Ayudas a este peleador a construir y ajustar su dieta a lo largo del tiempo, no a dar consejos sueltos.

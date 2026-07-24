@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import type { ReactNode } from 'react';
 import { supabase, Profile } from '@/lib/supabase';
 
 type Section = 'training' | 'nutrition' | 'gear';
@@ -36,17 +37,55 @@ function isoFromOffset(offset: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-// Formateo ligero del markdown que devuelve la IA (negritas, listas, saltos).
+// Marcador de vídeo que emite el Coach de Entrenamiento: [VIDEO: nombre].
+// Lo convertimos en un botón que abre una búsqueda de YouTube para esa técnica.
+// Usamos búsqueda (no una URL concreta) para que el enlace SIEMPRE sea válido:
+// la IA no puede inventar un vídeo que no exista.
+const VIDEO_RE = /\[VIDEO:\s*([^\]]+)\]/gi;
+
+function youtubeSearch(query: string): string {
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(query.trim() + ' técnica tutorial')}`;
+}
+
+// Renderiza negritas (**texto**) dentro de un fragmento de texto.
+function renderBold(text: string, keyBase: string) {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((seg, j) =>
+    seg.startsWith('**') && seg.endsWith('**')
+      ? <strong key={`${keyBase}-b${j}`} className="text-white font-semibold">{seg.slice(2, -2)}</strong>
+      : <span key={`${keyBase}-s${j}`}>{seg}</span>
+  );
+}
+
+// Renderiza una línea: negritas + los marcadores [VIDEO: ...] como botones.
+function renderInline(text: string, keyBase: string) {
+  const nodes: ReactNode[] = [];
+  let last = 0;
+  let idx = 0;
+  let m: RegExpExecArray | null;
+  VIDEO_RE.lastIndex = 0;
+  while ((m = VIDEO_RE.exec(text)) !== null) {
+    if (m.index > last) nodes.push(...renderBold(text.slice(last, m.index), `${keyBase}-t${idx}`));
+    const q = m[1].trim();
+    nodes.push(
+      <a key={`${keyBase}-v${idx}`} href={youtubeSearch(q)} target="_blank" rel="noopener noreferrer"
+        className="inline-flex items-center gap-1.5 align-middle mx-0.5 my-0.5 rounded-lg bg-red-600/12 border border-red-500/35 text-red-300 hover:bg-red-600/20 hover:text-red-200 transition-colors px-2 py-0.5 text-xs font-semibold no-underline">
+        <i className="ri-play-circle-fill"></i>Ver: {q}
+      </a>
+    );
+    last = m.index + m[0].length;
+    idx++;
+  }
+  if (last < text.length) nodes.push(...renderBold(text.slice(last), `${keyBase}-t${idx}`));
+  return nodes;
+}
+
+// Formateo ligero del markdown que devuelve la IA (negritas, listas, saltos, vídeos).
 function renderRich(text: string) {
   return text.split('\n').map((line, i) => {
     const trimmed = line.trim();
     const bullet = /^[-*•]\s+/.test(trimmed);
     const clean = bullet ? trimmed.replace(/^[-*•]\s+/, '') : line;
-    const parts = clean.split(/(\*\*[^*]+\*\*)/g).map((seg, j) =>
-      seg.startsWith('**') && seg.endsWith('**')
-        ? <strong key={j} className="text-white font-semibold">{seg.slice(2, -2)}</strong>
-        : <span key={j}>{seg}</span>
-    );
+    const parts = renderInline(clean, `l${i}`);
     if (bullet) {
       return <div key={i} className="flex gap-2 pl-1"><span className="text-zinc-600 mt-1.5 flex-shrink-0" style={{ fontSize: 6 }}>●</span><span>{parts}</span></div>;
     }
@@ -90,11 +129,22 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
   // Perfil físico del peleador = contexto de la IA
   useEffect(() => {
     const load = async () => {
-      const [{ data: f }, { data: w }, { data: g }, { data: sess }] = await Promise.all([
+      // Lesiones y objetivos solo importan al Coach de Entrenamiento. Sus tablas
+      // pueden no existir aún (migración pendiente): si fallan, se ignoran.
+      const injuriesQ = section === 'training'
+        ? supabase.from('injuries').select('body_part, title, severity, status').eq('fighter_profile_id', profile.id).neq('status', 'recuperada')
+        : Promise.resolve({ data: null });
+      const goalsQ = section === 'training'
+        ? supabase.from('fighter_goals').select('title, category, target_value, unit, deadline').eq('fighter_profile_id', profile.id).eq('status', 'active')
+        : Promise.resolve({ data: null });
+
+      const [{ data: f }, { data: w }, { data: g }, { data: sess }, injRes, goalRes] = await Promise.all([
         supabase.from('fighters').select('discipline, weight_class, experience_level, age, wins, losses, draws, kos, looking_for').eq('profile_id', profile.id).maybeSingle(),
         supabase.from('weight_entries').select('weight_kg').eq('fighter_profile_id', profile.id).order('entry_date', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('nutrition_goals').select('target_weight_kg').eq('fighter_profile_id', profile.id).maybeSingle(),
         supabase.from('training_sessions').select('duration_min, session_date').eq('fighter_profile_id', profile.id).order('session_date', { ascending: false }).limit(30),
+        injuriesQ,
+        goalsQ,
       ]);
       const weekStart = new Date();
       weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() === 0 ? 6 : weekStart.getDay() - 1)));
@@ -103,6 +153,19 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
         .filter((s) => new Date(s.session_date + 'T12:00:00') >= weekStart)
         .reduce((acc, s) => acc + (s.duration_min || 0), 0);
       const goals = (f?.looking_for || []) as string[];
+
+      // Lesiones activas → texto legible para la IA
+      const injuries = ((injRes?.data as { body_part: string; title: string | null; severity: string; status: string }[] | null) || [])
+        .map((it) => `${it.body_part}${it.title ? ` (${it.title})` : ''} — ${it.severity}, ${it.status}`);
+
+      // Metas con fecha → texto legible para la IA
+      const dated = ((goalRes?.data as { title: string; category: string; target_value: number | null; unit: string | null; deadline: string | null }[] | null) || [])
+        .map((gg) => {
+          const target = gg.target_value !== null ? `${gg.target_value}${gg.unit || ''}` : null;
+          const base = gg.category === 'weight' && target ? `llegar a ${target}` : gg.title;
+          return gg.deadline ? `${base} (antes del ${gg.deadline})` : base;
+        });
+
       setPhysical({
         name: (profile.full_name || '').split(' ')[0] || undefined,
         discipline: f?.discipline ? (disciplineLabels[f.discipline] || f.discipline) : undefined,
@@ -114,10 +177,12 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
         record: f ? `${f.wins ?? 0}-${f.losses ?? 0}-${f.draws ?? 0}, ${f.kos ?? 0} KO` : undefined,
         goal: goals.length ? goals.join(', ') : undefined,
         weeklyMinutes: weeklyMinutes || undefined,
+        injuries: injuries.length ? injuries : undefined,
+        goals: dated.length ? dated : undefined,
       });
     };
     load();
-  }, [profile.id, profile.full_name]);
+  }, [profile.id, profile.full_name, section]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });

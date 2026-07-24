@@ -6,24 +6,30 @@ import { useSEO } from '@/hooks/useSEO';
 import FighterTraining from '@/pages/dashboard/components/FighterTraining';
 import MessagesPanel from '@/pages/dashboard/components/messages/MessagesPanel';
 import RoundTimer from '@/pages/mi-esquina/components/RoundTimer';
-import WeeklyPlanner from '@/pages/mi-esquina/components/WeeklyPlanner';
+import TrainingCalendar from '@/pages/mi-esquina/components/TrainingCalendar';
 import NutritionTracker from '@/pages/mi-esquina/components/NutritionTracker';
+import WeightTracker from '@/pages/mi-esquina/components/WeightTracker';
+import GoalsPanel from '@/pages/mi-esquina/components/GoalsPanel';
+import InjuryTracker from '@/pages/mi-esquina/components/InjuryTracker';
 import GearChecklist from '@/pages/mi-esquina/components/GearChecklist';
 import SectionCoach from '@/pages/mi-esquina/components/SectionCoach';
 import MealLog from '@/pages/mi-esquina/components/MealLog';
 import Reveal from '@/components/base/Reveal';
 import NotificationBell from '@/components/feature/NotificationBell';
 
-type Section = 'resumen' | 'diario' | 'rutina' | 'timer' | 'coach' | 'material' | 'nutricion' | 'mensajes';
+type Section = 'resumen' | 'calendario' | 'diario' | 'peso' | 'objetivos' | 'lesiones' | 'timer' | 'coach' | 'material' | 'nutricion' | 'mensajes';
 
 const SECTIONS: { id: Section; label: string; icon: string; soon?: boolean }[] = [
   { id: 'resumen', label: 'Resumen', icon: 'ri-dashboard-line' },
+  { id: 'calendario', label: 'Calendario', icon: 'ri-calendar-2-line' },
   { id: 'diario', label: 'Diario de entrenos', icon: 'ri-calendar-check-line' },
-  { id: 'rutina', label: 'Mi semana', icon: 'ri-calendar-2-line' },
-  { id: 'timer', label: 'Temporizador', icon: 'ri-timer-flash-line' },
+  { id: 'peso', label: 'Control de peso', icon: 'ri-scales-2-line' },
+  { id: 'objetivos', label: 'Objetivos', icon: 'ri-flag-line' },
+  { id: 'lesiones', label: 'Lesiones', icon: 'ri-first-aid-kit-line' },
   { id: 'coach', label: 'Coach IA', icon: 'ri-sparkling-2-line' },
   { id: 'material', label: 'Material', icon: 'ri-boxing-line' },
   { id: 'nutricion', label: 'Nutrición', icon: 'ri-restaurant-line' },
+  { id: 'timer', label: 'Temporizador', icon: 'ri-timer-flash-line' },
   { id: 'mensajes', label: 'Mensajes', icon: 'ri-message-3-line' },
 ];
 
@@ -246,10 +252,10 @@ export default function MiEsquinaPage() {
                 <div className="grid sm:grid-cols-2 gap-3">
                   {[
                     { s: 'diario' as Section, icon: 'ri-calendar-check-line', title: 'Registra tu entreno de hoy', desc: 'Suma a tu racha y controla tu carga semanal', cta: 'Ir al diario' },
-                    { s: 'timer' as Section, icon: 'ri-timer-flash-line', title: 'Temporizador de asaltos', desc: 'Entrena con el ritmo real del combate, con campana', cta: 'Abrir timer' },
-                    { s: 'rutina' as Section, icon: 'ri-calendar-2-line', title: 'Planifica tu semana', desc: 'Organiza tus entrenos y ve tachando lo cumplido', cta: 'Ver mi semana' },
-                    { s: 'material' as Section, icon: 'ri-boxing-line', title: 'Guía de material', desc: 'Guantes, vendas, protecciones: qué comprar y por qué', cta: 'Ver guía' },
-                    { s: 'nutricion' as Section, icon: 'ri-restaurant-line', title: 'Nutrición del peleador', desc: 'Lo esencial para rendir: comida, hidratación y descanso', cta: 'Ver consejos' },
+                    { s: 'calendario' as Section, icon: 'ri-calendar-2-line', title: 'Planifica hacia adelante', desc: 'Entrenos futuros, día de pesaje y fecha de combate', cta: 'Abrir calendario' },
+                    { s: 'peso' as Section, icon: 'ri-scales-2-line', title: 'Control de peso', desc: 'Registra tu peso y sigue su evolución camino al pesaje', cta: 'Ver mi peso' },
+                    { s: 'objetivos' as Section, icon: 'ri-flag-line', title: 'Tus objetivos', desc: 'Metas concretas con fecha límite y su progreso', cta: 'Ver objetivos' },
+                    { s: 'lesiones' as Section, icon: 'ri-first-aid-kit-line', title: 'Lesiones y molestias', desc: 'Regístralas: el Coach IA las tiene en cuenta al planificar', cta: 'Ver lesiones' },
                     { s: 'coach' as Section, icon: 'ri-sparkling-2-line', title: 'Coach IA', desc: 'Pídele un plan y guárdalo directamente en tu diario', cta: 'Hablar con el coach' },
                   ].map((c) => (
                     <button key={c.title} onClick={() => setSection(c.s)} className="rk-card text-left group" style={{ padding: 20, cursor: 'pointer' }}>
@@ -268,7 +274,13 @@ export default function MiEsquinaPage() {
 
           {section === 'mensajes' && <div className="max-w-5xl"><MessagesPanel currentUserId={profile.id} /></div>}
 
-          {section === 'rutina' && <WeeklyPlanner profile={profile} showToast={showToast} />}
+          {section === 'calendario' && <TrainingCalendar profile={profile} showToast={showToast} />}
+
+          {section === 'peso' && <WeightTracker profile={profile} showToast={showToast} />}
+
+          {section === 'objetivos' && <GoalsPanel profile={profile} showToast={showToast} />}
+
+          {section === 'lesiones' && <InjuryTracker profile={profile} showToast={showToast} />}
 
           {section === 'timer' && <RoundTimer />}
 
@@ -280,7 +292,7 @@ export default function MiEsquinaPage() {
                   <h2 className="rk-h2" style={{ fontSize: 'clamp(1.8rem,4vw,2.4rem)', color: '#fff', margin: '4px 0 0' }}>
                     COACH DE <span className="rk-red-glow">ENTRENAMIENTO</span>
                   </h2>
-                  <p className="text-zinc-400 text-sm mt-1.5 max-w-md">Planifica sesiones y rutinas con una IA que conoce tu disciplina, nivel y objetivo. Pídele un plan, ajústalo en conversación y llévalo a tu diario.</p>
+                  <p className="text-zinc-400 text-sm mt-1.5 max-w-md">Planifica sesiones y rutinas con una IA que conoce tu disciplina, nivel, objetivos y lesiones. Pídele un plan, ajústalo en conversación y llévalo a tu diario. Incluye vídeos de referencia de las técnicas.</p>
                 </div>
               </Reveal>
               <Reveal delay={80}>
@@ -290,8 +302,8 @@ export default function MiEsquinaPage() {
                   showToast={showToast}
                   accent="red"
                   title="Coach de entrenamiento"
-                  intro="Cuéntame tu objetivo y te armo un plan. Por ejemplo, una semana de entreno o la preparación de una pelea."
-                  suggestions={['Plan de esta semana', 'Quiero ganar fuerza este mes', 'Prepárame para una pelea en 6 semanas', 'Rutina para mejorar el cardio']}
+                  intro="Cuéntame tu objetivo y te armo un plan. Por ejemplo, una semana de entreno o la preparación de una pelea. Tengo en cuenta tus lesiones si las has registrado."
+                  suggestions={['Plan de esta semana', 'Prepárame para una pelea en 6 semanas', 'Adapta el plan a mi lesión', 'Rutina para mejorar el cardio']}
                 />
               </Reveal>
             </div>
@@ -357,8 +369,8 @@ export default function MiEsquinaPage() {
 
           {section === 'nutricion' && (
             <div className="space-y-8 max-w-4xl">
-              {/* Herramienta real: peso e hidratación */}
-              <NutritionTracker profile={profile} showToast={showToast} />
+              {/* Herramienta real: hidratación (el peso vive en su propia sección) */}
+              <NutritionTracker profile={profile} showToast={showToast} onGoWeight={() => setSection('peso')} />
 
               <div className="rk-rule" style={{ width: '100%', opacity: 0.5 }} />
 
