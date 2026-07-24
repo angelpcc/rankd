@@ -25,25 +25,57 @@ export default function Navbar() {
 
   const isHobby = profile?.athlete_mode === 'hobby';
 
-  // Los que entrenan por afición no necesitan el marketplace: menú simplificado
-  const navLinks = isHobby
-    ? [
-        { label: 'Mi Esquina', href: '/mi-esquina', isAnchor: false },
-        { label: 'Eventos', href: '/eventos', isAnchor: false },
-        { label: 'Noticias', href: '/noticias', isAnchor: false },
-        { label: 'Marcas', href: '/brands', isAnchor: false },
-        { label: 'Tienda', href: '/tienda', isAnchor: false },
-      ]
-    : [
-        { labelKey: 'nav_how_it_works', href: '#how-it-works', isAnchor: true },
-        { labelKey: 'nav_directory', href: '/fighters', isAnchor: false },
-        { labelKey: 'nav_opportunities', href: '/opportunities', isAnchor: false },
-        { label: 'Eventos', href: '/eventos', isAnchor: false },
-        { label: 'Noticias', href: '/noticias', isAnchor: false },
-        { label: 'Mi Esquina', href: '/esquina', isAnchor: false },
-        { labelKey: 'nav_brands', href: '/brands', isAnchor: false },
-        { label: 'Tienda', href: '/tienda', isAnchor: false },
-      ];
+  // ── Navegación diferenciada por tipo de usuario ──
+  // Cada rol ve solo lo que de verdad usa. Menos es más.
+  // Orgs y marcas NUNCA ven Mi Esquina (es la herramienta del peleador).
+  type NavLink = { label?: string; labelKey?: string; href: string; isAnchor: boolean };
+  const role: 'visitor' | 'fighter_hobby' | 'fighter_pro' | 'org' | 'brand' = !user
+    ? 'visitor'
+    : profile?.user_type === 'fighter'
+      ? (isHobby ? 'fighter_hobby' : 'fighter_pro')
+      : profile?.user_type === 'brand'
+        ? 'brand'
+        : 'org'; // promoter, gym, manager
+
+  const NAV_BY_ROLE: Record<typeof role, NavLink[]> = {
+    // Visitante / no logueado: descubrir la plataforma
+    visitor: [
+      { labelKey: 'nav_how_it_works', href: '#how-it-works', isAnchor: true },
+      { labelKey: 'nav_directory', href: '/fighters', isAnchor: false },
+      { label: 'Eventos', href: '/eventos', isAnchor: false },
+      { labelKey: 'nav_brands', href: '/brands', isAnchor: false },
+      { label: 'Noticias', href: '/noticias', isAnchor: false },
+    ],
+    // Aficionado: todo gira en torno a Mi Esquina
+    fighter_hobby: [
+      { label: 'Mi Esquina', href: '/mi-esquina', isAnchor: false },
+      { label: 'Eventos', href: '/eventos', isAnchor: false },
+      { label: 'Marcas', href: '/brands', isAnchor: false },
+      { label: 'Tienda', href: '/tienda', isAnchor: false },
+    ],
+    // Competitivo: entrenar + marketplace de oportunidades
+    fighter_pro: [
+      { label: 'Mi Esquina', href: '/mi-esquina', isAnchor: false },
+      { labelKey: 'nav_opportunities', href: '/opportunities', isAnchor: false },
+      { labelKey: 'nav_directory', href: '/fighters', isAnchor: false },
+      { label: 'Mensajes', href: '/dashboard?tab=messages', isAnchor: false },
+    ],
+    // Promotora / gimnasio: gestión + talento + eventos (sin Mi Esquina)
+    org: [
+      { label: 'Mi Panel', href: '/dashboard', isAnchor: false },
+      { labelKey: 'nav_directory', href: '/fighters', isAnchor: false },
+      { label: 'Eventos', href: '/eventos', isAnchor: false },
+      { label: 'Mensajes', href: '/dashboard?tab=messages', isAnchor: false },
+    ],
+    // Marca: gestión + talento a patrocinar + su escaparate (sin Mi Esquina)
+    brand: [
+      { label: 'Mi Panel', href: '/dashboard', isAnchor: false },
+      { labelKey: 'nav_directory', href: '/fighters', isAnchor: false },
+      { label: 'Marcas', href: '/brands', isAnchor: false },
+      { label: 'Mensajes', href: '/dashboard?tab=messages', isAnchor: false },
+    ],
+  };
+  const navLinks = NAV_BY_ROLE[role];
 
   const handleNav = (href: string) => {
     setMenuOpen(false);
