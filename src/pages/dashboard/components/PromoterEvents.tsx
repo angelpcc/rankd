@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase, OrgEvent, Profile } from '@/lib/supabase';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import ImageUploader from '@/components/base/ImageUploader';
+import EventTicketsManager from './EventTicketsManager';
 
 interface Props {
   profile: Profile;
@@ -26,6 +27,7 @@ export default function PromoterEvents({ profile, showToast }: Props) {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [managingTickets, setManagingTickets] = useState<OrgEvent | null>(null);
 
   const { uploading, uploadImage, deleteImage } = useImageUpload({
     bucket: 'event-posters',
@@ -266,6 +268,16 @@ export default function PromoterEvents({ profile, showToast }: Props) {
         </div>
       )}
 
+      {/* Gestor de entradas */}
+      {managingTickets && (
+        <EventTicketsManager
+          event={managingTickets}
+          profile={profile}
+          showToast={showToast}
+          onClose={() => setManagingTickets(null)}
+        />
+      )}
+
       {/* Events list */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
@@ -301,6 +313,9 @@ export default function PromoterEvents({ profile, showToast }: Props) {
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <h3 className="text-base font-bold text-white leading-snug">{ev.title}</h3>
                       <div className="flex items-center gap-1 flex-shrink-0">
+                        <button onClick={() => setManagingTickets(ev)} title="Gestionar entradas" className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-600/15 border border-red-500/25 text-red-400 hover:bg-red-600/25 transition-colors cursor-pointer">
+                          <i className="ri-ticket-2-line text-sm"></i>
+                        </button>
                         <button onClick={() => openEdit(ev)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors cursor-pointer">
                           <i className="ri-edit-line text-sm"></i>
                         </button>

@@ -210,3 +210,32 @@ export interface FighterInquiry {
   message: string;
   created_at: string;
 }
+export interface EventTicket {
+  id: string;
+  event_id: string;
+  org_profile_id: string;
+  name: string;
+  description: string | null;
+  price_cents: number;
+  currency: string;
+  quantity_total: number;
+  quantity_sold: number;
+  is_active: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface TicketOrder {
+  id: string;
+  ticket_id: string;
+  event_id: string;
+  org_profile_id: string;
+  buyer_user_id: string;
+  buyer_name: string;
+  buyer_email: string;
+  quantity: number;
+  unit_price_cents: number;
+  total_cents: number;
+  status: 'pending' | 'paid' | 'cancelled';
+  created_at: string;
+}
