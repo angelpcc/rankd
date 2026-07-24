@@ -13,6 +13,17 @@ export default {
   nav_my_dashboard: 'Mi Dashboard',
   nav_fighters: 'Peleadores',
   nav_close_session: 'Cerrar Sesión',
+  nav_events: 'Eventos',
+  nav_promoters: 'Promotoras',
+  nav_my_corner: 'Mi Esquina',
+  nav_news: 'Noticias',
+  nav_store: 'Tienda',
+  nav_messages: 'Mensajes',
+  nav_my_panel: 'Mi Panel',
+  nav_admin: 'Administración',
+  nav_menu: 'Menú',
+  nav_section_explore: 'Explorar',
+  nav_section_account: 'Tu cuenta',
 
   // Buttons
   btn_create_free: 'Crear cuenta gratis',

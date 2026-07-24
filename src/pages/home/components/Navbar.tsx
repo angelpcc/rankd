@@ -2,9 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
+import { isAdminEmail } from '@/lib/admin';
 import LanguageSelector from '@/components/feature/LanguageSelector';
 import NotificationBell from '@/components/feature/NotificationBell';
 import RankdLogo from '@/components/base/RankdLogo';
+
+type NavLink = { label?: string; labelKey?: string; href: string; isAnchor: boolean };
+type MobileLink = { labelKey: string; href: string; icon: string };
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -26,58 +30,82 @@ export default function Navbar() {
   }, [menuOpen]);
 
   const isHobby = profile?.athlete_mode === 'hobby';
+  const isFighter = profile?.user_type === 'fighter';
+  const isAdmin = isAdminEmail(user?.email);
 
-  // ── Navegación diferenciada por tipo de usuario ──
-  // Cada rol ve solo lo que de verdad usa. Menos es más.
-  // Orgs y marcas NUNCA ven Mi Esquina (es la herramienta del peleador).
-  type NavLink = { label?: string; labelKey?: string; href: string; isAnchor: boolean };
+  // Mi Esquina es la herramienta del peleador. Para el resto (y para visitantes)
+  // el enlace lleva a la vista pública con candado, no a un 404 ni a un redireccción.
+  const esquinaHref = isFighter ? '/mi-esquina' : '/esquina';
+
+  // ── Navegación de ESCRITORIO: diferenciada por rol, minimalista ──
+  // En escritorio el espacio manda: cada rol ve solo lo esencial.
+  // El menú móvil (más abajo) sí es un mapa completo del sitio.
   const role: 'visitor' | 'fighter_hobby' | 'fighter_pro' | 'org' | 'brand' = !user
     ? 'visitor'
-    : profile?.user_type === 'fighter'
+    : isFighter
       ? (isHobby ? 'fighter_hobby' : 'fighter_pro')
       : profile?.user_type === 'brand'
         ? 'brand'
         : 'org'; // promoter, gym, manager
 
   const NAV_BY_ROLE: Record<typeof role, NavLink[]> = {
-    // Visitante / no logueado: descubrir la plataforma
     visitor: [
       { labelKey: 'nav_how_it_works', href: '/como-funciona', isAnchor: false },
       { labelKey: 'nav_directory', href: '/fighters', isAnchor: false },
-      { label: 'Eventos', href: '/eventos', isAnchor: false },
-      { label: 'Promotoras', href: '/promotoras', isAnchor: false },
+      { labelKey: 'nav_events', href: '/eventos', isAnchor: false },
+      { labelKey: 'nav_news', href: '/noticias', isAnchor: false },
       { labelKey: 'nav_brands', href: '/brands', isAnchor: false },
     ],
-    // Aficionado: todo gira en torno a Mi Esquina
     fighter_hobby: [
-      { label: 'Mi Esquina', href: '/mi-esquina', isAnchor: false },
-      { label: 'Eventos', href: '/eventos', isAnchor: false },
-      { label: 'Marcas', href: '/brands', isAnchor: false },
-      { label: 'Tienda', href: '/tienda', isAnchor: false },
+      { labelKey: 'nav_my_corner', href: '/mi-esquina', isAnchor: false },
+      { labelKey: 'nav_events', href: '/eventos', isAnchor: false },
+      { labelKey: 'nav_news', href: '/noticias', isAnchor: false },
+      { labelKey: 'nav_brands', href: '/brands', isAnchor: false },
     ],
-    // Competitivo: entrenar + marketplace de oportunidades
     fighter_pro: [
-      { label: 'Mi Esquina', href: '/mi-esquina', isAnchor: false },
+      { labelKey: 'nav_my_corner', href: '/mi-esquina', isAnchor: false },
       { labelKey: 'nav_opportunities', href: '/opportunities', isAnchor: false },
       { labelKey: 'nav_directory', href: '/fighters', isAnchor: false },
-      { label: 'Mensajes', href: '/dashboard?tab=messages', isAnchor: false },
+      { labelKey: 'nav_news', href: '/noticias', isAnchor: false },
     ],
-    // Promotora / gimnasio: gestión + talento + eventos (sin Mi Esquina)
     org: [
-      { label: 'Mi Panel', href: '/dashboard', isAnchor: false },
+      { labelKey: 'nav_my_panel', href: '/dashboard', isAnchor: false },
       { labelKey: 'nav_directory', href: '/fighters', isAnchor: false },
-      { label: 'Eventos', href: '/eventos', isAnchor: false },
-      { label: 'Mensajes', href: '/dashboard?tab=messages', isAnchor: false },
+      { labelKey: 'nav_events', href: '/eventos', isAnchor: false },
+      { labelKey: 'nav_messages', href: '/dashboard?tab=messages', isAnchor: false },
     ],
-    // Marca: gestión + talento a patrocinar + su escaparate (sin Mi Esquina)
     brand: [
-      { label: 'Mi Panel', href: '/dashboard', isAnchor: false },
+      { labelKey: 'nav_my_panel', href: '/dashboard', isAnchor: false },
       { labelKey: 'nav_directory', href: '/fighters', isAnchor: false },
-      { label: 'Marcas', href: '/brands', isAnchor: false },
-      { label: 'Mensajes', href: '/dashboard?tab=messages', isAnchor: false },
+      { labelKey: 'nav_brands', href: '/brands', isAnchor: false },
+      { labelKey: 'nav_messages', href: '/dashboard?tab=messages', isAnchor: false },
     ],
   };
   const navLinks = NAV_BY_ROLE[role];
+
+  // ── Navegación MÓVIL: mapa completo del sitio ──
+  // Todo lo importante, visible. Mi Esquina se muestra a todos (los visitantes
+  // caen en la vista con candado). El resto de secciones no se esconden.
+  const exploreLinks: MobileLink[] = [
+    { labelKey: 'nav_my_corner', href: esquinaHref, icon: 'ri-boxing-line' },
+    { labelKey: 'nav_directory', href: '/fighters', icon: 'ri-group-line' },
+    { labelKey: 'nav_opportunities', href: '/opportunities', icon: 'ri-megaphone-line' },
+    { labelKey: 'nav_events', href: '/eventos', icon: 'ri-calendar-event-line' },
+    { labelKey: 'nav_promoters', href: '/promotoras', icon: 'ri-trophy-line' },
+    { labelKey: 'nav_brands', href: '/brands', icon: 'ri-store-2-line' },
+    { labelKey: 'nav_news', href: '/noticias', icon: 'ri-newspaper-line' },
+    { labelKey: 'nav_store', href: '/tienda', icon: 'ri-shopping-bag-3-line' },
+    { labelKey: 'nav_how_it_works', href: '/como-funciona', icon: 'ri-compass-3-line' },
+  ];
+
+  const accountLinks: MobileLink[] = user && profile
+    ? [
+        // El aficionado vive en Mi Esquina; el resto tiene su panel de gestión.
+        ...(!isHobby ? [{ labelKey: 'nav_my_panel', href: '/dashboard', icon: 'ri-dashboard-line' }] : []),
+        { labelKey: 'nav_messages', href: '/dashboard?tab=messages', icon: 'ri-message-3-line' },
+        ...(isAdmin ? [{ labelKey: 'nav_admin', href: '/admin', icon: 'ri-shield-star-line' }] : []),
+      ]
+    : [];
 
   const handleNav = (href: string) => {
     setMenuOpen(false);
@@ -87,7 +115,6 @@ export default function Navbar() {
         el.scrollIntoView({ behavior: 'smooth' });
       } else {
         // El ancla no existe en esta página: vamos al home y hacemos scroll allí.
-        // (Antes no pasaba nada al pulsar y parecía que el enlace estaba roto.)
         navigate('/beta');
         setTimeout(() => document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' }), 350);
       }
@@ -138,6 +165,14 @@ export default function Navbar() {
             <LanguageSelector scrolled={false} />
             {user && profile ? (
               <>
+                {isAdmin && (
+                  <button onClick={() => navigate('/admin')} title={t('nav_admin')} aria-label={t('nav_admin')}
+                    style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.3)', color: '#C9A84C', cursor: 'pointer', transition: 'all 0.2s' }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(201,168,76,0.18)'; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(201,168,76,0.1)'; }}>
+                    <i className="ri-shield-star-line" style={{ fontSize: 17 }} />
+                  </button>
+                )}
                 <NotificationBell userId={user.id} />
                 <button onClick={() => navigate(isHobby ? '/mi-esquina' : '/dashboard')} style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.85)', background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.13)', borderRadius: 8, padding: '9px 18px', cursor: 'pointer', transition: 'all 0.28s cubic-bezier(0.22,1,0.36,1)', backdropFilter: 'blur(10px)' }}>
                   <span style={{ width: 20, height: 20, background: '#E10600', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'white', fontWeight: 900 }}>{(profile.full_name || 'U')[0].toUpperCase()}</span>
@@ -161,31 +196,60 @@ export default function Navbar() {
             <button
               onClick={() => setMenuOpen(!menuOpen)}
               style={{ background: 'none', border: 'none', color: 'white', fontSize: 24, cursor: 'pointer', padding: '4px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              aria-label="Menú"
+              aria-label={t('nav_menu')}
             >
               <i className={menuOpen ? 'ri-close-line' : 'ri-menu-3-line'} />
             </button>
           </div>
         </div>
 
-        {/* Mobile Menu — dropdown */}
+        {/* Mobile Menu — mapa completo del sitio */}
         <div className="mobile-menu" style={{
-          maxHeight: menuOpen ? '100vh' : '0',
-          overflow: 'hidden',
+          maxHeight: menuOpen ? 'calc(100vh - 60px)' : '0',
+          overflowY: menuOpen ? 'auto' : 'hidden',
           transition: 'max-height 0.35s ease',
           background: 'rgba(5,5,5,0.99)',
           borderTop: menuOpen ? '1px solid rgba(255,255,255,0.06)' : '1px solid transparent',
         }}>
-          <div style={{ padding: '12px 24px 28px', display: 'flex', flexDirection: 'column', gap: 0 }}>
-            {navLinks.map((link) => (
+          <div style={{ padding: '16px 20px calc(28px + env(safe-area-inset-bottom, 0px))', display: 'flex', flexDirection: 'column', gap: 0 }}>
+
+            {/* Explorar */}
+            <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,255,255,0.32)', margin: '4px 0 8px 8px' }}>
+              {t('nav_section_explore')}
+            </p>
+            {exploreLinks.map((link) => (
               <a key={link.href} href={link.href} onClick={(e) => { e.preventDefault(); handleNav(link.href); }}
-                style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,255,255,0.75)', textDecoration: 'none', padding: '14px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'block' }}>
-                {link.labelKey ? t(link.labelKey) : link.label}
+                style={{ display: 'flex', alignItems: 'center', gap: 14, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 600, letterSpacing: 1.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.82)', textDecoration: 'none', padding: '13px 8px', borderRadius: 12 }}
+                onTouchStart={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.05)'; }}
+                onTouchEnd={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; }}>
+                <i className={link.icon} style={{ fontSize: 19, color: '#E10600', width: 22, textAlign: 'center', flexShrink: 0 }} />
+                {t(link.labelKey)}
               </a>
             ))}
-            <div style={{ paddingTop: 20 }}>
-              <LanguageSelector dark />
-            </div>
+
+            {/* Tu cuenta */}
+            {accountLinks.length > 0 && (
+              <>
+                <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,255,255,0.32)', margin: '18px 0 8px 8px' }}>
+                  {t('nav_section_account')}
+                </p>
+                {accountLinks.map((link) => {
+                  const admin = link.href === '/admin';
+                  return (
+                    <a key={link.href} href={link.href} onClick={(e) => { e.preventDefault(); handleNav(link.href); }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 14, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 600, letterSpacing: 1.5, textTransform: 'uppercase', color: admin ? '#C9A84C' : 'rgba(255,255,255,0.82)', textDecoration: 'none', padding: '13px 8px', borderRadius: 12 }}>
+                      <i className={link.icon} style={{ fontSize: 19, color: admin ? '#C9A84C' : '#E10600', width: 22, textAlign: 'center', flexShrink: 0 }} />
+                      {t(link.labelKey)}
+                    </a>
+                  );
+                })}
+              </>
+            )}
+
+            <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '18px 0' }} />
+
+            <LanguageSelector dark />
+
             {user && profile ? (
               <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <button onClick={() => { navigate(isHobby ? '/mi-esquina' : '/dashboard'); setMenuOpen(false); }} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'white', background: '#E10600', border: 'none', borderRadius: 10, padding: '15px', cursor: 'pointer' }}>{t('nav_my_profile')}</button>

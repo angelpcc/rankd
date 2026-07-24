@@ -2,13 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, Profile, Fighter, UserType } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { isAdminEmail } from '@/lib/admin';
 import BroadcastPanel from './components/BroadcastPanel';
 import ActivityFeed from './components/ActivityFeed';
 import SupportInbox from './components/SupportInbox';
 import ModerationPanel from './components/ModerationPanel';
-
-// Correo con acceso al panel. Añade más si algún día tienes equipo.
-const ADMIN_EMAILS = ['angelpc2005@gmail.com'];
 
 interface Request {
   profile: Profile;
@@ -75,7 +73,7 @@ export default function AdminPage() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | UserType>('all');
 
-  const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
+  const isAdmin = isAdminEmail(user?.email);
 
   const showToast = (msg: string, ok = true) => {
     setToast({ msg, ok });

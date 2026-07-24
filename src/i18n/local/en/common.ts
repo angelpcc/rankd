@@ -13,6 +13,17 @@ export default {
   nav_my_dashboard: 'My Dashboard',
   nav_fighters: 'Fighters',
   nav_close_session: 'Log Out',
+  nav_events: 'Events',
+  nav_promoters: 'Promoters',
+  nav_my_corner: 'My Corner',
+  nav_news: 'News',
+  nav_store: 'Store',
+  nav_messages: 'Messages',
+  nav_my_panel: 'My Dashboard',
+  nav_admin: 'Admin',
+  nav_menu: 'Menu',
+  nav_section_explore: 'Explore',
+  nav_section_account: 'Your account',
 
   // Buttons
   btn_create_free: 'Create free account',
