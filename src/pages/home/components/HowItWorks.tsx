@@ -91,11 +91,16 @@ export default function HowItWorks() {
         {/* ── CTA ── */}
         <Reveal delay={120}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-            <button className="rk-btn rk-btn-primary" style={{ padding: '1.05rem 3rem' }} onClick={() => navigate('/auth')}>
-              {t('btn_start_free')} →
-            </button>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button className="rk-btn rk-btn-primary" style={{ padding: '1.05rem 2.6rem' }} onClick={() => navigate('/auth')}>
+                {t('btn_start_free')} →
+              </button>
+              <button className="rk-btn rk-btn-ghost" style={{ padding: '1.05rem 2.2rem' }} onClick={() => navigate('/como-funciona')}>
+                VER MI CAMINO
+              </button>
+            </div>
             <span className="rk-body" style={{ fontSize: '0.8rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--rk-text-3)' }}>
-              Sin tarjeta · Sin comisiones · Menos de 2 minutos
+              Peleador · Promotora · Marca · Aficionado
             </span>
           </div>
         </Reveal>

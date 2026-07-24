@@ -40,7 +40,7 @@ export default function Navbar() {
   const NAV_BY_ROLE: Record<typeof role, NavLink[]> = {
     // Visitante / no logueado: descubrir la plataforma
     visitor: [
-      { labelKey: 'nav_how_it_works', href: '#how-it-works', isAnchor: true },
+      { labelKey: 'nav_how_it_works', href: '/como-funciona', isAnchor: false },
       { labelKey: 'nav_directory', href: '/fighters', isAnchor: false },
       { label: 'Eventos', href: '/eventos', isAnchor: false },
       { labelKey: 'nav_brands', href: '/brands', isAnchor: false },
@@ -81,7 +81,14 @@ export default function Navbar() {
     setMenuOpen(false);
     if (href.startsWith('#')) {
       const el = document.querySelector(href);
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        // El ancla no existe en esta página: vamos al home y hacemos scroll allí.
+        // (Antes no pasaba nada al pulsar y parecía que el enlace estaba roto.)
+        navigate('/beta');
+        setTimeout(() => document.querySelector(href)?.scrollIntoView({ behavior: 'smooth' }), 350);
+      }
     } else {
       navigate(href);
     }
