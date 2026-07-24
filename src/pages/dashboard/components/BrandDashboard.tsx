@@ -396,27 +396,69 @@ export default function BrandDashboard({ profile }: Props) {
                 </div>
               </div>
 
-              {/* Quick actions */}
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                {[
-                  brandType === 'both'
-                    ? { label: t('dash_brand_products_services'), icon: 'ri-store-3-line', desc: t('dash_brand_products_services_desc'), action: () => setActiveTab('products'), accent: 'text-emerald-400', bg: 'hover:border-emerald-500/30' }
-                    : brandType === 'product'
-                    ? { label: t('dash_brand_products_label'), icon: 'ri-shopping-bag-line', desc: t('dash_brand_products_desc'), action: () => setActiveTab('products'), accent: 'text-[#C9A84C]', bg: 'hover:border-[#C9A84C]/35' }
-                    : { label: t('dash_brand_services_label'), icon: 'ri-service-line', desc: t('dash_brand_services_desc'), action: () => setActiveTab('services'), accent: 'text-amber-400', bg: 'hover:border-amber-500/30' },
-                  { label: t('dash_brand_talent_label'), icon: 'ri-user-star-line', desc: t('dash_brand_talent_desc'), action: () => setActiveTab('talent'), accent: 'text-orange-400', bg: 'hover:border-orange-500/30' },
-                  { label: t('dash_brand_events_label'), icon: 'ri-calendar-event-line', desc: t('dash_brand_events_desc'), action: () => setActiveTab('events'), accent: 'text-sky-400', bg: 'hover:border-sky-500/30' },
-                  { label: t('dash_brand_create_opp'), icon: 'ri-add-circle-line', desc: t('dash_brand_create_opp_desc'), action: () => setActiveTab('sponsorships'), accent: 'text-red-400', bg: 'hover:border-red-500/30' },
-                ].map((qa) => (
-                  <button key={qa.label} onClick={qa.action}
-                    className="rk-card p-5 text-left cursor-pointer group">
-                    <div className={`w-9 h-9 flex items-center justify-center rounded-xl bg-white/[0.05] border border-white/10 mb-3 ${qa.accent} group-hover:bg-white/[0.08] transition-colors`}>
-                      <i className={`${qa.icon} text-lg`}></i>
+              {/* ── Las dos funciones de una marca, bien diferenciadas ── */}
+              <div className="grid md:grid-cols-2 gap-4">
+                {/* Función 1 · Vender producto */}
+                <div className="rk-card p-5 flex flex-col" style={{ borderColor: 'rgba(201,168,76,0.2)' }}>
+                  <div className="flex items-center gap-3 mb-1.5">
+                    <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#C9A84C]/12 border border-[#C9A84C]/35 text-[#C9A84C]"><i className="ri-store-3-line text-lg"></i></div>
+                    <div>
+                      <p className="rk-eyebrow" style={{ fontSize: '0.6rem' }}>FUNCIÓN 1</p>
+                      <h3 className="rk-h3 text-white" style={{ fontSize: '1.05rem' }}>VENDER PRODUCTO</h3>
                     </div>
-                    <p className="text-sm font-semibold text-white">{qa.label}</p>
-                    <p className="text-xs text-zinc-500 mt-0.5">{qa.desc}</p>
-                  </button>
-                ))}
+                  </div>
+                  <p className="text-xs text-zinc-400 leading-relaxed mb-4">Tu catálogo de equipamiento, nutrición o servicios, visible para peleadores y público general.</p>
+                  <div className="space-y-2 mt-auto">
+                    {(brandType === 'product' || brandType === 'both') && (
+                      <button onClick={() => setActiveTab('products')} className="w-full flex items-center gap-2.5 rounded-xl bg-white/[0.03] border border-white/10 hover:border-[#C9A84C]/40 px-3.5 py-2.5 text-left transition-colors cursor-pointer group">
+                        <i className="ri-shopping-bag-line text-[#C9A84C]"></i>
+                        <span className="text-sm text-white flex-1">Gestionar productos</span>
+                        <i className="ri-arrow-right-line text-zinc-600 group-hover:text-[#C9A84C] transition-colors"></i>
+                      </button>
+                    )}
+                    {(brandType === 'service' || brandType === 'both') && (
+                      <button onClick={() => setActiveTab('services')} className="w-full flex items-center gap-2.5 rounded-xl bg-white/[0.03] border border-white/10 hover:border-[#C9A84C]/40 px-3.5 py-2.5 text-left transition-colors cursor-pointer group">
+                        <i className="ri-service-line text-[#C9A84C]"></i>
+                        <span className="text-sm text-white flex-1">Gestionar servicios</span>
+                        <i className="ri-arrow-right-line text-zinc-600 group-hover:text-[#C9A84C] transition-colors"></i>
+                      </button>
+                    )}
+                    <a href="/brands" target="_blank" rel="noopener noreferrer" className="w-full flex items-center gap-2.5 rounded-xl bg-white/[0.03] border border-white/10 hover:border-[#C9A84C]/40 px-3.5 py-2.5 text-left transition-colors cursor-pointer group">
+                      <i className="ri-external-link-line text-zinc-400"></i>
+                      <span className="text-sm text-white flex-1">Ver mi escaparate público</span>
+                      <i className="ri-arrow-right-line text-zinc-600 group-hover:text-[#C9A84C] transition-colors"></i>
+                    </a>
+                  </div>
+                </div>
+
+                {/* Función 2 · Patrocinar y darse a conocer */}
+                <div className="rk-card p-5 flex flex-col" style={{ borderColor: 'rgba(225,6,0,0.22)' }}>
+                  <div className="flex items-center gap-3 mb-1.5">
+                    <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-600/12 border border-red-500/30 text-red-400"><i className="ri-hand-coin-line text-lg"></i></div>
+                    <div>
+                      <p className="rk-eyebrow" style={{ fontSize: '0.6rem' }}>FUNCIÓN 2</p>
+                      <h3 className="rk-h3 text-white" style={{ fontSize: '1.05rem' }}>PATROCINAR Y DARTE A CONOCER</h3>
+                    </div>
+                  </div>
+                  <p className="text-xs text-zinc-400 leading-relaxed mb-4">Encuentra peleadores para patrocinar y hazte visible ante promotoras y eventos del sector.</p>
+                  <div className="space-y-2 mt-auto">
+                    <button onClick={() => setActiveTab('talent')} className="w-full flex items-center gap-2.5 rounded-xl bg-white/[0.03] border border-white/10 hover:border-red-500/40 px-3.5 py-2.5 text-left transition-colors cursor-pointer group">
+                      <i className="ri-user-star-line text-red-400"></i>
+                      <span className="text-sm text-white flex-1">Buscar peleadores</span>
+                      <i className="ri-arrow-right-line text-zinc-600 group-hover:text-red-400 transition-colors"></i>
+                    </button>
+                    <button onClick={() => setActiveTab('sponsorships')} className="w-full flex items-center gap-2.5 rounded-xl bg-white/[0.03] border border-white/10 hover:border-red-500/40 px-3.5 py-2.5 text-left transition-colors cursor-pointer group">
+                      <i className="ri-megaphone-line text-red-400"></i>
+                      <span className="text-sm text-white flex-1">Publicar patrocinio</span>
+                      <i className="ri-arrow-right-line text-zinc-600 group-hover:text-red-400 transition-colors"></i>
+                    </button>
+                    <button onClick={() => setActiveTab('events')} className="w-full flex items-center gap-2.5 rounded-xl bg-white/[0.03] border border-white/10 hover:border-red-500/40 px-3.5 py-2.5 text-left transition-colors cursor-pointer group">
+                      <i className="ri-calendar-event-line text-red-400"></i>
+                      <span className="text-sm text-white flex-1">Explorar eventos</span>
+                      <i className="ri-arrow-right-line text-zinc-600 group-hover:text-red-400 transition-colors"></i>
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Recent sponsorships */}

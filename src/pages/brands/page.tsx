@@ -115,15 +115,11 @@ export default function BrandsPage() {
       <Navbar />
 
       {/* ── HERO ── */}
-      <section className="relative pt-24 pb-16 bg-[#0B0B0B] overflow-hidden">
+      <section className="relative pt-24 pb-16 bg-[#0B0B0B] overflow-hidden rk-grid-bg">
         <div className="absolute inset-0">
-          <img
-            src="https://readdy.ai/api/search-image?query=professional%20combat%20sports%20equipment%20collection%20boxing%20gloves%20MMA%20gear%20muay%20thai%20pads%20dark%20studio%20photography%20dramatic%20lighting%20product%20showcase%20high%20contrast%20black%20background%20premium%20quality&width=1400&height=500&seq=brands-dir-hero-v4&orientation=landscape"
-            alt={t('brands_page_title')}
-            className="w-full h-full object-cover object-top opacity-15"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0B0B0B] via-[#0B0B0B]/90 to-[#0B0B0B]/60"></div>
-          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 70% 50%, rgba(225,6,0,0.12) 0%, transparent 55%)' }} />
+          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 74% 45%, rgba(225,6,0,0.16) 0%, transparent 55%)' }} />
+          <div className="absolute top-0 right-0 w-1/2 h-full" style={{ background: 'radial-gradient(ellipse at 100% 0%, rgba(201,168,76,0.07) 0%, transparent 60%)' }} />
+          <div className="absolute inset-0" style={{ maskImage: 'linear-gradient(to bottom, black, transparent)', WebkitMaskImage: 'linear-gradient(to bottom, black, transparent)' }} />
         </div>
         <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: 'linear-gradient(90deg, #E10600 0%, rgba(225,6,0,0.4) 50%, transparent 100%)' }} />
 
