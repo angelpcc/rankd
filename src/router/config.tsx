@@ -19,6 +19,8 @@ const OpportunitiesPage = lazy(() => import('../pages/opportunities/page'));
 const FighterOnboardingPage = lazy(() => import('../pages/onboarding/fighter/page'));
 const OrgOnboardingPage = lazy(() => import('../pages/onboarding/org/page'));
 const BrandsPage = lazy(() => import('../pages/brands/page'));
+const EventosPage = lazy(() => import('../pages/eventos/page'));
+const EventoDetailPage = lazy(() => import('../pages/evento/page'));
 const TermsPage = lazy(() => import('../pages/terms/page'));
 const EsquinaPage = lazy(() => import('../pages/esquina/page'));
 const MiEsquinaPage = lazy(() => import('../pages/mi-esquina/page'));
@@ -137,6 +139,22 @@ const routes: RouteObject[] = [
     element: (
       <Suspense fallback={<LoadingSpinner />}>
         <BrandsPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/eventos',
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <EventosPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/evento/:id',
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <EventoDetailPage />
       </Suspense>
     ),
   },
