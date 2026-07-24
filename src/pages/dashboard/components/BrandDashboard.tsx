@@ -92,6 +92,12 @@ export default function BrandDashboard({ profile }: Props) {
       setDescription(orgData.description || '');
       setFoundedYear(orgData.founded_year?.toString() || '');
       setSponsorshipsCount(orgData.fighters_managed?.toString() || '0');
+      // Campos que antes se perdían al recargar (ver migración 0007).
+      // Si la migración aún no está aplicada, sencillamente llegan undefined.
+      const extra = orgData as typeof orgData & { industry?: string; sponsorship_budget?: string; target_disciplines?: string[] };
+      if (extra.industry) setIndustry(extra.industry);
+      if (extra.sponsorship_budget) setBudget(extra.sponsorship_budget);
+      if (Array.isArray(extra.target_disciplines)) setTargetDisciplines(extra.target_disciplines);
     }
     if (brandData) {
       if (brandData.type) setBrandType(brandData.type as 'product' | 'service' | 'both');
@@ -170,7 +176,7 @@ export default function BrandDashboard({ profile }: Props) {
         updated_at: new Date().toISOString(),
       }).eq('id', profile.id);
 
-      const orgPayload = {
+      const basePayload = {
         profile_id: profile.id,
         org_name: brandName.trim() || fullName.trim(),
         org_type: 'brand',
@@ -179,12 +185,26 @@ export default function BrandDashboard({ profile }: Props) {
         fighters_managed: parseInt(sponsorshipsCount, 10) || 0,
         updated_at: new Date().toISOString(),
       };
+      // Campos añadidos por la migración 0007. Si aún no está aplicada,
+      // reintentamos sin ellos para no romper el guardado.
+      const fullPayload = {
+        ...basePayload,
+        industry: industry || null,
+        sponsorship_budget: budget || null,
+        target_disciplines: targetDisciplines,
+      };
+
       const { data: existing } = await supabase.from('organizations').select('id').eq('profile_id', profile.id).maybeSingle();
-      if (existing) {
-        await supabase.from('organizations').update(orgPayload).eq('id', existing.id);
-      } else {
-        await supabase.from('organizations').insert(orgPayload);
+      const write = (payload: Record<string, unknown>) => existing
+        ? supabase.from('organizations').update(payload).eq('id', existing.id)
+        : supabase.from('organizations').insert(payload);
+
+      let { error } = await write(fullPayload);
+      if (error && /column|schema cache/i.test(error.message || '')) {
+        ({ error } = await write(basePayload)); // migración 0007 sin aplicar
       }
+      // supabase no lanza: hay que mirar el error o diríamos "guardado" en falso
+      if (error) { showToast(t('dash_brand_save_error'), 'error'); return; }
       showToast(t('dash_brand_saved_ok'));
     } catch {
       showToast(t('dash_brand_save_error'), 'error');

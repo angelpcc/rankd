@@ -43,6 +43,9 @@ export default function OrgDashboard({ profile }: Props) {
   const [org, setOrg] = useState<Organization | null>(null);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [totalApplicants, setTotalApplicants] = useState(0);
+  const [events, setEvents] = useState<{ id: string; title: string; event_date: string | null; location: string | null; image_url: string | null }[]>([]);
+  const [ticketsByEvent, setTicketsByEvent] = useState<Record<string, number>>({});
+  const [ticketsSold, setTicketsSold] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -121,6 +124,31 @@ export default function OrgDashboard({ profile }: Props) {
       setTotalApplicants(count || 0);
     }
 
+    // Eventos reales de la promotora + reservas de entradas.
+    // (Antes el panel mostraba un nº de eventos tecleado a mano en el perfil,
+    //  mientras la plataforma ya sabe los que tiene de verdad.)
+    const { data: evs } = await supabase
+      .from('organization_events')
+      .select('id, title, event_date, location, image_url')
+      .eq('org_profile_id', profile.id)
+      .order('event_date', { ascending: true });
+    const evList = evs || [];
+    setEvents(evList);
+
+    if (evList.length > 0) {
+      const { data: orders } = await supabase
+        .from('ticket_orders')
+        .select('event_id, quantity')
+        .in('event_id', evList.map((e) => e.id));
+      if (orders) {
+        const byEvent: Record<string, number> = {};
+        let total = 0;
+        orders.forEach((o) => { byEvent[o.event_id] = (byEvent[o.event_id] || 0) + (o.quantity || 0); total += o.quantity || 0; });
+        setTicketsByEvent(byEvent);
+        setTicketsSold(total);
+      }
+    }
+
     setLoading(false);
   }, [profile.id]);
 
@@ -186,10 +214,14 @@ export default function OrgDashboard({ profile }: Props) {
         updated_at: new Date().toISOString(),
       };
 
+      // supabase no lanza excepción: hay que mirar el error o diríamos
+      // "guardado" aunque el guardado hubiera fallado.
       if (org) {
-        await supabase.from('organizations').update(orgData).eq('id', org.id);
+        const { error } = await supabase.from('organizations').update(orgData).eq('id', org.id);
+        if (error) { showToast(t('dash_org_save_error'), 'error'); return; }
       } else {
-        const { data } = await supabase.from('organizations').insert(orgData).select().maybeSingle();
+        const { data, error } = await supabase.from('organizations').insert(orgData).select().maybeSingle();
+        if (error) { showToast(t('dash_org_save_error'), 'error'); return; }
         setOrg(data);
       }
       showToast(t('dash_org_saved_ok'));
@@ -407,12 +439,14 @@ export default function OrgDashboard({ profile }: Props) {
                     action: () => setActiveTab('opportunities'),
                   },
                   {
-                    label: profile.user_type === 'manager' ? t('dash_org_fighters_label') : profile.user_type === 'gym' ? t('dash_org_athletes_label') : t('dash_org_collab_label'),
-                    value: parseInt(fightersManaged, 10) || 0,
-                    icon: 'ri-group-line',
+                    // Dato REAL (contado de organization_events), no el número
+                    // que el usuario teclea en su perfil.
+                    label: 'Eventos publicados',
+                    value: events.length,
+                    icon: 'ri-calendar-event-line',
                     color: 'text-emerald-400',
                     bg: 'bg-emerald-500/10 border-emerald-500/20',
-                    action: () => setActiveTab('fighters'),
+                    action: () => setActiveTab(isPromoter ? 'events' : 'profile'),
                   },
                 ].map((kpi) => (
                   <button
@@ -428,6 +462,81 @@ export default function OrgDashboard({ profile }: Props) {
                   </button>
                 ))}
               </div>
+
+              {/* Próximos eventos + reservas de entradas (datos reales) */}
+              {(isPromoter || events.length > 0) && (
+                <div className="rk-card overflow-hidden">
+                  <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07] gap-3">
+                    <div className="min-w-0">
+                      <h2 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>PRÓXIMOS EVENTOS</h2>
+                      {ticketsSold > 0 && (
+                        <p className="text-xs text-zinc-400 mt-0.5">{ticketsSold} {ticketsSold === 1 ? 'entrada reservada' : 'entradas reservadas'} en total</p>
+                      )}
+                    </div>
+                    {isPromoter && (
+                      <button onClick={() => setActiveTab('events')} className="text-xs text-red-400 hover:text-red-300 cursor-pointer whitespace-nowrap flex items-center gap-1 flex-shrink-0">
+                        Gestionar <i className="ri-arrow-right-line"></i>
+                      </button>
+                    )}
+                  </div>
+                  {(() => {
+                    const today = new Date(); today.setHours(0, 0, 0, 0);
+                    const upcoming = events.filter((e) => !e.event_date || new Date(e.event_date + 'T12:00:00') >= today).slice(0, 4);
+                    if (events.length === 0) {
+                      return (
+                        <div className="text-center py-10 px-6">
+                          <div className="w-14 h-14 mx-auto mb-3 flex items-center justify-center rounded-2xl bg-red-600/10 border border-red-500/25">
+                            <i className="ri-calendar-event-line text-2xl text-red-400"></i>
+                          </div>
+                          <p className="text-sm text-zinc-300 font-medium">Aún no has publicado ningún evento</p>
+                          <p className="text-xs text-zinc-500 mt-1 max-w-xs mx-auto">Publica tu próxima velada y véndela desde aquí: aparecerá en la cartelera pública de RANKD.</p>
+                          {isPromoter && (
+                            <button onClick={() => setActiveTab('events')} className="rk-btn rk-btn-primary mt-4" style={{ fontSize: '0.8rem', padding: '0.6rem 1.3rem' }}>CREAR MI PRIMER EVENTO</button>
+                          )}
+                        </div>
+                      );
+                    }
+                    if (upcoming.length === 0) {
+                      return (
+                        <div className="text-center py-9 px-6">
+                          <p className="text-sm text-zinc-300">Todos tus eventos ya han pasado</p>
+                          <p className="text-xs text-zinc-500 mt-1">Publica la siguiente velada para mantener el cartel vivo.</p>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="divide-y divide-white/[0.06]">
+                        {upcoming.map((ev) => {
+                          const sold = ticketsByEvent[ev.id] || 0;
+                          const d = ev.event_date ? new Date(ev.event_date + 'T12:00:00') : null;
+                          const days = d ? Math.ceil((d.getTime() - today.getTime()) / 86400000) : null;
+                          return (
+                            <div key={ev.id} className="flex items-center gap-3 px-5 py-3.5">
+                              {ev.image_url ? (
+                                <img src={ev.image_url} alt="" className="w-10 h-10 rounded-lg object-cover border border-white/10 flex-shrink-0" />
+                              ) : (
+                                <div className="w-10 h-10 rounded-lg bg-white/[0.05] border border-white/10 flex items-center justify-center flex-shrink-0"><i className="ri-sword-line text-zinc-500 text-sm"></i></div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm text-white font-medium truncate">{ev.title}</p>
+                                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                                  {d && <span className="text-xs text-zinc-500">{d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</span>}
+                                  {days !== null && days >= 0 && <span className="text-xs text-zinc-600">· {days === 0 ? 'hoy' : `en ${days} ${days === 1 ? 'día' : 'días'}`}</span>}
+                                  {ev.location && <span className="text-xs text-zinc-600 truncate">· {ev.location}</span>}
+                                </div>
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, lineHeight: 1 }} className={sold > 0 ? 'text-[#C9A84C]' : 'text-zinc-600'}>{sold}</p>
+                                <p className="text-[10px] text-zinc-500 uppercase tracking-wider">entradas</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
 
               {/* Recent opportunities */}
               <div className="rk-card overflow-hidden">

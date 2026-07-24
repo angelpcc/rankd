@@ -46,6 +46,7 @@ export default function FighterDashboard({ profile }: Props) {
   const [videos, setVideos] = useState<FighterVideo[]>([]);
   const [achievements, setAchievements] = useState<FighterAchievement[]>([]);
   const [applicationsCount, setApplicationsCount] = useState(0);
+  const [trainingCount, setTrainingCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -149,6 +150,8 @@ export default function FighterDashboard({ profile }: Props) {
       }
       const { count } = await supabase.from('applications').select('id', { count: 'exact', head: true }).eq('fighter_profile_id', profile.id);
       setApplicationsCount(count || 0);
+      const { count: trainings } = await supabase.from('training_sessions').select('id', { count: 'exact', head: true }).eq('fighter_profile_id', profile.id);
+      setTrainingCount(trainings || 0);
       setLoading(false);
     };
     load();
@@ -257,7 +260,9 @@ export default function FighterDashboard({ profile }: Props) {
   const totalFights = (parseInt(wins, 10) || 0) + (parseInt(losses, 10) || 0) + (parseInt(draws, 10) || 0);
   const winRate = totalFights > 0 ? Math.round(((parseInt(wins, 10) || 0) / totalFights) * 100) : null;
 
-  const tabs: { id: ActiveTab; label: string; icon: string; badge?: number }[] = [
+  // El tipo va en el array ANTES de filtrar: si se anota sobre el .filter(),
+  // TypeScript ya ha ensanchado `id` a string y no compila.
+  const allTabs: { id: ActiveTab; label: string; icon: string; badge?: number }[] = [
     { id: 'overview', label: 'Inicio', icon: 'ri-dashboard-line' },
     { id: 'profile', label: t('dash_tab_profile'), icon: 'ri-user-line' },
     { id: 'training', label: 'Mi Esquina', icon: 'ri-boxing-line' },
@@ -267,7 +272,8 @@ export default function FighterDashboard({ profile }: Props) {
     { id: 'videos', label: t('dash_tab_videos'), icon: 'ri-video-line', badge: videos.length || undefined },
     { id: 'achievements', label: t('dash_tab_achievements'), icon: 'ri-medal-line', badge: achievements.length || undefined },
     { id: 'settings', label: t('dash_tab_settings'), icon: 'ri-settings-3-line' },
-  ].filter((tab) => !isHobby || !['opportunities', 'verification', 'videos', 'achievements'].includes(tab.id));
+  ];
+  const tabs = allTabs.filter((tab) => !isHobby || !['opportunities', 'verification', 'videos', 'achievements'].includes(tab.id));
 
   return (
     <div className="min-h-screen bg-[#070707] text-white">
@@ -412,7 +418,8 @@ export default function FighterDashboard({ profile }: Props) {
                     { label: 'Videos subidos', value: videos.length, icon: 'ri-video-line', color: 'text-zinc-300', bg: 'bg-zinc-800 border-zinc-700', action: () => setActiveTab('videos') },
                     { label: 'Logros y títulos', value: achievements.length, icon: 'ri-medal-line', color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/20', action: () => setActiveTab('achievements') },
                   ] : [
-                    { label: 'Ir a Mi Esquina', value: '🥊' as unknown as number, icon: 'ri-boxing-line', color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', action: () => navigate('/mi-esquina') },
+                    // Dato real de su diario en vez de un emoji de relleno
+                    { label: 'Entrenos registrados', value: trainingCount, icon: 'ri-boxing-line', color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/20', action: () => navigate('/mi-esquina') },
                   ]),
                 ].map((kpi) => (
                   <button key={kpi.label} onClick={kpi.action} className="rk-card p-5 text-left cursor-pointer">
