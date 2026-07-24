@@ -2,6 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, Profile, Fighter, UserType } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import BroadcastPanel from './components/BroadcastPanel';
+import ActivityFeed from './components/ActivityFeed';
+import SupportInbox from './components/SupportInbox';
+import ModerationPanel from './components/ModerationPanel';
 
 // Correo con acceso al panel. Añade más si algún día tienes equipo.
 const ADMIN_EMAILS = ['angelpc2005@gmail.com'];
@@ -24,6 +28,10 @@ interface PlatformStats {
   activeOpps: number | null;
   conversations: number | null;
   waitlist: number | null;
+  newThisWeek: number;
+  pendingBrands: number;
+  openTickets: number;
+  liveEvents: number | null;
 }
 
 const disciplineLabels: Record<string, string> = {
@@ -42,7 +50,7 @@ const userTypeColors: Record<string, string> = {
   gym: 'bg-emerald-500/12 border-emerald-500/30 text-emerald-400',
 };
 
-type AdminTab = 'resumen' | 'verificaciones' | 'usuarios';
+type AdminTab = 'resumen' | 'actividad' | 'verificaciones' | 'usuarios' | 'moderacion' | 'comunicados' | 'soporte';
 
 export default function AdminPage() {
   const navigate = useNavigate();
@@ -95,22 +103,31 @@ export default function AdminPage() {
 
   const loadStats = useCallback(async () => {
     setStatsLoading(true);
-    const [typesRes, publicRes, oppsRes, convosRes, waitRes] = await Promise.all([
-      supabase.from('profiles').select('user_type'),
+    const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+    const [typesRes, publicRes, oppsRes, convosRes, waitRes, brandRes, ticketRes, eventRes] = await Promise.all([
+      supabase.from('profiles').select('user_type, created_at'),
       supabase.from('fighters').select('id', { count: 'exact', head: true }).eq('is_public', true),
       supabase.from('opportunities').select('id', { count: 'exact', head: true }).eq('status', 'open'),
       supabase.from('conversations').select('id', { count: 'exact', head: true }),
       supabase.from('waitlist').select('id', { count: 'exact', head: true }),
+      supabase.from('brands').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('support_tickets').select('id', { count: 'exact', head: true }).neq('status', 'closed'),
+      supabase.from('organization_events').select('id', { count: 'exact', head: true }),
     ]);
     const byType: Record<string, number> = {};
     (typesRes.data || []).forEach((r) => { byType[r.user_type] = (byType[r.user_type] || 0) + 1; });
     setStats({
       usersByType: byType,
       totalUsers: (typesRes.data || []).length,
+      newThisWeek: (typesRes.data || []).filter((r) => r.created_at >= weekAgo).length,
       publicFighters: publicRes.error ? null : (publicRes.count ?? 0),
       activeOpps: oppsRes.error ? null : (oppsRes.count ?? 0),
       conversations: convosRes.error ? null : (convosRes.count ?? 0),
       waitlist: waitRes.error ? null : (waitRes.count ?? 0),
+      liveEvents: eventRes.error ? null : (eventRes.count ?? 0),
+      // Si la tabla aún no existe (migración sin aplicar), 0 en vez de romper.
+      pendingBrands: brandRes.error ? 0 : (brandRes.count ?? 0),
+      openTickets: ticketRes.error ? 0 : (ticketRes.count ?? 0),
     });
     setStatsLoading(false);
   }, []);
@@ -140,9 +157,11 @@ export default function AdminPage() {
   }, [isAdmin, tab, usersLoaded, usersLoading, loadUsers]);
 
   const refresh = () => {
-    if (tab === 'resumen') loadStats();
-    else if (tab === 'usuarios') loadUsers();
-    else load();
+    if (tab === 'usuarios') loadUsers();
+    else if (tab === 'verificaciones') load();
+    // Los paneles nuevos traen su propio botón; aquí refrescamos las cifras
+    // que alimentan las insignias de las pestañas.
+    else loadStats();
   };
 
   const runCheck = async (req: Request) => {
@@ -205,9 +224,20 @@ export default function AdminPage() {
 
   const TABS: { id: AdminTab; label: string; icon: string; badge?: number }[] = [
     { id: 'resumen', label: 'Resumen', icon: 'ri-dashboard-line' },
+    { id: 'actividad', label: 'Actividad', icon: 'ri-pulse-line' },
     { id: 'verificaciones', label: 'Verificaciones', icon: 'ri-shield-check-line', badge: requests.length || undefined },
+    { id: 'moderacion', label: 'Moderación', icon: 'ri-eye-line', badge: stats?.pendingBrands || undefined },
+    { id: 'comunicados', label: 'Comunicados', icon: 'ri-mail-send-line' },
+    { id: 'soporte', label: 'Soporte', icon: 'ri-customer-service-2-line', badge: stats?.openTickets || undefined },
     { id: 'usuarios', label: 'Usuarios', icon: 'ri-group-line' },
   ];
+
+  // Lo que de verdad requiere atención hoy. Si está vacío, no se pinta nada.
+  const pendingActions = [
+    requests.length > 0 && { n: requests.length, label: requests.length === 1 ? 'verificación pendiente' : 'verificaciones pendientes', tab: 'verificaciones' as AdminTab, icon: 'ri-shield-check-line', color: '#E10600' },
+    (stats?.pendingBrands ?? 0) > 0 && { n: stats!.pendingBrands, label: stats!.pendingBrands === 1 ? 'marca por aprobar' : 'marcas por aprobar', tab: 'moderacion' as AdminTab, icon: 'ri-store-2-line', color: '#C9A84C' },
+    (stats?.openTickets ?? 0) > 0 && { n: stats!.openTickets, label: stats!.openTickets === 1 ? 'incidencia abierta' : 'incidencias abiertas', tab: 'soporte' as AdminTab, icon: 'ri-bug-line', color: '#fb923c' },
+  ].filter(Boolean) as { n: number; label: string; tab: AdminTab; icon: string; color: string }[];
 
   return (
     <div className="min-h-screen bg-[#070707] text-white">
@@ -261,11 +291,42 @@ export default function AdminPage() {
               <div className="flex items-center justify-center py-20"><div className="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div></div>
             ) : (
               <>
-                <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                {/* Lo que requiere tu atención ahora mismo */}
+                {pendingActions.length > 0 ? (
+                  <div className="rk-card p-5" style={{ borderColor: 'rgba(225,6,0,0.28)', transform: 'none' }}>
+                    <p className="text-[11px] font-bold tracking-[0.22em] uppercase text-zinc-500 mb-3.5">Requiere tu atención</p>
+                    <div className="grid sm:grid-cols-3 gap-2.5">
+                      {pendingActions.map((a) => (
+                        <button key={a.tab} onClick={() => setTab(a.tab)}
+                          className="flex items-center gap-3 bg-white/[0.03] border border-white/10 hover:border-white/25 rounded-xl px-4 py-3 text-left cursor-pointer transition-colors">
+                          <i className={a.icon} style={{ color: a.color, fontSize: 18 }}></i>
+                          <span className="flex-1 min-w-0">
+                            <span className="block text-lg font-black leading-none" style={{ color: a.color, fontFamily: "'Bebas Neue', sans-serif", fontSize: 24 }}>{a.n}</span>
+                            <span className="block text-[11px] text-zinc-400 mt-0.5 leading-tight">{a.label}</span>
+                          </span>
+                          <i className="ri-arrow-right-line text-zinc-600 flex-shrink-0"></i>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 rk-card p-4" style={{ borderColor: 'rgba(34,197,94,0.25)', transform: 'none' }}>
+                    <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl bg-green-500/12 border border-green-500/30 text-green-400">
+                      <i className="ri-check-double-line text-lg"></i>
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-white">Todo al día</p>
+                      <p className="text-xs text-zinc-500 mt-0.5">No hay verificaciones, marcas ni incidencias esperando.</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
                   {[
-                    { l: 'Usuarios totales', v: stats.totalUsers, icon: 'ri-group-line', c: '#ffffff' },
+                    { l: 'Usuarios totales', v: stats.totalUsers, icon: 'ri-group-line', c: '#ffffff', foot: stats.newThisWeek > 0 ? `+${stats.newThisWeek} esta semana` : 'Sin altas esta semana' },
                     { l: 'Peleadores públicos', v: stats.publicFighters, icon: 'ri-boxing-line', c: '#E10600' },
                     { l: 'Oportunidades activas', v: stats.activeOpps, icon: 'ri-megaphone-line', c: '#fb923c' },
+                    { l: 'Eventos publicados', v: stats.liveEvents, icon: 'ri-calendar-event-line', c: '#a78bfa' },
                     { l: 'Conversaciones', v: stats.conversations, icon: 'ri-message-3-line', c: '#38bdf8' },
                     { l: 'Lista de espera', v: stats.waitlist, icon: 'ri-mail-line', c: '#C9A84C' },
                   ].map((s) => (
@@ -275,6 +336,7 @@ export default function AdminPage() {
                         {s.v === null ? '—' : s.v}
                       </p>
                       <p className="text-[11px] text-zinc-400 mt-1.5 uppercase tracking-wider leading-tight">{s.l}</p>
+                      {s.foot && <p className="text-[10px] text-zinc-600 mt-1.5">{s.foot}</p>}
                     </div>
                   ))}
                 </div>
@@ -300,28 +362,53 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <button onClick={() => setTab('verificaciones')} className="rk-card p-5 text-left cursor-pointer flex items-center gap-4">
-                    <div className="w-11 h-11 flex items-center justify-center rounded-xl bg-red-600/12 border border-red-500/25 text-red-400 flex-shrink-0"><i className="ri-shield-check-line text-xl"></i></div>
-                    <div className="flex-1">
-                      <p className="text-sm font-bold text-white">Verificaciones pendientes</p>
-                      <p className="text-xs text-zinc-400 mt-0.5">{requests.length === 0 ? 'Todo al día' : `${requests.length} ${requests.length === 1 ? 'solicitud espera' : 'solicitudes esperan'} revisión`}</p>
-                    </div>
-                    {requests.length > 0 && <span className="text-sm font-black text-red-400 bg-red-600/15 border border-red-500/30 px-2.5 py-1 rounded-full">{requests.length}</span>}
-                  </button>
-                  <button onClick={() => setTab('usuarios')} className="rk-card p-5 text-left cursor-pointer flex items-center gap-4">
-                    <div className="w-11 h-11 flex items-center justify-center rounded-xl bg-white/[0.05] border border-white/10 text-zinc-300 flex-shrink-0"><i className="ri-group-line text-xl"></i></div>
-                    <div className="flex-1">
-                      <p className="text-sm font-bold text-white">Explorar usuarios</p>
-                      <p className="text-xs text-zinc-400 mt-0.5">Busca y filtra los perfiles registrados</p>
-                    </div>
-                    <i className="ri-arrow-right-line text-zinc-500"></i>
-                  </button>
+                <div>
+                  <p className="text-[11px] font-bold tracking-[0.22em] uppercase text-zinc-500 mb-3">Herramientas</p>
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {([
+                      { tab: 'comunicados', icon: 'ri-mail-send-line', c: '#E10600', t: 'Enviar un comunicado', d: 'Escribe y llega a todos o a un tipo de cuenta' },
+                      { tab: 'actividad', icon: 'ri-pulse-line', c: '#38bdf8', t: 'Actividad reciente', d: 'Todo lo que ha pasado, en una línea de tiempo' },
+                      { tab: 'moderacion', icon: 'ri-eye-line', c: '#C9A84C', t: 'Moderar contenido', d: 'Aprueba marcas y retira lo que no debe estar' },
+                      { tab: 'soporte', icon: 'ri-customer-service-2-line', c: '#fb923c', t: 'Bandeja de entrada', d: 'Incidencias, formulario y contactos recibidos' },
+                      { tab: 'verificaciones', icon: 'ri-shield-check-line', c: '#22c55e', t: 'Verificaciones', d: 'Comprueba récords y aprueba el distintivo' },
+                      { tab: 'usuarios', icon: 'ri-group-line', c: '#a78bfa', t: 'Explorar usuarios', d: 'Busca y filtra los perfiles registrados' },
+                    ] as const).map((c) => (
+                      <button key={c.tab} onClick={() => setTab(c.tab)} className="rk-card p-5 text-left cursor-pointer group">
+                        <div className="w-11 h-11 flex items-center justify-center rounded-xl border mb-3"
+                          style={{ background: `${c.c}14`, borderColor: `${c.c}40`, color: c.c }}>
+                          <i className={`${c.icon} text-xl`}></i>
+                        </div>
+                        <p className="text-sm font-bold text-white">{c.t}</p>
+                        <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{c.d}</p>
+                        <p className="text-xs font-bold mt-3 flex items-center gap-1 group-hover:gap-2 transition-all" style={{ color: c.c }}>
+                          Abrir <i className="ri-arrow-right-line"></i>
+                        </p>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </>
             )}
           </div>
         )}
+
+        {/* ══ ACTIVIDAD ══ */}
+        {tab === 'actividad' && <ActivityFeed />}
+
+        {/* ══ MODERACIÓN ══ */}
+        {tab === 'moderacion' && <ModerationPanel showToast={showToast} />}
+
+        {/* ══ COMUNICADOS ══ */}
+        {tab === 'comunicados' && (
+          <BroadcastPanel
+            showToast={showToast}
+            usersByType={stats?.usersByType || {}}
+            totalUsers={stats?.totalUsers || 0}
+          />
+        )}
+
+        {/* ══ SOPORTE ══ */}
+        {tab === 'soporte' && <SupportInbox showToast={showToast} />}
 
         {/* ══ VERIFICACIONES ══ */}
         {tab === 'verificaciones' && (
