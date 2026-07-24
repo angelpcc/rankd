@@ -260,6 +260,22 @@ export default function FightersDirectoryPage() {
     filters.available ? 'x' : '', filters.hasSocial ? 'x' : '',
   ].filter(Boolean).length;
 
+  // Explorar por disciplina: entradas visuales con recuento real
+  const DISCIPLINE_TILES = [
+    { value: 'boxing', label: 'Boxeo', icon: 'ri-boxing-line' },
+    { value: 'mma', label: 'MMA', icon: 'ri-sword-line' },
+    { value: 'kickboxing', label: 'Kickboxing', icon: 'ri-run-line' },
+    { value: 'muay_thai', label: 'Muay Thai', icon: 'ri-boxing-fill' },
+    { value: 'bjj', label: 'BJJ', icon: 'ri-shirt-line' },
+    { value: 'wrestling', label: 'Wrestling', icon: 'ri-shake-hands-line' },
+  ];
+  const disciplineCounts = useMemo(() => {
+    const m: Record<string, number> = {};
+    data.forEach(({ fighter }) => { if (fighter.discipline) m[fighter.discipline] = (m[fighter.discipline] || 0) + 1; });
+    return m;
+  }, [data]);
+  const availableCount = useMemo(() => data.filter((d) => d.fighter.is_available).length, [data]);
+
   return (
     <div className="min-h-screen bg-[#070707]">
       {/* Top bar */}
@@ -321,6 +337,53 @@ export default function FightersDirectoryPage() {
             </div>
           </div>
         </div>
+
+        {/* Explorar por disciplina — entrada visual, no lista plana */}
+        {!loading && data.length > 0 && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 pt-7">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="rk-eyebrow">EXPLORA POR</span>
+              <span style={{ flex: '0 0 28px', height: 1, background: 'rgba(255,255,255,0.14)' }} />
+              <span className="text-xs text-zinc-500">Disciplina</span>
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
+              {DISCIPLINE_TILES.map((d) => {
+                const count = disciplineCounts[d.value] || 0;
+                const active = filters.discipline === d.value;
+                return (
+                  <button key={d.value} onClick={() => setFilters((f) => ({ ...f, discipline: active ? '' : d.value }))}
+                    className={`group relative rounded-2xl border p-3.5 text-left transition-all cursor-pointer overflow-hidden ${active ? 'border-red-500/50 bg-red-600/[0.1]' : 'border-white/[0.08] bg-white/[0.02] hover:border-white/25 hover:bg-white/[0.04]'}`}>
+                    <div className="absolute -right-2 -top-3 opacity-[0.06] group-hover:opacity-10 transition-opacity" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 60, lineHeight: 1 }}>{count}</div>
+                    <i className={`${d.icon} text-xl ${active ? 'text-red-400' : 'text-zinc-400 group-hover:text-white'} transition-colors`}></i>
+                    <p className="text-sm font-bold text-white mt-2 leading-tight">{d.label}</p>
+                    <p className="text-[11px] text-zinc-500 mt-0.5">{count} {count === 1 ? 'peleador' : 'peleadores'}</p>
+                  </button>
+                );
+              })}
+            </div>
+            {/* Atajos rápidos */}
+            <div className="flex flex-wrap gap-2 mt-3">
+              <button onClick={() => setFilters((f) => ({ ...f, available: !f.available }))}
+                className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors cursor-pointer ${filters.available ? 'bg-green-500/15 border-green-500/35 text-green-300' : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white hover:border-white/25'}`}>
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>Disponibles ahora · {availableCount}
+              </button>
+              <button onClick={() => setSortBy('wins')}
+                className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors cursor-pointer ${sortBy === 'wins' ? 'bg-red-600/15 border-red-500/35 text-red-300' : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white hover:border-white/25'}`}>
+                <i className="ri-trophy-line"></i>Más victorias
+              </button>
+              <button onClick={() => setSortBy('social')}
+                className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors cursor-pointer ${sortBy === 'social' ? 'bg-[#C9A84C]/15 border-[#C9A84C]/35 text-[#C9A84C]' : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white hover:border-white/25'}`}>
+                <i className="ri-global-line"></i>Mayor presencia digital
+              </button>
+              {(filters.discipline || filters.available || sortBy !== 'recent') && (
+                <button onClick={() => { setFilters(defaultFilters); setSortBy('recent'); }}
+                  className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border border-white/10 text-zinc-500 hover:text-red-400 transition-colors cursor-pointer">
+                  <i className="ri-close-line"></i>Limpiar
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Main content */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 py-6 sm:py-8">
