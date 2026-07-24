@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { Profile } from '@/lib/supabase';
 import LanguageSelector from '@/components/feature/LanguageSelector';
+import NotificationBell from '@/components/feature/NotificationBell';
 
 function RankdLogo() {
   return (
@@ -96,6 +97,7 @@ export default function DashboardNav({ profile }: Props) {
           <div className="hidden md:block">
             <LanguageSelector dark />
           </div>
+          <NotificationBell userId={profile.id} />
           {/* Avatar + name button */}
           <div className="relative">
             <button

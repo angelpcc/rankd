@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase, UserType } from '@/lib/supabase';
+import { sendWelcomeEmail } from '@/lib/email';
 
 type AuthMode = 'login' | 'register';
 
@@ -191,6 +192,10 @@ export default function AuthPage() {
     }
 
     if (data.user) {
+      // Correo de bienvenida. Va sin await a propósito: si el servicio de
+      // correo tarda o no está configurado, el registro no se queda esperando.
+      sendWelcomeEmail(email, fullName, userType);
+
       if (data.session) {
         await supabase.from('profiles').upsert({
           id: data.user.id,

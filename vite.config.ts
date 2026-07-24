@@ -80,7 +80,9 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3000,
+    // 3000 por defecto; si PORT viene definido, manda esa (permite levantar
+    // varias instancias a la vez sin chocar de puerto).
+    port: Number(process.env.PORT) || 3000,
     host: "0.0.0.0",
   },
 });

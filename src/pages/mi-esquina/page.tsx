@@ -12,6 +12,7 @@ import GearChecklist from '@/pages/mi-esquina/components/GearChecklist';
 import SectionCoach from '@/pages/mi-esquina/components/SectionCoach';
 import MealLog from '@/pages/mi-esquina/components/MealLog';
 import Reveal from '@/components/base/Reveal';
+import NotificationBell from '@/components/feature/NotificationBell';
 
 type Section = 'resumen' | 'diario' | 'rutina' | 'timer' | 'coach' | 'material' | 'nutricion' | 'mensajes';
 
@@ -126,10 +127,14 @@ export default function MiEsquinaPage() {
             <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 3 }} className="text-[#E10600]">ESQUINA</span>
             <span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] mt-0.5"></span>
           </div>
-          <a href="/beta" className="flex items-center gap-0 cursor-pointer">
-            <span className="font-unbounded font-black tracking-tighter leading-none text-[15px] text-white" style={{ letterSpacing: '-0.04em' }}>RAN</span>
-            <span className="font-unbounded font-black tracking-tighter leading-none text-[15px] text-[#E10600]" style={{ letterSpacing: '-0.04em' }}>KD</span>
-          </a>
+          <div className="flex items-center gap-2.5">
+            {/* Aquí es donde importa: los recordatorios de entreno se generan al entrar. */}
+            <NotificationBell userId={profile.id} reminders />
+            <a href="/beta" className="hidden sm:flex items-center gap-0 cursor-pointer">
+              <span className="font-unbounded font-black tracking-tighter leading-none text-[15px] text-white" style={{ letterSpacing: '-0.04em' }}>RAN</span>
+              <span className="font-unbounded font-black tracking-tighter leading-none text-[15px] text-[#E10600]" style={{ letterSpacing: '-0.04em' }}>KD</span>
+            </a>
+          </div>
         </div>
       </div>
 

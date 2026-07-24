@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import LanguageSelector from '@/components/feature/LanguageSelector';
+import NotificationBell from '@/components/feature/NotificationBell';
 import RankdLogo from '@/components/base/RankdLogo';
 
 export default function Navbar() {
@@ -137,6 +138,7 @@ export default function Navbar() {
             <LanguageSelector scrolled={false} />
             {user && profile ? (
               <>
+                <NotificationBell userId={user.id} />
                 <button onClick={() => navigate(isHobby ? '/mi-esquina' : '/dashboard')} style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.85)', background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.13)', borderRadius: 8, padding: '9px 18px', cursor: 'pointer', transition: 'all 0.28s cubic-bezier(0.22,1,0.36,1)', backdropFilter: 'blur(10px)' }}>
                   <span style={{ width: 20, height: 20, background: '#E10600', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'white', fontWeight: 900 }}>{(profile.full_name || 'U')[0].toUpperCase()}</span>
                   {t('nav_my_profile')}
@@ -153,15 +155,17 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Hamburger */}
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="nav-mobile"
-            style={{ background: 'none', border: 'none', color: 'white', fontSize: 24, cursor: 'pointer', padding: '4px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            aria-label="Menú"
-          >
-            <i className={menuOpen ? 'ri-close-line' : 'ri-menu-3-line'} />
-          </button>
+          {/* Móvil: campana + hamburguesa */}
+          <div className="nav-mobile" style={{ alignItems: 'center', gap: 6 }}>
+            {user && profile && <NotificationBell userId={user.id} />}
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              style={{ background: 'none', border: 'none', color: 'white', fontSize: 24, cursor: 'pointer', padding: '4px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              aria-label="Menú"
+            >
+              <i className={menuOpen ? 'ri-close-line' : 'ri-menu-3-line'} />
+            </button>
+          </div>
         </div>
 
         {/* Mobile Menu — dropdown */}
