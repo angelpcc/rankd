@@ -49,7 +49,7 @@ export default function MiEsquinaPage() {
   const { user, profile, loading: authLoading } = useAuth();
   const [section, setSection] = useState<Section>('resumen');
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
-  const [stats, setStats] = useState({ total: 0, week: 0, weekMin: 0 });
+  const [stats, setStats] = useState({ total: 0, week: 0, weekMin: 0, todayLogged: false, streak: 0, lastWeekMin: 0 });
 
   useSEO({
     title: 'Mi Esquina | RANKD',
@@ -78,8 +78,25 @@ export default function MiEsquinaPage() {
       const weekStart = new Date(now);
       weekStart.setDate(now.getDate() - day);
       weekStart.setHours(0, 0, 0, 0);
+      const lastWeekStart = new Date(weekStart); lastWeekStart.setDate(weekStart.getDate() - 7);
+      const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       const week = data.filter((s) => new Date(s.session_date + 'T12:00:00') >= weekStart);
-      setStats({ total: data.length, week: week.length, weekMin: week.reduce((a, s) => a + (s.duration_min || 0), 0) });
+      const lastWeek = data.filter((s) => { const dt = new Date(s.session_date + 'T12:00:00'); return dt >= lastWeekStart && dt < weekStart; });
+      const days = new Set(data.map((s) => s.session_date));
+      const todayLogged = days.has(iso(now));
+      // Racha de días consecutivos (si hoy no hay, cuenta desde ayer)
+      let streak = 0;
+      const cursor = new Date(now);
+      if (!todayLogged) cursor.setDate(cursor.getDate() - 1);
+      for (;;) { if (days.has(iso(cursor))) { streak++; cursor.setDate(cursor.getDate() - 1); } else break; }
+      setStats({
+        total: data.length,
+        week: week.length,
+        weekMin: week.reduce((a, s) => a + (s.duration_min || 0), 0),
+        lastWeekMin: lastWeek.reduce((a, s) => a + (s.duration_min || 0), 0),
+        todayLogged,
+        streak,
+      });
     };
     load();
   }, [profile?.id, section]);
@@ -158,6 +175,39 @@ export default function MiEsquinaPage() {
 
           {section === 'resumen' && (
             <div className="space-y-6 max-w-3xl">
+              {/* Hábito diario: aviso o resumen según si ya entrenó hoy */}
+              <Reveal>
+                {stats.todayLogged ? (
+                  <div className="rk-card relative overflow-hidden" style={{ padding: '18px 20px', borderColor: 'rgba(34,197,94,0.25)' }}>
+                    <div className="rk-glow-red" style={{ width: 160, height: 160, top: -70, right: -50, borderRadius: '50%', background: 'radial-gradient(circle, rgba(34,197,94,0.14) 0%, transparent 68%)' }} />
+                    <div className="relative flex items-center gap-4">
+                      <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl bg-green-500/12 border border-green-500/30 text-green-400"><i className="ri-check-double-line text-2xl"></i></div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-white">Entreno de hoy registrado 🔥</p>
+                        <p className="text-xs text-zinc-400 mt-0.5">
+                          {stats.streak > 1 ? `Racha de ${stats.streak} días. ` : ''}Esta semana: {stats.week} {stats.week === 1 ? 'sesión' : 'sesiones'}
+                          {stats.lastWeekMin > 0 && (
+                            <span className={stats.weekMin >= stats.lastWeekMin ? 'text-green-400' : 'text-orange-400'}> · {stats.weekMin >= stats.lastWeekMin ? '▲' : '▼'} {Math.abs(stats.weekMin - stats.lastWeekMin)}m vs. semana pasada</span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rk-card relative overflow-hidden" style={{ padding: '18px 20px', borderColor: 'rgba(225,6,0,0.28)' }}>
+                    <div className="rk-glow-red" style={{ width: 180, height: 180, top: -80, right: -50, borderRadius: '50%' }} />
+                    <div className="relative flex items-center gap-4 flex-wrap sm:flex-nowrap">
+                      <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl bg-red-600/12 border border-red-500/30 text-red-400 anim-pulse-glow"><i className="ri-fire-line text-2xl"></i></div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-white">Aún no has registrado tu entreno de hoy</p>
+                        <p className="text-xs text-zinc-400 mt-0.5">{stats.streak > 0 ? `Tu racha de ${stats.streak} ${stats.streak === 1 ? 'día' : 'días'} está en juego. No la rompas.` : 'Enciende tu racha registrando la sesión de hoy.'}</p>
+                      </div>
+                      <button onClick={() => setSection('diario')} className="rk-btn rk-btn-primary flex-shrink-0 w-full sm:w-auto" style={{ fontSize: '0.8rem', padding: '0.6rem 1.2rem' }}>REGISTRAR HOY</button>
+                    </div>
+                  </div>
+                )}
+              </Reveal>
+
               <Reveal>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
