@@ -250,7 +250,7 @@ export default function MiEsquinaPage() {
                     { s: 'rutina' as Section, icon: 'ri-calendar-2-line', title: 'Planifica tu semana', desc: 'Organiza tus entrenos y ve tachando lo cumplido', cta: 'Ver mi semana' },
                     { s: 'material' as Section, icon: 'ri-boxing-line', title: 'Guía de material', desc: 'Guantes, vendas, protecciones: qué comprar y por qué', cta: 'Ver guía' },
                     { s: 'nutricion' as Section, icon: 'ri-restaurant-line', title: 'Nutrición del peleador', desc: 'Lo esencial para rendir: comida, hidratación y descanso', cta: 'Ver consejos' },
-                    { s: 'coach' as Section, icon: 'ri-sparkling-2-line', title: 'Coach IA', desc: 'Tu entrenador personal inteligente está en camino', cta: 'Saber más' },
+                    { s: 'coach' as Section, icon: 'ri-sparkling-2-line', title: 'Coach IA', desc: 'Pídele un plan y guárdalo directamente en tu diario', cta: 'Hablar con el coach' },
                   ].map((c) => (
                     <button key={c.title} onClick={() => setSection(c.s)} className="rk-card text-left group" style={{ padding: 20, cursor: 'pointer' }}>
                       <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-600/12 border border-red-500/25 text-red-400 mb-3"><i className={`${c.icon} text-lg`}></i></div>
