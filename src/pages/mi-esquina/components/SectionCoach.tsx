@@ -55,7 +55,26 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [notConfigured, setNotConfigured] = useState(false);
+  const [checking, setChecking] = useState(true);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Comprobamos disponibilidad al abrir para mostrar "próximamente" de entrada
+  // en vez de esperar a que el usuario escriba y se tope con un fallo.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/coach', { method: 'GET' });
+        const data = res.ok ? await res.json() : { available: false };
+        if (alive) setNotConfigured(!data?.available);
+      } catch {
+        if (alive) setNotConfigured(true);
+      } finally {
+        if (alive) setChecking(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
 
   // Reunimos el perfil físico del peleador (contexto de la IA).
   useEffect(() => {
@@ -109,14 +128,35 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
     setSending(false);
   }, [messages, physical, section, sending]);
 
+  // Mientras comprobamos, un esqueleto sobrio (evita parpadeo de UI)
+  if (checking) {
+    return (
+      <div className="rk-card flex items-center justify-center" style={{ height: 'min(560px, 72vh)' }}>
+        <div className={`w-7 h-7 border-2 border-t-transparent rounded-full animate-spin ${accent === 'gold' ? 'border-[#C9A84C]' : accent === 'sky' ? 'border-sky-500' : 'border-red-500'}`}></div>
+      </div>
+    );
+  }
+
   if (notConfigured) {
     return (
-      <div className="rk-card text-center max-w-lg mx-auto" style={{ padding: '44px 26px' }}>
-        <div className={`w-16 h-16 mx-auto mb-5 flex items-center justify-center rounded-2xl ${a.bg} border ${a.border} anim-float`}>
-          <i className={`ri-sparkling-2-line text-3xl ${a.text}`}></i>
+      <div className="rk-card relative overflow-hidden text-center" style={{ padding: '44px 26px' }}>
+        <div className="rk-glow-red" style={{ width: 220, height: 220, top: -90, right: -70, borderRadius: '50%' }} />
+        <div className="relative">
+          <div className={`w-16 h-16 mx-auto mb-5 flex items-center justify-center rounded-2xl ${a.bg} border ${a.border} anim-float`}>
+            <i className={`ri-sparkling-2-line text-3xl ${a.text}`}></i>
+          </div>
+          <span className={`inline-block text-[10px] font-bold uppercase tracking-[0.18em] px-2.5 py-1 rounded-full ${a.bg} ${a.text} mb-3`}>Muy pronto</span>
+          <h3 className="rk-h3" style={{ fontSize: '1.3rem', color: '#fff' }}>{title.toUpperCase()}</h3>
+          <p className="text-sm text-zinc-400 mt-2.5 leading-relaxed max-w-sm mx-auto">{intro}</p>
+          <p className="text-xs text-zinc-500 mt-4 max-w-sm mx-auto leading-relaxed">
+            Estamos afinando este asistente. Cuando se active, usará tu perfil físico y tus datos de Mi Esquina para responderte. Mientras tanto, el resto de la sección funciona con normalidad.
+          </p>
+          <div className="flex flex-wrap gap-2 justify-center mt-5 opacity-60">
+            {suggestions.slice(0, 3).map((s) => (
+              <span key={s} className="text-xs text-zinc-500 bg-white/[0.03] border border-white/10 rounded-full px-3 py-1.5">{s}</span>
+            ))}
+          </div>
         </div>
-        <h3 className="rk-h3" style={{ fontSize: '1.25rem', color: '#fff' }}>IA A PUNTO DE ENTRAR AL RING</h3>
-        <p className="text-sm text-zinc-400 mt-2 leading-relaxed">El asistente estará disponible en cuanto se active la conexión con la IA en el servidor. Todo lo demás de esta sección ya funciona.</p>
       </div>
     );
   }

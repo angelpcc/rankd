@@ -301,9 +301,9 @@ export default function RegistroPage() {
                   </button>
                   <p className="text-center text-white/20 text-xs font-inter">
                     {t('registro_terms')}{' '}
-                    <a href="#" rel="nofollow" className="text-white/50 hover:text-white transition-colors">{t('registro_terms_link')}</a>
+                    <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-white/50 hover:text-white underline underline-offset-2 transition-colors">{t('registro_terms_link')}</a>
                     {' '}{t('registro_terms_and')}{' '}
-                    <a href="#" rel="nofollow" className="text-white/50 hover:text-white transition-colors">{t('registro_privacy_link')}</a>
+                    <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-white/50 hover:text-white underline underline-offset-2 transition-colors">{t('registro_privacy_link')}</a>
                   </p>
                 </form>
               )}

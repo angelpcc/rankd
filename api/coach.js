@@ -62,11 +62,18 @@ Cómo respondes:
 };
 
 export default async function handler(req, res) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+
+  // Sonda de disponibilidad: el front la consulta al abrir la sección para
+  // mostrar "próximamente" de entrada. NO gasta API (no llama a Claude).
+  if (req.method === 'GET') {
+    return res.status(200).json({ available: !!apiKey });
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método no permitido' });
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     // Degradación limpia: el front muestra un aviso en vez de romperse.
     return res.status(503).json({ error: 'not_configured', message: 'La IA aún no está configurada en el servidor.' });

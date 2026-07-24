@@ -111,7 +111,7 @@ export default function BrandsPage() {
     : [...PRODUCT_CATEGORIES, ...SERVICE_CATEGORIES.filter((c) => !PRODUCT_CATEGORIES.includes(c))];
 
   return (
-    <div className="min-h-screen bg-[#F8F8F8]">
+    <div className="min-h-screen bg-[#070707]">
       <Navbar />
 
       {/* ── HERO ── */}
@@ -159,7 +159,7 @@ export default function BrandsPage() {
       </section>
 
       {/* ── TYPE TABS + SEARCH BAR ── */}
-      <div className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+      <div className="sticky top-0 z-30 bg-zinc-950/95 backdrop-blur border-b border-white/10">
         <div className="max-w-7xl mx-auto px-6 md:px-10 pt-3">
           <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 w-fit flex-wrap">
             {([
@@ -171,7 +171,7 @@ export default function BrandsPage() {
               <button
                 key={opt.value}
                 onClick={() => handleTypeChange(opt.value)}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap font-inter ${typeFilter === opt.value ? 'bg-white text-[#0B0B0B] shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap font-inter ${typeFilter === opt.value ? 'bg-white text-[#0B0B0B] shadow-sm' : 'text-zinc-400 hover:text-white'}`}
               >
                 <i className={opt.icon}></i>
                 {opt.label}
@@ -191,10 +191,10 @@ export default function BrandsPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={typeFilter === 'service' ? t('brands_search_services') : t('brands_search_products')}
-                className="w-full bg-gray-50 border border-gray-200 text-[#0B0B0B] text-sm rounded-xl pl-9 pr-4 py-2.5 focus:outline-none focus:border-[#E10600] transition-colors font-inter"
+                className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl pl-9 pr-4 py-2.5 focus:outline-none focus:border-[#E10600] transition-colors font-inter"
               />
               {search && (
-                <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-800 cursor-pointer">
+                <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white cursor-pointer">
                   <i className="ri-close-line text-sm"></i>
                 </button>
               )}
@@ -203,14 +203,14 @@ export default function BrandsPage() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              className="bg-gray-50 border border-gray-200 text-[#0B0B0B] text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#E10600] cursor-pointer font-inter min-w-[160px]"
+              className="bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#E10600] cursor-pointer font-inter min-w-[160px]"
             >
               {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
 
             <button
               onClick={() => setShowFilters((v) => !v)}
-              className={`flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl border transition-colors cursor-pointer whitespace-nowrap font-inter ${showFilters || activeFilterCount > 0 ? 'bg-[#E10600] text-white border-[#E10600]' : 'bg-gray-50 text-[#0B0B0B] border-gray-200 hover:border-gray-400'}`}
+              className={`flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl border transition-colors cursor-pointer whitespace-nowrap font-inter ${showFilters || activeFilterCount > 0 ? 'bg-[#E10600] text-white border-[#E10600]' : 'bg-white/[0.04] text-zinc-200 border-white/10 hover:border-white/30'}`}
             >
               <i className="ri-filter-3-line"></i>
               {t('brands_btn_filters')}
@@ -221,15 +221,15 @@ export default function BrandsPage() {
           </div>
 
           {showFilters && (
-            <div className="mt-3 pt-3 border-t border-gray-200 flex flex-col sm:flex-row gap-4">
+            <div className="mt-3 pt-3 border-t border-white/10 flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
-                <p className="text-xs text-gray-600 font-inter mb-2 font-semibold uppercase tracking-wide">
+                <p className="text-xs text-zinc-400 font-inter mb-2 font-semibold uppercase tracking-wide">
                   {typeFilter === 'service' ? t('brands_service_type_label') : t('brands_cat_label')}
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   <button
                     onClick={() => setCategoryFilter('')}
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap font-inter ${!categoryFilter ? 'bg-[#0B0B0B] text-white border-[#0B0B0B]' : 'bg-white text-gray-700 border-gray-300 hover:border-gray-500'}`}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap font-inter ${!categoryFilter ? 'bg-red-600 text-white border-red-600' : 'bg-white/[0.04] text-zinc-300 border-white/10 hover:border-white/30'}`}
                   >
                     {t('brands_cat_all')}
                   </button>
@@ -237,7 +237,7 @@ export default function BrandsPage() {
                     <button
                       key={c}
                       onClick={() => setCategoryFilter(c === categoryFilter ? '' : c)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap font-inter ${categoryFilter === c ? 'bg-[#E10600] text-white border-[#E10600]' : 'bg-white text-gray-700 border-gray-300 hover:border-gray-500'}`}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap font-inter ${categoryFilter === c ? 'bg-[#E10600] text-white border-[#E10600]' : 'bg-white/[0.04] text-zinc-300 border-white/10 hover:border-white/30'}`}
                     >
                       {c}
                     </button>
@@ -246,11 +246,11 @@ export default function BrandsPage() {
               </div>
 
               <div className="sm:w-64">
-                <p className="text-xs text-gray-600 font-inter mb-2 font-semibold uppercase tracking-wide">{t('brands_disc_label')}</p>
+                <p className="text-xs text-zinc-400 font-inter mb-2 font-semibold uppercase tracking-wide">{t('brands_disc_label')}</p>
                 <div className="flex flex-wrap gap-1.5">
                   <button
                     onClick={() => setDisciplineFilter('')}
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap font-inter ${!disciplineFilter ? 'bg-[#0B0B0B] text-white border-[#0B0B0B]' : 'bg-white text-gray-700 border-gray-300 hover:border-gray-500'}`}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap font-inter ${!disciplineFilter ? 'bg-red-600 text-white border-red-600' : 'bg-white/[0.04] text-zinc-300 border-white/10 hover:border-white/30'}`}
                   >
                     {t('brands_disc_all')}
                   </button>
@@ -258,7 +258,7 @@ export default function BrandsPage() {
                     <button
                       key={d}
                       onClick={() => setDisciplineFilter(d === disciplineFilter ? '' : d)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap font-inter ${disciplineFilter === d ? 'bg-[#E10600] text-white border-[#E10600]' : 'bg-white text-gray-700 border-gray-300 hover:border-gray-500'}`}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap font-inter ${disciplineFilter === d ? 'bg-[#E10600] text-white border-[#E10600]' : 'bg-white/[0.04] text-zinc-300 border-white/10 hover:border-white/30'}`}
                     >
                       {d}
                     </button>
@@ -288,20 +288,20 @@ export default function BrandsPage() {
           <div className="flex items-center justify-center py-32">
             <div className="text-center">
               <div className="w-10 h-10 border-2 border-[#E10600] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-600 text-sm font-inter">{t('brands_loading')}</p>
+              <p className="text-zinc-400 text-sm font-inter">{t('brands_loading')}</p>
             </div>
           </div>
         )}
 
         {!loading && brands.length === 0 && (
           <div className="flex flex-col items-center justify-center py-32 px-6 text-center">
-            <div className="w-24 h-24 flex items-center justify-center rounded-3xl bg-gray-100 border border-gray-200 mb-8">
+            <div className="w-24 h-24 flex items-center justify-center rounded-3xl bg-white/[0.05] border border-white/10 mb-8">
               <i className="ri-store-2-line text-5xl text-gray-400"></i>
             </div>
-            <h2 className="font-unbounded font-bold text-[#0B0B0B] text-xl mb-3">
+            <h2 className="font-unbounded font-bold text-white text-xl mb-3">
               {t('brands_empty_registered')}
             </h2>
-            <p className="text-gray-600 text-sm font-inter leading-relaxed max-w-md">
+            <p className="text-zinc-400 text-sm font-inter leading-relaxed max-w-md">
               {t('brands_empty_registered_desc')}
             </p>
           </div>
@@ -309,11 +309,11 @@ export default function BrandsPage() {
 
         {!loading && brands.length > 0 && filtered.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
-            <div className="w-16 h-16 flex items-center justify-center rounded-2xl bg-gray-100 border border-gray-200 mb-6">
+            <div className="w-16 h-16 flex items-center justify-center rounded-2xl bg-white/[0.05] border border-white/10 mb-6">
               <i className="ri-filter-off-line text-3xl text-gray-400"></i>
             </div>
-            <h3 className="font-unbounded font-bold text-[#0B0B0B] text-base mb-2">{t('brands_no_results_title')}</h3>
-            <p className="text-gray-600 text-sm font-inter mb-6">{t('brands_no_results_desc')}</p>
+            <h3 className="font-unbounded font-bold text-white text-base mb-2">{t('brands_no_results_title')}</h3>
+            <p className="text-zinc-400 text-sm font-inter mb-6">{t('brands_no_results_desc')}</p>
             <button
               onClick={() => { setSearch(''); setCategoryFilter(''); setDisciplineFilter(''); handleTypeChange('all'); }}
               className="flex items-center gap-2 bg-[#E10600] text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap font-inter hover:bg-red-700"
@@ -326,7 +326,7 @@ export default function BrandsPage() {
 
         {!loading && brands.length > 0 && (
           <div className="flex items-center justify-between mb-8">
-            <p className="text-sm font-semibold text-[#0B0B0B] font-inter">
+            <p className="text-sm font-semibold text-white font-inter">
               {filtered.length === 0
                 ? t('brands_no_results_title')
                 : `${filtered.length} ${filtered.length === 1 ? t('brands_results_singular') : t('brands_results_plural')}`
@@ -335,7 +335,7 @@ export default function BrandsPage() {
             {(search || categoryFilter || disciplineFilter) && (
               <button
                 onClick={() => { setSearch(''); setCategoryFilter(''); setDisciplineFilter(''); }}
-                className="text-xs text-gray-600 hover:text-gray-900 cursor-pointer font-inter flex items-center gap-1 font-medium"
+                className="text-xs text-zinc-400 hover:text-white cursor-pointer font-inter flex items-center gap-1 font-medium"
               >
                 <i className="ri-close-line"></i>
                 {t('brands_clear_search')}

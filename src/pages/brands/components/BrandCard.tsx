@@ -16,7 +16,7 @@ export default function BrandCard({ brand }: BrandCardProps) {
     .toUpperCase();
 
   return (
-    <div className="group bg-white border border-gray-100 rounded-2xl overflow-hidden hover:border-gray-200 transition-all duration-300">
+    <div className="group bg-white/[0.03] border border-white/[0.08] rounded-2xl overflow-hidden hover:border-red-500/40 transition-all duration-300">
       {/* Cover / Logo area */}
       <div className="relative h-40 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         {brand.logo_url ? (
@@ -39,7 +39,7 @@ export default function BrandCard({ brand }: BrandCardProps) {
 
       {/* Content */}
       <div className="p-5">
-        <h3 className="font-unbounded font-bold text-[#0B0B0B] text-sm mb-2">{brand.name}</h3>
+        <h3 className="font-unbounded font-bold text-white text-sm mb-2">{brand.name}</h3>
         <p className="text-gray-400 text-xs font-inter leading-relaxed line-clamp-3 mb-4">
           {brand.description}
         </p>

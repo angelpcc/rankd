@@ -15,13 +15,13 @@ const videoTypeLabels: Record<string, string> = {
 };
 
 const lookingForConfig: Record<string, { icon: string; color: string; bg: string; border: string }> = {
-  'Combates':           { icon: 'ri-boxing-line',       color: 'text-red-600',     bg: 'bg-red-50',     border: 'border-red-200' },
-  'Contrato profesional':{ icon: 'ri-file-text-line',   color: 'text-zinc-700',    bg: 'bg-zinc-100',   border: 'border-zinc-200' },
-  'Patrocinio':         { icon: 'ri-hand-coin-line',    color: 'text-yellow-700',  bg: 'bg-yellow-50',  border: 'border-yellow-200' },
-  'Manager':            { icon: 'ri-user-star-line',    color: 'text-orange-700',  bg: 'bg-orange-50',  border: 'border-orange-200' },
-  'Promotora':          { icon: 'ri-trophy-line',       color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200' },
-  'Entrenamiento':      { icon: 'ri-run-line',          color: 'text-sky-700',     bg: 'bg-sky-50',     border: 'border-sky-200' },
-  'Sparring':           { icon: 'ri-user-shared-line',  color: 'text-orange-600',  bg: 'bg-orange-50',  border: 'border-orange-200' },
+  'Combates':           { icon: 'ri-boxing-line',       color: 'text-red-400',     bg: 'bg-red-500/12',     border: 'border-red-500/25' },
+  'Contrato profesional':{ icon: 'ri-file-text-line',   color: 'text-zinc-200',    bg: 'bg-white/[0.05]',   border: 'border-white/10' },
+  'Patrocinio':         { icon: 'ri-hand-coin-line',    color: 'text-yellow-400',  bg: 'bg-yellow-500/12',  border: 'border-yellow-500/25' },
+  'Manager':            { icon: 'ri-user-star-line',    color: 'text-orange-400',  bg: 'bg-orange-500/12',  border: 'border-orange-500/25' },
+  'Promotora':          { icon: 'ri-trophy-line',       color: 'text-emerald-400', bg: 'bg-emerald-500/12', border: 'border-emerald-500/25' },
+  'Entrenamiento':      { icon: 'ri-run-line',          color: 'text-sky-400',     bg: 'bg-sky-500/12',     border: 'border-sky-500/25' },
+  'Sparring':           { icon: 'ri-user-shared-line',  color: 'text-orange-400',  bg: 'bg-orange-500/12',  border: 'border-orange-500/25' },
 };
 
 function getYouTubeId(url: string): string | null {
@@ -43,7 +43,7 @@ export default function FighterProfileBody({ profile, fighter, videos, achieveme
   const lookingFor = fighter?.looking_for || [];
 
   return (
-    <div className="bg-zinc-50 min-h-screen">
+    <div className="min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 py-7 sm:py-10 md:py-14">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-8">
 
@@ -52,26 +52,26 @@ export default function FighterProfileBody({ profile, fighter, videos, achieveme
 
             {/* Bio */}
             {profile.bio && (
-              <div className="bg-white border border-zinc-100 rounded-2xl p-6">
+              <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6">
                 <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-3 flex items-center gap-2">
                   <i className="ri-user-line"></i>Sobre el peleador
                 </h4>
-                <p className="text-sm text-zinc-600 leading-relaxed">{profile.bio}</p>
+                <p className="text-sm text-zinc-300 leading-relaxed">{profile.bio}</p>
               </div>
             )}
 
             {/* Looking for */}
             {lookingFor.length > 0 && (
-              <div className="bg-white border border-zinc-100 rounded-2xl p-6">
+              <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6">
                 <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                   <i className="ri-search-line"></i>Busca activamente
                 </h4>
                 <div className="grid grid-cols-1 gap-2">
                   {lookingFor.map((item) => {
-                    const cfg = lookingForConfig[item] || { icon: 'ri-star-line', color: 'text-zinc-600', bg: 'bg-zinc-50', border: 'border-zinc-200' };
+                    const cfg = lookingForConfig[item] || { icon: 'ri-star-line', color: 'text-zinc-300', bg: 'bg-white/[0.03]', border: 'border-white/10' };
                     return (
                       <div key={item} className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${cfg.bg} ${cfg.border}`}>
-                        <div className={`w-8 h-8 flex items-center justify-center rounded-lg bg-white ${cfg.color} flex-shrink-0`}>
+                        <div className={`w-8 h-8 flex items-center justify-center rounded-lg bg-white/[0.03] ${cfg.color} flex-shrink-0`}>
                           <i className={`${cfg.icon} text-sm`}></i>
                         </div>
                         <span className={`text-sm font-semibold ${cfg.color}`}>{item}</span>
@@ -86,39 +86,39 @@ export default function FighterProfileBody({ profile, fighter, videos, achieveme
             )}
 
             {/* Ficha técnica */}
-            <div className="bg-white border border-zinc-100 rounded-2xl p-6">
+            <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6">
               <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                 <i className="ri-file-list-line"></i>Ficha técnica
               </h4>
               <div className="space-y-3">
                 {fighter?.gym && (
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 flex-shrink-0"><i className="ri-building-4-line text-sm"></i></div>
-                    <div><p className="text-xs text-zinc-400">Gimnasio</p><p className="text-sm font-semibold text-zinc-800">{fighter.gym}</p></div>
+                    <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/[0.05] text-zinc-500 flex-shrink-0"><i className="ri-building-4-line text-sm"></i></div>
+                    <div><p className="text-xs text-zinc-400">Gimnasio</p><p className="text-sm font-semibold text-white">{fighter.gym}</p></div>
                   </div>
                 )}
                 {fighter?.coach && (
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 flex-shrink-0"><i className="ri-user-star-line text-sm"></i></div>
-                    <div><p className="text-xs text-zinc-400">Entrenador</p><p className="text-sm font-semibold text-zinc-800">{fighter.coach}</p></div>
+                    <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/[0.05] text-zinc-500 flex-shrink-0"><i className="ri-user-star-line text-sm"></i></div>
+                    <div><p className="text-xs text-zinc-400">Entrenador</p><p className="text-sm font-semibold text-white">{fighter.coach}</p></div>
                   </div>
                 )}
                 {fighter?.nationality && (
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 flex-shrink-0"><i className="ri-flag-line text-sm"></i></div>
-                    <div><p className="text-xs text-zinc-400">Nacionalidad</p><p className="text-sm font-semibold text-zinc-800">{fighter.nationality}</p></div>
+                    <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/[0.05] text-zinc-500 flex-shrink-0"><i className="ri-flag-line text-sm"></i></div>
+                    <div><p className="text-xs text-zinc-400">Nacionalidad</p><p className="text-sm font-semibold text-white">{fighter.nationality}</p></div>
                   </div>
                 )}
                 {profile.location && (
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 flex-shrink-0"><i className="ri-map-pin-line text-sm"></i></div>
-                    <div><p className="text-xs text-zinc-400">Ubicación</p><p className="text-sm font-semibold text-zinc-800">{profile.location}</p></div>
+                    <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/[0.05] text-zinc-500 flex-shrink-0"><i className="ri-map-pin-line text-sm"></i></div>
+                    <div><p className="text-xs text-zinc-400">Ubicación</p><p className="text-sm font-semibold text-white">{profile.location}</p></div>
                   </div>
                 )}
                 {fighter?.age && (
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-100 text-zinc-500 flex-shrink-0"><i className="ri-calendar-line text-sm"></i></div>
-                    <div><p className="text-xs text-zinc-400">Edad</p><p className="text-sm font-semibold text-zinc-800">{fighter.age} años</p></div>
+                    <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/[0.05] text-zinc-500 flex-shrink-0"><i className="ri-calendar-line text-sm"></i></div>
+                    <div><p className="text-xs text-zinc-400">Edad</p><p className="text-sm font-semibold text-white">{fighter.age} años</p></div>
                   </div>
                 )}
               </div>
@@ -126,37 +126,37 @@ export default function FighterProfileBody({ profile, fighter, videos, achieveme
 
             {/* Social */}
             {(profile.instagram || profile.tiktok || profile.youtube || profile.twitter) && (
-              <div className="bg-white border border-zinc-100 rounded-2xl p-6">
+              <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6">
                 <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                   <i className="ri-share-line"></i>Presencia Digital
                 </h4>
                 <div className="space-y-2.5">
                   {profile.instagram && (
-                    <a href={`https://instagram.com/${profile.instagram.replace('@', '')}`} target="_blank" rel="nofollow noreferrer" className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-pink-50 to-orange-50 border border-pink-100 hover:border-pink-300 transition-all cursor-pointer group">
+                    <a href={`https://instagram.com/${profile.instagram.replace('@', '')}`} target="_blank" rel="nofollow noreferrer" className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-pink-500/12 to-orange-500/12 border border-pink-500/25 hover:border-pink-300 transition-all cursor-pointer group">
                       <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-gradient-to-br from-pink-500 to-orange-400 text-white flex-shrink-0"><i className="ri-instagram-line text-base"></i></div>
-                      <div className="flex-1 min-w-0"><p className="text-xs text-zinc-400">Instagram</p><p className="text-sm font-semibold text-zinc-800 truncate">{profile.instagram}</p></div>
+                      <div className="flex-1 min-w-0"><p className="text-xs text-zinc-400">Instagram</p><p className="text-sm font-semibold text-white truncate">{profile.instagram}</p></div>
                       <i className="ri-external-link-line text-zinc-400 group-hover:text-pink-500 transition-colors flex-shrink-0"></i>
                     </a>
                   )}
                   {profile.tiktok && (
-                    <a href={`https://tiktok.com/@${profile.tiktok.replace('@', '')}`} target="_blank" rel="nofollow noreferrer" className="flex items-center gap-3 p-3 rounded-xl bg-zinc-50 border border-zinc-200 hover:border-zinc-400 transition-all cursor-pointer group">
+                    <a href={`https://tiktok.com/@${profile.tiktok.replace('@', '')}`} target="_blank" rel="nofollow noreferrer" className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/10 hover:border-zinc-400 transition-all cursor-pointer group">
                       <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-900 text-white flex-shrink-0"><i className="ri-tiktok-line text-base"></i></div>
-                      <div className="flex-1 min-w-0"><p className="text-xs text-zinc-400">TikTok</p><p className="text-sm font-semibold text-zinc-800 truncate">{profile.tiktok}</p></div>
-                      <i className="ri-external-link-line text-zinc-400 group-hover:text-zinc-700 transition-colors flex-shrink-0"></i>
+                      <div className="flex-1 min-w-0"><p className="text-xs text-zinc-400">TikTok</p><p className="text-sm font-semibold text-white truncate">{profile.tiktok}</p></div>
+                      <i className="ri-external-link-line text-zinc-400 group-hover:text-zinc-200 transition-colors flex-shrink-0"></i>
                     </a>
                   )}
                   {profile.youtube && (
-                    <a href={profile.youtube} target="_blank" rel="nofollow noreferrer" className="flex items-center gap-3 p-3 rounded-xl bg-red-50 border border-red-100 hover:border-red-300 transition-all cursor-pointer group">
+                    <a href={profile.youtube} target="_blank" rel="nofollow noreferrer" className="flex items-center gap-3 p-3 rounded-xl bg-red-500/12 border border-red-500/25 hover:border-red-300 transition-all cursor-pointer group">
                       <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-600 text-white flex-shrink-0"><i className="ri-youtube-line text-base"></i></div>
-                      <div className="flex-1 min-w-0"><p className="text-xs text-zinc-400">YouTube</p><p className="text-sm font-semibold text-zinc-800">Ver canal</p></div>
+                      <div className="flex-1 min-w-0"><p className="text-xs text-zinc-400">YouTube</p><p className="text-sm font-semibold text-white">Ver canal</p></div>
                       <i className="ri-external-link-line text-zinc-400 group-hover:text-red-500 transition-colors flex-shrink-0"></i>
                     </a>
                   )}
                   {profile.twitter && (
-                    <a href={`https://twitter.com/${profile.twitter.replace('@', '')}`} target="_blank" rel="nofollow noreferrer" className="flex items-center gap-3 p-3 rounded-xl bg-zinc-50 border border-zinc-200 hover:border-zinc-400 transition-all cursor-pointer group">
+                    <a href={`https://twitter.com/${profile.twitter.replace('@', '')}`} target="_blank" rel="nofollow noreferrer" className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/10 hover:border-zinc-400 transition-all cursor-pointer group">
                       <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-zinc-900 text-white flex-shrink-0"><i className="ri-twitter-x-line text-base"></i></div>
-                      <div className="flex-1 min-w-0"><p className="text-xs text-zinc-400">Twitter / X</p><p className="text-sm font-semibold text-zinc-800 truncate">{profile.twitter}</p></div>
-                      <i className="ri-external-link-line text-zinc-400 group-hover:text-zinc-700 transition-colors flex-shrink-0"></i>
+                      <div className="flex-1 min-w-0"><p className="text-xs text-zinc-400">Twitter / X</p><p className="text-sm font-semibold text-white truncate">{profile.twitter}</p></div>
+                      <i className="ri-external-link-line text-zinc-400 group-hover:text-zinc-200 transition-colors flex-shrink-0"></i>
                     </a>
                   )}
                 </div>
@@ -165,10 +165,10 @@ export default function FighterProfileBody({ profile, fighter, videos, achieveme
 
             {/* Views */}
             {views !== undefined && views > 0 && (
-              <div className="bg-white border border-zinc-100 rounded-2xl p-5">
+              <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-100 text-zinc-500 flex-shrink-0"><i className="ri-eye-line text-lg"></i></div>
-                  <div><p className="text-xl font-black text-zinc-800">{views.toLocaleString('es-ES')}</p><p className="text-xs text-zinc-400">visitas al perfil</p></div>
+                  <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/[0.05] text-zinc-500 flex-shrink-0"><i className="ri-eye-line text-lg"></i></div>
+                  <div><p className="text-xl font-black text-white">{views.toLocaleString('es-ES')}</p><p className="text-xs text-zinc-400">visitas al perfil</p></div>
                 </div>
               </div>
             )}
@@ -196,10 +196,10 @@ export default function FighterProfileBody({ profile, fighter, videos, achieveme
                 </h4>
                 <div className="grid grid-cols-2 gap-3 mb-4">
                   {[
-                    { label: 'Victorias', value: fighter.wins, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100', icon: 'ri-checkbox-circle-line' },
-                    { label: 'Derrotas', value: fighter.losses, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-100', icon: 'ri-close-circle-line' },
-                    { label: 'Empates', value: fighter.draws, color: 'text-yellow-600', bg: 'bg-yellow-50', border: 'border-yellow-100', icon: 'ri-subtract-line' },
-                    { label: 'KOs', value: fighter.kos, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-100', icon: 'ri-flashlight-line' },
+                    { label: 'Victorias', value: fighter.wins, color: 'text-green-400', bg: 'bg-green-500/12', border: 'border-green-500/25', icon: 'ri-checkbox-circle-line' },
+                    { label: 'Derrotas', value: fighter.losses, color: 'text-red-400', bg: 'bg-red-500/12', border: 'border-red-500/25', icon: 'ri-close-circle-line' },
+                    { label: 'Empates', value: fighter.draws, color: 'text-yellow-400', bg: 'bg-yellow-500/12', border: 'border-yellow-500/25', icon: 'ri-subtract-line' },
+                    { label: 'KOs', value: fighter.kos, color: 'text-orange-400', bg: 'bg-orange-500/12', border: 'border-orange-500/25', icon: 'ri-flashlight-line' },
                   ].map((s) => (
                     <div key={s.label} className={`${s.bg} border ${s.border} rounded-2xl p-5 text-center`}>
                       <div className={`w-8 h-8 flex items-center justify-center mx-auto mb-2 ${s.color}`}><i className={`${s.icon} text-xl`}></i></div>
@@ -209,12 +209,12 @@ export default function FighterProfileBody({ profile, fighter, videos, achieveme
                   ))}
                 </div>
                 {fighter.wins + fighter.losses > 0 && (
-                  <div className="bg-white border border-zinc-100 rounded-xl p-4">
+                  <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4">
                     <div className="flex items-center justify-between text-xs text-zinc-500 mb-2">
                       <span className="font-medium">Ratio de victorias</span>
-                      <span className="font-bold text-zinc-700 text-sm">{Math.round((fighter.wins / (fighter.wins + fighter.losses)) * 100)}%</span>
+                      <span className="font-bold text-zinc-200 text-sm">{Math.round((fighter.wins / (fighter.wins + fighter.losses)) * 100)}%</span>
                     </div>
-                    <div className="h-2.5 bg-zinc-100 rounded-full overflow-hidden">
+                    <div className="h-2.5 bg-white/[0.05] rounded-full overflow-hidden">
                       <div className="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full transition-all" style={{ width: `${Math.round((fighter.wins / (fighter.wins + fighter.losses)) * 100)}%` }} />
                     </div>
                   </div>
@@ -223,9 +223,9 @@ export default function FighterProfileBody({ profile, fighter, videos, achieveme
             )}
 
             {!fighter && (
-              <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-8 text-center">
-                <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-zinc-100 mx-auto mb-3"><i className="ri-user-line text-2xl text-zinc-400"></i></div>
-                <p className="text-sm font-semibold text-zinc-700">Perfil deportivo incompleto</p>
+              <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-8 text-center">
+                <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-white/[0.05] mx-auto mb-3"><i className="ri-user-line text-2xl text-zinc-400"></i></div>
+                <p className="text-sm font-semibold text-zinc-200">Perfil deportivo incompleto</p>
                 <p className="text-xs text-zinc-400 mt-1">Este peleador aún no ha completado su ficha deportiva.</p>
               </div>
             )}
@@ -263,13 +263,13 @@ export default function FighterProfileBody({ profile, fighter, videos, achieveme
                   {videos.map((v) => {
                     const thumb = getYouTubeThumbnail(v.url);
                     return (
-                      <a key={v.id} href={v.url} target="_blank" rel="nofollow noreferrer" className="group bg-white border border-zinc-100 rounded-xl overflow-hidden hover:border-red-200 hover:-translate-y-0.5 transition-all cursor-pointer">
-                        <div className="aspect-video bg-zinc-100 relative overflow-hidden">
-                          {thumb ? <img src={thumb} alt={v.title} className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300" /> : <div className="w-full h-full flex items-center justify-center bg-zinc-900"><i className="ri-play-circle-line text-4xl text-zinc-600"></i></div>}
+                      <a key={v.id} href={v.url} target="_blank" rel="nofollow noreferrer" className="group bg-white/[0.03] border border-white/[0.08] rounded-xl overflow-hidden hover:border-red-500/25 hover:-translate-y-0.5 transition-all cursor-pointer">
+                        <div className="aspect-video bg-white/[0.05] relative overflow-hidden">
+                          {thumb ? <img src={thumb} alt={v.title} className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-300" /> : <div className="w-full h-full flex items-center justify-center bg-zinc-900"><i className="ri-play-circle-line text-4xl text-zinc-300"></i></div>}
                           <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><div className="w-14 h-14 flex items-center justify-center rounded-full bg-red-600 text-white"><i className="ri-play-fill text-2xl"></i></div></div>
                           <span className="absolute top-2 left-2 text-xs bg-zinc-900/80 text-zinc-300 px-2 py-0.5 rounded-full capitalize">{videoTypeLabels[v.video_type || ''] || v.video_type}</span>
                         </div>
-                        <div className="p-3"><p className="text-sm font-semibold text-zinc-800 truncate">{v.title}</p></div>
+                        <div className="p-3"><p className="text-sm font-semibold text-white truncate">{v.title}</p></div>
                       </a>
                     );
                   })}
@@ -285,12 +285,12 @@ export default function FighterProfileBody({ profile, fighter, videos, achieveme
                 </h4>
                 <div className="space-y-3">
                   {achievements.map((a) => (
-                    <div key={a.id} className="bg-white border border-zinc-100 rounded-xl p-4 flex items-start gap-4 hover:border-yellow-200 transition-colors">
-                      <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-yellow-50 border border-yellow-100 flex-shrink-0"><i className="ri-medal-line text-yellow-500 text-lg"></i></div>
+                    <div key={a.id} className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 flex items-start gap-4 hover:border-yellow-500/25 transition-colors">
+                      <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-yellow-500/12 border border-yellow-500/25 flex-shrink-0"><i className="ri-medal-line text-yellow-500 text-lg"></i></div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
-                          <p className="text-sm font-bold text-zinc-800">{a.title}</p>
-                          {a.year && <span className="text-xs font-bold text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-full flex-shrink-0">{a.year}</span>}
+                          <p className="text-sm font-bold text-white">{a.title}</p>
+                          {a.year && <span className="text-xs font-bold text-zinc-400 bg-white/[0.05] px-2 py-0.5 rounded-full flex-shrink-0">{a.year}</span>}
                         </div>
                         {a.description && <p className="text-xs text-zinc-500 mt-1">{a.description}</p>}
                       </div>

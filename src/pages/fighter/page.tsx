@@ -126,11 +126,11 @@ export default function FighterPublicPage() {
 
   if (notFound || !profile) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex flex-col items-center justify-center gap-4">
+      <div className="min-h-screen bg-[#070707] flex flex-col items-center justify-center gap-4">
         <div className="w-16 h-16 flex items-center justify-center rounded-full bg-zinc-100">
           <i className="ri-user-unfollow-line text-3xl text-zinc-400"></i>
         </div>
-        <h1 className="text-xl font-bold text-zinc-800">Peleador no encontrado</h1>
+        <h1 className="text-xl font-bold text-white">Peleador no encontrado</h1>
         <p className="text-sm text-zinc-500">Este perfil no existe o no está disponible.</p>
         <button onClick={() => navigate('/fighters')} className="mt-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-5 py-2.5 rounded-xl cursor-pointer whitespace-nowrap transition-colors">
           {t('nav_directory')}
@@ -140,7 +140,7 @@ export default function FighterPublicPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-screen bg-[#070707]">
       {/* Top bar */}
       <div className="fixed top-0 left-0 w-full z-40 bg-zinc-950/95 backdrop-blur-sm border-b border-zinc-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 h-12 sm:h-14 flex items-center justify-between">

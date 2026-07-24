@@ -52,7 +52,7 @@ export default function BrandDirectoryCard({ brand }: Props) {
   const hasServices = brand.services.length > 0;
 
   return (
-    <article className="group bg-white border border-gray-100 rounded-2xl overflow-hidden hover:border-gray-200 hover:-translate-y-0.5 transition-all duration-300 flex flex-col">
+    <article className="group bg-white/[0.03] border border-white/[0.08] rounded-2xl overflow-hidden hover:border-red-500/40 hover:-translate-y-0.5 transition-all duration-300 flex flex-col">
       {/* Brand header */}
       <div className={`relative p-5 flex items-center gap-4 ${cfg.headerBg}`}>
         {/* Logo */}
@@ -89,7 +89,7 @@ export default function BrandDirectoryCard({ brand }: Props) {
       {/* ── PRODUCTS section ── */}
       {showProducts && (
         <div className="px-5 pb-3">
-          <p className="text-xs font-semibold text-[#0B0B0B] font-inter mb-2 flex items-center gap-1.5">
+          <p className="text-xs font-semibold text-white font-inter mb-2 flex items-center gap-1.5">
             <i className="ri-shopping-bag-line text-[#E10600]"></i>
             Productos
             {hasProducts && <span className="text-gray-400 font-normal">({brand.products.length})</span>}
@@ -98,7 +98,7 @@ export default function BrandDirectoryCard({ brand }: Props) {
             <>
               <div className={`grid gap-2 ${type === 'both' ? 'grid-cols-2' : 'grid-cols-3'}`}>
                 {featuredProducts.map((product) => (
-                  <div key={product.id} className="group/prod relative rounded-xl overflow-hidden bg-gray-50 border border-gray-100 aspect-square">
+                  <div key={product.id} className="group/prod relative rounded-xl overflow-hidden bg-white/[0.04] border border-white/[0.08] aspect-square">
                     {product.image_url ? (
                       <img src={product.image_url} alt={product.name} className="w-full h-full object-cover object-top" />
                     ) : (
@@ -120,7 +120,7 @@ export default function BrandDirectoryCard({ brand }: Props) {
               )}
             </>
           ) : (
-            <div className="bg-gray-50 rounded-xl px-3 py-2.5 flex items-center gap-2">
+            <div className="bg-white/[0.04] rounded-xl px-3 py-2.5 flex items-center gap-2">
               <i className="ri-shopping-bag-line text-gray-300 text-sm"></i>
               <span className="text-xs text-gray-400 font-inter">Sin productos publicados aún</span>
             </div>
@@ -131,8 +131,8 @@ export default function BrandDirectoryCard({ brand }: Props) {
       {/* ── SERVICES section ── */}
       {showServices && (
         <div className="px-5 pb-3">
-          {type === 'both' && <div className="border-t border-gray-100 mb-3"></div>}
-          <p className="text-xs font-semibold text-[#0B0B0B] font-inter mb-2 flex items-center gap-1.5">
+          {type === 'both' && <div className="border-t border-white/[0.08] mb-3"></div>}
+          <p className="text-xs font-semibold text-white font-inter mb-2 flex items-center gap-1.5">
             <i className="ri-service-line text-amber-500"></i>
             Servicios
             {hasServices && <span className="text-gray-400 font-normal">({brand.services.length})</span>}
@@ -140,7 +140,7 @@ export default function BrandDirectoryCard({ brand }: Props) {
           {hasServices ? (
             <div className="space-y-1.5">
               {featuredServices.map((service) => (
-                <div key={service.id} className="flex items-start gap-2.5 bg-gray-50 rounded-xl p-2.5 border border-gray-100">
+                <div key={service.id} className="flex items-start gap-2.5 bg-white/[0.04] rounded-xl p-2.5 border border-white/[0.08]">
                   {service.image_url ? (
                     <div className="w-9 h-9 flex-shrink-0 rounded-lg overflow-hidden">
                       <img src={service.image_url} alt={service.title} className="w-full h-full object-cover object-top" />
@@ -151,7 +151,7 @@ export default function BrandDirectoryCard({ brand }: Props) {
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-[#0B0B0B] truncate">{service.title}</p>
+                    <p className="text-xs font-semibold text-white truncate">{service.title}</p>
                     <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                       {service.category && <span className="text-[10px] text-amber-600 font-semibold">{service.category}</span>}
                       {service.modality && (
@@ -170,7 +170,7 @@ export default function BrandDirectoryCard({ brand }: Props) {
               )}
             </div>
           ) : (
-            <div className="bg-gray-50 rounded-xl px-3 py-2.5 flex items-center gap-2">
+            <div className="bg-white/[0.04] rounded-xl px-3 py-2.5 flex items-center gap-2">
               <i className="ri-service-line text-gray-300 text-sm"></i>
               <span className="text-xs text-gray-400 font-inter">Sin servicios publicados aún</span>
             </div>
@@ -207,7 +207,7 @@ export default function BrandDirectoryCard({ brand }: Props) {
             {cfg.ctaLabel}
           </a>
         ) : (
-          <div className="flex items-center justify-center gap-1.5 text-xs font-semibold px-4 py-2.5 rounded-xl font-inter bg-gray-100 text-gray-400">
+          <div className="flex items-center justify-center gap-1.5 text-xs font-semibold px-4 py-2.5 rounded-xl font-inter bg-white/[0.05] text-gray-400">
             <i className="ri-store-2-line"></i>
             Ver marca
           </div>

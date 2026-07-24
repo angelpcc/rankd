@@ -92,7 +92,7 @@ export default function OpportunitiesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-screen bg-[#070707]">
       <Navbar />
 
       {/* Hero cinematográfico */}
@@ -158,7 +158,7 @@ export default function OpportunitiesPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t('opp_page_search_placeholder')}
-              className="w-full bg-white border border-zinc-200 text-zinc-900 text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-red-400"
+              className="w-full bg-white/[0.03] border border-white/10 text-white text-sm rounded-xl pl-10 pr-4 py-3 focus:outline-none focus:border-red-400"
             />
           </div>
           <OpportunitiesFilters
@@ -171,13 +171,13 @@ export default function OpportunitiesPage() {
 
         {/* Results count */}
         <div className="flex items-center justify-between mb-5">
-          <p className="text-sm text-zinc-600 font-medium">
+          <p className="text-sm text-zinc-300 font-medium">
             {loading ? t('opp_page_loading') : `${filtered.length} ${filtered.length !== 1 ? t('opp_page_count_plural') : t('opp_page_count')}`}
           </p>
           {(filterType || filterDiscipline || filterWeight || filterLocation || search) && (
             <button
               onClick={() => { setFilterType(''); setFilterDiscipline(''); setFilterWeight(''); setFilterLocation(''); setSearch(''); }}
-              className="text-xs text-red-500 hover:text-red-700 cursor-pointer flex items-center gap-1 font-medium"
+              className="text-xs text-red-500 hover:text-red-400 cursor-pointer flex items-center gap-1 font-medium"
             >
               <i className="ri-close-line"></i> {t('opp_page_clear')}
             </button>
@@ -193,7 +193,7 @@ export default function OpportunitiesPage() {
             <div className="w-16 h-16 flex items-center justify-center mx-auto mb-4 text-zinc-300">
               <i className="ri-search-line text-5xl"></i>
             </div>
-            <p className="text-zinc-700 text-base font-semibold">{t('opp_page_empty_title')}</p>
+            <p className="text-zinc-200 text-base font-semibold">{t('opp_page_empty_title')}</p>
             <p className="text-zinc-500 text-sm mt-1">{t('opp_page_empty_desc')}</p>
           </div>
         ) : (

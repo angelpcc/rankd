@@ -85,8 +85,8 @@ export default function Contact() {
             <div>
               <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, letterSpacing: 4, color: 'rgba(255,255,255,0.68)', textTransform: 'uppercase', marginBottom: 14 }}>Síguenos</div>
               <div style={{ display: 'flex', gap: 8 }}>
-                {[{ icon: 'ri-instagram-line' }, { icon: 'ri-twitter-x-line' }, { icon: 'ri-youtube-line' }, { icon: 'ri-tiktok-line' }].map((s) => (
-                  <a key={s.icon} href="#" rel="nofollow" style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.75)', textDecoration: 'none', transition: 'all 0.2s', cursor: 'pointer' }}
+                {[{ icon: 'ri-instagram-line', url: 'https://www.instagram.com/RANKD.__' }].map((s) => (
+                  <a key={s.icon} href={s.url} target="_blank" rel="noopener noreferrer" style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.75)', textDecoration: 'none', transition: 'all 0.2s', cursor: 'pointer' }}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = '#E10600'; (e.currentTarget as HTMLAnchorElement).style.borderColor = '#E10600'; (e.currentTarget as HTMLAnchorElement).style.color = 'white'; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.03)'; (e.currentTarget as HTMLAnchorElement).style.borderColor = 'rgba(255,255,255,0.07)'; (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.25)'; }}>
                     <i className={s.icon} style={{ fontSize: 15 }} />
