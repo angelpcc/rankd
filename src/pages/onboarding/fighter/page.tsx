@@ -72,7 +72,9 @@ export default function FighterOnboardingPage() {
 
     try {
       // Update profile
-      await supabase.from('profiles').update({
+      // (supabase no lanza excepción: si no miramos el error, el usuario
+      //  termina el alta y aterriza en un panel vacío creyendo que guardó)
+      const { error: profileError } = await supabase.from('profiles').update({
         full_name: data.full_name.trim(),
         bio: data.bio.trim(),
         location: data.location.trim(),
@@ -82,6 +84,7 @@ export default function FighterOnboardingPage() {
         twitter: data.twitter.trim(),
         updated_at: new Date().toISOString(),
       }).eq('id', profile.id);
+      if (profileError) throw profileError;
 
       // Upsert fighter record
       const { data: existingFighter } = await supabase
@@ -111,11 +114,10 @@ export default function FighterOnboardingPage() {
         updated_at: new Date().toISOString(),
       };
 
-      if (existingFighter) {
-        await supabase.from('fighters').update(fighterPayload).eq('id', existingFighter.id);
-      } else {
-        await supabase.from('fighters').insert(fighterPayload);
-      }
+      const { error: fighterError } = existingFighter
+        ? await supabase.from('fighters').update(fighterPayload).eq('id', existingFighter.id)
+        : await supabase.from('fighters').insert(fighterPayload);
+      if (fighterError) throw fighterError;
 
       navigate('/dashboard/fighter');
     } catch {

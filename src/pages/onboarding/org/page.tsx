@@ -61,7 +61,9 @@ export default function OrgOnboardingPage() {
     setSaving(true);
     setError('');
     try {
-      await supabase.from('profiles').update({
+      // supabase no lanza excepción: sin mirar el error, el usuario termina
+      // el alta y aterriza en un panel vacío creyendo que se guardó.
+      const { error: profileError } = await supabase.from('profiles').update({
         bio: description.trim(),
         location: location.trim(),
         website: website.trim(),
@@ -69,6 +71,7 @@ export default function OrgOnboardingPage() {
         twitter: twitter.trim(),
         updated_at: new Date().toISOString(),
       }).eq('id', profile.id);
+      if (profileError) throw profileError;
 
       const orgPayload = {
         profile_id: profile.id,
@@ -80,11 +83,10 @@ export default function OrgOnboardingPage() {
       };
 
       const { data: existing } = await supabase.from('organizations').select('id').eq('profile_id', profile.id).maybeSingle();
-      if (existing) {
-        await supabase.from('organizations').update(orgPayload).eq('id', existing.id);
-      } else {
-        await supabase.from('organizations').insert(orgPayload);
-      }
+      const { error: orgError } = existing
+        ? await supabase.from('organizations').update(orgPayload).eq('id', existing.id)
+        : await supabase.from('organizations').insert(orgPayload);
+      if (orgError) throw orgError;
 
       // For brand users, also create/update the brands table entry
       if (userType === 'brand') {
@@ -106,11 +108,10 @@ export default function OrgOnboardingPage() {
           .eq('user_id', profile.id)
           .maybeSingle();
 
-        if (existingBrand) {
-          await supabase.from('brands').update(brandPayload).eq('id', existingBrand.id);
-        } else {
-          await supabase.from('brands').insert(brandPayload);
-        }
+        const { error: brandError } = existingBrand
+          ? await supabase.from('brands').update(brandPayload).eq('id', existingBrand.id)
+          : await supabase.from('brands').insert(brandPayload);
+        if (brandError) throw brandError;
       }
 
       navigate(cfg.dashPath);

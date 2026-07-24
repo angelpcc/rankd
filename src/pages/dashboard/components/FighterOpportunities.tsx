@@ -236,15 +236,19 @@ export default function FighterOpportunities({ profile, fighter, showToast }: Pr
     loadMyOpps();
   };
 
+  // Comprobamos el error antes de tocar la interfaz: si no, el usuario ve el
+  // cambio aplicado aunque en la base de datos no se haya guardado.
   const toggleStatus = async (opp: Opportunity) => {
     const newStatus = opp.status === 'open' ? 'closed' : 'open';
-    await supabase.from('opportunities').update({ status: newStatus }).eq('id', opp.id);
+    const { error } = await supabase.from('opportunities').update({ status: newStatus }).eq('id', opp.id);
+    if (error) { showToast('No se pudo cambiar el estado', 'error'); return; }
     setMyOpps((prev) => prev.map((o) => (o.id === opp.id ? { ...o, status: newStatus } : o)));
     showToast(newStatus === 'open' ? 'Oportunidad abierta' : 'Oportunidad cerrada');
   };
 
   const deleteOpportunity = async (id: string) => {
-    await supabase.from('opportunities').delete().eq('id', id);
+    const { error } = await supabase.from('opportunities').delete().eq('id', id);
+    if (error) { showToast('No se pudo eliminar', 'error'); return; }
     setMyOpps((prev) => prev.filter((o) => o.id !== id));
     showToast('Oportunidad eliminada');
   };

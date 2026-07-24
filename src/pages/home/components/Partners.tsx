@@ -115,7 +115,7 @@ export default function Partners() {
           <div style={{ position: 'absolute', top: -100, left: -100, width: 600, height: 600, background: 'radial-gradient(circle, rgba(225,6,0,0.07) 0%, transparent 65%)' }} />
           <div style={{ position: 'absolute', bottom: -100, right: -100, width: 500, height: 500, background: 'radial-gradient(circle, rgba(201,168,76,0.04) 0%, transparent 65%)' }} />
         </div>
-        <div className="reveal" style={{ position: 'relative', zIndex: 1, maxWidth: 1300, margin: '0 auto', padding: '72px 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 60, flexWrap: 'wrap' }} className-cta="cta-inner">
+        <div className="reveal" style={{ position: 'relative', zIndex: 1, maxWidth: 1300, margin: '0 auto', padding: '72px 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 60, flexWrap: 'wrap' }}>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
               <div style={{ width: 32, height: 3, background: '#E10600', borderRadius: 2 }} />
