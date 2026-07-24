@@ -282,6 +282,7 @@ export default function MiEsquinaPage() {
                 <SectionCoach
                   section="training"
                   profile={profile}
+                  showToast={showToast}
                   accent="red"
                   title="Coach de entrenamiento"
                   intro="Cuéntame tu objetivo y te armo un plan. Por ejemplo, una semana de entreno o la preparación de una pelea."
@@ -308,6 +309,7 @@ export default function MiEsquinaPage() {
                 <SectionCoach
                   section="gear"
                   profile={profile}
+                  showToast={showToast}
                   accent="red"
                   title="Asesor de material"
                   intro="Dime qué necesitas comprar y para qué, y te oriento con características y marcas según tu nivel."
@@ -367,6 +369,7 @@ export default function MiEsquinaPage() {
                   <SectionCoach
                     section="nutrition"
                     profile={profile}
+                    showToast={showToast}
                     accent="sky"
                     title="Coach de nutrición"
                     intro="Cuéntame tu objetivo o pídeme un plan de comidas. Puedo ajustarlo si me dices qué quitar o reforzar."

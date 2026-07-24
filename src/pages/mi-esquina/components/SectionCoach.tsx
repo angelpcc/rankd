@@ -11,6 +11,7 @@ interface Props {
   intro: string;
   suggestions: string[];
   accent?: Accent;
+  showToast?: (msg: string, type?: 'success' | 'error') => void;
 }
 
 interface ChatMsg { role: 'user' | 'assistant'; content: string }
@@ -23,11 +24,17 @@ const levelLabels: Record<string, string> = {
   amateur: 'Amateur', semi_pro: 'Semi-profesional', professional: 'Profesional',
 };
 
-const ACCENTS: Record<Accent, { text: string; bg: string; border: string; ring: string; dot: string }> = {
-  red: { text: 'text-red-400', bg: 'bg-red-600/12', border: 'border-red-500/30', ring: 'focus:border-red-500', dot: '#E10600' },
-  gold: { text: 'text-[#C9A84C]', bg: 'bg-[#C9A84C]/12', border: 'border-[#C9A84C]/35', ring: 'focus:border-[#C9A84C]', dot: '#C9A84C' },
-  sky: { text: 'text-sky-400', bg: 'bg-sky-500/12', border: 'border-sky-500/30', ring: 'focus:border-sky-500', dot: '#38bdf8' },
+const ACCENTS: Record<Accent, { text: string; bg: string; border: string; ring: string; dot: string; spin: string }> = {
+  red: { text: 'text-red-400', bg: 'bg-red-600/12', border: 'border-red-500/30', ring: 'focus:border-red-500', dot: '#E10600', spin: 'border-red-500' },
+  gold: { text: 'text-[#C9A84C]', bg: 'bg-[#C9A84C]/12', border: 'border-[#C9A84C]/35', ring: 'focus:border-[#C9A84C]', dot: '#C9A84C', spin: 'border-[#C9A84C]' },
+  sky: { text: 'text-sky-400', bg: 'bg-sky-500/12', border: 'border-sky-500/30', ring: 'focus:border-sky-500', dot: '#38bdf8', spin: 'border-sky-500' },
 };
+
+function isoFromOffset(offset: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + (Number.isFinite(offset) ? offset : 0));
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 // Formateo ligero del markdown que devuelve la IA (negritas, listas, saltos).
 function renderRich(text: string) {
@@ -48,18 +55,22 @@ function renderRich(text: string) {
   });
 }
 
-export default function SectionCoach({ section, profile, title, intro, suggestions, accent = 'red' }: Props) {
+export default function SectionCoach({ section, profile, title, intro, suggestions, accent = 'red', showToast }: Props) {
   const a = ACCENTS[accent];
+  const canSavePlan = section === 'training' || section === 'nutrition';
   const [physical, setPhysical] = useState<Record<string, unknown>>({});
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [streaming, setStreaming] = useState(false);
+  const [savingPlan, setSavingPlan] = useState(false);
+  const [savedNote, setSavedNote] = useState<string | null>(null);
   const [notConfigured, setNotConfigured] = useState(false);
   const [checking, setChecking] = useState(true);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
-  // Comprobamos disponibilidad al abrir para mostrar "próximamente" de entrada
-  // en vez de esperar a que el usuario escriba y se tope con un fallo.
+  // Disponibilidad al abrir: muestra "próximamente" de entrada en vez de
+  // esperar a que el usuario escriba y se tope con un fallo.
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -76,14 +87,22 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
     return () => { alive = false; };
   }, []);
 
-  // Reunimos el perfil físico del peleador (contexto de la IA).
+  // Perfil físico del peleador = contexto de la IA
   useEffect(() => {
     const load = async () => {
-      const [{ data: f }, { data: w }, { data: g }] = await Promise.all([
-        supabase.from('fighters').select('discipline, weight_class, experience_level, age, nickname, wins, losses, draws, kos').eq('profile_id', profile.id).maybeSingle(),
+      const [{ data: f }, { data: w }, { data: g }, { data: sess }] = await Promise.all([
+        supabase.from('fighters').select('discipline, weight_class, experience_level, age, wins, losses, draws, kos, looking_for').eq('profile_id', profile.id).maybeSingle(),
         supabase.from('weight_entries').select('weight_kg').eq('fighter_profile_id', profile.id).order('entry_date', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('nutrition_goals').select('target_weight_kg').eq('fighter_profile_id', profile.id).maybeSingle(),
+        supabase.from('training_sessions').select('duration_min, session_date').eq('fighter_profile_id', profile.id).order('session_date', { ascending: false }).limit(30),
       ]);
+      const weekStart = new Date();
+      weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() === 0 ? 6 : weekStart.getDay() - 1)));
+      weekStart.setHours(0, 0, 0, 0);
+      const weeklyMinutes = (sess || [])
+        .filter((s) => new Date(s.session_date + 'T12:00:00') >= weekStart)
+        .reduce((acc, s) => acc + (s.duration_min || 0), 0);
+      const goals = (f?.looking_for || []) as string[];
       setPhysical({
         name: (profile.full_name || '').split(' ')[0] || undefined,
         discipline: f?.discipline ? (disciplineLabels[f.discipline] || f.discipline) : undefined,
@@ -93,6 +112,8 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
         currentWeight: (w as { weight_kg?: number } | null)?.weight_kg || undefined,
         targetWeight: (g as { target_weight_kg?: number } | null)?.target_weight_kg || undefined,
         record: f ? `${f.wins ?? 0}-${f.losses ?? 0}-${f.draws ?? 0}, ${f.kos ?? 0} KO` : undefined,
+        goal: goals.length ? goals.join(', ') : undefined,
+        weeklyMinutes: weeklyMinutes || undefined,
       });
     };
     load();
@@ -102,37 +123,142 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, sending]);
 
+  // ── Envío con STREAMING: la respuesta aparece token a token ──
   const send = useCallback(async (text: string) => {
     const content = text.trim();
     if (!content || sending) return;
-    const next = [...messages, { role: 'user' as const, content }];
+    const next: ChatMsg[] = [...messages, { role: 'user', content }];
     setMessages(next);
     setInput('');
     setSending(true);
+    setSavedNote(null);
+
     try {
       const res = await fetch('/api/coach', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ section, profile: physical, messages: next }),
       });
+
       if (res.status === 503) { setNotConfigured(true); setSending(false); return; }
-      const data = await res.json();
-      if (!res.ok) {
-        setMessages((prev) => [...prev, { role: 'assistant', content: data.message || 'No se pudo generar respuesta. Inténtalo de nuevo.' }]);
-      } else {
-        setMessages((prev) => [...prev, { role: 'assistant', content: data.reply }]);
+      if (!res.ok || !res.body) {
+        const d = await res.json().catch(() => ({}));
+        setMessages((prev) => [...prev, { role: 'assistant', content: d.message || 'No se pudo generar respuesta. Inténtalo de nuevo.' }]);
+        setSending(false);
+        return;
+      }
+
+      // Hueco donde iremos escribiendo la respuesta según llega
+      setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
+      setStreaming(true);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let acc = '';
+
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const chunks = buffer.split('\n\n');
+        buffer = chunks.pop() || '';
+        for (const chunk of chunks) {
+          const line = chunk.trim();
+          if (!line.startsWith('data:')) continue;
+          try {
+            const obj = JSON.parse(line.slice(5).trim());
+            if (obj.delta) {
+              acc += obj.delta;
+              setMessages((prev) => {
+                const copy = [...prev];
+                copy[copy.length - 1] = { role: 'assistant', content: acc };
+                return copy;
+              });
+            } else if (obj.error) {
+              acc += `\n\n${obj.error}`;
+              setMessages((prev) => {
+                const copy = [...prev];
+                copy[copy.length - 1] = { role: 'assistant', content: acc };
+                return copy;
+              });
+            }
+          } catch { /* fragmento incompleto, seguimos */ }
+        }
+      }
+
+      if (!acc.trim()) {
+        setMessages((prev) => {
+          const copy = [...prev];
+          copy[copy.length - 1] = { role: 'assistant', content: 'No he podido generar respuesta, inténtalo de nuevo.' };
+          return copy;
+        });
       }
     } catch {
-      setMessages((prev) => [...prev, { role: 'assistant', content: 'No hay conexión con la IA ahora mismo. Inténtalo de nuevo.' }]);
+      setMessages((prev) => [...prev, { role: 'assistant', content: 'Se ha cortado la conexión con la IA. Inténtalo de nuevo.' }]);
     }
+    setStreaming(false);
     setSending(false);
   }, [messages, physical, section, sending]);
 
-  // Mientras comprobamos, un esqueleto sobrio (evita parpadeo de UI)
+  // ── Guardar el plan acordado en el diario correspondiente ──
+  const savePlan = useCallback(async () => {
+    if (savingPlan) return;
+    setSavingPlan(true);
+    setSavedNote(null);
+    try {
+      const res = await fetch('/api/coach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ section, profile: physical, messages, extract: true }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast?.(data.message || 'No he encontrado un plan concreto que guardar', 'error');
+        setSavingPlan(false);
+        return;
+      }
+
+      if (section === 'training') {
+        const rows = (data.plan?.sessions || []).map((s: Record<string, number | string>) => ({
+          fighter_profile_id: profile.id,
+          session_date: isoFromOffset(Number(s.day_offset)),
+          session_type: String(s.session_type),
+          duration_min: Number(s.duration_min) || null,
+          intensity: Number(s.intensity) || 3,
+          notes: String(s.notes || '').slice(0, 500) || null,
+        }));
+        if (rows.length === 0) { showToast?.('No he encontrado un plan concreto en la conversación', 'error'); setSavingPlan(false); return; }
+        const { error } = await supabase.from('training_sessions').insert(rows);
+        if (error) { showToast?.('No se pudo guardar en el diario', 'error'); setSavingPlan(false); return; }
+        setSavedNote(`${rows.length} ${rows.length === 1 ? 'sesión guardada' : 'sesiones guardadas'} en tu diario de entrenos`);
+        showToast?.(`Plan guardado: ${rows.length} ${rows.length === 1 ? 'sesión' : 'sesiones'} 💪`);
+      } else {
+        const rows = (data.plan?.meals || []).map((m: Record<string, number | string>) => ({
+          fighter_profile_id: profile.id,
+          entry_date: isoFromOffset(Number(m.day_offset)),
+          meal_type: String(m.meal_type),
+          description: String(m.description || '').slice(0, 500),
+        })).filter((r: { description: string }) => r.description);
+        if (rows.length === 0) { showToast?.('No he encontrado un plan concreto en la conversación', 'error'); setSavingPlan(false); return; }
+        const { error } = await supabase.from('meal_entries').insert(rows);
+        if (error) { showToast?.('No se pudo guardar en el diario de comidas', 'error'); setSavingPlan(false); return; }
+        setSavedNote(`${rows.length} ${rows.length === 1 ? 'comida guardada' : 'comidas guardadas'} en tu diario`);
+        showToast?.(`Plan guardado: ${rows.length} ${rows.length === 1 ? 'comida' : 'comidas'} 🍽️`);
+      }
+    } catch {
+      showToast?.('No se pudo guardar el plan', 'error');
+    }
+    setSavingPlan(false);
+  }, [savingPlan, section, physical, messages, profile.id, showToast]);
+
+  const lastIsAssistant = messages.length > 0 && messages[messages.length - 1].role === 'assistant';
+  const showSaveBar = canSavePlan && lastIsAssistant && !streaming && !sending && messages[messages.length - 1].content.length > 80;
+
   if (checking) {
     return (
       <div className="rk-card flex items-center justify-center" style={{ height: 'min(560px, 72vh)' }}>
-        <div className={`w-7 h-7 border-2 border-t-transparent rounded-full animate-spin ${accent === 'gold' ? 'border-[#C9A84C]' : accent === 'sky' ? 'border-sky-500' : 'border-red-500'}`}></div>
+        <div className={`w-7 h-7 border-2 border-t-transparent rounded-full animate-spin ${a.spin}`}></div>
       </div>
     );
   }
@@ -149,7 +275,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
           <h3 className="rk-h3" style={{ fontSize: '1.3rem', color: '#fff' }}>{title.toUpperCase()}</h3>
           <p className="text-sm text-zinc-400 mt-2.5 leading-relaxed max-w-sm mx-auto">{intro}</p>
           <p className="text-xs text-zinc-500 mt-4 max-w-sm mx-auto leading-relaxed">
-            Estamos afinando este asistente. Cuando se active, usará tu perfil físico y tus datos de Mi Esquina para responderte. Mientras tanto, el resto de la sección funciona con normalidad.
+            Estamos afinando este asistente. Cuando se active, usará tu perfil físico y tus datos de Mi Esquina para responderte{canSavePlan ? ', y podrás guardar el plan directamente en tu diario' : ''}. Mientras tanto, el resto de la sección funciona con normalidad.
           </p>
           <div className="flex flex-wrap gap-2 justify-center mt-5 opacity-60">
             {suggestions.slice(0, 3).map((s) => (
@@ -200,12 +326,14 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
           messages.map((m, i) => (
             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${m.role === 'user' ? 'bg-red-600 text-white' : 'bg-white/[0.05] border border-white/10 text-zinc-200'}`}>
-                {m.role === 'assistant' ? <div className="space-y-0.5">{renderRich(m.content)}</div> : m.content}
+                {m.role === 'assistant'
+                  ? <div className="space-y-0.5">{renderRich(m.content)}{streaming && i === messages.length - 1 && <span className="inline-block w-1.5 h-3.5 bg-zinc-400 ml-0.5 align-middle animate-pulse" />}</div>
+                  : m.content}
               </div>
             </div>
           ))
         )}
-        {sending && (
+        {sending && !streaming && (
           <div className="flex justify-start">
             <div className="bg-white/[0.05] border border-white/10 rounded-2xl px-4 py-3 flex items-center gap-1.5">
               {[0, 1, 2].map((n) => <span key={n} className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: `${n * 0.15}s` }} />)}
@@ -213,6 +341,25 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
           </div>
         )}
       </div>
+
+      {/* Guardar plan en el diario */}
+      {showSaveBar && (
+        <div className="px-3 pb-2 flex-shrink-0">
+          {savedNote ? (
+            <div className="flex items-center gap-2 rounded-xl bg-green-500/10 border border-green-500/30 px-3.5 py-2.5">
+              <i className="ri-check-double-line text-green-400"></i>
+              <span className="text-xs text-green-300 flex-1">{savedNote}</span>
+            </div>
+          ) : (
+            <button onClick={savePlan} disabled={savingPlan}
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-white/[0.04] border border-white/12 hover:border-white/30 text-sm text-white py-2.5 transition-colors cursor-pointer disabled:opacity-60">
+              {savingPlan
+                ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Guardando plan...</>
+                : <><i className="ri-save-line"></i> Guardar este plan en mi {section === 'training' ? 'diario de entrenos' : 'diario de comidas'}</>}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Entrada */}
       <div className="p-3 border-t border-white/[0.07] flex-shrink-0">

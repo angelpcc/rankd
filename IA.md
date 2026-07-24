@@ -1,46 +1,82 @@
-# Conectar las IAs de Mi Esquina (API de Claude)
+# Las IAs de Mi Esquina (API de Claude)
 
-Mi Esquina tiene **tres asistentes de IA especializados**, cada uno dentro de su sección y usando el **perfil físico del peleador** (disciplina, nivel, categoría, edad, peso actual y objetivo, récord) como contexto:
+Mi Esquina tiene **tres asistentes de IA especializados**, cada uno dentro de su sección y usando el **perfil físico del peleador** como contexto:
 
-- **Coach IA (Entrenamiento)** → planifica sesiones y rutinas por disciplina y objetivo.
-- **Coach de Nutrición** → planifica y ajusta la dieta; se apoya en el **diario de comidas** que el peleador va registrando.
+- **Coach de Entrenamiento** → planifica sesiones y rutinas por disciplina y objetivo.
+- **Coach de Nutrición** → planifica y ajusta la dieta; se apoya en el diario de comidas.
 - **Asesor de Material** → recomienda marcas y características según disciplina y nivel.
 
-Los tres hablan con el mismo endpoint de backend: `api/coach.js` (función serverless), que llama a la API de Claude con el SDK oficial `@anthropic-ai/sdk`. **La clave nunca está en el frontend.**
+Los tres hablan con `api/coach.js` (función serverless) usando el SDK oficial `@anthropic-ai/sdk`. **La clave nunca está en el frontend.**
 
-## Lo que necesitas hacer tú (2 pasos)
+---
 
-### 1. Poner la clave de Anthropic como variable de entorno del backend
+## Estado: TODO CONSTRUIDO, esperando solo la clave
 
-- Consigue una API key en https://console.anthropic.com → *API Keys*.
-- En **Vercel**: proyecto → *Settings* → *Environment Variables* → añade:
-  - **Name:** `ANTHROPIC_API_KEY`
-  - **Value:** tu clave (`sk-ant-...`)
-  - Marca *Production* (y *Preview* si quieres probarlo en ramas). Redeploy.
-- Para **desarrollo local**, añade la misma línea a tu archivo `.env` (ya está en `.gitignore`, no se sube):
-  ```
-  ANTHROPIC_API_KEY=sk-ant-tu-clave
-  ```
+No queda código pendiente. En cuanto añadas `ANTHROPIC_API_KEY` las tres IAs funcionan, con streaming y guardado de plan incluidos.
 
-Mientras no exista la clave, el endpoint responde `503` y el frontend muestra un aviso limpio ("IA a punto de entrar al ring") en vez de romperse. En cuanto la pongas, las tres IAs funcionan.
+Mientras no haya clave: una sonda `GET /api/coach` (que **no gasta API**) detecta que no está configurada y las secciones muestran un estado *"Muy pronto"* cuidado. **No se rompe nada ni se ve ningún error.**
 
-### 2. Ejecutar la migración del diario de comidas
+### ✅ Streaming de respuestas
+La respuesta aparece **token a token**, como si escribiera, en vez de saltar de golpe. Implementado con SSE: el backend usa `anthropic.messages.stream()` y emite `data: {delta}`; el front lo lee con `response.body.getReader()` y va reescribiendo el último mensaje, con un cursor parpadeante mientras llega.
 
-En *Supabase → SQL Editor*, ejecuta:
-```
-supabase/migrations/0005_meal_log.sql
-```
-Crea la tabla `meal_entries` (con su RLS) para que el peleador registre comidas y la IA de nutrición pueda ajustar sobre esa base. Hasta que la ejecutes, el diario de comidas muestra un estado neutro y el resto de la sección funciona igual.
+### ✅ Guardado automático del plan en el diario
+Cuando la IA propone un plan, aparece un botón **"Guardar este plan en mi diario"**:
+- **Entrenamiento** → inserta las sesiones en `training_sessions` (diario de entrenos), con tipo, duración, intensidad y notas.
+- **Nutrición** → inserta las comidas en `meal_entries` (diario de comidas).
 
-## Detalles técnicos
+Por debajo hace una segunda llamada con **structured outputs** (`output_config.format` + JSON Schema), que obliga al modelo a devolver el plan en un formato exacto y validado. Así no dependemos de "parsear texto a ojo". Si la conversación no contiene un plan concreto, avisa en vez de inventarse nada.
 
-- **Modelo:** `claude-opus-4-8`.
-- **Endpoint:** `POST /api/coach` con `{ section: 'training'|'nutrition'|'gear', profile, messages }`. El `system` prompt se construye por sección e inyecta el perfil físico.
-- **Coste:** cada conversación son llamadas normales a la API de Claude (se factura por tokens en tu cuenta de Anthropic). El endpoint limita el historial a los últimos 20 turnos y 1500 tokens de salida para acotar coste y latencia.
-- **Seguridad:** la key solo vive en `process.env.ANTHROPIC_API_KEY` del servidor; el navegador nunca la ve.
+---
 
-## Ideas para la siguiente ronda (no implementadas aún)
+## Coste estimado por conversación
 
-- **Guardar el plan de entreno de la IA directamente en el diario de entrenos** con un botón (requiere que la IA devuelva el plan en formato estructurado; se puede hacer con *structured outputs* de la API).
-- **Streaming** de las respuestas (aparecen palabra a palabra) para una sensación más viva.
-- **Memoria entre sesiones** por peleador, para que la IA recuerde conversaciones anteriores.
+Modelo `claude-opus-4-8`: **$5 por millón de tokens de entrada** y **$25 por millón de salida**.
+
+Cada mensaje reenvía el historial (limitado a los últimos 20 turnos), así que el coste crece según se alarga la conversación. Estimaciones para una **conversación típica de 6 idas y vueltas**:
+
+| Asistente | Entrada aprox. | Salida aprox. | **Coste por conversación** |
+|---|---|---|---|
+| **Entrenamiento** (planes largos) | ~15.000 tok | ~5.400 tok | **≈ $0,21** |
+| **Nutrición** (menús, ajustes) | ~14.500 tok | ~4.800 tok | **≈ $0,19** |
+| **Material** (respuestas más cortas) | ~13.000 tok | ~3.000 tok | **≈ $0,14** |
+
+Otras referencias:
+- **Consulta corta** (1-2 mensajes): **≈ $0,03–0,05**
+- **Guardar un plan** (la llamada extra de extracción): **≈ $0,03**
+- **Sonda de disponibilidad**: **$0** (no llama al modelo)
+
+**Traducido a volumen:** con ~$10/mes te salen unas **50 conversaciones completas** o unas 200 consultas cortas. Los topes ya están puestos para acotar: `max_tokens` de salida a 1.500 y el historial a 20 turnos.
+
+> **Nota:** el *prompt caching* abarataría la entrada, pero **aquí no aplica**: el prefijo cacheable mínimo en Opus 4.8 es de 4.096 tokens y nuestro system prompt ronda los 400. Si algún día el contexto crece mucho, merecerá la pena revisarlo.
+
+---
+
+## Qué necesitas hacer tú (cuando quieras activarlo)
+
+1. **Clave**: consíguela en https://console.anthropic.com → *API Keys*. En Vercel: *Settings* → *Environment Variables* → `ANTHROPIC_API_KEY` = `sk-ant-...` (Production y Preview) → Redeploy. En local, la misma línea en tu `.env` (ya está en `.gitignore`).
+2. **Migración del diario de comidas** (sigue pendiente): ejecuta `supabase/migrations/0005_meal_log.sql` en *Supabase → SQL Editor*. Sin ella, el guardado de planes de **nutrición** no tiene dónde escribir (el de entrenamiento sí funciona, usa una tabla que ya existe).
+
+---
+
+## Perfil físico: qué se le envía a la IA
+
+Se arma automáticamente desde tus datos y se inyecta en el *system prompt* de las tres IAs:
+
+| Dato | De dónde sale |
+|---|---|
+| Nombre | `profiles.full_name` |
+| Disciplina, nivel, categoría de peso, edad | tabla `fighters` |
+| Récord (V-D-E, KOs) | tabla `fighters` |
+| **Peso actual** | último registro de `weight_entries` |
+| **Peso objetivo** | `nutrition_goals.target_weight_kg` |
+| Objetivo declarado | `fighters.looking_for` |
+| Volumen de entreno de la semana | `training_sessions` |
+
+### ⚠️ La altura no se guarda en ningún sitio
+Mencionaste la altura como parte del perfil físico, pero **no existe ninguna columna de altura** en la base de datos, así que hoy no se le puede enviar. El código ya la contempla (`heightCm`): en cuanto exista el campo, se envía sola. Para tenerla haría falta una migración pequeña (`fighters.height_cm`) más el campo en el formulario de perfil — dime y lo añado.
+
+### Cómo verificarlo cuando conectes la clave
+1. Entra en Mi Esquina → **Nutrición**, registra tu peso y ponte un peso objetivo.
+2. Ve a **Coach IA** y pregunta *"¿cómo voy de peso para mi categoría?"*. Debe citar **tus cifras reales**, no genéricas.
+3. Pide *"plan de esta semana"* y pulsa **Guardar este plan en mi diario** → comprueba que las sesiones aparecen en el diario de entrenos.
+4. En **Material**, pregunta *"¿qué guantes me compro?"*: debe ajustar la respuesta a tu disciplina y nivel (no es lo mismo un principiante de Muay Thai que un profesional de MMA).

@@ -1,9 +1,13 @@
 // IA especializada de Mi Esquina (Entrenamiento · Nutrición · Material).
-// Endpoint único que enruta por `section` y siempre usa el perfil físico
-// del peleador como contexto. La clave de Anthropic vive SOLO en el servidor.
+// Modos:
+//   GET                  → sonda de disponibilidad (NO gasta API)
+//   POST                 → respuesta en streaming (SSE), token a token
+//   POST { extract:true }→ convierte el plan de la conversación en JSON
+//                          estructurado para guardarlo en el diario
+// La clave de Anthropic vive SOLO en el servidor.
 import Anthropic from '@anthropic-ai/sdk';
 
-export const config = { maxDuration: 30 };
+export const config = { maxDuration: 60 };
 
 const MODEL = 'claude-opus-4-8';
 
@@ -15,14 +19,19 @@ function fighterContext(p = {}) {
   if (p.level) lines.push(`- Nivel: ${p.level}`);
   if (p.weightClass) lines.push(`- Categoría de peso: ${p.weightClass}`);
   if (p.age) lines.push(`- Edad: ${p.age}`);
+  if (p.heightCm) lines.push(`- Altura: ${p.heightCm} cm`);
   if (p.currentWeight) lines.push(`- Peso actual: ${p.currentWeight} kg`);
   if (p.targetWeight) lines.push(`- Peso objetivo: ${p.targetWeight} kg`);
   if (p.record) lines.push(`- Récord: ${p.record}`);
-  return lines.length ? `Perfil del peleador:\n${lines.join('\n')}` : 'Perfil del peleador: sin datos, pregunta lo esencial antes de dar un plan.';
+  if (p.goal) lines.push(`- Objetivo declarado: ${p.goal}`);
+  if (p.weeklyMinutes) lines.push(`- Volumen de entreno esta semana: ${p.weeklyMinutes} min`);
+  return lines.length
+    ? `Perfil del peleador (úsalo SIEMPRE para personalizar tu respuesta):\n${lines.join('\n')}`
+    : 'Perfil del peleador: sin datos todavía. Pregunta lo esencial (disciplina, nivel, peso y objetivo) antes de dar un plan.';
 }
 
 const SYSTEMS = {
-  training: (p) => `Eres el entrenador de IA de RANKD, un asistente experto en preparación de deportes de combate (boxeo, MMA, kickboxing, Muay Thai). Ayudas a este peleador a planificar sesiones y rutinas concretas según su disciplina y su objetivo.
+  training: (p) => `Eres el entrenador de IA de RANKD, experto en preparación de deportes de combate (boxeo, MMA, kickboxing, Muay Thai). Ayudas a este peleador a planificar sesiones y rutinas concretas.
 
 ${fighterContext(p)}
 
@@ -61,6 +70,67 @@ Cómo respondes:
 - Responde SIEMPRE en español y con formato claro (listas, negritas con **).`,
 };
 
+// ── Esquemas para extraer el plan y poder guardarlo en el diario ──
+const EXTRACT_SCHEMAS = {
+  training: {
+    name: 'plan_entrenamiento',
+    schema: {
+      type: 'object',
+      properties: {
+        sessions: {
+          type: 'array',
+          description: 'Sesiones de entrenamiento del plan propuesto',
+          items: {
+            type: 'object',
+            properties: {
+              day_offset: { type: 'integer', description: 'Días desde hoy (0 = hoy, 1 = mañana)' },
+              session_type: { type: 'string', enum: ['sparring', 'tecnica', 'fuerza', 'cardio', 'flexibilidad', 'recuperacion'] },
+              duration_min: { type: 'integer', description: 'Duración en minutos' },
+              intensity: { type: 'integer', enum: [1, 2, 3, 4, 5] },
+              notes: { type: 'string', description: 'Resumen breve del contenido de la sesión' },
+            },
+            required: ['day_offset', 'session_type', 'duration_min', 'intensity', 'notes'],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ['sessions'],
+      additionalProperties: false,
+    },
+  },
+  nutrition: {
+    name: 'plan_nutricion',
+    schema: {
+      type: 'object',
+      properties: {
+        meals: {
+          type: 'array',
+          description: 'Comidas del plan propuesto',
+          items: {
+            type: 'object',
+            properties: {
+              day_offset: { type: 'integer', description: 'Días desde hoy (0 = hoy)' },
+              meal_type: { type: 'string', enum: ['desayuno', 'comida', 'cena', 'snack'] },
+              description: { type: 'string', description: 'Qué come, con cantidades si las hay' },
+            },
+            required: ['day_offset', 'meal_type', 'description'],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ['meals'],
+      additionalProperties: false,
+    },
+  },
+};
+
+function sanitize(messages) {
+  return (messages || [])
+    .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
+    .slice(-20)
+    .map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }));
+}
+
 export default async function handler(req, res) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
@@ -75,47 +145,77 @@ export default async function handler(req, res) {
   }
 
   if (!apiKey) {
-    // Degradación limpia: el front muestra un aviso en vez de romperse.
     return res.status(503).json({ error: 'not_configured', message: 'La IA aún no está configurada en el servidor.' });
   }
 
+  const { section, profile, messages, extract } = req.body || {};
+  const buildSystem = SYSTEMS[section];
+  if (!buildSystem) return res.status(400).json({ error: 'Sección de IA no válida' });
+
+  const clean = sanitize(messages);
+  if (clean.length === 0 || clean[0].role !== 'user') {
+    return res.status(400).json({ error: 'La conversación debe empezar por el usuario' });
+  }
+
+  const anthropic = new Anthropic({ apiKey });
+
+  // ── MODO EXTRAER: convierte el plan en JSON para guardarlo ──
+  if (extract) {
+    const cfg = EXTRACT_SCHEMAS[section];
+    if (!cfg) return res.status(400).json({ error: 'Esta sección no genera planes guardables' });
+    try {
+      const response = await anthropic.messages.create({
+        model: MODEL,
+        max_tokens: 2000,
+        system: `Extrae el plan concreto que se ha acordado en esta conversación y devuélvelo estructurado. Reglas:
+- Usa SOLO lo que aparece en la conversación; no inventes sesiones ni comidas que no se hayan propuesto.
+- day_offset 0 es hoy. Si el plan habla de "lunes/martes...", reparte los días de forma coherente empezando por el próximo día que corresponda.
+- Si la conversación no contiene un plan concreto, devuelve la lista vacía.`,
+        messages: [...clean, { role: 'user', content: 'Extrae el plan acordado en formato estructurado.' }],
+        output_config: { format: { type: 'json_schema', name: cfg.name, schema: cfg.schema } },
+      });
+      const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
+      let plan;
+      try { plan = JSON.parse(text); } catch { plan = null; }
+      if (!plan) return res.status(422).json({ error: 'no_plan', message: 'No he podido leer un plan concreto de la conversación.' });
+      return res.status(200).json({ plan, usage: response.usage });
+    } catch (err) {
+      const status = err?.status === 429 ? 429 : 500;
+      return res.status(status).json({ error: 'ia_error', message: status === 429 ? 'La IA está saturada, prueba en un momento.' : 'No se pudo extraer el plan.' });
+    }
+  }
+
+  // ── MODO STREAMING: la respuesta va apareciendo token a token ──
   try {
-    const { section, profile, messages } = req.body || {};
-    const buildSystem = SYSTEMS[section];
-    if (!buildSystem) return res.status(400).json({ error: 'Sección de IA no válida' });
-    if (!Array.isArray(messages) || messages.length === 0) {
-      return res.status(400).json({ error: 'Falta la conversación' });
-    }
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no'); // evita buffering en proxies
 
-    // Saneamos: solo roles válidos, texto plano, últimos 20 turnos.
-    const clean = messages
-      .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
-      .slice(-20)
-      .map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }));
-    if (clean.length === 0 || clean[0].role !== 'user') {
-      return res.status(400).json({ error: 'La conversación debe empezar por el usuario' });
-    }
-
-    const anthropic = new Anthropic({ apiKey });
-    const response = await anthropic.messages.create({
+    const stream = anthropic.messages.stream({
       model: MODEL,
       max_tokens: 1500,
       system: buildSystem(profile || {}),
       messages: clean,
     });
 
-    const text = (response.content || [])
-      .filter((b) => b.type === 'text')
-      .map((b) => b.text)
-      .join('\n')
-      .trim();
-
-    return res.status(200).json({ reply: text || 'No he podido generar respuesta, inténtalo de nuevo.' });
-  } catch (err) {
-    const status = err?.status === 429 ? 429 : 500;
-    return res.status(status).json({
-      error: 'ia_error',
-      message: status === 429 ? 'La IA está saturada ahora mismo, prueba en un momento.' : 'No se pudo contactar con la IA.',
+    stream.on('text', (delta) => {
+      res.write(`data: ${JSON.stringify({ delta })}\n\n`);
     });
+
+    const final = await stream.finalMessage();
+    res.write(`data: ${JSON.stringify({ done: true, usage: final.usage })}\n\n`);
+    res.end();
+  } catch (err) {
+    // Si aún no hemos enviado cabeceras, respondemos JSON normal
+    if (!res.headersSent) {
+      const status = err?.status === 429 ? 429 : 500;
+      return res.status(status).json({
+        error: 'ia_error',
+        message: status === 429 ? 'La IA está saturada ahora mismo, prueba en un momento.' : 'No se pudo contactar con la IA.',
+      });
+    }
+    res.write(`data: ${JSON.stringify({ error: 'No se pudo completar la respuesta.' })}\n\n`);
+    res.end();
   }
 }
