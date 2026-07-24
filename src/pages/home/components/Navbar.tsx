@@ -43,8 +43,8 @@ export default function Navbar() {
       { labelKey: 'nav_how_it_works', href: '/como-funciona', isAnchor: false },
       { labelKey: 'nav_directory', href: '/fighters', isAnchor: false },
       { label: 'Eventos', href: '/eventos', isAnchor: false },
+      { label: 'Promotoras', href: '/promotoras', isAnchor: false },
       { labelKey: 'nav_brands', href: '/brands', isAnchor: false },
-      { label: 'Noticias', href: '/noticias', isAnchor: false },
     ],
     // Aficionado: todo gira en torno a Mi Esquina
     fighter_hobby: [

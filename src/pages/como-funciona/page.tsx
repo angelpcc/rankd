@@ -219,10 +219,11 @@ export default function ComoFuncionaPage() {
         </div>
 
         {/* Enlaces rápidos */}
-        <div className="grid sm:grid-cols-3 gap-3 mt-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-6">
           {[
-            { icon: 'ri-search-line', label: 'Directorio de peleadores', to: '/fighters' },
+            { icon: 'ri-search-line', label: 'Peleadores', to: '/fighters' },
             { icon: 'ri-calendar-event-line', label: 'Próximos eventos', to: '/eventos' },
+            { icon: 'ri-trophy-line', label: 'Promotoras y gimnasios', to: '/promotoras' },
             { icon: 'ri-store-2-line', label: 'Marcas y tienda', to: '/brands' },
           ].map((l) => (
             <button key={l.to} onClick={() => navigate(l.to)} className="rk-card p-4 flex items-center gap-3 cursor-pointer text-left group">

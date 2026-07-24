@@ -21,6 +21,7 @@ const OrgOnboardingPage = lazy(() => import('../pages/onboarding/org/page'));
 const BrandsPage = lazy(() => import('../pages/brands/page'));
 const EventosPage = lazy(() => import('../pages/eventos/page'));
 const ComoFuncionaPage = lazy(() => import('../pages/como-funciona/page'));
+const PromotorasPage = lazy(() => import('../pages/promotoras/page'));
 const EventoDetailPage = lazy(() => import('../pages/evento/page'));
 const TermsPage = lazy(() => import('../pages/terms/page'));
 const EsquinaPage = lazy(() => import('../pages/esquina/page'));
@@ -156,6 +157,14 @@ const routes: RouteObject[] = [
     element: (
       <Suspense fallback={<LoadingSpinner />}>
         <ComoFuncionaPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/promotoras',
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <PromotorasPage />
       </Suspense>
     ),
   },
