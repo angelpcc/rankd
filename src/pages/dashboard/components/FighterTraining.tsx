@@ -175,6 +175,22 @@ export default function FighterTraining({ profile, showToast }: Props) {
 
   const totalTrackedMinutes = breakdown.reduce((a, b) => a + b.minutes, 0);
 
+  // Evolución a largo plazo: minutos por semana en las últimas 8 semanas
+  const weeklyTrend = useMemo(() => {
+    const weeks: { key: string; label: string; minutes: number }[] = [];
+    const base = startOfWeek();
+    for (let i = 7; i >= 0; i--) {
+      const ws = new Date(base); ws.setDate(base.getDate() - i * 7);
+      const we = new Date(ws); we.setDate(ws.getDate() + 7);
+      const minutes = sessions
+        .filter((s) => { const d = new Date(s.session_date + 'T12:00:00'); return d >= ws && d < we; })
+        .reduce((a, s) => a + (s.duration_min || 0), 0);
+      weeks.push({ key: ws.toISOString(), label: ws.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }), minutes });
+    }
+    return weeks;
+  }, [sessions]);
+  const trendHasData = weeklyTrend.some((w) => w.minutes > 0);
+
   if (loading) {
     return <div className="flex items-center justify-center py-24"><div className="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div></div>;
   }
@@ -309,6 +325,32 @@ export default function FighterTraining({ profile, showToast }: Props) {
           </div>
         </Reveal>
       </div>
+
+      {/* Evolución a largo plazo (8 semanas) */}
+      {trendHasData && (
+        <Reveal delay={180}>
+          <div className="rk-card" style={{ padding: '22px 20px' }}>
+            <div className="flex items-center justify-between mb-0.5">
+              <h3 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>EVOLUCIÓN DEL VOLUMEN</h3>
+              <span className="text-xs text-zinc-500">Últimas 8 semanas</span>
+            </div>
+            <p className="text-xs text-zinc-500 mb-2">Minutos entrenados por semana — mira tu progreso con perspectiva</p>
+            <div style={{ height: 200 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={weeklyTrend} margin={{ top: 8, right: 4, left: -18, bottom: 0 }}>
+                  <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.06)" />
+                  <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }} />
+                  <YAxis hide />
+                  <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                  <Bar dataKey="minutes" radius={[6, 6, 0, 0]} maxBarSize={40}>
+                    {weeklyTrend.map((w, i) => <Cell key={w.key} fill={i === weeklyTrend.length - 1 ? '#E10600' : 'rgba(201,168,76,0.5)'} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </Reveal>
+      )}
 
       {/* Form */}
       {showForm && (
