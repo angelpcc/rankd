@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable } from '@/lib/dbState';
 import WeeklyPlanner from './WeeklyPlanner';
@@ -6,6 +7,8 @@ import WeeklyPlanner from './WeeklyPlanner';
 interface Props {
   profile: Profile;
   showToast: (msg: string, type?: 'success' | 'error') => void;
+  /** 'hobby' oculta pesaje y combate: no le aplican a quien no compite */
+  mode?: 'pro' | 'hobby';
 }
 
 interface PlannedEvent {
@@ -19,31 +22,42 @@ interface PlannedEvent {
   done: boolean;
 }
 
-const KIND_CFG: Record<PlannedEvent['kind'], { label: string; icon: string; color: string }> = {
-  training: { label: 'Entreno', icon: 'ri-boxing-line', color: '#E10600' },
-  weigh_in: { label: 'Pesaje', icon: 'ri-scales-2-line', color: '#C9A84C' },
-  fight: { label: 'Combate', icon: 'ri-sword-line', color: '#ff2d2d' },
-  rest: { label: 'Descanso', icon: 'ri-heart-pulse-line', color: '#22c55e' },
-  other: { label: 'Otro', icon: 'ri-calendar-event-line', color: '#38bdf8' },
+const KIND_CFG: Record<PlannedEvent['kind'], { key: string; icon: string; color: string }> = {
+  training: { key: 'mc_cal_kind_training', icon: 'ri-boxing-line', color: '#E10600' },
+  weigh_in: { key: 'mc_cal_kind_weigh', icon: 'ri-scales-2-line', color: '#C9A84C' },
+  fight: { key: 'mc_cal_kind_fight', icon: 'ri-sword-line', color: '#ff2d2d' },
+  rest: { key: 'mc_cal_kind_rest', icon: 'ri-heart-pulse-line', color: '#22c55e' },
+  other: { key: 'mc_cal_kind_other', icon: 'ri-calendar-event-line', color: '#38bdf8' },
+};
+
+/** Quien entrena por afición no ve pesaje ni combate: no le aplican. */
+const KINDS_BY_MODE: Record<'pro' | 'hobby', PlannedEvent['kind'][]> = {
+  pro: ['training', 'weigh_in', 'fight', 'rest', 'other'],
+  hobby: ['training', 'rest', 'other'],
 };
 
 const TRAINING_TYPES = [
-  { value: 'sparring', label: 'Sparring' },
-  { value: 'tecnica', label: 'Técnica' },
-  { value: 'fuerza', label: 'Fuerza' },
-  { value: 'cardio', label: 'Cardio' },
-  { value: 'movilidad', label: 'Movilidad' },
+  { value: 'sparring', key: 'mc_st_sparring' },
+  { value: 'tecnica', key: 'mc_st_tecnica' },
+  { value: 'fuerza', key: 'mc_st_fuerza' },
+  { value: 'cardio', key: 'mc_st_cardio' },
+  { value: 'movilidad', key: 'mc_st_flexibilidad' },
 ];
-
-const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-const WEEKDAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
 function iso(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 const todayISO = () => iso(new Date());
 
-export default function TrainingCalendar({ profile, showToast }: Props) {
+export default function TrainingCalendar({ profile, showToast, mode = 'pro' }: Props) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
+  const availableKinds = KINDS_BY_MODE[mode];
+  // Meses y días de la semana en el idioma activo (lunes primero: 2024-01-01 fue lunes)
+  const MONTHS = useMemo(() => Array.from({ length: 12 }, (_, m) =>
+    new Date(2024, m, 1).toLocaleDateString(locale, { month: 'long' })), [locale]);
+  const WEEKDAYS = useMemo(() => Array.from({ length: 7 }, (_, i) =>
+    new Date(2024, 0, 1 + i).toLocaleDateString(locale, { weekday: 'narrow' }).toUpperCase()), [locale]);
   const [view, setView] = useState<'month' | 'week'>('month');
   const [cursor, setCursor] = useState(() => { const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d; });
   const [planned, setPlanned] = useState<PlannedEvent[]>([]);
@@ -115,7 +129,7 @@ export default function TrainingCalendar({ profile, showToast }: Props) {
   const addEvent = async () => {
     if (!selected) return;
     const cfg = KIND_CFG[kind];
-    const finalTitle = title.trim() || (kind === 'training' ? (TRAINING_TYPES.find((t) => t.value === sessionType)?.label || 'Entreno') : cfg.label);
+    const finalTitle = title.trim() || (kind === 'training' ? (TRAINING_TYPES.find((x) => x.value === sessionType) ? t(TRAINING_TYPES.find((x) => x.value === sessionType).key) : t('mc_cal_kind_training')) : t(cfg.key));
     setSaving(true);
     const { data, error } = await supabase.from('planned_events').insert({
       fighter_profile_id: profile.id,
@@ -127,23 +141,23 @@ export default function TrainingCalendar({ profile, showToast }: Props) {
       notes: notes.trim() || null,
     }).select().maybeSingle();
     setSaving(false);
-    if (error || !data) { showToast('No se pudo guardar', 'error'); return; }
+    if (error || !data) { showToast(t('error_save'), 'error'); return; }
     setPlanned((prev) => [...prev, data as PlannedEvent].sort((a, b) => a.event_date.localeCompare(b.event_date)));
     setTitle(''); setNotes('');
-    showToast(`${cfg.label} añadido al calendario`);
+    showToast(t(cfg.key));
   };
 
   const toggleDone = async (e: PlannedEvent) => {
     const next = !e.done;
     setPlanned((prev) => prev.map((x) => x.id === e.id ? { ...x, done: next } : x));
     const { error } = await supabase.from('planned_events').update({ done: next }).eq('id', e.id);
-    if (error) { setPlanned((prev) => prev.map((x) => x.id === e.id ? { ...x, done: !next } : x)); showToast('No se pudo actualizar', 'error'); }
+    if (error) { setPlanned((prev) => prev.map((x) => x.id === e.id ? { ...x, done: !next } : x)); showToast(t('error_save'), 'error'); }
   };
 
   const removeEvent = async (id: string) => {
     setPlanned((prev) => prev.filter((x) => x.id !== id));
     const { error } = await supabase.from('planned_events').delete().eq('id', id);
-    if (error) { showToast('No se pudo eliminar', 'error'); load(); }
+    if (error) { showToast(t('error_save'), 'error'); load(); }
   };
 
   const goMonth = (delta: number) => {
@@ -163,9 +177,9 @@ export default function TrainingCalendar({ profile, showToast }: Props) {
         <div className="w-16 h-16 mx-auto mb-5 flex items-center justify-center rounded-2xl bg-red-600/10 border border-red-500/25 anim-float">
           <i className="ri-calendar-2-line text-3xl text-red-400"></i>
         </div>
-        <h3 className="rk-h3" style={{ fontSize: '1.3rem', color: '#fff' }}>CALENDARIO EN CAMINO</h3>
+        <h3 className="rk-h3" style={{ fontSize: '1.3rem', color: '#fff' }}>{t('mc_coming_soon_title')}</h3>
         <p className="text-sm text-zinc-400 mt-2 leading-relaxed">
-          La planificación mensual estará disponible en cuanto se active en el servidor. Mientras, usa la vista de semana.
+          {t('mc_coming_soon_desc')}
         </p>
         <div className="mt-6 text-left">
           <WeeklyPlanner profile={profile} showToast={showToast} />
@@ -178,17 +192,17 @@ export default function TrainingCalendar({ profile, showToast }: Props) {
     <div className="space-y-6 max-w-5xl">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <p className="rk-eyebrow">PLANIFICA HACIA ADELANTE</p>
+          <p className="rk-eyebrow">{t('mc_cal_eyebrow')}</p>
           <h2 className="rk-h2" style={{ fontSize: 'clamp(1.8rem,4vw,2.4rem)', color: '#fff', margin: '4px 0 0' }}>
-            TU <span className="rk-red-glow">CALENDARIO</span>
+            {t('mc_cal_title')} <span className="rk-red-glow">{t('mc_cal_title_2')}</span>
           </h2>
-          <p className="text-zinc-400 text-sm mt-1.5 max-w-md">Programa entrenos, marca el día del pesaje y la fecha del combate. Toca un día para añadir.</p>
+          <p className="text-zinc-400 text-sm mt-1.5 max-w-md">{mode === 'hobby' ? t('mc_cal_sub_hobby') : t('mc_cal_sub_pro')}</p>
         </div>
         <div className="flex bg-white/[0.04] border border-white/10 rounded-xl p-1">
           {(['month', 'week'] as const).map((v) => (
             <button key={v} onClick={() => setView(v)}
               className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer ${view === v ? 'bg-red-600 text-white' : 'text-zinc-400 hover:text-white'}`}>
-              {v === 'month' ? 'Mes' : 'Semana'}
+              {v === 'month' ? t('mc_cal_month') : t('mc_cal_week')}
             </button>
           ))}
         </div>
@@ -250,17 +264,21 @@ export default function TrainingCalendar({ profile, showToast }: Props) {
             </div>
             {/* Leyenda */}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 pt-3 border-t border-white/[0.06] text-[11px] text-zinc-500">
-              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#E10600]" />Entreno planeado</span>
-              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500" />Entreno hecho</span>
-              <span className="flex items-center gap-1.5"><i className="ri-scales-2-line text-[#C9A84C]" />Pesaje</span>
-              <span className="flex items-center gap-1.5"><i className="ri-sword-line" style={{ color: '#ff2d2d' }} />Combate</span>
+              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#E10600]" />{t('mc_cal_legend_planned')}</span>
+              <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500" />{t('mc_cal_legend_done')}</span>
+              {mode === 'pro' && (
+                <>
+                  <span className="flex items-center gap-1.5"><i className="ri-scales-2-line text-[#C9A84C]" />{t('mc_cal_kind_weigh')}</span>
+                  <span className="flex items-center gap-1.5"><i className="ri-sword-line" style={{ color: '#ff2d2d' }} />{t('mc_cal_kind_fight')}</span>
+                </>
+              )}
             </div>
           </div>
 
           {/* Próximos eventos */}
           {upcoming.length > 0 && (
             <div>
-              <p className="text-[11px] font-bold tracking-[0.22em] uppercase text-zinc-600 mb-3">Lo que viene</p>
+              <p className="text-[11px] font-bold tracking-[0.22em] uppercase text-zinc-600 mb-3">{t('mc_cal_upcoming')}</p>
               <div className="space-y-2">
                 {upcoming.map((e) => {
                   const cfg = KIND_CFG[e.kind];
@@ -274,7 +292,7 @@ export default function TrainingCalendar({ profile, showToast }: Props) {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="text-sm font-bold text-white">{e.title}</p>
-                          {e.kind === 'fight' && <span className="text-[9px] font-black uppercase tracking-wider text-red-400 bg-red-600/15 border border-red-500/30 px-1.5 py-0.5 rounded-full">Combate</span>}
+                          {e.kind === 'fight' && <span className="text-[9px] font-black uppercase tracking-wider text-red-400 bg-red-600/15 border border-red-500/30 px-1.5 py-0.5 rounded-full">{t('mc_cal_kind_fight')}</span>}
                         </div>
                         <p className="text-xs text-zinc-500">
                           {d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
@@ -304,7 +322,7 @@ export default function TrainingCalendar({ profile, showToast }: Props) {
                 <h3 className="rk-h3" style={{ fontSize: '1.1rem', color: '#fff' }}>
                   {new Date(selected + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                 </h3>
-                {selectedDone > 0 && <p className="text-xs text-green-400 mt-0.5">{selectedDone} {selectedDone === 1 ? 'entreno registrado' : 'entrenos registrados'} este día</p>}
+                {selectedDone > 0 && <p className="text-xs text-green-400 mt-0.5">{selectedDone === 1 ? t('mc_cal_logged_one') : t('mc_cal_logged_many', { n: selectedDone })}</p>}
               </div>
               <button onClick={() => setSelected(null)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/[0.05] text-zinc-400 hover:text-white cursor-pointer transition-colors flex-shrink-0">
                 <i className="ri-close-line"></i>
@@ -338,16 +356,16 @@ export default function TrainingCalendar({ profile, showToast }: Props) {
             )}
 
             {/* Añadir */}
-            <p className="text-[11px] font-bold tracking-widest uppercase text-zinc-500 mb-2">Añadir a este día</p>
+            <p className="text-[11px] font-bold tracking-widest uppercase text-zinc-500 mb-2">{t('mc_cal_add_to_day')}</p>
             <div className="grid grid-cols-5 gap-1.5 mb-3">
-              {(Object.keys(KIND_CFG) as PlannedEvent['kind'][]).map((k) => {
+              {availableKinds.map((k) => {
                 const cfg = KIND_CFG[k];
                 return (
                   <button key={k} onClick={() => setKind(k)}
                     className={`flex flex-col items-center gap-1 py-2 rounded-xl border transition-all cursor-pointer ${kind === k ? 'border-white/30' : 'border-white/10 hover:border-white/20'}`}
                     style={{ background: kind === k ? `${cfg.color}18` : 'rgba(255,255,255,0.02)' }}>
                     <i className={cfg.icon} style={{ color: cfg.color, fontSize: 15 }}></i>
-                    <span className="text-[9px] font-semibold text-white leading-none text-center">{cfg.label}</span>
+                    <span className="text-[9px] font-semibold text-white leading-none text-center">{t(cfg.key)}</span>
                   </button>
                 );
               })}
@@ -357,18 +375,18 @@ export default function TrainingCalendar({ profile, showToast }: Props) {
               {kind === 'training' && (
                 <select value={sessionType} onChange={(e) => setSessionType(e.target.value)}
                   className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer">
-                  {TRAINING_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  {TRAINING_TYPES.map((tt) => <option key={tt.value} value={tt.value}>{t(tt.key)}</option>)}
                 </select>
               )}
               <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80}
                 className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-500"
-                placeholder={kind === 'fight' ? 'Ej: Velada Gimnasio X' : kind === 'weigh_in' ? 'Ej: Pesaje oficial' : 'Título (opcional)'} />
+                placeholder={kind === 'fight' ? t('mc_cal_ph_fight') : kind === 'weigh_in' ? t('mc_cal_ph_weigh') : t('mc_cal_ph_other')} />
               {kind === 'training' && (
                 <input type="time" value={time} onChange={(e) => setTime(e.target.value)}
                   className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer" />
               )}
               <button onClick={addEvent} disabled={saving} className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60" style={{ fontSize: '0.9rem' }}>
-                {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <><i className="ri-add-line"></i> AÑADIR</>}
+                {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <><i className="ri-add-line"></i> {t('mc_cal_add')}</>}
               </button>
             </div>
           </div>

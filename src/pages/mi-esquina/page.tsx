@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useSEO } from '@/hooks/useSEO';
@@ -13,48 +14,60 @@ import GoalsPanel from '@/pages/mi-esquina/components/GoalsPanel';
 import DailyCheckin from '@/pages/mi-esquina/components/DailyCheckin';
 import QuickRoutines from '@/pages/mi-esquina/components/QuickRoutines';
 import WeeklySummary from '@/pages/mi-esquina/components/WeeklySummary';
+import FightPrep from '@/pages/mi-esquina/components/FightPrep';
+import SparringLog from '@/pages/mi-esquina/components/SparringLog';
+import TechniqueNotes from '@/pages/mi-esquina/components/TechniqueNotes';
 import GearChecklist from '@/pages/mi-esquina/components/GearChecklist';
+import GearBrands from '@/pages/mi-esquina/components/GearBrands';
 import SectionCoach from '@/pages/mi-esquina/components/SectionCoach';
 import MealLog from '@/pages/mi-esquina/components/MealLog';
 import Reveal from '@/components/base/Reveal';
 import NotificationBell from '@/components/feature/NotificationBell';
 
-type Section = 'resumen' | 'calendario' | 'diario' | 'rutinas' | 'peso' | 'objetivos' | 'timer' | 'coach' | 'material' | 'nutricion' | 'mensajes';
+type Section =
+  | 'resumen' | 'calendario' | 'diario' | 'rutinas' | 'sparring' | 'notas'
+  | 'peso' | 'objetivos' | 'coach' | 'material' | 'nutricion' | 'timer' | 'mensajes';
 
-const SECTIONS: { id: Section; label: string; icon: string; soon?: boolean }[] = [
-  { id: 'resumen', label: 'Resumen', icon: 'ri-dashboard-line' },
-  { id: 'calendario', label: 'Calendario', icon: 'ri-calendar-2-line' },
-  { id: 'diario', label: 'Diario de entrenos', icon: 'ri-calendar-check-line' },
-  { id: 'rutinas', label: 'Mis rutinas', icon: 'ri-repeat-line' },
-  { id: 'peso', label: 'Control de peso', icon: 'ri-scales-2-line' },
-  { id: 'objetivos', label: 'Objetivos', icon: 'ri-flag-line' },
-  { id: 'coach', label: 'Coach IA', icon: 'ri-sparkling-2-line' },
-  { id: 'material', label: 'Material', icon: 'ri-boxing-line' },
-  { id: 'nutricion', label: 'Nutrición', icon: 'ri-restaurant-line' },
-  { id: 'timer', label: 'Temporizador', icon: 'ri-timer-flash-line' },
-  { id: 'mensajes', label: 'Mensajes', icon: 'ri-message-3-line' },
+interface SectionDef { id: Section; labelKey: string; icon: string }
+
+// ── Qué ve cada perfil ──
+// El que compite lo tiene TODO: sparring y libreta técnica son suyos, y el
+// calendario y el peso van enfocados al combate.
+const PRO_SECTIONS: SectionDef[] = [
+  { id: 'resumen', labelKey: 'mc_nav_summary', icon: 'ri-dashboard-line' },
+  { id: 'calendario', labelKey: 'mc_nav_calendar', icon: 'ri-calendar-2-line' },
+  { id: 'diario', labelKey: 'mc_nav_diary', icon: 'ri-calendar-check-line' },
+  { id: 'rutinas', labelKey: 'mc_nav_routines', icon: 'ri-repeat-line' },
+  { id: 'sparring', labelKey: 'mc_nav_sparring', icon: 'ri-boxing-line' },
+  { id: 'notas', labelKey: 'mc_nav_notes', icon: 'ri-book-open-line' },
+  { id: 'peso', labelKey: 'mc_nav_weight', icon: 'ri-scales-2-line' },
+  { id: 'objetivos', labelKey: 'mc_nav_goals', icon: 'ri-flag-line' },
+  { id: 'coach', labelKey: 'mc_nav_coach', icon: 'ri-sparkling-2-line' },
+  { id: 'material', labelKey: 'mc_nav_gear', icon: 'ri-t-shirt-line' },
+  { id: 'nutricion', labelKey: 'mc_nav_nutrition', icon: 'ri-restaurant-line' },
+  { id: 'timer', labelKey: 'mc_nav_timer', icon: 'ri-timer-flash-line' },
+  { id: 'mensajes', labelKey: 'mc_nav_messages', icon: 'ri-message-3-line' },
 ];
 
-const GEAR = [
-  { icon: 'ri-boxing-line', title: 'Guantes', tips: ['Entrenamiento en saco: 12-14 oz', 'Sparring: 16 oz (protege a ti y a tu compañero)', 'Competición amateur: 10-12 oz según categoría', 'Busca cierre de velcro para el día a día y ajuste firme en la muñeca'] },
-  { icon: 'ri-hand-heart-line', title: 'Vendas', tips: ['Imprescindibles SIEMPRE, incluso con guantes buenos', 'Semielásticas de 4,5 m para adultos', 'Envuelve muñeca, nudillos y pulgar', 'Lávalas a menudo: el sudor las degrada'] },
-  { icon: 'ri-emotion-normal-line', title: 'Bucal', tips: ['Obligatorio en sparring y competición', 'Los termomoldeables son la mejor relación calidad/precio', 'Moldéalo bien siguiendo las instrucciones (agua caliente)', 'Llévalo también en técnica con contacto'] },
-  { icon: 'ri-shield-line', title: 'Protecciones', tips: ['Casco para sparring: mejor con protección en pómulos', 'Coquilla obligatoria en sparring', 'Espinilleras para kickboxing y muay thai', 'Revisa el estado del acolchado cada pocos meses'] },
-  { icon: 'ri-footprint-line', title: 'Calzado', tips: ['Boxeo: bota alta con suela fina para pivotar', 'MMA: descalzo, entrena la fuerza del pie', 'Evita zapatillas de running en el ring: demasiada amortiguación', 'La suela debe agarrar sin frenar el giro'] },
-  { icon: 'ri-t-shirt-line', title: 'Extras que suman', tips: ['Cuerda de saltar con rodamientos: cardio específico', 'Comba de velocidad cuando domines la básica', 'Esterilla para movilidad y core', 'Bolsa de deporte ventilada (tu equipo lo agradece)'] },
-];
-
-const NUTRITION = [
-  { icon: 'ri-drop-line', title: 'Hidratación', body: 'Bebe agua durante todo el día, no solo al entrenar. En sesiones largas o con mucho sudor, añade electrolitos. Llegar deshidratado al entreno reduce tu rendimiento de forma directa.' },
-  { icon: 'ri-restaurant-2-line', title: 'Antes de entrenar', body: 'Come 1,5-2 horas antes: carbohidratos de absorción media (arroz, avena, pasta, fruta) y algo de proteína. Evita comidas muy grasas justo antes: ralentizan la digestión.' },
-  { icon: 'ri-flashlight-line', title: 'Después de entrenar', body: 'La ventana post-entreno es clave: proteína (pollo, huevos, pescado, batido) + carbohidratos para recargar. No hace falta nada raro: comida real y suficiente.' },
-  { icon: 'ri-scales-2-line', title: 'Peso y competición', body: 'Si compites, no dejes el corte de peso para el final. Trabaja tu peso de forma gradual con un profesional. Los cortes agresivos de última hora destrozan tu rendimiento y tu salud.' },
-  { icon: 'ri-capsule-line', title: 'Suplementación básica', body: 'Lo que tiene evidencia real: creatina monohidrato (fuerza), proteína en polvo (comodidad), cafeína (rendimiento) y omega-3. Todo lo demás, con escepticismo. Primero la comida, luego los botes.' },
-  { icon: 'ri-moon-line', title: 'El suplemento gratis: dormir', body: '7-9 horas. El sueño es donde asimilas el entrenamiento, recuperas y consolidas técnica. Entrenar mucho durmiendo poco es entrenar a medias.' },
+// El aficionado ve menos, pero todo lo que ve es suyo: nada de sparring,
+// libreta técnica ni categorías de peso, que solo serían ruido.
+const HOBBY_SECTIONS: SectionDef[] = [
+  { id: 'resumen', labelKey: 'mc_nav_summary', icon: 'ri-dashboard-line' },
+  { id: 'calendario', labelKey: 'mc_nav_calendar', icon: 'ri-calendar-2-line' },
+  { id: 'diario', labelKey: 'mc_nav_diary', icon: 'ri-calendar-check-line' },
+  { id: 'rutinas', labelKey: 'mc_nav_routines', icon: 'ri-repeat-line' },
+  { id: 'peso', labelKey: 'mc_nav_progress', icon: 'ri-line-chart-line' },
+  { id: 'objetivos', labelKey: 'mc_nav_goals', icon: 'ri-flag-line' },
+  { id: 'coach', labelKey: 'mc_nav_coach', icon: 'ri-sparkling-2-line' },
+  { id: 'material', labelKey: 'mc_nav_gear', icon: 'ri-t-shirt-line' },
+  { id: 'nutricion', labelKey: 'mc_nav_nutrition', icon: 'ri-restaurant-line' },
+  { id: 'timer', labelKey: 'mc_nav_timer', icon: 'ri-timer-flash-line' },
+  { id: 'mensajes', labelKey: 'mc_nav_messages', icon: 'ri-message-3-line' },
 ];
 
 export default function MiEsquinaPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { user, profile, loading: authLoading } = useAuth();
   const [section, setSection] = useState<Section>('resumen');
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
@@ -64,7 +77,7 @@ export default function MiEsquinaPage() {
 
   useSEO({
     title: 'Mi Esquina | RANKD',
-    description: 'Tu espacio de entrenamiento en RANKD: diario, rutinas, material y nutrición.',
+    description: 'Tu espacio de entrenamiento en RANKD: diario, calendario, peso, objetivos y Coach IA.',
   });
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
@@ -110,7 +123,7 @@ export default function MiEsquinaPage() {
       });
     };
     load();
-  }, [profile?.id, section]);
+  }, [profile?.id, section, refreshKey]);
 
   if (authLoading || !user || !profile) {
     return (
@@ -121,7 +134,42 @@ export default function MiEsquinaPage() {
   }
 
   const isHobby = profile.athlete_mode === 'hobby';
-  const firstName = (profile.full_name || '').split(' ')[0] || 'campeón';
+  const mode: 'pro' | 'hobby' = isHobby ? 'hobby' : 'pro';
+  const SECTIONS = isHobby ? HOBBY_SECTIONS : PRO_SECTIONS;
+  const firstName = (profile.full_name || '').split(' ')[0] || 'RANKD';
+
+  // Si el perfil cambia de modo, una sección que ya no existe dejaría la
+  // pantalla en blanco: en ese caso volvemos al resumen.
+  const activeSection: Section = SECTIONS.some((s) => s.id === section) ? section : 'resumen';
+
+  // Guía de nutrición: el bloque de peso cambia según el perfil.
+  const NUTRITION_GUIDE = [
+    { icon: 'ri-drop-line', t: 'mc_ng_hydration_t', b: 'mc_ng_hydration_b' },
+    { icon: 'ri-restaurant-2-line', t: 'mc_ng_before_t', b: 'mc_ng_before_b' },
+    { icon: 'ri-flashlight-line', t: 'mc_ng_after_t', b: 'mc_ng_after_b' },
+    isHobby
+      ? { icon: 'ri-heart-pulse-line', t: 'mc_ng_fatloss_t', b: 'mc_ng_fatloss_b' }
+      : { icon: 'ri-scales-2-line', t: 'mc_ng_cut_t', b: 'mc_ng_cut_b' },
+    { icon: 'ri-capsule-line', t: 'mc_ng_supp_t', b: 'mc_ng_supp_b' },
+    { icon: 'ri-moon-line', t: 'mc_ng_sleep_t', b: 'mc_ng_sleep_b' },
+  ];
+
+  // Accesos rápidos del resumen, distintos por perfil.
+  const QUICK_CARDS: { s: Section; icon: string; titleKey: string }[] = isHobby
+    ? [
+        { s: 'diario', icon: 'ri-calendar-check-line', titleKey: 'mc_nav_diary' },
+        { s: 'rutinas', icon: 'ri-repeat-line', titleKey: 'mc_nav_routines' },
+        { s: 'peso', icon: 'ri-line-chart-line', titleKey: 'mc_nav_progress' },
+        { s: 'coach', icon: 'ri-sparkling-2-line', titleKey: 'mc_nav_coach' },
+      ]
+    : [
+        { s: 'diario', icon: 'ri-calendar-check-line', titleKey: 'mc_nav_diary' },
+        { s: 'sparring', icon: 'ri-boxing-line', titleKey: 'mc_nav_sparring' },
+        { s: 'notas', icon: 'ri-book-open-line', titleKey: 'mc_nav_notes' },
+        { s: 'peso', icon: 'ri-scales-2-line', titleKey: 'mc_nav_weight' },
+        { s: 'calendario', icon: 'ri-calendar-2-line', titleKey: 'mc_nav_calendar' },
+        { s: 'coach', icon: 'ri-sparkling-2-line', titleKey: 'mc_nav_coach' },
+      ];
 
   return (
     <div className="min-h-screen bg-[#070707] text-white">
@@ -130,15 +178,16 @@ export default function MiEsquinaPage() {
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <button onClick={() => navigate(isHobby ? '/beta' : '/dashboard')} className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors cursor-pointer">
             <i className="ri-arrow-left-line"></i>
-            <span className="hidden sm:inline">{isHobby ? 'Inicio' : 'Mi Dashboard'}</span>
+            <span className="hidden sm:inline">{isHobby ? t('mc_back_home') : t('mc_back_dashboard')}</span>
           </button>
           <div className="flex items-center gap-2">
-            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 3 }} className="text-white">MI</span>
-            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 3 }} className="text-[#E10600]">ESQUINA</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] mt-0.5"></span>
+            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 3 }} className="text-white">{t('mc_brand_my')}</span>
+            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 3 }} className="text-[#E10600]">{t('mc_brand_corner')}</span>
+            <span className={`hidden sm:inline text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${isHobby ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-[#C9A84C] bg-[#C9A84C]/10 border-[#C9A84C]/30'}`}>
+              {isHobby ? t('mc_mode_hobby') : t('mc_mode_pro')}
+            </span>
           </div>
           <div className="flex items-center gap-2.5">
-            {/* Aquí es donde importa: los recordatorios de entreno se generan al entrar. */}
             <NotificationBell userId={profile.id} reminders />
             <a href="/beta" className="hidden sm:flex items-center gap-0 cursor-pointer">
               <span className="font-unbounded font-black tracking-tighter leading-none text-[15px] text-white" style={{ letterSpacing: '-0.04em' }}>RAN</span>
@@ -155,21 +204,20 @@ export default function MiEsquinaPage() {
       )}
 
       <div className="flex min-h-screen max-w-[1400px] mx-auto" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
-        {/* Sidebar propia (desktop) */}
-        <aside className="hidden lg:flex flex-col w-60 flex-shrink-0 border-r border-zinc-800/70 py-6 px-3 sticky h-[calc(100vh-3.5rem)]" style={{ top: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
+        {/* Sidebar (escritorio) */}
+        <aside className="hidden lg:flex flex-col w-60 flex-shrink-0 border-r border-zinc-800/70 py-6 px-3 sticky h-[calc(100vh-3.5rem)] overflow-y-auto" style={{ top: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
           <nav className="space-y-1 flex-1">
             {SECTIONS.map((s) => (
               <button key={s.id} onClick={() => setSection(s.id)}
-                className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer text-left ${section === s.id ? 'bg-red-600 text-white shadow-lg shadow-red-600/25' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/70'}`}>
+                className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer text-left ${activeSection === s.id ? 'bg-red-600 text-white shadow-lg shadow-red-600/25' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/70'}`}>
                 <i className={`${s.icon} text-base flex-shrink-0`}></i>
-                <span className="flex-1">{s.label}</span>
-                {s.soon && <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase ${section === s.id ? 'bg-white/20 text-white' : 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/25'}`}>Pronto</span>}
+                <span className="flex-1">{t(s.labelKey)}</span>
               </button>
             ))}
           </nav>
           <div className="mt-4 p-4 rounded-2xl bg-gradient-to-br from-zinc-900 to-zinc-950 border border-zinc-800">
-            <p className="text-xs font-bold text-white flex items-center gap-1.5"><i className="ri-fire-line text-orange-400"></i>Sigue así, {firstName}</p>
-            <p className="text-[11px] text-zinc-500 mt-1 leading-relaxed">La constancia gana más combates que el talento.</p>
+            <p className="text-xs font-bold text-white flex items-center gap-1.5"><i className="ri-fire-line text-orange-400"></i>{firstName}</p>
+            <p className="text-[11px] text-zinc-500 mt-1 leading-relaxed">{isHobby ? t('mc_hb_consistency_desc') : t('mc_sum_sub_pro')}</p>
           </div>
         </aside>
 
@@ -178,8 +226,8 @@ export default function MiEsquinaPage() {
           <div className="flex px-3 py-2 gap-1 min-w-max">
             {SECTIONS.map((s) => (
               <button key={s.id} onClick={() => setSection(s.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${section === s.id ? 'bg-red-600 text-white' : 'text-zinc-400'}`}>
-                <i className={s.icon}></i>{s.label}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${activeSection === s.id ? 'bg-red-600 text-white' : 'text-zinc-400'}`}>
+                <i className={s.icon}></i>{t(s.labelKey)}
               </button>
             ))}
           </div>
@@ -188,36 +236,47 @@ export default function MiEsquinaPage() {
         {/* Main */}
         <main className="flex-1 px-4 sm:px-6 lg:px-10 py-8 pt-24 lg:pt-8 pb-16 min-w-0">
 
-          {section === 'resumen' && (
+          {/* ══════════ RESUMEN ══════════ */}
+          {activeSection === 'resumen' && (
             <div className="space-y-6 max-w-3xl">
-              {/* Check-in del día: lo primero, y con motivo para entrar aunque hoy no toque entrenar */}
-              <Reveal>
+              {/* PRO: lo primero es el combate que viene */}
+              {!isHobby && (
+                <Reveal>
+                  <FightPrep profile={profile} onOpenCalendar={() => setSection('calendario')} />
+                </Reveal>
+              )}
+
+              {/* Check-in del día */}
+              <Reveal delay={40}>
                 <DailyCheckin profile={profile} showToast={showToast} />
               </Reveal>
 
-              {/* Resumen automático de la semana + objetivos activos */}
-              <Reveal delay={60}>
+              {/* Resumen automático de la semana + objetivos */}
+              <Reveal delay={70}>
                 <WeeklySummary profile={profile} refreshKey={refreshKey} onOpenGoals={() => setSection('objetivos')} />
               </Reveal>
 
-              {/* Registro de un toque desde tus rutinas más usadas */}
-              <Reveal delay={90}>
+              {/* Registro de un toque */}
+              <Reveal delay={100}>
                 <QuickRoutines profile={profile} showToast={showToast} compact onLogged={() => setRefreshKey((k) => k + 1)} />
               </Reveal>
 
-              {/* Hábito diario: aviso o resumen según si ya entrenó hoy */}
-              <Reveal>
+              {/* Hábito diario */}
+              <Reveal delay={120}>
                 {stats.todayLogged ? (
                   <div className="rk-card relative overflow-hidden" style={{ padding: '18px 20px', borderColor: 'rgba(34,197,94,0.25)' }}>
                     <div className="rk-glow-red" style={{ width: 160, height: 160, top: -70, right: -50, borderRadius: '50%', background: 'radial-gradient(circle, rgba(34,197,94,0.14) 0%, transparent 68%)' }} />
                     <div className="relative flex items-center gap-4">
                       <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl bg-green-500/12 border border-green-500/30 text-green-400"><i className="ri-check-double-line text-2xl"></i></div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-white">Entreno de hoy registrado 🔥</p>
+                        <p className="text-sm font-bold text-white">{t('mc_today_logged')}</p>
                         <p className="text-xs text-zinc-400 mt-0.5">
-                          {stats.streak > 1 ? `Racha de ${stats.streak} días. ` : ''}Esta semana: {stats.week} {stats.week === 1 ? 'sesión' : 'sesiones'}
+                          {stats.streak > 1 ? `${t('mc_streak_of', { n: stats.streak })} ` : ''}
+                          {stats.week === 1 ? t('mc_week_session_one') : t('mc_week_sessions', { n: stats.week })}
                           {stats.lastWeekMin > 0 && (
-                            <span className={stats.weekMin >= stats.lastWeekMin ? 'text-green-400' : 'text-orange-400'}> · {stats.weekMin >= stats.lastWeekMin ? '▲' : '▼'} {Math.abs(stats.weekMin - stats.lastWeekMin)}m vs. semana pasada</span>
+                            <span className={stats.weekMin >= stats.lastWeekMin ? 'text-green-400' : 'text-orange-400'}>
+                              {' · '}{stats.weekMin >= stats.lastWeekMin ? '▲' : '▼'} {t('mc_vs_last_week', { n: Math.abs(stats.weekMin - stats.lastWeekMin) })}
+                            </span>
                           )}
                         </p>
                       </div>
@@ -229,35 +288,39 @@ export default function MiEsquinaPage() {
                     <div className="relative flex items-center gap-4 flex-wrap sm:flex-nowrap">
                       <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl bg-red-600/12 border border-red-500/30 text-red-400 anim-pulse-glow"><i className="ri-fire-line text-2xl"></i></div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-white">Aún no has registrado tu entreno de hoy</p>
-                        <p className="text-xs text-zinc-400 mt-0.5">{stats.streak > 0 ? `Tu racha de ${stats.streak} ${stats.streak === 1 ? 'día' : 'días'} está en juego. No la rompas.` : 'Enciende tu racha registrando la sesión de hoy.'}</p>
+                        <p className="text-sm font-bold text-white">{t('mc_today_pending')}</p>
+                        <p className="text-xs text-zinc-400 mt-0.5">{stats.streak > 0 ? t('mc_today_streak_risk', { n: stats.streak }) : t('mc_today_streak_start')}</p>
                       </div>
-                      <button onClick={() => setSection('diario')} className="rk-btn rk-btn-primary flex-shrink-0 w-full sm:w-auto" style={{ fontSize: '0.8rem', padding: '0.6rem 1.2rem' }}>REGISTRAR HOY</button>
+                      <button onClick={() => setSection('diario')} className="rk-btn rk-btn-primary flex-shrink-0 w-full sm:w-auto" style={{ fontSize: '0.8rem', padding: '0.6rem 1.2rem' }}>
+                        {t('mc_today_cta')}
+                      </button>
                     </div>
                   </div>
                 )}
               </Reveal>
 
-              <Reveal>
+              {/* Titular */}
+              <Reveal delay={140}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
-                    <span className="rk-index">TU ESPACIO</span>
+                    <span className="rk-index">{t('mc_sum_eyebrow')}</span>
                     <span style={{ flex: '0 0 38px', height: 1, background: 'rgba(255,255,255,0.16)' }} />
-                    <span className="rk-eyebrow">Mi Esquina</span>
+                    <span className="rk-eyebrow">{isHobby ? t('mc_mode_hobby') : t('mc_mode_pro')}</span>
                   </div>
                   <h1 className="rk-h1" style={{ margin: 0, color: '#fff' }}>
-                    BIENVENIDO A TU <span className="rk-red-glow">ESQUINA</span>,<br />{firstName.toUpperCase()}
+                    {t('mc_sum_welcome')} <span className="rk-red-glow">{t('mc_sum_corner_word')}</span>,<br />{firstName.toUpperCase()}
                   </h1>
-                  <p className="text-zinc-400 text-sm mt-2">{isHobby ? 'Tu espacio de entrenamiento. Sin competir, pero con la misma disciplina.' : 'Todo lo que necesitas para entrenar mejor, en un solo sitio.'}</p>
+                  <p className="text-zinc-400 text-sm mt-2">{isHobby ? t('mc_sum_sub_hobby') : t('mc_sum_sub_pro')}</p>
                 </div>
               </Reveal>
 
-              <Reveal delay={80}>
+              {/* Cifras */}
+              <Reveal delay={160}>
                 <div className="grid grid-cols-3 gap-3">
                   {[
-                    { v: String(stats.total), l: 'Sesiones totales', c: '#ffffff' },
-                    { v: String(stats.week), l: 'Esta semana', c: '#E10600' },
-                    { v: stats.weekMin >= 60 ? `${Math.floor(stats.weekMin / 60)}h ${stats.weekMin % 60}m` : `${stats.weekMin}m`, l: 'Tiempo semanal', c: '#4ade80' },
+                    { v: String(stats.total), l: t('mc_stat_total'), c: '#ffffff' },
+                    { v: String(isHobby ? stats.streak : stats.week), l: isHobby ? t('mc_stat_streak') : t('mc_stat_week'), c: '#E10600' },
+                    { v: stats.weekMin >= 60 ? `${Math.floor(stats.weekMin / 60)}h ${stats.weekMin % 60}m` : `${stats.weekMin}m`, l: t('mc_stat_time'), c: '#4ade80' },
                   ].map((s) => (
                     <div key={s.l} className="rk-card" style={{ padding: '22px 14px', textAlign: 'center' }}>
                       <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(28px,5vw,40px)', lineHeight: 1, color: s.c, margin: 0 }}>{s.v}</p>
@@ -267,20 +330,42 @@ export default function MiEsquinaPage() {
                 </div>
               </Reveal>
 
-              <Reveal delay={140}>
+              {/* AFICIONADO: en qué se enfoca su esquina */}
+              {isHobby && (
+                <Reveal delay={180}>
+                  <div>
+                    <p className="text-[11px] font-bold tracking-[0.22em] uppercase text-zinc-600 mb-3">{t('mc_hb_focus_title')}</p>
+                    <div className="grid sm:grid-cols-3 gap-3">
+                      {[
+                        { icon: 'ri-fire-line', t: 'mc_hb_consistency', d: 'mc_hb_consistency_desc', c: '#E10600' },
+                        { icon: 'ri-line-chart-line', t: 'mc_hb_progress', d: 'mc_hb_progress_desc', c: '#4ade80' },
+                        { icon: 'ri-heart-pulse-line', t: 'mc_hb_wellbeing', d: 'mc_hb_wellbeing_desc', c: '#38bdf8' },
+                      ].map((f) => (
+                        <div key={f.t} className="rk-card" style={{ padding: 18 }}>
+                          <div className="w-10 h-10 flex items-center justify-center rounded-xl border mb-3"
+                            style={{ background: `${f.c}14`, borderColor: `${f.c}3a`, color: f.c }}>
+                            <i className={`${f.icon} text-lg`}></i>
+                          </div>
+                          <p className="text-sm font-bold text-white">{t(f.t)}</p>
+                          <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{t(f.d)}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-zinc-600 mt-3 leading-relaxed flex items-start gap-1.5">
+                      <i className="ri-information-line mt-0.5 flex-shrink-0"></i>{t('mc_hb_no_competition')}
+                    </p>
+                  </div>
+                </Reveal>
+              )}
+
+              {/* Accesos rápidos */}
+              <Reveal delay={200}>
                 <div className="grid sm:grid-cols-2 gap-3">
-                  {[
-                    { s: 'diario' as Section, icon: 'ri-calendar-check-line', title: 'Registra tu entreno de hoy', desc: 'Suma a tu racha y controla tu carga semanal', cta: 'Ir al diario' },
-                    { s: 'calendario' as Section, icon: 'ri-calendar-2-line', title: 'Planifica hacia adelante', desc: 'Entrenos futuros, día de pesaje y fecha de combate', cta: 'Abrir calendario' },
-                    { s: 'peso' as Section, icon: 'ri-scales-2-line', title: 'Control de peso', desc: 'Registra tu peso y sigue su evolución camino al pesaje', cta: 'Ver mi peso' },
-                    { s: 'objetivos' as Section, icon: 'ri-flag-line', title: 'Tus objetivos', desc: 'Metas concretas con fecha límite y su progreso', cta: 'Ver objetivos' },
-                    { s: 'coach' as Section, icon: 'ri-sparkling-2-line', title: 'Coach IA', desc: 'Pídele un plan y guárdalo directamente en tu diario', cta: 'Hablar con el coach' },
-                  ].map((c) => (
-                    <button key={c.title} onClick={() => setSection(c.s)} className="rk-card text-left group" style={{ padding: 20, cursor: 'pointer' }}>
-                      <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-600/12 border border-red-500/25 text-red-400 mb-3"><i className={`${c.icon} text-lg`}></i></div>
-                      <p className="text-sm font-bold text-white">{c.title}</p>
-                      <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{c.desc}</p>
-                      <p className="text-xs font-bold text-red-400 mt-3 flex items-center gap-1 group-hover:gap-2 transition-all">{c.cta} <i className="ri-arrow-right-line"></i></p>
+                  {QUICK_CARDS.map((c) => (
+                    <button key={c.s} onClick={() => setSection(c.s)} className="rk-card text-left group flex items-center gap-3.5" style={{ padding: 18, cursor: 'pointer' }}>
+                      <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl bg-red-600/12 border border-red-500/25 text-red-400"><i className={`${c.icon} text-lg`}></i></div>
+                      <p className="text-sm font-bold text-white flex-1">{t(c.titleKey)}</p>
+                      <i className="ri-arrow-right-line text-zinc-600 group-hover:text-red-400 transition-colors"></i>
                     </button>
                   ))}
                 </div>
@@ -288,29 +373,35 @@ export default function MiEsquinaPage() {
             </div>
           )}
 
-          {section === 'diario' && <FighterTraining profile={profile} showToast={showToast} />}
+          {/* ══════════ SECCIONES ══════════ */}
+          {activeSection === 'diario' && <FighterTraining profile={profile} showToast={showToast} />}
 
-          {section === 'mensajes' && <div className="max-w-5xl"><MessagesPanel currentUserId={profile.id} /></div>}
+          {activeSection === 'rutinas' && <QuickRoutines profile={profile} showToast={showToast} onLogged={() => setRefreshKey((k) => k + 1)} />}
 
-          {section === 'rutinas' && <QuickRoutines profile={profile} showToast={showToast} onLogged={() => setRefreshKey((k) => k + 1)} />}
+          {activeSection === 'calendario' && <TrainingCalendar profile={profile} showToast={showToast} mode={mode} />}
 
-          {section === 'calendario' && <TrainingCalendar profile={profile} showToast={showToast} />}
+          {activeSection === 'sparring' && !isHobby && <SparringLog profile={profile} showToast={showToast} />}
 
-          {section === 'peso' && <WeightTracker profile={profile} showToast={showToast} />}
+          {activeSection === 'notas' && !isHobby && <TechniqueNotes profile={profile} showToast={showToast} />}
 
-          {section === 'objetivos' && <GoalsPanel profile={profile} showToast={showToast} />}
+          {activeSection === 'peso' && <WeightTracker profile={profile} showToast={showToast} mode={mode} />}
 
-          {section === 'timer' && <RoundTimer />}
+          {activeSection === 'objetivos' && <GoalsPanel profile={profile} showToast={showToast} />}
 
-          {section === 'coach' && (
+          {activeSection === 'timer' && <RoundTimer />}
+
+          {activeSection === 'mensajes' && <div className="max-w-5xl"><MessagesPanel currentUserId={profile.id} /></div>}
+
+          {/* ══ COACH IA ══ */}
+          {activeSection === 'coach' && (
             <div className="space-y-5 max-w-3xl">
               <Reveal>
                 <div>
-                  <p className="rk-eyebrow">TU ESQUINA INTELIGENTE</p>
+                  <p className="rk-eyebrow">{t('mc_coach_eyebrow')}</p>
                   <h2 className="rk-h2" style={{ fontSize: 'clamp(1.8rem,4vw,2.4rem)', color: '#fff', margin: '4px 0 0' }}>
-                    COACH DE <span className="rk-red-glow">ENTRENAMIENTO</span>
+                    {t('mc_coach_training_title')} <span className="rk-red-glow">{t('mc_coach_training_title_2')}</span>
                   </h2>
-                  <p className="text-zinc-400 text-sm mt-1.5 max-w-md">Planifica sesiones y rutinas con una IA que conoce tu disciplina, nivel y objetivos. Pídele un plan, ajústalo en conversación y llévalo a tu diario. Incluye vídeos de referencia de las técnicas.</p>
+                  <p className="text-zinc-400 text-sm mt-1.5 max-w-md">{isHobby ? t('mc_coach_sub_hobby') : t('mc_coach_sub_pro')}</p>
                 </div>
               </Reveal>
               <Reveal delay={80}>
@@ -319,85 +410,62 @@ export default function MiEsquinaPage() {
                   profile={profile}
                   showToast={showToast}
                   accent="red"
-                  title="Coach de entrenamiento"
-                  intro="Cuéntame tu objetivo y te armo un plan. Por ejemplo, una semana de entreno o la preparación de una pelea."
-                  suggestions={['Plan de esta semana', 'Prepárame para una pelea en 6 semanas', 'Adapta el plan a mi lesión', 'Rutina para mejorar el cardio']}
+                  title={t('mc_nav_coach')}
+                  intro={isHobby ? t('mc_coach_intro_hobby') : t('mc_coach_intro_pro')}
+                  suggestions={isHobby
+                    ? [t('mc_coach_sug_hobby_1'), t('mc_coach_sug_hobby_2'), t('mc_coach_sug_hobby_3'), t('mc_coach_sug_hobby_4')]
+                    : [t('mc_coach_sug_pro_1'), t('mc_coach_sug_pro_2'), t('mc_coach_sug_pro_3'), t('mc_coach_sug_pro_4')]}
                 />
               </Reveal>
             </div>
           )}
 
-          {section === 'material' && (
+          {/* ══ MATERIAL ══ */}
+          {activeSection === 'material' && (
             <div className="space-y-8 max-w-4xl">
-              {/* Herramienta real: inventario de material */}
               <GearChecklist profile={profile} showToast={showToast} />
 
               <div className="rk-rule" style={{ width: '100%', opacity: 0.5 }} />
 
-              {/* IA de material: recomendaciones concretas por disciplina/nivel */}
+              <GearBrands profile={profile} mode={mode} />
+
+              <div className="rk-rule" style={{ width: '100%', opacity: 0.5 }} />
+
               <Reveal>
                 <div className="mb-4">
-                  <p className="rk-eyebrow">RECOMENDACIONES A MEDIDA</p>
-                  <h2 className="rk-h2" style={{ fontSize: 'clamp(1.6rem,3.5vw,2.1rem)', margin: '4px 0 0', color: '#fff' }}>ASESOR DE <span className="rk-red-glow">MATERIAL</span></h2>
-                  <p className="text-zinc-400 text-sm mt-1.5">Dile qué buscas y te recomienda marcas y características según tu disciplina y nivel.</p>
+                  <p className="rk-eyebrow">{t('mc_gear_ask_ai')}</p>
+                  <h2 className="rk-h2" style={{ fontSize: 'clamp(1.6rem,3.5vw,2.1rem)', margin: '4px 0 0', color: '#fff' }}>
+                    {t('mc_nav_gear')}
+                  </h2>
+                  <p className="text-zinc-400 text-sm mt-1.5">{t('mc_gear_ask_ai_desc')}</p>
                 </div>
                 <SectionCoach
                   section="gear"
                   profile={profile}
                   showToast={showToast}
                   accent="red"
-                  title="Asesor de material"
-                  intro="Dime qué necesitas comprar y para qué, y te oriento con características y marcas según tu nivel."
-                  suggestions={['¿Qué guantes me compro?', 'Equipo para empezar de cero', 'Espinilleras para Muay Thai', 'Bucal: cuál merece la pena']}
+                  title={t('mc_nav_gear')}
+                  intro={t('mc_gear_ask_ai_desc')}
+                  suggestions={[t('mc_gear_sug_1'), t('mc_gear_sug_2'), t('mc_gear_sug_3'), t('mc_gear_sug_4')]}
                 />
               </Reveal>
-
-              <div className="rk-rule" style={{ width: '100%', opacity: 0.5 }} />
-
-              {/* Guía de compra */}
-              <Reveal>
-                <div>
-                  <p className="rk-eyebrow">SIN HUMO</p>
-                  <h2 className="rk-h2" style={{ fontSize: 'clamp(1.6rem,3.5vw,2.1rem)', margin: '4px 0 0', color: '#fff' }}>GUÍA DE <span className="rk-red-glow">COMPRA</span></h2>
-                  <p className="text-zinc-400 text-sm mt-1.5">Qué necesitas de verdad para entrenar deportes de contacto.</p>
-                </div>
-              </Reveal>
-              <div className="grid sm:grid-cols-2 gap-4">
-                {GEAR.map((g, i) => (
-                  <Reveal key={g.title} delay={Math.min(i, 5) * 60}>
-                    <div className="rk-card" style={{ padding: 20 }}>
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-600/12 border border-red-500/25 text-red-400"><i className={`${g.icon} text-lg`}></i></div>
-                        <h3 className="text-base font-bold text-white">{g.title}</h3>
-                      </div>
-                      <ul className="space-y-2">
-                        {g.tips.map((tip) => (
-                          <li key={tip} className="flex items-start gap-2 text-xs text-zinc-400 leading-relaxed">
-                            <i className="ri-check-line text-red-400 mt-0.5 flex-shrink-0"></i>{tip}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </Reveal>
-                ))}
-              </div>
-              <p className="text-[11px] text-zinc-600">Consejo general orientativo. Consulta siempre con tu entrenador para tu caso concreto.</p>
             </div>
           )}
 
-          {section === 'nutricion' && (
+          {/* ══ NUTRICIÓN ══ */}
+          {activeSection === 'nutricion' && (
             <div className="space-y-8 max-w-4xl">
-              {/* Herramienta real: hidratación (el peso vive en su propia sección) */}
               <NutritionTracker profile={profile} showToast={showToast} onGoWeight={() => setSection('peso')} />
 
               <div className="rk-rule" style={{ width: '100%', opacity: 0.5 }} />
 
-              {/* Diario de comidas + IA de nutrición */}
               <Reveal>
                 <div className="mb-4">
-                  <p className="rk-eyebrow">TU DIETA, A DIARIO</p>
-                  <h2 className="rk-h2" style={{ fontSize: 'clamp(1.6rem,3.5vw,2.1rem)', margin: '4px 0 0', color: '#fff' }}>COACH DE <span className="rk-red-glow">NUTRICIÓN</span></h2>
-                  <p className="text-zinc-400 text-sm mt-1.5">Apunta lo que comes y pide a la IA que te planifique o ajuste la dieta según tu peso y objetivo.</p>
+                  <p className="rk-eyebrow">{t('mc_ng_log_title')}</p>
+                  <h2 className="rk-h2" style={{ fontSize: 'clamp(1.6rem,3.5vw,2.1rem)', margin: '4px 0 0', color: '#fff' }}>
+                    {t('mc_ng_log_head')} <span className="rk-red-glow">{t('mc_ng_log_head_2')}</span>
+                  </h2>
+                  <p className="text-zinc-400 text-sm mt-1.5">{t('mc_ng_log_sub')}</p>
                 </div>
                 <div className="grid lg:grid-cols-2 gap-4 items-start">
                   <MealLog profile={profile} showToast={showToast} />
@@ -406,39 +474,42 @@ export default function MiEsquinaPage() {
                     profile={profile}
                     showToast={showToast}
                     accent="sky"
-                    title="Coach de nutrición"
-                    intro="Cuéntame tu objetivo o pídeme un plan de comidas. Puedo ajustarlo si me dices qué quitar o reforzar."
-                    suggestions={['Planifícame el día de hoy', 'Quítame los lácteos', 'Necesito más proteína esta semana', 'Menú para bajar al peso objetivo']}
+                    title={t('mc_ng_coach_title')}
+                    intro={isHobby ? t('mc_ng_coach_intro_hobby') : t('mc_ng_coach_intro_pro')}
+                    suggestions={isHobby
+                      ? [t('mc_ng_sug_hobby_1'), t('mc_ng_sug_hobby_2'), t('mc_ng_sug_hobby_3')]
+                      : [t('mc_ng_sug_pro_1'), t('mc_ng_sug_pro_2'), t('mc_ng_sug_pro_3')]}
                   />
                 </div>
               </Reveal>
 
               <div className="rk-rule" style={{ width: '100%', opacity: 0.5 }} />
 
-              {/* Guía informativa */}
               <Reveal>
                 <div>
-                  <p className="rk-eyebrow">SIN HUMO</p>
-                  <h2 className="rk-h2" style={{ fontSize: 'clamp(1.6rem,3.5vw,2.1rem)', margin: '4px 0 0', color: '#fff' }}>GUÍA DE <span className="rk-red-glow">NUTRICIÓN</span></h2>
-                  <p className="text-zinc-400 text-sm mt-1.5">Los básicos que marcan la diferencia. Sin milagros.</p>
+                  <p className="rk-eyebrow">{t('mc_ng_eyebrow')}</p>
+                  <h2 className="rk-h2" style={{ fontSize: 'clamp(1.6rem,3.5vw,2.1rem)', margin: '4px 0 0', color: '#fff' }}>
+                    {t('mc_ng_title')} <span className="rk-red-glow">{t('mc_ng_title_2')}</span>
+                  </h2>
+                  <p className="text-zinc-400 text-sm mt-1.5">{t('mc_ng_sub')}</p>
                 </div>
               </Reveal>
               <div className="grid sm:grid-cols-2 gap-4">
-                {NUTRITION.map((n, i) => (
-                  <Reveal key={n.title} delay={Math.min(i, 5) * 60}>
+                {NUTRITION_GUIDE.map((n, i) => (
+                  <Reveal key={n.t} delay={Math.min(i, 5) * 60}>
                     <div className="rk-card" style={{ padding: 20 }}>
                       <div className="flex items-center gap-3 mb-2.5">
                         <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-green-500/10 border border-green-500/25 text-green-400"><i className={`${n.icon} text-lg`}></i></div>
-                        <h3 className="text-base font-bold text-white">{n.title}</h3>
+                        <h3 className="text-base font-bold text-white">{t(n.t)}</h3>
                       </div>
-                      <p className="text-xs text-zinc-400 leading-relaxed">{n.body}</p>
+                      <p className="text-xs text-zinc-400 leading-relaxed">{t(n.b)}</p>
                     </div>
                   </Reveal>
                 ))}
               </div>
               <div className="rk-card flex items-start gap-3" style={{ padding: 16 }}>
                 <i className="ri-information-line text-zinc-500 mt-0.5"></i>
-                <p className="text-[11px] text-zinc-500 leading-relaxed">Contenido informativo general, no sustituye el consejo de un médico o dietista-nutricionista. Si compites o tienes objetivos de peso, trabaja con un profesional.</p>
+                <p className="text-[11px] text-zinc-500 leading-relaxed">{t('mc_ng_disclaimer')}</p>
               </div>
             </div>
           )}
