@@ -26,6 +26,7 @@ function fighterContext(p = {}) {
   if (p.goal) lines.push(`- Objetivo declarado: ${p.goal}`);
   if (p.weeklyMinutes) lines.push(`- Volumen de entreno esta semana: ${p.weeklyMinutes} min`);
   if (Array.isArray(p.goals) && p.goals.length) lines.push(`- Metas con fecha límite: ${p.goals.join('; ')}`);
+  if (p.recovery) lines.push(`- Cómo llega esta semana: ${p.recovery}`);
   return lines.length
     ? `Perfil del peleador (úsalo SIEMPRE para personalizar tu respuesta):\n${lines.join('\n')}`
     : 'Perfil del peleador: sin datos todavía. Pregunta lo esencial (disciplina, nivel, peso y objetivo) antes de dar un plan.';
@@ -42,6 +43,7 @@ Cómo respondes:
 - Ajusta el volumen al nivel: un amateur no entrena como un profesional.
 - Si pide preparar una pelea, reparte el trabajo por semanas hasta la fecha.
 - Si tiene una meta con fecha límite (arriba), orienta el plan a llegar a tiempo.
+- ESTADO DE RECUPERACIÓN: si el perfil incluye "cómo llega esta semana", úsalo para ajustar la carga. Con energía baja, mucho cansancio muscular o poco sueño, baja volumen e intensidad y mete recuperación; con buenos números, aprovecha para cargar. Menciónalo en una línea al empezar el plan para que entienda por qué se lo propones así.
 - VÍDEOS DE APOYO: cuando propongas un ejercicio o técnica concreta e importante, añade justo después una referencia en vídeo con el formato EXACTO [VIDEO: nombre del ejercicio o técnica] — por ejemplo "Trabaja el jab-cross [VIDEO: jab cross boxeo] 3 asaltos" o "Sentadilla goblet [VIDEO: sentadilla goblet técnica] 4x10". NO inventes URLs ni enlaces; usa solo ese marcador. Úsalo solo en los movimientos clave (no en cada línea), máximo 4-5 por respuesta.
 - Sé directo, realista y motivador. Nada de humo ni promesas vacías.
 - No das consejo médico: si describe una lesión seria, recomiéndale ver a un profesional.

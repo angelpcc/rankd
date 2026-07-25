@@ -129,18 +129,23 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
   // Perfil físico del peleador = contexto de la IA
   useEffect(() => {
     const load = async () => {
-      // Los objetivos solo importan al Coach de Entrenamiento. Su tabla puede no
-      // existir aún (migración pendiente): si falla, se ignora.
+      // Objetivos y check-ins solo importan al Coach de Entrenamiento. Sus tablas
+      // pueden no existir aún (migración pendiente): si fallan, se ignoran.
       const goalsQ = section === 'training'
         ? supabase.from('fighter_goals').select('title, category, target_value, unit, deadline').eq('fighter_profile_id', profile.id).eq('status', 'active')
         : Promise.resolve({ data: null });
+      const checkinQ = section === 'training'
+        ? supabase.from('daily_checkins').select('entry_date, energy, soreness, sleep_hours')
+            .eq('fighter_profile_id', profile.id).order('entry_date', { ascending: false }).limit(7)
+        : Promise.resolve({ data: null });
 
-      const [{ data: f }, { data: w }, { data: g }, { data: sess }, goalRes] = await Promise.all([
+      const [{ data: f }, { data: w }, { data: g }, { data: sess }, goalRes, checkRes] = await Promise.all([
         supabase.from('fighters').select('discipline, weight_class, experience_level, age, wins, losses, draws, kos, looking_for').eq('profile_id', profile.id).maybeSingle(),
         supabase.from('weight_entries').select('weight_kg').eq('fighter_profile_id', profile.id).order('entry_date', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('nutrition_goals').select('target_weight_kg').eq('fighter_profile_id', profile.id).maybeSingle(),
         supabase.from('training_sessions').select('duration_min, session_date').eq('fighter_profile_id', profile.id).order('session_date', { ascending: false }).limit(30),
         goalsQ,
+        checkinQ,
       ]);
       const weekStart = new Date();
       weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() === 0 ? 6 : weekStart.getDay() - 1)));
@@ -158,6 +163,21 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
           return gg.deadline ? `${base} (antes del ${gg.deadline})` : base;
         });
 
+      // Check-ins recientes → cómo llega el peleador esta semana. Es lo que
+      // permite a la IA subir o bajar la carga en vez de dar un plan genérico.
+      const checks = ((checkRes?.data as { entry_date: string; energy: number; soreness: number; sleep_hours: number | null }[] | null) || []);
+      let recovery: string | undefined;
+      if (checks.length) {
+        const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
+        const energy = avg(checks.map((c) => c.energy));
+        const soreness = avg(checks.map((c) => c.soreness));
+        const sleepRows = checks.filter((c) => c.sleep_hours !== null);
+        const sleep = sleepRows.length ? avg(sleepRows.map((c) => c.sleep_hours as number)) : null;
+        recovery = `energía media ${energy.toFixed(1)}/5, cansancio muscular ${soreness.toFixed(1)}/5`
+          + (sleep !== null ? `, sueño medio ${sleep.toFixed(1)} h` : '')
+          + ` (${checks.length} check-ins recientes)`;
+      }
+
       setPhysical({
         name: (profile.full_name || '').split(' ')[0] || undefined,
         discipline: f?.discipline ? (disciplineLabels[f.discipline] || f.discipline) : undefined,
@@ -170,6 +190,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
         goal: goals.length ? goals.join(', ') : undefined,
         weeklyMinutes: weeklyMinutes || undefined,
         goals: dated.length ? dated : undefined,
+        recovery,
       });
     };
     load();

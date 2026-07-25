@@ -85,6 +85,14 @@ export default {
   mc_ci_avg_sleep: 'sleep',
   mc_ci_streak_note: '{{n}} check-ins this week',
 
+  // ── Session types (shared by routines, log and calendar) ──
+  mc_st_sparring: 'Sparring',
+  mc_st_tecnica: 'Technique',
+  mc_st_fuerza: 'Strength',
+  mc_st_cardio: 'Cardio',
+  mc_st_flexibilidad: 'Mobility',
+  mc_st_recuperacion: 'Recovery',
+
   // ── Saved routines ──
   mc_rt_title: 'MY ROUTINES',
   mc_rt_subtitle: 'Save the sessions you repeat and log them with one tap.',

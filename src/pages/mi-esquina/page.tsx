@@ -10,18 +10,22 @@ import TrainingCalendar from '@/pages/mi-esquina/components/TrainingCalendar';
 import NutritionTracker from '@/pages/mi-esquina/components/NutritionTracker';
 import WeightTracker from '@/pages/mi-esquina/components/WeightTracker';
 import GoalsPanel from '@/pages/mi-esquina/components/GoalsPanel';
+import DailyCheckin from '@/pages/mi-esquina/components/DailyCheckin';
+import QuickRoutines from '@/pages/mi-esquina/components/QuickRoutines';
+import WeeklySummary from '@/pages/mi-esquina/components/WeeklySummary';
 import GearChecklist from '@/pages/mi-esquina/components/GearChecklist';
 import SectionCoach from '@/pages/mi-esquina/components/SectionCoach';
 import MealLog from '@/pages/mi-esquina/components/MealLog';
 import Reveal from '@/components/base/Reveal';
 import NotificationBell from '@/components/feature/NotificationBell';
 
-type Section = 'resumen' | 'calendario' | 'diario' | 'peso' | 'objetivos' | 'timer' | 'coach' | 'material' | 'nutricion' | 'mensajes';
+type Section = 'resumen' | 'calendario' | 'diario' | 'rutinas' | 'peso' | 'objetivos' | 'timer' | 'coach' | 'material' | 'nutricion' | 'mensajes';
 
 const SECTIONS: { id: Section; label: string; icon: string; soon?: boolean }[] = [
   { id: 'resumen', label: 'Resumen', icon: 'ri-dashboard-line' },
   { id: 'calendario', label: 'Calendario', icon: 'ri-calendar-2-line' },
   { id: 'diario', label: 'Diario de entrenos', icon: 'ri-calendar-check-line' },
+  { id: 'rutinas', label: 'Mis rutinas', icon: 'ri-repeat-line' },
   { id: 'peso', label: 'Control de peso', icon: 'ri-scales-2-line' },
   { id: 'objetivos', label: 'Objetivos', icon: 'ri-flag-line' },
   { id: 'coach', label: 'Coach IA', icon: 'ri-sparkling-2-line' },
@@ -55,6 +59,8 @@ export default function MiEsquinaPage() {
   const [section, setSection] = useState<Section>('resumen');
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [stats, setStats] = useState({ total: 0, week: 0, weekMin: 0, todayLogged: false, streak: 0, lastWeekMin: 0 });
+  // Se incrementa al registrar algo, para que el resumen semanal se recalcule
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useSEO({
     title: 'Mi Esquina | RANKD',
@@ -184,6 +190,21 @@ export default function MiEsquinaPage() {
 
           {section === 'resumen' && (
             <div className="space-y-6 max-w-3xl">
+              {/* Check-in del día: lo primero, y con motivo para entrar aunque hoy no toque entrenar */}
+              <Reveal>
+                <DailyCheckin profile={profile} showToast={showToast} />
+              </Reveal>
+
+              {/* Resumen automático de la semana + objetivos activos */}
+              <Reveal delay={60}>
+                <WeeklySummary profile={profile} refreshKey={refreshKey} onOpenGoals={() => setSection('objetivos')} />
+              </Reveal>
+
+              {/* Registro de un toque desde tus rutinas más usadas */}
+              <Reveal delay={90}>
+                <QuickRoutines profile={profile} showToast={showToast} compact onLogged={() => setRefreshKey((k) => k + 1)} />
+              </Reveal>
+
               {/* Hábito diario: aviso o resumen según si ya entrenó hoy */}
               <Reveal>
                 {stats.todayLogged ? (
@@ -270,6 +291,8 @@ export default function MiEsquinaPage() {
           {section === 'diario' && <FighterTraining profile={profile} showToast={showToast} />}
 
           {section === 'mensajes' && <div className="max-w-5xl"><MessagesPanel currentUserId={profile.id} /></div>}
+
+          {section === 'rutinas' && <QuickRoutines profile={profile} showToast={showToast} onLogged={() => setRefreshKey((k) => k + 1)} />}
 
           {section === 'calendario' && <TrainingCalendar profile={profile} showToast={showToast} />}
 

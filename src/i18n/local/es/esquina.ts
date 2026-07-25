@@ -85,6 +85,14 @@ export default {
   mc_ci_avg_sleep: 'sueño',
   mc_ci_streak_note: '{{n}} check-ins esta semana',
 
+  // ── Tipos de sesión (compartidos por rutinas, diario y calendario) ──
+  mc_st_sparring: 'Sparring',
+  mc_st_tecnica: 'Técnica',
+  mc_st_fuerza: 'Fuerza',
+  mc_st_cardio: 'Cardio',
+  mc_st_flexibilidad: 'Movilidad',
+  mc_st_recuperacion: 'Recuperación',
+
   // ── Rutinas guardadas ──
   mc_rt_title: 'MIS RUTINAS',
   mc_rt_subtitle: 'Guarda tus entrenos habituales y regístralos de un toque.',
