@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 
 interface Props {
@@ -15,16 +16,13 @@ interface PlanItem {
   done: boolean;
 }
 
-const DAYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-const DAYS_SHORT = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
-
 const KINDS = [
-  { value: 'sparring', label: 'Sparring', icon: 'ri-boxing-line', color: '#E10600' },
-  { value: 'tecnica', label: 'Técnica', icon: 'ri-focus-3-line', color: '#38bdf8' },
-  { value: 'fuerza', label: 'Fuerza', icon: 'ri-hammer-line', color: '#fb923c' },
-  { value: 'cardio', label: 'Cardio', icon: 'ri-run-line', color: '#22c55e' },
-  { value: 'movilidad', label: 'Movilidad', icon: 'ri-yoga-line', color: '#a78bfa' },
-  { value: 'descanso', label: 'Descanso', icon: 'ri-heart-pulse-line', color: '#eab308' },
+  { value: 'sparring', key: 'mc_st_sparring', icon: 'ri-boxing-line', color: '#E10600' },
+  { value: 'tecnica', key: 'mc_st_tecnica', icon: 'ri-focus-3-line', color: '#38bdf8' },
+  { value: 'fuerza', key: 'mc_st_fuerza', icon: 'ri-hammer-line', color: '#fb923c' },
+  { value: 'cardio', key: 'mc_st_cardio', icon: 'ri-run-line', color: '#22c55e' },
+  { value: 'movilidad', key: 'mc_st_flexibilidad', icon: 'ri-yoga-line', color: '#a78bfa' },
+  { value: 'descanso', key: 'mc_cal_kind_rest', icon: 'ri-heart-pulse-line', color: '#eab308' },
 ];
 
 const kindCfg = (v: string) => KINDS.find((k) => k.value === v) || KINDS[0];
@@ -35,6 +33,12 @@ function todayIndex(): number {
 }
 
 export default function WeeklyPlanner({ profile, showToast }: Props) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
+  // Días de la semana en el idioma activo (2024-01-01 fue lunes)
+  const DAYS = useMemo(() => Array.from({ length: 7 }, (_, i) =>
+    new Date(2024, 0, 1 + i).toLocaleDateString(locale, { weekday: 'long' })), [locale]);
+  const DAYS_SHORT = useMemo(() => DAYS.map((d) => d.slice(0, 3).toUpperCase()), [DAYS]);
   const [items, setItems] = useState<PlanItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -54,7 +58,7 @@ export default function WeeklyPlanner({ profile, showToast }: Props) {
       updated_at: new Date().toISOString(),
     }, { onConflict: 'fighter_profile_id' });
     setSaving(false);
-    if (error) showToast('No se pudo guardar el plan', 'error');
+    if (error) showToast(t('error_save'), 'error');
   }, [profile.id, showToast]);
 
   useEffect(() => {
@@ -71,7 +75,7 @@ export default function WeeklyPlanner({ profile, showToast }: Props) {
   }, [profile.id]);
 
   const addItem = (day: number) => {
-    if (!nTitle.trim()) { showToast('Escribe qué vas a hacer', 'error'); return; }
+    if (!nTitle.trim()) { showToast(t('mc_wp_need_title'), 'error'); return; }
     const item: PlanItem = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       day, time: nTime, title: nTitle.trim(), kind: nKind, done: false,
@@ -99,7 +103,7 @@ export default function WeeklyPlanner({ profile, showToast }: Props) {
     const next = items.map((it) => ({ ...it, done: false }));
     setItems(next);
     persist(next);
-    showToast('Semana reiniciada');
+    showToast(t('mc_wp_reset_done'));
   };
 
   const total = items.length;
@@ -115,13 +119,13 @@ export default function WeeklyPlanner({ profile, showToast }: Props) {
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(28px,5vw,40px)', letterSpacing: 1 }}>
-            MI SEMANA DE <span className="text-[#E10600]">ENTRENO</span>
+            {t('mc_wp_title')} <span className="text-[#E10600]">{t('mc_wp_title_2')}</span>
           </h1>
-          <p className="text-zinc-400 text-sm mt-1">Planifica tu semana y tacha lo que vayas cumpliendo.</p>
+          <p className="text-zinc-400 text-sm mt-1">{t('mc_wp_sub')}</p>
         </div>
         {total > 0 && (
           <button onClick={clearWeek} className="flex items-center gap-2 text-xs text-zinc-400 hover:text-white border border-zinc-700 hover:border-zinc-500 px-3 py-2 rounded-xl transition-colors cursor-pointer whitespace-nowrap">
-            <i className="ri-refresh-line"></i> Reiniciar semana
+            <i className="ri-refresh-line"></i> {t('mc_wp_reset')}
           </button>
         )}
       </div>
@@ -130,14 +134,14 @@ export default function WeeklyPlanner({ profile, showToast }: Props) {
       {total > 0 && (
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-semibold text-white">Progreso semanal</span>
+            <span className="text-sm font-semibold text-white">{t('mc_wp_progress')}</span>
             <span className="text-sm font-black" style={{ color: pct === 100 ? '#22c55e' : '#E10600' }}>{done}/{total} · {pct}%</span>
           </div>
           <div className="h-2.5 bg-zinc-800 rounded-full overflow-hidden">
             <div className="h-full rounded-full transition-all duration-500"
               style={{ width: `${pct}%`, background: pct === 100 ? 'linear-gradient(90deg,#16a34a,#22c55e)' : 'linear-gradient(90deg,#E10600,#ff4d4d)' }} />
           </div>
-          {pct === 100 && <p className="text-xs text-green-400 mt-2 flex items-center gap-1.5"><i className="ri-trophy-line"></i>Semana completada. Así se hace 👊</p>}
+          {pct === 100 && <p className="text-xs text-green-400 mt-2 flex items-center gap-1.5"><i className="ri-trophy-line"></i>{t('mc_wp_complete')}</p>}
         </div>
       )}
 
@@ -154,7 +158,7 @@ export default function WeeklyPlanner({ profile, showToast }: Props) {
                   <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 17, letterSpacing: 2 }} className={isToday ? 'text-red-400' : 'text-white'}>
                     {DAYS_SHORT[idx]}
                   </span>
-                  {isToday && <span className="text-[9px] font-bold text-red-400 bg-red-600/15 border border-red-500/30 px-1.5 py-0.5 rounded-full uppercase">Hoy</span>}
+                  {isToday && <span className="text-[9px] font-bold text-red-400 bg-red-600/15 border border-red-500/30 px-1.5 py-0.5 rounded-full uppercase">{t('mc_today')}</span>}
                 </div>
                 <button onClick={() => { setAddingDay(addingDay === idx ? null : idx); setNTitle(''); }}
                   className="w-7 h-7 flex items-center justify-center rounded-lg bg-zinc-800 hover:bg-red-600 text-zinc-400 hover:text-white transition-colors cursor-pointer">
@@ -164,7 +168,7 @@ export default function WeeklyPlanner({ profile, showToast }: Props) {
 
               <div className="p-3 space-y-2 flex-1 min-h-[70px]">
                 {dayItems.length === 0 && addingDay !== idx && (
-                  <p className="text-[11px] text-zinc-600 text-center py-3">Día libre</p>
+                  <p className="text-[11px] text-zinc-600 text-center py-3">{t('mc_wp_free_day')}</p>
                 )}
 
                 {dayItems.map((it) => {
@@ -180,7 +184,7 @@ export default function WeeklyPlanner({ profile, showToast }: Props) {
                       <div className="flex-1 min-w-0">
                         <p className={`text-xs font-semibold leading-snug ${it.done ? 'text-zinc-600 line-through' : 'text-white'}`}>{it.title}</p>
                         <p className="flex items-center gap-1.5 text-[10px] mt-0.5" style={{ color: it.done ? 'rgba(255,255,255,0.25)' : cfg.color }}>
-                          <i className={cfg.icon}></i>{it.time} · {cfg.label}
+                          <i className={cfg.icon}></i>{it.time} · {t(cfg.key)}
                         </p>
                       </div>
                       <button onClick={() => removeItem(it.id)}
@@ -196,19 +200,19 @@ export default function WeeklyPlanner({ profile, showToast }: Props) {
                   <div className="space-y-2 pt-1 anim-fade-up">
                     <input value={nTitle} onChange={(e) => setNTitle(e.target.value)} autoFocus
                       onKeyDown={(e) => { if (e.key === 'Enter') addItem(idx); }}
-                      placeholder="Ej: Sparring en el gimnasio"
+                      placeholder={t('mc_wp_ph')}
                       className="w-full bg-zinc-800 border border-zinc-700 text-white text-xs rounded-lg px-2.5 py-2 focus:outline-none focus:border-red-500" />
                     <div className="flex gap-2">
                       <input type="time" value={nTime} onChange={(e) => setNTime(e.target.value)}
                         className="flex-1 bg-zinc-800 border border-zinc-700 text-white text-xs rounded-lg px-2 py-2 focus:outline-none focus:border-red-500 cursor-pointer" />
                       <select value={nKind} onChange={(e) => setNKind(e.target.value)}
                         className="flex-1 bg-zinc-800 border border-zinc-700 text-white text-xs rounded-lg px-2 py-2 focus:outline-none focus:border-red-500 cursor-pointer">
-                        {KINDS.map((k) => <option key={k.value} value={k.value}>{k.label}</option>)}
+                        {KINDS.map((k) => <option key={k.value} value={k.value}>{t(k.key)}</option>)}
                       </select>
                     </div>
                     <button onClick={() => addItem(idx)}
                       className="w-full bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2 rounded-lg transition-colors cursor-pointer">
-                      Añadir
+                      {t('mc_wp_add')}
                     </button>
                   </div>
                 )}
@@ -220,7 +224,7 @@ export default function WeeklyPlanner({ profile, showToast }: Props) {
 
       <p className="text-[11px] text-zinc-600 flex items-center gap-1.5">
         <i className={saving ? 'ri-loader-4-line animate-spin' : 'ri-cloud-line'}></i>
-        {saving ? 'Guardando...' : 'Tu plan se guarda automáticamente'}
+        {saving ? t('mc_saving') : t('mc_wp_autosave')}
       </p>
     </div>
   );

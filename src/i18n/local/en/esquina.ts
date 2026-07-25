@@ -248,6 +248,20 @@ export default {
   mc_cal_in_days: 'in {{n}} days',
   mc_cal_tomorrow: 'tomorrow',
 
+  // ── Weekly planner (calendar week view) ──
+  mc_wp_title: 'MY TRAINING',
+  mc_wp_title_2: 'WEEK',
+  mc_wp_sub: 'Plan your week and tick things off as you go.',
+  mc_wp_reset: 'Reset week',
+  mc_wp_reset_done: 'Week reset',
+  mc_wp_progress: 'Weekly progress',
+  mc_wp_complete: "Week complete. That's how it's done 👊",
+  mc_wp_free_day: 'Rest day',
+  mc_wp_add: 'Add',
+  mc_wp_ph: 'E.g. Sparring at the gym',
+  mc_wp_need_title: 'Write what you are going to do',
+  mc_wp_autosave: 'Your plan saves automatically',
+
   // ── Weight ──
   mc_w_pro_eyebrow: 'ROAD TO THE SCALE',
   mc_w_hobby_eyebrow: 'YOUR PROGRESS',

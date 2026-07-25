@@ -248,6 +248,20 @@ export default {
   mc_cal_in_days: 'en {{n}} días',
   mc_cal_tomorrow: 'mañana',
 
+  // ── Planificador semanal (vista de semana del calendario) ──
+  mc_wp_title: 'MI SEMANA DE',
+  mc_wp_title_2: 'ENTRENO',
+  mc_wp_sub: 'Planifica tu semana y tacha lo que vayas cumpliendo.',
+  mc_wp_reset: 'Reiniciar semana',
+  mc_wp_reset_done: 'Semana reiniciada',
+  mc_wp_progress: 'Progreso semanal',
+  mc_wp_complete: 'Semana completada. Así se hace 👊',
+  mc_wp_free_day: 'Día libre',
+  mc_wp_add: 'Añadir',
+  mc_wp_ph: 'Ej: Sparring en el gimnasio',
+  mc_wp_need_title: 'Escribe qué vas a hacer',
+  mc_wp_autosave: 'Tu plan se guarda automáticamente',
+
   // ── Peso ──
   mc_w_pro_eyebrow: 'CAMINO A LA BÁSCULA',
   mc_w_hobby_eyebrow: 'TU PROGRESO',
