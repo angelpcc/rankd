@@ -26,6 +26,17 @@ export default {
   nav_section_account: 'Your account',
   disc_boxing: 'Boxing',
 
+  // 404
+  nf_title: "This fight doesn't exist",
+  nf_subtitle: "The page you're looking for isn't available or has moved.",
+  nf_back: 'Go back to the previous page',
+  nf_home_desc: 'Back to the homepage',
+  nf_fighters_desc: 'The full directory',
+  nf_events_desc: 'The events lineup',
+  nf_opps_desc: 'Fights and sponsorships',
+  nf_news_desc: 'Boxing and MMA, up to date',
+  nf_how_desc: 'What RANKD is',
+
   // Buttons
   btn_create_free: 'Create free account',
   btn_explore_opportunities: 'Explore opportunities',

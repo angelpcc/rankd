@@ -26,6 +26,17 @@ export default {
   nav_section_account: 'Tu cuenta',
   disc_boxing: 'Boxeo',
 
+  // 404
+  nf_title: 'Este combate no existe',
+  nf_subtitle: 'La página que buscas no está disponible o ha cambiado de sitio.',
+  nf_back: 'Volver a la página anterior',
+  nf_home_desc: 'Volver a la portada',
+  nf_fighters_desc: 'El directorio completo',
+  nf_events_desc: 'La cartelera de veladas',
+  nf_opps_desc: 'Combates y patrocinios',
+  nf_news_desc: 'Boxeo y MMA al día',
+  nf_how_desc: 'Qué es RANKD',
+
   // Buttons
   btn_create_free: 'Crear cuenta gratis',
   btn_explore_opportunities: 'Explorar oportunidades',

@@ -1,18 +1,20 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-
-// Sitios a los que de verdad puede querer ir alguien que ha caído aquí.
-const DESTINATIONS = [
-  { href: '/beta', icon: 'ri-home-4-line', label: 'Inicio', desc: 'Volver a la portada' },
-  { href: '/fighters', icon: 'ri-boxing-line', label: 'Peleadores', desc: 'El directorio completo' },
-  { href: '/eventos', icon: 'ri-calendar-event-line', label: 'Eventos', desc: 'La cartelera de veladas' },
-  { href: '/opportunities', icon: 'ri-megaphone-line', label: 'Oportunidades', desc: 'Combates y patrocinios' },
-  { href: '/noticias', icon: 'ri-newspaper-line', label: 'Noticias', desc: 'Boxeo y MMA al día' },
-  { href: '/como-funciona', icon: 'ri-compass-3-line', label: 'Cómo funciona', desc: 'Qué es RANKD' },
-];
+import { useTranslation } from 'react-i18next';
 
 export default function NotFound() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { t } = useTranslation();
+
+  // Sitios a los que de verdad puede querer ir alguien que ha caído aquí.
+  const DESTINATIONS = [
+    { href: '/beta', icon: 'ri-home-4-line', label: t('nav_home'), desc: t('nf_home_desc') },
+    { href: '/fighters', icon: 'ri-boxing-line', label: t('nav_directory'), desc: t('nf_fighters_desc') },
+    { href: '/eventos', icon: 'ri-calendar-event-line', label: t('nav_events'), desc: t('nf_events_desc') },
+    { href: '/opportunities', icon: 'ri-megaphone-line', label: t('nav_opportunities'), desc: t('nf_opps_desc') },
+    { href: '/noticias', icon: 'ri-newspaper-line', label: t('nav_news'), desc: t('nf_news_desc') },
+    { href: '/como-funciona', icon: 'ri-compass-3-line', label: t('nav_how_it_works'), desc: t('nf_how_desc') },
+  ];
 
   return (
     <div style={{ minHeight: '100vh', background: '#030303', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', padding: 'calc(40px + env(safe-area-inset-top, 0px)) 24px calc(40px + env(safe-area-inset-bottom, 0px))' }}>
@@ -40,11 +42,11 @@ export default function NotFound() {
           <i className="ri-boxing-line" style={{ fontSize: 32, color: '#E10600' }} />
         </div>
 
-        <h1 className="anim-fade-up anim-d1" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(30px, 6vw, 44px)', color: 'white', margin: '0 0 12px', letterSpacing: 1, lineHeight: 1 }}>
-          ESTE COMBATE NO EXISTE
+        <h1 className="anim-fade-up anim-d1" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(30px, 6vw, 44px)', color: 'white', margin: '0 0 12px', letterSpacing: 1, lineHeight: 1, textTransform: 'uppercase' }}>
+          {t('nf_title')}
         </h1>
         <p className="anim-fade-up anim-d2" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6, margin: '0 0 8px' }}>
-          La página que buscas no está disponible o ha cambiado de sitio.
+          {t('nf_subtitle')}
         </p>
         {pathname && pathname !== '/' && (
           <p className="anim-fade-up anim-d2" style={{ fontFamily: 'monospace', fontSize: 12, color: 'rgba(255,255,255,0.28)', margin: '0 0 34px', wordBreak: 'break-all' }}>
@@ -73,7 +75,7 @@ export default function NotFound() {
           className="anim-fade-up anim-d4"
           style={{ marginTop: 26, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, letterSpacing: 1, color: 'rgba(255,255,255,0.45)', background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7 }}
         >
-          <i className="ri-arrow-left-line" /> Volver a la página anterior
+          <i className="ri-arrow-left-line" /> {t('nf_back')}
         </button>
       </div>
 
