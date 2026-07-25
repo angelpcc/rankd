@@ -25,6 +25,25 @@ export default {
   nav_section_explore: 'Explore',
   nav_section_account: 'Your account',
   disc_boxing: 'Boxing',
+  disc_mma: 'MMA',
+  disc_kickboxing: 'Kickboxing',
+  disc_muay_thai: 'Muay Thai',
+  disc_wrestling: 'Wrestling',
+  disc_bjj: 'BJJ',
+  disc_other: 'Other',
+  exp_amateur: 'Amateur',
+  exp_semipro: 'Semi-Pro',
+  exp_professional: 'Professional',
+
+  // Fighter card
+  fc_available: 'Available',
+  fc_unavailable: 'Unavailable',
+  fc_view_profile: 'View profile',
+  label_fighter: 'Fighter',
+  rec_wins: 'Wins',
+  rec_losses: 'Losses',
+  rec_draws: 'Draws',
+  rec_kos: 'KOs',
 
   // 404
   nf_title: "This fight doesn't exist",

@@ -25,6 +25,25 @@ export default {
   nav_section_explore: 'Explorar',
   nav_section_account: 'Tu cuenta',
   disc_boxing: 'Boxeo',
+  disc_mma: 'MMA',
+  disc_kickboxing: 'Kickboxing',
+  disc_muay_thai: 'Muay Thai',
+  disc_wrestling: 'Lucha',
+  disc_bjj: 'BJJ',
+  disc_other: 'Otro',
+  exp_amateur: 'Amateur',
+  exp_semipro: 'Semi-Pro',
+  exp_professional: 'Profesional',
+
+  // Ficha de peleador (tarjeta)
+  fc_available: 'Disponible',
+  fc_unavailable: 'No disponible',
+  fc_view_profile: 'Ver perfil',
+  label_fighter: 'Peleador',
+  rec_wins: 'Vict',
+  rec_losses: 'Derr',
+  rec_draws: 'Emp',
+  rec_kos: 'KOs',
 
   // 404
   nf_title: 'Este combate no existe',

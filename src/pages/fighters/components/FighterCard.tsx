@@ -1,13 +1,15 @@
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Profile, Fighter } from '@/lib/supabase';
 import VerifiedBadge from '@/components/base/VerifiedBadge';
 
-const disciplineLabels: Record<string, string> = {
-  boxing: 'Boxeo', mma: 'MMA', kickboxing: 'Kickboxing',
-  muay_thai: 'Muay Thai', wrestling: 'Wrestling', bjj: 'BJJ', other: 'Otro',
+// Claves i18n para disciplina y nivel (comparten traducción en toda la app).
+const disciplineKey: Record<string, string> = {
+  boxing: 'disc_boxing', mma: 'disc_mma', kickboxing: 'disc_kickboxing',
+  muay_thai: 'disc_muay_thai', wrestling: 'disc_wrestling', bjj: 'disc_bjj', other: 'disc_other',
 };
-const expLabels: Record<string, string> = {
-  amateur: 'Amateur', semi_pro: 'Semi-Pro', professional: 'Profesional',
+const expKey: Record<string, string> = {
+  amateur: 'exp_amateur', semi_pro: 'exp_semipro', professional: 'exp_professional',
 };
 const disciplineColors: Record<string, string> = {
   boxing: 'bg-red-500/12 text-red-400 border-red-500/25',
@@ -26,6 +28,7 @@ interface Props {
 
 export default function FighterCard({ profile, fighter }: Props) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const initials = (profile.full_name || 'F').split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
   const disciplineColor = disciplineColors[fighter.discipline || ''] || disciplineColors.other;
   const totalFights = fighter.wins + fighter.losses + fighter.draws;
@@ -57,7 +60,7 @@ export default function FighterCard({ profile, fighter }: Props) {
         {/* Disponibilidad */}
         <div className={`absolute top-3 right-3 flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full backdrop-blur-sm ${fighter.is_available ? 'bg-green-500/20 text-green-300 border border-green-500/30' : 'bg-black/50 text-zinc-300 border border-white/15'}`}>
           <span className={`w-1.5 h-1.5 rounded-full ${fighter.is_available ? 'bg-green-400 animate-pulse' : 'bg-zinc-400'}`}></span>
-          {fighter.is_available ? 'Disponible' : 'No disponible'}
+          {fighter.is_available ? t('fc_available') : t('fc_unavailable')}
         </div>
 
         {/* Win rate */}
@@ -72,7 +75,7 @@ export default function FighterCard({ profile, fighter }: Props) {
         <div className="absolute bottom-0 left-0 right-0 p-4">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 style={{ fontFamily: "'Bebas Neue', sans-serif", letterSpacing: '0.02em' }} className="text-xl text-white leading-tight group-hover:text-red-300 transition-colors drop-shadow-lg">
-              {profile.full_name || 'Peleador'}
+              {profile.full_name || t('label_fighter')}
             </h3>
             {profile.verified && (
               <VerifiedBadge type="fighter" size="sm" showLabel={false} />
@@ -96,7 +99,7 @@ export default function FighterCard({ profile, fighter }: Props) {
         <div className="flex flex-wrap gap-1.5 mb-3.5">
           {fighter.discipline && (
             <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${disciplineColor}`}>
-              {disciplineLabels[fighter.discipline] || fighter.discipline}
+              {disciplineKey[fighter.discipline] ? t(disciplineKey[fighter.discipline]) : fighter.discipline}
             </span>
           )}
           {fighter.weight_class && (
@@ -106,7 +109,7 @@ export default function FighterCard({ profile, fighter }: Props) {
           )}
           {fighter.experience_level && (
             <span className="text-xs font-medium bg-white/[0.05] text-zinc-300 border border-white/10 px-2.5 py-1 rounded-full">
-              {expLabels[fighter.experience_level] || fighter.experience_level}
+              {expKey[fighter.experience_level] ? t(expKey[fighter.experience_level]) : fighter.experience_level}
             </span>
           )}
         </div>
@@ -116,17 +119,17 @@ export default function FighterCard({ profile, fighter }: Props) {
           <div className="flex items-center justify-around">
             <div className="text-center">
               <p style={{ fontFamily: "'Bebas Neue', sans-serif" }} className="text-xl text-green-400 leading-none">{fighter.wins}</p>
-              <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mt-1">Vict</p>
+              <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mt-1">{t('rec_wins')}</p>
             </div>
             <div className="w-px h-8 bg-white/10"></div>
             <div className="text-center">
               <p style={{ fontFamily: "'Bebas Neue', sans-serif" }} className="text-xl text-red-400 leading-none">{fighter.losses}</p>
-              <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mt-1">Derr</p>
+              <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mt-1">{t('rec_losses')}</p>
             </div>
             <div className="w-px h-8 bg-white/10"></div>
             <div className="text-center">
               <p style={{ fontFamily: "'Bebas Neue', sans-serif" }} className="text-xl text-yellow-400 leading-none">{fighter.draws}</p>
-              <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mt-1">Emp</p>
+              <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mt-1">{t('rec_draws')}</p>
             </div>
             <div className="w-px h-8 bg-white/10"></div>
             <div className="text-center">
@@ -175,7 +178,7 @@ export default function FighterCard({ profile, fighter }: Props) {
             {fighter.gym && <><i className="ri-building-4-line"></i><span className="truncate max-w-[120px]">{fighter.gym}</span></>}
           </div>
           <span className="flex items-center gap-1 text-xs font-bold text-red-400 group-hover:gap-2 transition-all whitespace-nowrap">
-            Ver perfil <i className="ri-arrow-right-line"></i>
+            {t('fc_view_profile')} <i className="ri-arrow-right-line"></i>
           </span>
         </div>
       </div>
