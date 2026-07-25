@@ -7,6 +7,7 @@ import BroadcastPanel from './components/BroadcastPanel';
 import ActivityFeed from './components/ActivityFeed';
 import SupportInbox from './components/SupportInbox';
 import ModerationPanel from './components/ModerationPanel';
+import ViewAsPanel from './components/ViewAsPanel';
 
 interface Request {
   profile: Profile;
@@ -48,7 +49,7 @@ const userTypeColors: Record<string, string> = {
   gym: 'bg-emerald-500/12 border-emerald-500/30 text-emerald-400',
 };
 
-type AdminTab = 'resumen' | 'actividad' | 'verificaciones' | 'usuarios' | 'moderacion' | 'comunicados' | 'soporte';
+type AdminTab = 'resumen' | 'actividad' | 'verificaciones' | 'usuarios' | 'moderacion' | 'comunicados' | 'soporte' | 'vercomo';
 
 export default function AdminPage() {
   const navigate = useNavigate();
@@ -228,6 +229,7 @@ export default function AdminPage() {
     { id: 'comunicados', label: 'Comunicados', icon: 'ri-mail-send-line' },
     { id: 'soporte', label: 'Soporte', icon: 'ri-customer-service-2-line', badge: stats?.openTickets || undefined },
     { id: 'usuarios', label: 'Usuarios', icon: 'ri-group-line' },
+    { id: 'vercomo', label: 'Ver como', icon: 'ri-eye-line' },
   ];
 
   // Lo que de verdad requiere atención hoy. Si está vacío, no se pinta nada.
@@ -407,6 +409,9 @@ export default function AdminPage() {
 
         {/* ══ SOPORTE ══ */}
         {tab === 'soporte' && <SupportInbox showToast={showToast} />}
+
+        {/* ══ VER COMO ══ */}
+        {tab === 'vercomo' && <ViewAsPanel />}
 
         {/* ══ VERIFICACIONES ══ */}
         {tab === 'verificaciones' && (

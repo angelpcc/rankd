@@ -38,11 +38,11 @@ const roleConfig: Record<string, { label: string; icon: string; badge: string; d
 };
 
 export default function DashboardNav({ profile }: Props) {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isViewingAs } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
-  const isAdmin = isAdminEmail(user?.email);
+  const isAdmin = isAdminEmail(user?.email) && !isViewingAs;
 
   const handleSignOut = async () => {
     await signOut();

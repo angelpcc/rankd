@@ -13,7 +13,7 @@ type MobileLink = { labelKey: string; href: string; icon: string };
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, isViewingAs } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
 
@@ -31,7 +31,9 @@ export default function Navbar() {
 
   const isHobby = profile?.athlete_mode === 'hobby';
   const isFighter = profile?.user_type === 'fighter';
-  const isAdmin = isAdminEmail(user?.email);
+  // En modo vista se ocultan los accesos de administración: si no, estarías
+  // revisando la experiencia de un peleador con un escudo de admin al lado.
+  const isAdmin = isAdminEmail(user?.email) && !isViewingAs;
 
   // Mi Esquina es la herramienta del peleador. Para el resto (y para visitantes)
   // el enlace lleva a la vista pública con candado, no a un 404 ni a un redireccción.

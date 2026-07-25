@@ -1,9 +1,91 @@
 import { createClient } from '@supabase/supabase-js';
+import { isViewingAs, notifyBlocked } from '@/lib/viewAs';
 
 const supabaseUrl = import.meta.env.VITE_PUBLIC_SUPABASE_URL as string;
 const supabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY as string;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const client = createClient(supabaseUrl, supabaseAnonKey);
+
+// ════════════════════════════════════════════════════════════════
+// GUARDIÁN DE ESCRITURAS DEL MODO "VER COMO"
+//
+// Mientras el administrador revisa la plataforma con la piel de otro perfil,
+// TODA escritura queda bloqueada aquí, en un único sitio. Es defensa en
+// profundidad: aunque se nos olvide desactivar un botón concreto en alguna
+// pantalla, la operación no sale del navegador.
+//
+// (Por debajo, RLS ya lo impediría: el JWT sigue siendo el del admin y las
+// políticas comparan auth.uid() con el dueño de la fila. Esto evita además
+// que se escriba por accidente en los datos del PROPIO admin.)
+// ════════════════════════════════════════════════════════════════
+
+const MUTATIONS = new Set(['insert', 'update', 'upsert', 'delete']);
+
+/**
+ * Resultado encadenable que imita a un query builder pero nunca llega a la red.
+ * Devuelve { error } para que el código existente entre por su rama de error
+ * en vez de romperse, y avisa a la barra para explicar por qué.
+ */
+function blockedResult(action: string): unknown {
+  notifyBlocked(action);
+  const result = { data: null, error: { message: 'view_mode', code: 'view_mode', details: '', hint: '' } };
+  const chain: Record<string, unknown> = {
+    then: (onOk: (v: unknown) => unknown, onErr?: (e: unknown) => unknown) => Promise.resolve(result).then(onOk, onErr),
+    catch: (fn: (e: unknown) => unknown) => Promise.resolve(result).catch(fn),
+    finally: (fn: () => void) => Promise.resolve(result).finally(fn),
+  };
+  // Cualquier otro método encadenado (.select(), .eq(), .maybeSingle()...)
+  // devuelve la misma cadena, de modo que await siempre acaba en `result`.
+  return new Proxy(chain, {
+    get(target, prop) {
+      if (prop in target) return target[prop as string];
+      return () => chain;
+    },
+  });
+}
+
+const rawFrom = client.from.bind(client);
+type FromFn = typeof client.from;
+
+(client as { from: FromFn }).from = ((table: string) => {
+  const qb = rawFrom(table as never);
+  if (!isViewingAs()) return qb;
+  return new Proxy(qb as object, {
+    get(target, prop, receiver) {
+      if (typeof prop === 'string' && MUTATIONS.has(prop)) {
+        return () => blockedResult(`${prop}:${table}`);
+      }
+      const value = Reflect.get(target, prop, receiver);
+      return typeof value === 'function' ? value.bind(target) : value;
+    },
+  });
+}) as FromFn;
+
+// Subidas de ficheros y llamadas RPC: mismo bloqueo.
+const rawStorageFrom = client.storage.from.bind(client.storage);
+type StorageFromFn = typeof client.storage.from;
+(client.storage as { from: StorageFromFn }).from = ((bucket: string) => {
+  const sb = rawStorageFrom(bucket);
+  if (!isViewingAs()) return sb;
+  return new Proxy(sb as object, {
+    get(target, prop, receiver) {
+      if (typeof prop === 'string' && ['upload', 'remove', 'update', 'move', 'copy'].includes(prop)) {
+        return async () => { notifyBlocked(`storage:${prop}`); return { data: null, error: { message: 'view_mode' } }; };
+      }
+      const value = Reflect.get(target, prop, receiver);
+      return typeof value === 'function' ? value.bind(target) : value;
+    },
+  });
+}) as StorageFromFn;
+
+const rawRpc = client.rpc.bind(client);
+type RpcFn = typeof client.rpc;
+(client as { rpc: RpcFn }).rpc = ((fn: string, args?: unknown, opts?: unknown) => {
+  if (isViewingAs()) return blockedResult(`rpc:${fn}`) as ReturnType<RpcFn>;
+  return rawRpc(fn as never, args as never, opts as never);
+}) as RpcFn;
+
+export const supabase = client;
 
 export type UserType = 'fighter' | 'promoter' | 'manager' | 'brand' | 'gym';
 
