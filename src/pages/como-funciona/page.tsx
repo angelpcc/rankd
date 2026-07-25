@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSEO } from '@/hooks/useSEO';
 import Navbar from '@/pages/home/components/Navbar';
 import Footer from '@/pages/home/components/Footer';
@@ -105,7 +105,13 @@ export default function ComoFuncionaPage() {
   });
 
   const navigate = useNavigate();
-  const [role, setRole] = useState<RoleId>('fighter');
+  // Permite enlazar directamente a un camino: /como-funciona?role=org
+  const [params] = useSearchParams();
+  const roleParam = params.get('role');
+  const initialRole: RoleId = (['fighter', 'org', 'brand', 'public'] as const).includes(roleParam as RoleId)
+    ? (roleParam as RoleId)
+    : 'fighter';
+  const [role, setRole] = useState<RoleId>(initialRole);
   const active = CONTENT[role];
   const activeRole = ROLES.find((r) => r.id === role)!;
 
