@@ -24,6 +24,7 @@ export default {
   nav_menu: 'Menu',
   nav_section_explore: 'Explore',
   nav_section_account: 'Your account',
+  disc_boxing: 'Boxing',
 
   // Buttons
   btn_create_free: 'Create free account',

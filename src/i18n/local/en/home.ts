@@ -6,6 +6,10 @@ export default {
   hero_headline_3: 'real opportunities',
   hero_subtext: 'We connect fighters with promoters, managers and brands.',
   hero_indicator_active: 'Platform active',
+  hero_free_no_fees: 'Free · No fees',
+  hero_card_fighter_desc: 'Build your profile and get found',
+  hero_card_org_desc: 'Find talent for your event',
+  hero_card_brand_desc: 'Connect with real athletes',
   hero_indicator_disciplines: 'Boxing · MMA · Kickboxing · Muay Thai',
   hero_indicator_location: 'Madrid, Spain',
 
@@ -515,4 +519,9 @@ export default {
   dash_profile_not_found_desc: 'Your account exists but the profile has not been created yet. This can happen if the email has not been confirmed.',
   dash_retry: 'Retry',
   dash_back_login: 'Back to sign in',
+
+  // Home — loose strings
+  contact_follow: 'Follow us',
+  fighters_empty_discipline: 'No fighters in this discipline yet.',
+  brands_coming_soon_home: 'Soon you\'ll be able to discover gear and brands inside RANKD.',
 };

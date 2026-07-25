@@ -24,6 +24,7 @@ export default {
   nav_menu: 'Menú',
   nav_section_explore: 'Explorar',
   nav_section_account: 'Tu cuenta',
+  disc_boxing: 'Boxeo',
 
   // Buttons
   btn_create_free: 'Crear cuenta gratis',

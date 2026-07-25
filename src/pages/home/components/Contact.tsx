@@ -75,7 +75,7 @@ export default function Contact() {
                   <i className="ri-map-pin-line" style={{ color: '#C9A84C', fontSize: 16 }} />
                 </div>
                 <div>
-                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.72)', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 2 }}>Sede</div>
+                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, color: 'rgba(255,255,255,0.72)', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 2 }}>{t('footer_headquarters')}</div>
                   <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 600, color: 'white' }}>Madrid, España</div>
                 </div>
               </div>
@@ -83,7 +83,7 @@ export default function Contact() {
 
             {/* Sociales */}
             <div>
-              <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, letterSpacing: 4, color: 'rgba(255,255,255,0.68)', textTransform: 'uppercase', marginBottom: 14 }}>Síguenos</div>
+              <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, letterSpacing: 4, color: 'rgba(255,255,255,0.68)', textTransform: 'uppercase', marginBottom: 14 }}>{t('contact_follow')}</div>
               <div style={{ display: 'flex', gap: 8 }}>
                 {[{ icon: 'ri-instagram-line', url: 'https://www.instagram.com/RANKD.__' }].map((s) => (
                   <a key={s.icon} href={s.url} target="_blank" rel="noopener noreferrer" style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.75)', textDecoration: 'none', transition: 'all 0.2s', cursor: 'pointer' }}

@@ -89,7 +89,7 @@ export default function BrandsSection() {
               <i className="ri-store-2-line text-2xl text-[#E10600]" />
             </div>
             <h3 className="font-unbounded font-bold text-white text-sm mb-3">{t('brands_empty_title')}</h3>
-            <p className="text-white/55 text-sm font-inter leading-relaxed max-w-sm mb-8">Próximamente podrás descubrir equipamiento y marcas dentro de Rankd.</p>
+            <p className="text-white/55 text-sm font-inter leading-relaxed max-w-sm mb-8">{t('brands_coming_soon_home')}</p>
             <button onClick={() => navigate('/brands')}
               className="inline-flex items-center gap-2 text-white/65 font-semibold text-sm px-6 py-3 rounded-full hover:text-white transition-colors cursor-pointer font-inter"
               style={{ border: '1px solid rgba(255,255,255,0.08)' }}>

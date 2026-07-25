@@ -8,6 +8,10 @@ export default {
   hero_indicator_active: 'Plataforma activa',
   hero_indicator_disciplines: 'Boxeo · MMA · Kickboxing · Muay Thai',
   hero_indicator_location: 'Madrid, España',
+  hero_free_no_fees: 'Gratis · Sin comisiones',
+  hero_card_fighter_desc: 'Crea tu ficha y que te encuentren',
+  hero_card_org_desc: 'Encuentra talento para tu velada',
+  hero_card_brand_desc: 'Conecta con atletas reales',
 
   // How It Works — un camino por cada tipo de usuario
   how_eyebrow: 'Para todos',
@@ -515,4 +519,9 @@ export default {
   dash_profile_not_found_desc: 'Tu cuenta existe pero el perfil no se ha creado aún. Esto puede pasar si el email no ha sido confirmado.',
   dash_retry: 'Reintentar',
   dash_back_login: 'Volver al inicio de sesión',
+
+  // Home — textos sueltos
+  contact_follow: 'Síguenos',
+  fighters_empty_discipline: 'Todavía no hay peleadores en esta disciplina.',
+  brands_coming_soon_home: 'Próximamente podrás descubrir equipamiento y marcas dentro de RANKD.',
 };

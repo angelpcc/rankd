@@ -5,11 +5,10 @@ import { useEffect, useRef, useState } from 'react';
 const HERO_IMG =
   'https://oqsobiykaaqelgfjgsor.supabase.co/storage/v1/object/public/images/0b31c269-e57b-4544-9db5-89b290862f50.png';
 
-const DISCIPLINAS = ['BOXEO', 'MMA', 'KICKBOXING', 'MUAY THAI', 'GRAPPLING', 'K-1'];
-
 export default function Hero() {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const DISCIPLINAS = [t('disc_boxing').toUpperCase(), 'MMA', 'KICKBOXING', 'MUAY THAI', 'GRAPPLING', 'K-1'];
   const bgRef = useRef<HTMLDivElement>(null);
   const [loaded, setLoaded] = useState(false);
 
@@ -105,7 +104,7 @@ export default function Hero() {
               {t('btn_create_free')} →
             </button>
             <button className="rk-btn rk-btn-ghost" onClick={() => document.querySelector('#how-it-works')?.scrollIntoView({ behavior: 'smooth' })}>
-              Cómo funciona
+              {t('nav_how_it_works')}
             </button>
           </div>
 
@@ -117,16 +116,16 @@ export default function Hero() {
             <span style={{ color: 'rgba(255,255,255,0.14)' }}>/</span>
             <span style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
               <span className="rk-h3" style={{ color: 'var(--rk-gold)' }}>100%</span>
-              <span className="rk-body" style={{ fontSize: '0.78rem', letterSpacing: '0.22em', textTransform: 'uppercase' }}>Gratis · Sin comisiones</span>
+              <span className="rk-body" style={{ fontSize: '0.78rem', letterSpacing: '0.22em', textTransform: 'uppercase' }}>{t('hero_free_no_fees')}</span>
             </span>
           </div>
         </div>
 
         <div className="hero-right" style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
           {[
-            { icon: 'ri-boxing-line', title: 'Peleadores', desc: 'Crea tu ficha y sé encontrado', color: '#E10600', n: '01' },
-            { icon: 'ri-trophy-line', title: 'Promotoras', desc: 'Encuentra talento para tu velada', color: '#C9A84C', n: '02' },
-            { icon: 'ri-store-2-line', title: 'Marcas', desc: 'Conecta con atletas reales', color: 'rgba(255,255,255,0.8)', n: '03' },
+            { icon: 'ri-boxing-line', title: t('nav_directory'), desc: t('hero_card_fighter_desc'), color: '#E10600', n: '01' },
+            { icon: 'ri-trophy-line', title: t('nav_promoters'), desc: t('hero_card_org_desc'), color: '#C9A84C', n: '02' },
+            { icon: 'ri-store-2-line', title: t('nav_brands'), desc: t('hero_card_brand_desc'), color: 'rgba(255,255,255,0.8)', n: '03' },
           ].map((card, i) => (
             <div
               key={card.title}

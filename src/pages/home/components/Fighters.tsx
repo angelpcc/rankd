@@ -117,7 +117,7 @@ export default function Fighters() {
           <Reveal>
             <div style={{ textAlign: 'center', padding: '70px 0' }}>
               <i className="ri-user-search-line" style={{ fontSize: 42, color: 'rgba(255,255,255,0.16)' }} />
-              <p className="rk-body" style={{ marginTop: 14 }}>Todavía no hay peleadores en esta disciplina.</p>
+              <p className="rk-body" style={{ marginTop: 14 }}>{t('fighters_empty_discipline')}</p>
             </div>
           </Reveal>
         ) : (
