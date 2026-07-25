@@ -10,14 +10,13 @@ import TrainingCalendar from '@/pages/mi-esquina/components/TrainingCalendar';
 import NutritionTracker from '@/pages/mi-esquina/components/NutritionTracker';
 import WeightTracker from '@/pages/mi-esquina/components/WeightTracker';
 import GoalsPanel from '@/pages/mi-esquina/components/GoalsPanel';
-import InjuryTracker from '@/pages/mi-esquina/components/InjuryTracker';
 import GearChecklist from '@/pages/mi-esquina/components/GearChecklist';
 import SectionCoach from '@/pages/mi-esquina/components/SectionCoach';
 import MealLog from '@/pages/mi-esquina/components/MealLog';
 import Reveal from '@/components/base/Reveal';
 import NotificationBell from '@/components/feature/NotificationBell';
 
-type Section = 'resumen' | 'calendario' | 'diario' | 'peso' | 'objetivos' | 'lesiones' | 'timer' | 'coach' | 'material' | 'nutricion' | 'mensajes';
+type Section = 'resumen' | 'calendario' | 'diario' | 'peso' | 'objetivos' | 'timer' | 'coach' | 'material' | 'nutricion' | 'mensajes';
 
 const SECTIONS: { id: Section; label: string; icon: string; soon?: boolean }[] = [
   { id: 'resumen', label: 'Resumen', icon: 'ri-dashboard-line' },
@@ -25,7 +24,6 @@ const SECTIONS: { id: Section; label: string; icon: string; soon?: boolean }[] =
   { id: 'diario', label: 'Diario de entrenos', icon: 'ri-calendar-check-line' },
   { id: 'peso', label: 'Control de peso', icon: 'ri-scales-2-line' },
   { id: 'objetivos', label: 'Objetivos', icon: 'ri-flag-line' },
-  { id: 'lesiones', label: 'Lesiones', icon: 'ri-first-aid-kit-line' },
   { id: 'coach', label: 'Coach IA', icon: 'ri-sparkling-2-line' },
   { id: 'material', label: 'Material', icon: 'ri-boxing-line' },
   { id: 'nutricion', label: 'Nutrición', icon: 'ri-restaurant-line' },
@@ -255,7 +253,6 @@ export default function MiEsquinaPage() {
                     { s: 'calendario' as Section, icon: 'ri-calendar-2-line', title: 'Planifica hacia adelante', desc: 'Entrenos futuros, día de pesaje y fecha de combate', cta: 'Abrir calendario' },
                     { s: 'peso' as Section, icon: 'ri-scales-2-line', title: 'Control de peso', desc: 'Registra tu peso y sigue su evolución camino al pesaje', cta: 'Ver mi peso' },
                     { s: 'objetivos' as Section, icon: 'ri-flag-line', title: 'Tus objetivos', desc: 'Metas concretas con fecha límite y su progreso', cta: 'Ver objetivos' },
-                    { s: 'lesiones' as Section, icon: 'ri-first-aid-kit-line', title: 'Lesiones y molestias', desc: 'Regístralas: el Coach IA las tiene en cuenta al planificar', cta: 'Ver lesiones' },
                     { s: 'coach' as Section, icon: 'ri-sparkling-2-line', title: 'Coach IA', desc: 'Pídele un plan y guárdalo directamente en tu diario', cta: 'Hablar con el coach' },
                   ].map((c) => (
                     <button key={c.title} onClick={() => setSection(c.s)} className="rk-card text-left group" style={{ padding: 20, cursor: 'pointer' }}>
@@ -280,8 +277,6 @@ export default function MiEsquinaPage() {
 
           {section === 'objetivos' && <GoalsPanel profile={profile} showToast={showToast} />}
 
-          {section === 'lesiones' && <InjuryTracker profile={profile} showToast={showToast} />}
-
           {section === 'timer' && <RoundTimer />}
 
           {section === 'coach' && (
@@ -292,7 +287,7 @@ export default function MiEsquinaPage() {
                   <h2 className="rk-h2" style={{ fontSize: 'clamp(1.8rem,4vw,2.4rem)', color: '#fff', margin: '4px 0 0' }}>
                     COACH DE <span className="rk-red-glow">ENTRENAMIENTO</span>
                   </h2>
-                  <p className="text-zinc-400 text-sm mt-1.5 max-w-md">Planifica sesiones y rutinas con una IA que conoce tu disciplina, nivel, objetivos y lesiones. Pídele un plan, ajústalo en conversación y llévalo a tu diario. Incluye vídeos de referencia de las técnicas.</p>
+                  <p className="text-zinc-400 text-sm mt-1.5 max-w-md">Planifica sesiones y rutinas con una IA que conoce tu disciplina, nivel y objetivos. Pídele un plan, ajústalo en conversación y llévalo a tu diario. Incluye vídeos de referencia de las técnicas.</p>
                 </div>
               </Reveal>
               <Reveal delay={80}>
@@ -302,7 +297,7 @@ export default function MiEsquinaPage() {
                   showToast={showToast}
                   accent="red"
                   title="Coach de entrenamiento"
-                  intro="Cuéntame tu objetivo y te armo un plan. Por ejemplo, una semana de entreno o la preparación de una pelea. Tengo en cuenta tus lesiones si las has registrado."
+                  intro="Cuéntame tu objetivo y te armo un plan. Por ejemplo, una semana de entreno o la preparación de una pelea."
                   suggestions={['Plan de esta semana', 'Prepárame para una pelea en 6 semanas', 'Adapta el plan a mi lesión', 'Rutina para mejorar el cardio']}
                 />
               </Reveal>

@@ -129,21 +129,17 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
   // Perfil físico del peleador = contexto de la IA
   useEffect(() => {
     const load = async () => {
-      // Lesiones y objetivos solo importan al Coach de Entrenamiento. Sus tablas
-      // pueden no existir aún (migración pendiente): si fallan, se ignoran.
-      const injuriesQ = section === 'training'
-        ? supabase.from('injuries').select('body_part, title, severity, status').eq('fighter_profile_id', profile.id).neq('status', 'recuperada')
-        : Promise.resolve({ data: null });
+      // Los objetivos solo importan al Coach de Entrenamiento. Su tabla puede no
+      // existir aún (migración pendiente): si falla, se ignora.
       const goalsQ = section === 'training'
         ? supabase.from('fighter_goals').select('title, category, target_value, unit, deadline').eq('fighter_profile_id', profile.id).eq('status', 'active')
         : Promise.resolve({ data: null });
 
-      const [{ data: f }, { data: w }, { data: g }, { data: sess }, injRes, goalRes] = await Promise.all([
+      const [{ data: f }, { data: w }, { data: g }, { data: sess }, goalRes] = await Promise.all([
         supabase.from('fighters').select('discipline, weight_class, experience_level, age, wins, losses, draws, kos, looking_for').eq('profile_id', profile.id).maybeSingle(),
         supabase.from('weight_entries').select('weight_kg').eq('fighter_profile_id', profile.id).order('entry_date', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('nutrition_goals').select('target_weight_kg').eq('fighter_profile_id', profile.id).maybeSingle(),
         supabase.from('training_sessions').select('duration_min, session_date').eq('fighter_profile_id', profile.id).order('session_date', { ascending: false }).limit(30),
-        injuriesQ,
         goalsQ,
       ]);
       const weekStart = new Date();
@@ -153,10 +149,6 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
         .filter((s) => new Date(s.session_date + 'T12:00:00') >= weekStart)
         .reduce((acc, s) => acc + (s.duration_min || 0), 0);
       const goals = (f?.looking_for || []) as string[];
-
-      // Lesiones activas → texto legible para la IA
-      const injuries = ((injRes?.data as { body_part: string; title: string | null; severity: string; status: string }[] | null) || [])
-        .map((it) => `${it.body_part}${it.title ? ` (${it.title})` : ''} — ${it.severity}, ${it.status}`);
 
       // Metas con fecha → texto legible para la IA
       const dated = ((goalRes?.data as { title: string; category: string; target_value: number | null; unit: string | null; deadline: string | null }[] | null) || [])
@@ -177,7 +169,6 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
         record: f ? `${f.wins ?? 0}-${f.losses ?? 0}-${f.draws ?? 0}, ${f.kos ?? 0} KO` : undefined,
         goal: goals.length ? goals.join(', ') : undefined,
         weeklyMinutes: weeklyMinutes || undefined,
-        injuries: injuries.length ? injuries : undefined,
         goals: dated.length ? dated : undefined,
       });
     };
