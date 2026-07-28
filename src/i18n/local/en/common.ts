@@ -45,6 +45,22 @@ export default {
   rec_draws: 'Draws',
   rec_kos: 'KOs',
 
+  // Install banner (PWA)
+  pwa_title: 'Take RANKD with you',
+  pwa_sub: 'Add it to your home screen. It opens like an app and takes barely any space.',
+  pwa_install: 'INSTALL',
+  pwa_how: 'HOW TO',
+  pwa_close: 'Close',
+  pwa_ios_title: 'On your iPhone or iPad',
+  pwa_ios_1: 'Tap the Share button in the bottom bar',
+  pwa_ios_2: 'Scroll down and pick "Add to Home Screen"',
+  pwa_ios_3: 'Confirm with "Add" and you are done',
+  pwa_android_title: 'On your Android',
+  pwa_android_1: 'Open the browser menu (the three dots)',
+  pwa_android_2: 'Choose "Install app" or "Add to Home screen"',
+  pwa_android_3: 'Confirm and it will sit with the rest of your apps',
+  pwa_got_it: 'GOT IT',
+
   // Event tickets (sold on the promoter's own site)
   ev_tickets_title: 'Tickets',
   ev_tickets_cta: 'BUY TICKETS',

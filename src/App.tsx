@@ -4,6 +4,7 @@ import { I18nextProvider } from "react-i18next";
 import i18n from "./i18n";
 import BackFab from "./components/base/BackFab";
 import ViewAsBar from "./components/feature/ViewAsBar";
+import InstallBanner from "./components/feature/InstallBanner";
 
 function App() {
   return (
@@ -15,6 +16,8 @@ function App() {
         <AppRoutes />
         {/* Botón de volver: solo visible cuando RANKD está instalada como app */}
         <BackFab />
+        {/* Invitación a instalar: solo en móvil, si no está instalada ya */}
+        <InstallBanner />
       </BrowserRouter>
     </I18nextProvider>
   );

@@ -45,6 +45,22 @@ export default {
   rec_draws: 'Emp',
   rec_kos: 'KOs',
 
+  // Banner de instalación (PWA)
+  pwa_title: 'Lleva RANKD en tu móvil',
+  pwa_sub: 'Añádela a tu pantalla de inicio. Se abre como una app, sin ocupar casi nada.',
+  pwa_install: 'INSTALAR',
+  pwa_how: 'CÓMO SE HACE',
+  pwa_close: 'Cerrar',
+  pwa_ios_title: 'En tu iPhone o iPad',
+  pwa_ios_1: 'Toca el botón Compartir en la barra de abajo',
+  pwa_ios_2: 'Baja y elige "Añadir a pantalla de inicio"',
+  pwa_ios_3: 'Confirma con "Añadir" y listo',
+  pwa_android_title: 'En tu Android',
+  pwa_android_1: 'Abre el menú del navegador (los tres puntos)',
+  pwa_android_2: 'Elige "Instalar aplicación" o "Añadir a pantalla de inicio"',
+  pwa_android_3: 'Confirma y la tendrás con el resto de tus apps',
+  pwa_got_it: 'ENTENDIDO',
+
   // Entradas de evento (venta en la web de la promotora)
   ev_tickets_title: 'Entradas',
   ev_tickets_cta: 'COMPRAR ENTRADAS',
