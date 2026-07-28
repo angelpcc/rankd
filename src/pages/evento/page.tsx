@@ -4,7 +4,9 @@ import { supabase, OrgEvent, Profile } from '@/lib/supabase';
 import { useSEO } from '@/hooks/useSEO';
 import Navbar from '@/pages/home/components/Navbar';
 import Footer from '@/pages/home/components/Footer';
-import EventTickets from './components/EventTickets';
+// La venta interna (EventTickets) queda desconectada de la interfaz: de
+// momento cada promotora vende en su propia web y aquí solo enlazamos.
+import ExternalTickets from './components/ExternalTickets';
 
 function formatLongDate(d: string | null): string | null {
   if (!d) return null;
@@ -155,7 +157,7 @@ export default function EventoPage() {
 
         {/* Entradas */}
         <div className="md:sticky md:top-20">
-          <EventTickets event={event} isPast={isPast} />
+          <ExternalTickets event={event} isPast={isPast} />
         </div>
       </div>
 

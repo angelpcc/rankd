@@ -45,6 +45,17 @@ export default {
   rec_draws: 'Draws',
   rec_kos: 'KOs',
 
+  // Event tickets (sold on the promoter's own site)
+  ev_tickets_title: 'Tickets',
+  ev_tickets_cta: 'BUY TICKETS',
+  ev_tickets_external_note: 'Sales are handled by the promoter on their own site. Opens in a new tab.',
+  ev_tickets_soon: 'Tickets coming soon',
+  ev_tickets_soon_desc: 'The promoter has not published where to buy them yet. Check back in a few days.',
+  ev_finished: 'Event finished',
+  ev_finished_desc: 'This event has already taken place.',
+  ev_label_ticket_url: 'Ticket sales link',
+  ev_hint_ticket_url: 'The URL on your site where tickets are bought. Leave it empty and the page will show "tickets coming soon".',
+
   // 404
   nf_title: "This fight doesn't exist",
   nf_subtitle: "The page you're looking for isn't available or has moved.",

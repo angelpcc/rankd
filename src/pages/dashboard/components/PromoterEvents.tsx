@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase, OrgEvent, Profile } from '@/lib/supabase';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import ImageUploader from '@/components/base/ImageUploader';
-import EventTicketsManager from './EventTicketsManager';
+// Venta interna desconectada: EventTicketsManager sigue en el repositorio por
+// si algún día se activa, pero ya no se monta en la interfaz.
 
 interface Props {
   profile: Profile;
@@ -18,6 +20,7 @@ const emptyForm = {
 };
 
 export default function PromoterEvents({ profile, showToast }: Props) {
+  const { t } = useTranslation();
   const [events, setEvents] = useState<OrgEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -27,7 +30,7 @@ export default function PromoterEvents({ profile, showToast }: Props) {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [managingTickets, setManagingTickets] = useState<OrgEvent | null>(null);
+
 
   const { uploading, uploadImage, deleteImage } = useImageUpload({
     bucket: 'event-posters',
@@ -239,13 +242,16 @@ export default function PromoterEvents({ profile, showToast }: Props) {
               </div>
 
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">Link de entradas / contacto</label>
+                <label className="block text-xs text-zinc-400 mb-1.5">{t('ev_label_ticket_url')}</label>
                 <input
+                  type="url"
+                  inputMode="url"
                   value={form.external_link}
                   onChange={(e) => setForm((f) => ({ ...f, external_link: e.target.value }))}
                   className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500"
-                  placeholder="https://entradas.com/evento"
+                  placeholder="https://tuweb.com/entradas"
                 />
+                <p className="text-[11px] text-zinc-500 mt-1.5 leading-relaxed">{t('ev_hint_ticket_url')}</p>
               </div>
 
               <div className="flex gap-3 pt-2">
@@ -268,15 +274,6 @@ export default function PromoterEvents({ profile, showToast }: Props) {
         </div>
       )}
 
-      {/* Gestor de entradas */}
-      {managingTickets && (
-        <EventTicketsManager
-          event={managingTickets}
-          profile={profile}
-          showToast={showToast}
-          onClose={() => setManagingTickets(null)}
-        />
-      )}
 
       {/* Events list */}
       {loading ? (
@@ -313,9 +310,6 @@ export default function PromoterEvents({ profile, showToast }: Props) {
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <h3 className="text-base font-bold text-white leading-snug">{ev.title}</h3>
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        <button onClick={() => setManagingTickets(ev)} title="Gestionar entradas" className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-600/15 border border-red-500/25 text-red-400 hover:bg-red-600/25 transition-colors cursor-pointer">
-                          <i className="ri-ticket-2-line text-sm"></i>
-                        </button>
                         <button onClick={() => openEdit(ev)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors cursor-pointer">
                           <i className="ri-edit-line text-sm"></i>
                         </button>
@@ -346,7 +340,7 @@ export default function PromoterEvents({ profile, showToast }: Props) {
                       )}
                       {ev.external_link && (
                         <a href={ev.external_link} target="_blank" rel="nofollow noreferrer" className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors cursor-pointer whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                          <i className="ri-ticket-line"></i>Ver entradas
+                          <i className="ri-ticket-line"></i>{t('ev_tickets_title')}
                         </a>
                       )}
                     </div>

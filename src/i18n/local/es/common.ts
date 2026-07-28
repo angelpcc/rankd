@@ -45,6 +45,17 @@ export default {
   rec_draws: 'Emp',
   rec_kos: 'KOs',
 
+  // Entradas de evento (venta en la web de la promotora)
+  ev_tickets_title: 'Entradas',
+  ev_tickets_cta: 'COMPRAR ENTRADAS',
+  ev_tickets_external_note: 'La venta la gestiona la promotora en su propia web. Se abre en una pestaña nueva.',
+  ev_tickets_soon: 'Entradas próximamente',
+  ev_tickets_soon_desc: 'La promotora aún no ha publicado dónde comprarlas. Vuelve en unos días.',
+  ev_finished: 'Evento finalizado',
+  ev_finished_desc: 'Este evento ya se ha celebrado.',
+  ev_label_ticket_url: 'Enlace de venta de entradas',
+  ev_hint_ticket_url: 'La URL de tu web donde se compran. Si la dejas vacía, en la ficha se mostrará "entradas próximamente".',
+
   // 404
   nf_title: 'Este combate no existe',
   nf_subtitle: 'La página que buscas no está disponible o ha cambiado de sitio.',
