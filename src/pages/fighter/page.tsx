@@ -148,7 +148,7 @@ export default function FighterPublicPage() {
             <i className="ri-arrow-left-line"></i>
             {t('nav_directory')}
           </button>
-          <a href="/" className="flex items-center gap-0 cursor-pointer">
+          <a href="/" className="flex items-center gap-0 cursor-pointer py-2">
             <span className="font-unbounded font-black tracking-tighter leading-none text-[17px] text-white" style={{ letterSpacing: '-0.04em' }}>RAN</span>
             <span className="font-unbounded font-black tracking-tighter leading-none text-[17px] text-[#E10600]" style={{ letterSpacing: '-0.04em' }}>KD</span>
           </a>

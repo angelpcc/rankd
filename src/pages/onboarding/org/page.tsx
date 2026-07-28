@@ -129,7 +129,7 @@ export default function OrgOnboardingPage() {
       {/* Top bar */}
       <div className="flex-shrink-0 border-b border-zinc-800">
         <div className="max-w-2xl mx-auto px-6 py-4 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-0 cursor-pointer">
+          <a href="/" className="flex items-center gap-0 cursor-pointer py-2">
             <span className="font-unbounded font-black tracking-tighter leading-none text-[17px] text-white" style={{ letterSpacing: '-0.04em' }}>RAN</span>
             <span className="font-unbounded font-black tracking-tighter leading-none text-[17px] text-[#E10600]" style={{ letterSpacing: '-0.04em' }}>KD</span>
           </a>

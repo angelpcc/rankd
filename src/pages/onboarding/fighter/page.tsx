@@ -135,7 +135,7 @@ export default function FighterOnboardingPage() {
       {/* Top bar */}
       <div className="flex-shrink-0 border-b border-zinc-800 bg-zinc-950/95 backdrop-blur-sm">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-0 cursor-pointer">
+          <a href="/" className="flex items-center gap-0 cursor-pointer py-2">
             <span className="font-unbounded font-black tracking-tighter leading-none text-[17px] text-white" style={{ letterSpacing: '-0.04em' }}>RAN</span>
             <span className="font-unbounded font-black tracking-tighter leading-none text-[17px] text-[#E10600]" style={{ letterSpacing: '-0.04em' }}>KD</span>
           </a>

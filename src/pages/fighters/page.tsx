@@ -281,7 +281,7 @@ export default function FightersDirectoryPage() {
       {/* Top bar */}
       <div className="fixed top-0 left-0 w-full z-40 bg-zinc-950/95 backdrop-blur-sm border-b border-zinc-800 rk-safe-top">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 h-16 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-0 cursor-pointer">
+          <a href="/" className="flex items-center gap-0 cursor-pointer py-2">
             <span className="font-unbounded font-black tracking-tighter leading-none text-[18px] text-white" style={{ letterSpacing: '-0.04em' }}>RAN</span>
             <span className="font-unbounded font-black tracking-tighter leading-none text-[18px] text-[#E10600]" style={{ letterSpacing: '-0.04em' }}>KD</span>
           </a>
@@ -417,44 +417,44 @@ export default function FightersDirectoryPage() {
                       {filters.discipline && (
                         <span className="flex items-center gap-1 text-xs bg-red-600/15 border border-red-500/30 text-red-400 px-2.5 py-1 rounded-full">
                           {disciplineLabels[filters.discipline] || filters.discipline}
-                          <button onClick={() => setFilters((f) => ({ ...f, discipline: '' }))} className="cursor-pointer hover:text-white ml-0.5"><i className="ri-close-line text-xs"></i></button>
+                          <button onClick={() => setFilters((f) => ({ ...f, discipline: '' }))} className="cursor-pointer hover:text-white -mr-1 p-1.5 inline-flex items-center justify-center"><i className="ri-close-line text-xs"></i></button>
                         </span>
                       )}
                       {filters.weightClass && (
                         <span className="flex items-center gap-1 text-xs bg-white/[0.06] border border-white/12 text-zinc-300 px-2.5 py-1 rounded-full">
                           {filters.weightClass}
-                          <button onClick={() => setFilters((f) => ({ ...f, weightClass: '' }))} className="cursor-pointer hover:text-white ml-0.5"><i className="ri-close-line text-xs"></i></button>
+                          <button onClick={() => setFilters((f) => ({ ...f, weightClass: '' }))} className="cursor-pointer hover:text-white -mr-1 p-1.5 inline-flex items-center justify-center"><i className="ri-close-line text-xs"></i></button>
                         </span>
                       )}
                       {filters.expLevel && (
                         <span className="flex items-center gap-1 text-xs bg-white/[0.06] border border-white/12 text-zinc-300 px-2.5 py-1 rounded-full">
                           {expLabels[filters.expLevel] || filters.expLevel}
-                          <button onClick={() => setFilters((f) => ({ ...f, expLevel: '' }))} className="cursor-pointer hover:text-white ml-0.5"><i className="ri-close-line text-xs"></i></button>
+                          <button onClick={() => setFilters((f) => ({ ...f, expLevel: '' }))} className="cursor-pointer hover:text-white -mr-1 p-1.5 inline-flex items-center justify-center"><i className="ri-close-line text-xs"></i></button>
                         </span>
                       )}
                       {filters.location && (
                         <span className="flex items-center gap-1 text-xs bg-white/[0.06] border border-white/12 text-zinc-300 px-2.5 py-1 rounded-full">
                           <i className="ri-map-pin-line text-xs"></i>{filters.location}
-                          <button onClick={() => setFilters((f) => ({ ...f, location: '' }))} className="cursor-pointer hover:text-white ml-0.5"><i className="ri-close-line text-xs"></i></button>
+                          <button onClick={() => setFilters((f) => ({ ...f, location: '' }))} className="cursor-pointer hover:text-white -mr-1 p-1.5 inline-flex items-center justify-center"><i className="ri-close-line text-xs"></i></button>
                         </span>
                       )}
                       {filters.available && (
                         <span className="flex items-center gap-1 text-xs bg-green-500/12 border border-green-500/30 text-green-400 px-2.5 py-1 rounded-full">
                           {t('fighters_dir_available')}
-                          <button onClick={() => setFilters((f) => ({ ...f, available: false }))} className="cursor-pointer hover:text-white ml-0.5"><i className="ri-close-line text-xs"></i></button>
+                          <button onClick={() => setFilters((f) => ({ ...f, available: false }))} className="cursor-pointer hover:text-white -mr-1 p-1.5 inline-flex items-center justify-center"><i className="ri-close-line text-xs"></i></button>
                         </span>
                       )}
                       {filters.hasSocial && (
                         <span className="flex items-center gap-1 text-xs bg-pink-500/12 border border-pink-500/30 text-pink-400 px-2.5 py-1 rounded-full">
                           {t('fighters_dir_with_social')}
-                          <button onClick={() => setFilters((f) => ({ ...f, hasSocial: false }))} className="cursor-pointer hover:text-white ml-0.5"><i className="ri-close-line text-xs"></i></button>
+                          <button onClick={() => setFilters((f) => ({ ...f, hasSocial: false }))} className="cursor-pointer hover:text-white -mr-1 p-1.5 inline-flex items-center justify-center"><i className="ri-close-line text-xs"></i></button>
                         </span>
                       )}
                       {filters.popularity && (
                         <span className="flex items-center gap-1 text-xs bg-orange-500/12 border border-orange-500/30 text-orange-400 px-2.5 py-1 rounded-full">
                           <i className="ri-star-line text-xs"></i>
                           {filters.popularity === 'high' ? t('fighters_dir_high_pop') : filters.popularity === 'medium' ? t('fighters_dir_med_pop') : t('fighters_dir_no_social')}
-                          <button onClick={() => setFilters((f) => ({ ...f, popularity: '' }))} className="cursor-pointer hover:text-white ml-0.5"><i className="ri-close-line text-xs"></i></button>
+                          <button onClick={() => setFilters((f) => ({ ...f, popularity: '' }))} className="cursor-pointer hover:text-white -mr-1 p-1.5 inline-flex items-center justify-center"><i className="ri-close-line text-xs"></i></button>
                         </span>
                       )}
                     </div>

@@ -90,7 +90,7 @@ export default function Footer() {
                   key={l.href}
                   href={l.href}
                   onClick={(e) => { e.preventDefault(); navigate(l.href); }}
-                  className="rk-body"
+                  className="rk-body ft-tap"
                   style={{ fontSize: '0.95rem', textDecoration: 'none', cursor: 'pointer', transition: 'color 0.24s ease, padding-left 0.24s var(--ease-out)', width: 'fit-content' }}
                   onMouseEnter={(e) => { const el = e.currentTarget; el.style.color = '#fff'; el.style.paddingLeft = '7px'; }}
                   onMouseLeave={(e) => { const el = e.currentTarget; el.style.color = 'var(--rk-text-2)'; el.style.paddingLeft = '0'; }}
@@ -105,12 +105,12 @@ export default function Footer() {
           <div>
             <h4 className="rk-index" style={{ marginBottom: 18, display: 'block' }}>{t('footer_contact')}</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-              <a href="mailto:hola@rankd.com" className="rk-body" style={{ fontSize: '0.95rem', textDecoration: 'none', transition: 'color 0.24s' }}
+              <a href="mailto:hola@rankd.com" className="rk-body ft-tap" style={{ fontSize: '0.95rem', textDecoration: 'none', transition: 'color 0.24s' }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--rk-gold)')}
                 onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--rk-text-2)')}>
                 hola@rankd.com
               </a>
-              <a href="tel:638933153" className="rk-body" style={{ fontSize: '0.95rem', textDecoration: 'none', transition: 'color 0.24s' }}
+              <a href="tel:638933153" className="rk-body ft-tap" style={{ fontSize: '0.95rem', textDecoration: 'none', transition: 'color 0.24s' }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--rk-gold)')}
                 onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--rk-text-2)')}>
                 638 933 153
@@ -121,7 +121,7 @@ export default function Footer() {
               </span>
               <button
                 onClick={() => setSupportOpen(true)}
-                className="rk-body"
+                className="rk-body ft-tap"
                 style={{ fontSize: '0.95rem', background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, width: 'fit-content', transition: 'color 0.24s', fontFamily: "'Barlow Condensed', sans-serif" }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--rk-gold)')}
                 onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--rk-text-2)')}
@@ -148,6 +148,7 @@ export default function Footer() {
                 key={l.href}
                 href={l.href}
                 onClick={(e) => { e.preventDefault(); navigate(l.href); }}
+                className="ft-legal"
                 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '0.8rem', letterSpacing: '0.08em', color: 'var(--rk-text-3)', textDecoration: 'none', cursor: 'pointer', transition: 'color 0.24s' }}
                 onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
                 onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--rk-text-3)')}
@@ -164,6 +165,12 @@ export default function Footer() {
         @media (max-width: 560px) {
           .ft-grid { grid-template-columns: 1fr !important; }
           .ft-bottom { flex-direction: column; align-items: flex-start !important; }
+        }
+        /* Móvil: los enlaces del pie medían 25px de alto, incómodos con el
+           dedo. Se les da una zona de toque de 44px sin cambiar el diseño. */
+        @media (max-width: 640px) {
+          .ft-tap { display: flex !important; align-items: center; min-height: 44px; }
+          .ft-legal { display: inline-flex !important; align-items: center; min-height: 44px; }
         }
       `}</style>
     </footer>
