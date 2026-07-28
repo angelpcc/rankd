@@ -9,6 +9,7 @@ import SupportInbox from './components/SupportInbox';
 import ModerationPanel from './components/ModerationPanel';
 import ViewAsPanel from './components/ViewAsPanel';
 import AiUsagePanel from './components/AiUsagePanel';
+import MetricsPanel from './components/MetricsPanel';
 
 interface Request {
   profile: Profile;
@@ -50,7 +51,7 @@ const userTypeColors: Record<string, string> = {
   gym: 'bg-emerald-500/12 border-emerald-500/30 text-emerald-400',
 };
 
-type AdminTab = 'resumen' | 'actividad' | 'verificaciones' | 'usuarios' | 'moderacion' | 'comunicados' | 'soporte' | 'vercomo' | 'ia';
+type AdminTab = 'resumen' | 'actividad' | 'verificaciones' | 'usuarios' | 'moderacion' | 'comunicados' | 'soporte' | 'vercomo' | 'ia' | 'metricas';
 
 export default function AdminPage() {
   const navigate = useNavigate();
@@ -225,6 +226,7 @@ export default function AdminPage() {
   const TABS: { id: AdminTab; label: string; icon: string; badge?: number }[] = [
     { id: 'resumen', label: 'Resumen', icon: 'ri-dashboard-line' },
     { id: 'actividad', label: 'Actividad', icon: 'ri-pulse-line' },
+    { id: 'metricas', label: 'Métricas', icon: 'ri-line-chart-line' },
     { id: 'verificaciones', label: 'Verificaciones', icon: 'ri-shield-check-line', badge: requests.length || undefined },
     { id: 'moderacion', label: 'Moderación', icon: 'ri-eye-line', badge: stats?.pendingBrands || undefined },
     { id: 'comunicados', label: 'Comunicados', icon: 'ri-mail-send-line' },
@@ -417,6 +419,9 @@ export default function AdminPage() {
 
         {/* ══ CONSUMO DE IA ══ */}
         {tab === 'ia' && <AiUsagePanel showToast={showToast} />}
+
+        {/* ══ METRICAS ══ */}
+        {tab === 'metricas' && <MetricsPanel />}
 
         {/* ══ VERIFICACIONES ══ */}
         {tab === 'verificaciones' && (

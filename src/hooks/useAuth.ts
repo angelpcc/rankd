@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase, Profile } from '@/lib/supabase';
 import { getViewAs, VIEW_AS_EVENT, type ViewAsState } from '@/lib/viewAs';
 import { isAdminEmail } from '@/lib/admin';
+import { trackVisit } from '@/lib/trackVisit';
 
 interface AuthState {
   user: User | null;
@@ -77,6 +78,10 @@ export function useAuth() {
     }
 
     setState(prev => ({ ...prev, profile: data, loading: false }));
+
+    // Deja constancia de que ha entrado hoy. Es lo que permite medir después
+    // cuánta gente vuelve, que es la métrica que de verdad importa.
+    if (data) trackVisit();
   };
 
   const signOut = async () => {
