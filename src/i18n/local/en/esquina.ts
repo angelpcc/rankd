@@ -415,6 +415,14 @@ export default {
   mc_ng_sug_hobby_2: 'Easy, healthy meal ideas',
   mc_ng_sug_hobby_3: 'How to eat better without overcomplicating it',
 
+  // ── AI quota ──
+  mc_ai_quota_left: 'You have {{n}} questions left this month',
+  mc_ai_quota_warn: 'You have {{n}} AI questions left this month',
+  mc_ai_quota_out_title: "You've used up this month's questions",
+  mc_ai_quota_out_desc: 'They reset on the 1st. If you need more, get in touch and we will raise your quota.',
+  mc_ai_limits_off_title: 'Spend control not configured',
+  mc_ai_limits_off_desc: 'The AI will not answer until usage control is active on the server. That is deliberate: it stops costs running away.',
+
   // ── AI Coach ──
   mc_coach_eyebrow: 'YOUR SMART CORNER',
   mc_coach_training_title: 'TRAINING',

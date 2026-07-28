@@ -415,6 +415,14 @@ export default {
   mc_ng_sug_hobby_2: 'Ideas de comidas fáciles y sanas',
   mc_ng_sug_hobby_3: 'Cómo comer mejor sin complicarme',
 
+  // ── Cuota de IA ──
+  mc_ai_quota_left: 'Te quedan {{n}} consultas este mes',
+  mc_ai_quota_warn: 'Te quedan {{n}} consultas de IA este mes',
+  mc_ai_quota_out_title: 'Has agotado tus consultas de este mes',
+  mc_ai_quota_out_desc: 'Se renuevan el día 1. Si necesitas más, escríbenos y te ampliamos la cuota.',
+  mc_ai_limits_off_title: 'Control de gasto sin configurar',
+  mc_ai_limits_off_desc: 'La IA no responderá hasta que el control de consumo esté activo en el servidor. Es a propósito: evita que se dispare el gasto.',
+
   // ── Coach IA ──
   mc_coach_eyebrow: 'TU ESQUINA INTELIGENTE',
   mc_coach_training_title: 'COACH DE',

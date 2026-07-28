@@ -6,10 +6,88 @@
 //                          estructurado para guardarlo en el diario
 // La clave de Anthropic vive SOLO en el servidor.
 import Anthropic from '@anthropic-ai/sdk';
+import { createClient } from '@supabase/supabase-js';
 
 export const config = { maxDuration: 60 };
 
 const MODEL = 'claude-opus-4-8';
+
+// Tarifa vigente del modelo, en USD por millón de tokens.
+const PRICE_IN_PER_M = 5;
+const PRICE_OUT_PER_M = 25;
+
+function costOf(usage) {
+  const inTok = usage?.input_tokens || 0;
+  const outTok = usage?.output_tokens || 0;
+  return +(((inTok * PRICE_IN_PER_M) + (outTok * PRICE_OUT_PER_M)) / 1_000_000).toFixed(5);
+}
+
+function currentPeriod() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function admin() {
+  const url = process.env.SUPABASE_URL || process.env.VITE_PUBLIC_SUPABASE_URL || '';
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  if (!url || !key) return null;
+  return createClient(url, key, { auth: { persistSession: false } });
+}
+
+/**
+ * Identifica al usuario y comprueba su cuota del mes.
+ *
+ * FALLA CERRADO a propósito: si no se puede identificar o no se puede
+ * comprobar el límite, NO se llama al modelo. Es la garantía de que nadie
+ * consume API sin quedar contabilizado.
+ */
+async function checkQuota(req) {
+  const db = admin();
+  if (!db) {
+    return { ok: false, status: 503, code: 'limits_not_configured',
+      message: 'El control de gasto de la IA no está configurado en el servidor. Falta SUPABASE_SERVICE_ROLE_KEY.' };
+  }
+  const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  if (!token) {
+    return { ok: false, status: 401, code: 'no_session', message: 'Necesitas iniciar sesión para usar la IA.' };
+  }
+  const { data: userData, error: userErr } = await db.auth.getUser(token);
+  const user = userData?.user;
+  if (userErr || !user) {
+    return { ok: false, status: 401, code: 'no_session', message: 'Tu sesión ha caducado. Vuelve a entrar.' };
+  }
+
+  const { data, error } = await db.rpc('rk_ai_quota', { p_user: user.id });
+  if (error) {
+    return { ok: false, status: 503, code: 'limits_not_configured',
+      message: 'El control de gasto de la IA todavía no está activo. Aplica la migración 0012.' };
+  }
+  const row = Array.isArray(data) ? data[0] : data;
+  const used = row?.used ?? 0;
+  const quota = row?.quota ?? 0;
+  const enabled = row?.enabled !== false;
+
+  if (enabled && used >= quota) {
+    return { ok: false, status: 429, code: 'quota_reached', used, quota,
+      message: 'Has agotado tus consultas de IA de este mes. Se renuevan el día 1. Si necesitas más, escríbenos y te ampliamos la cuota.' };
+  }
+  return { ok: true, db, user, used, quota, warnAtPct: row?.warn_at_pct ?? 80 };
+}
+
+/** Deja constancia del consumo real. Nunca debe tumbar la respuesta al usuario. */
+async function recordUsage(db, userId, section, kind, usage) {
+  try {
+    await db.from('ai_usage').insert({
+      user_id: userId,
+      period: currentPeriod(),
+      section: String(section || 'training'),
+      kind,
+      input_tokens: usage?.input_tokens || 0,
+      output_tokens: usage?.output_tokens || 0,
+      cost_usd: costOf(usage),
+    });
+  } catch { /* el usuario ya tiene su respuesta */ }
+}
 
 // ── Contexto físico común a las tres IAs ──
 function fighterContext(p = {}) {
@@ -170,6 +248,16 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'La conversación debe empezar por el usuario' });
   }
 
+  // ── CONTROL DE GASTO ──
+  // Se comprueba ANTES de tocar el modelo. Si no se puede comprobar, no se
+  // llama: es lo que garantiza que no haya consumo sin contabilizar.
+  const gate = await checkQuota(req);
+  if (!gate.ok) {
+    return res.status(gate.status).json({
+      error: gate.code, message: gate.message, used: gate.used, quota: gate.quota,
+    });
+  }
+
   const anthropic = new Anthropic({ apiKey });
 
   // ── MODO EXTRAER: convierte el plan en JSON para guardarlo ──
@@ -190,6 +278,9 @@ export default async function handler(req, res) {
       const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
       let plan;
       try { plan = JSON.parse(text); } catch { plan = null; }
+      // La extracción también cuesta: se contabiliza para que el coste real
+      // aparezca en el panel, pero NO gasta cuota de mensajes del usuario.
+      await recordUsage(gate.db, gate.user.id, section, 'extract', response.usage);
       if (!plan) return res.status(422).json({ error: 'no_plan', message: 'No he podido leer un plan concreto de la conversación.' });
       return res.status(200).json({ plan, usage: response.usage });
     } catch (err) {
@@ -217,7 +308,15 @@ export default async function handler(req, res) {
     });
 
     const final = await stream.finalMessage();
-    res.write(`data: ${JSON.stringify({ done: true, usage: final.usage })}\n\n`);
+    await recordUsage(gate.db, gate.user.id, section, 'chat', final.usage);
+
+    // Se devuelve la cuota ya actualizada para que el front avise al usuario
+    // cuando se acerque al tope, sin tener que consultarlo aparte.
+    const usedAfter = (gate.used || 0) + 1;
+    res.write(`data: ${JSON.stringify({
+      done: true, usage: final.usage,
+      quota: { used: usedAfter, quota: gate.quota, warnAtPct: gate.warnAtPct },
+    })}\n\n`);
     res.end();
   } catch (err) {
     // Si aún no hemos enviado cabeceras, respondemos JSON normal

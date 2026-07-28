@@ -8,6 +8,7 @@ import ActivityFeed from './components/ActivityFeed';
 import SupportInbox from './components/SupportInbox';
 import ModerationPanel from './components/ModerationPanel';
 import ViewAsPanel from './components/ViewAsPanel';
+import AiUsagePanel from './components/AiUsagePanel';
 
 interface Request {
   profile: Profile;
@@ -49,7 +50,7 @@ const userTypeColors: Record<string, string> = {
   gym: 'bg-emerald-500/12 border-emerald-500/30 text-emerald-400',
 };
 
-type AdminTab = 'resumen' | 'actividad' | 'verificaciones' | 'usuarios' | 'moderacion' | 'comunicados' | 'soporte' | 'vercomo';
+type AdminTab = 'resumen' | 'actividad' | 'verificaciones' | 'usuarios' | 'moderacion' | 'comunicados' | 'soporte' | 'vercomo' | 'ia';
 
 export default function AdminPage() {
   const navigate = useNavigate();
@@ -229,6 +230,7 @@ export default function AdminPage() {
     { id: 'comunicados', label: 'Comunicados', icon: 'ri-mail-send-line' },
     { id: 'soporte', label: 'Soporte', icon: 'ri-customer-service-2-line', badge: stats?.openTickets || undefined },
     { id: 'usuarios', label: 'Usuarios', icon: 'ri-group-line' },
+    { id: 'ia', label: 'Consumo IA', icon: 'ri-sparkling-2-line' },
     { id: 'vercomo', label: 'Ver como', icon: 'ri-eye-line' },
   ];
 
@@ -412,6 +414,9 @@ export default function AdminPage() {
 
         {/* ══ VER COMO ══ */}
         {tab === 'vercomo' && <ViewAsPanel />}
+
+        {/* ══ CONSUMO DE IA ══ */}
+        {tab === 'ia' && <AiUsagePanel showToast={showToast} />}
 
         {/* ══ VERIFICACIONES ══ */}
         {tab === 'verificaciones' && (

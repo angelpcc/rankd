@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 
 type Section = 'training' | 'nutrition' | 'gear';
@@ -95,6 +96,7 @@ function renderRich(text: string) {
 }
 
 export default function SectionCoach({ section, profile, title, intro, suggestions, accent = 'red', showToast }: Props) {
+  const { t } = useTranslation();
   const a = ACCENTS[accent];
   const canSavePlan = section === 'training' || section === 'nutrition';
   const [physical, setPhysical] = useState<Record<string, unknown>>({});
@@ -106,6 +108,9 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
   const [savedNote, setSavedNote] = useState<string | null>(null);
   const [notConfigured, setNotConfigured] = useState(false);
   const [checking, setChecking] = useState(true);
+  // Cuota de IA del mes: la devuelve el servidor al final de cada respuesta
+  const [quota, setQuota] = useState<{ used: number; quota: number; warnAtPct: number } | null>(null);
+  const [quotaBlocked, setQuotaBlocked] = useState<{ title: string; desc: string } | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   // Disponibilidad al abrir: muestra "próximamente" de entrada en vez de
@@ -211,13 +216,38 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
     setSavedNote(null);
 
     try {
+      // El token identifica al usuario en el servidor: sin él no hay forma de
+      // contabilizar su consumo, y la IA no responde.
+      const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch('/api/coach', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({ section, profile: physical, messages: next }),
       });
 
-      if (res.status === 503) { setNotConfigured(true); setSending(false); return; }
+      // Cuota agotada: se corta con buen tono, no con un error técnico.
+      if (res.status === 429) {
+        const d = await res.json().catch(() => ({}));
+        if (d.error === 'quota_reached') {
+          setQuotaBlocked({ title: t('mc_ai_quota_out_title'), desc: t('mc_ai_quota_out_desc') });
+          setMessages(messages);
+          setSending(false);
+          return;
+        }
+      }
+      if (res.status === 503) {
+        const d = await res.json().catch(() => ({}));
+        if (d.error === 'limits_not_configured') {
+          setQuotaBlocked({ title: t('mc_ai_limits_off_title'), desc: t('mc_ai_limits_off_desc') });
+          setMessages(messages);
+          setSending(false);
+          return;
+        }
+        setNotConfigured(true); setSending(false); return;
+      }
       if (!res.ok || !res.body) {
         const d = await res.json().catch(() => ({}));
         setMessages((prev) => [...prev, { role: 'assistant', content: d.message || 'No se pudo generar respuesta. Inténtalo de nuevo.' }]);
@@ -252,6 +282,10 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
                 copy[copy.length - 1] = { role: 'assistant', content: acc };
                 return copy;
               });
+            } else if (obj.quota) {
+              // Llega con el evento final: sirve para avisar al usuario
+              // cuando se está acercando a su tope del mes.
+              setQuota(obj.quota);
             } else if (obj.error) {
               acc += `\n\n${obj.error}`;
               setMessages((prev) => {
@@ -419,8 +453,32 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
         )}
       </div>
 
+      {/* Cuota agotada o control de gasto sin configurar */}
+      {quotaBlocked && (
+        <div className="px-3 pb-2 flex-shrink-0">
+          <div className="flex items-start gap-2.5 rounded-xl bg-[#C9A84C]/10 border border-[#C9A84C]/35 px-3.5 py-3">
+            <i className="ri-time-line text-[#C9A84C] mt-0.5 flex-shrink-0"></i>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-[#C9A84C]">{quotaBlocked.title}</p>
+              <p className="text-[11px] text-zinc-400 mt-0.5 leading-relaxed">{quotaBlocked.desc}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Aviso al acercarse al tope del mes */}
+      {!quotaBlocked && quota && quota.quota > 0 &&
+        (quota.used / quota.quota) * 100 >= quota.warnAtPct && quota.used < quota.quota && (
+        <div className="px-3 pb-2 flex-shrink-0">
+          <div className="flex items-center gap-2 rounded-xl bg-white/[0.04] border border-white/12 px-3.5 py-2">
+            <i className="ri-battery-low-line text-orange-400 flex-shrink-0"></i>
+            <p className="text-[11px] text-zinc-300">{t('mc_ai_quota_warn', { n: Math.max(0, quota.quota - quota.used) })}</p>
+          </div>
+        </div>
+      )}
+
       {/* Guardar plan en el diario */}
-      {showSaveBar && (
+      {showSaveBar && !quotaBlocked && (
         <div className="px-3 pb-2 flex-shrink-0">
           {savedNote ? (
             <div className="flex items-center gap-2 rounded-xl bg-green-500/10 border border-green-500/30 px-3.5 py-2.5">
