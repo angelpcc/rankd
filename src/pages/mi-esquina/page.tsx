@@ -13,6 +13,7 @@ import WeightTracker from '@/pages/mi-esquina/components/WeightTracker';
 import GoalsPanel from '@/pages/mi-esquina/components/GoalsPanel';
 import ShareProgress from '@/pages/mi-esquina/components/ShareProgress';
 import DocumentsPanel, { DocumentExpiryAlert } from '@/pages/mi-esquina/components/DocumentsPanel';
+import FightAnalysis from '@/pages/mi-esquina/components/FightAnalysis';
 import DailyCheckin from '@/pages/mi-esquina/components/DailyCheckin';
 import QuickRoutines from '@/pages/mi-esquina/components/QuickRoutines';
 import WeeklySummary from '@/pages/mi-esquina/components/WeeklySummary';
@@ -29,7 +30,7 @@ import CountUp from '@/components/base/CountUp';
 import NotificationBell from '@/components/feature/NotificationBell';
 
 type Section =
-  | 'resumen' | 'calendario' | 'diario' | 'rutinas' | 'sparring' | 'notas'
+  | 'resumen' | 'calendario' | 'diario' | 'rutinas' | 'sparring' | 'notas' | 'combates'
   | 'peso' | 'fuerza' | 'objetivos' | 'documentos' | 'compartir' | 'coach' | 'material' | 'nutricion' | 'timer' | 'mensajes';
 
 interface SectionDef { id: Section; labelKey: string; icon: string }
@@ -44,6 +45,7 @@ const PRO_SECTIONS: SectionDef[] = [
   { id: 'rutinas', labelKey: 'mc_nav_routines', icon: 'ri-repeat-line' },
   { id: 'sparring', labelKey: 'mc_nav_sparring', icon: 'ri-boxing-line' },
   { id: 'notas', labelKey: 'mc_nav_notes', icon: 'ri-book-open-line' },
+  { id: 'combates', labelKey: 'mc_nav_fights', icon: 'ri-sword-line' },
   { id: 'peso', labelKey: 'mc_nav_weight', icon: 'ri-scales-2-line' },
   { id: 'fuerza', labelKey: 'mc_nav_strength', icon: 'ri-hammer-line' },
   { id: 'objetivos', labelKey: 'mc_nav_goals', icon: 'ri-flag-line' },
@@ -457,6 +459,8 @@ export default function MiEsquinaPage() {
           {activeSection === 'sparring' && !isHobby && <SparringLog profile={profile} showToast={showToast} />}
 
           {activeSection === 'notas' && !isHobby && <TechniqueNotes profile={profile} showToast={showToast} />}
+
+          {activeSection === 'combates' && !isHobby && <FightAnalysis profile={profile} showToast={showToast} />}
 
           {activeSection === 'peso' && <WeightTracker profile={profile} showToast={showToast} mode={mode} />}
 
