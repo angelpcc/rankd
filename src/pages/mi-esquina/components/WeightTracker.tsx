@@ -387,7 +387,7 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
       {showGoal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) setShowGoal(false); }}>
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
-          <div className="relative rk-card w-full max-w-sm" style={{ padding: 24, transform: 'none' }}>
+          <div className="relative rk-card w-full max-w-sm max-h-[90vh] overflow-y-auto" style={{ padding: 24, transform: 'none' }}>
             <div className="flex items-center justify-between mb-5">
               <h3 className="rk-h3" style={{ fontSize: '1.15rem', color: '#fff' }}>{isPro ? t('mc_w_modal_pro') : t('mc_w_modal_hobby')}</h3>
               <button onClick={() => setShowGoal(false)} aria-label={t('mc_close')}

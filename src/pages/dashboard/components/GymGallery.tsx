@@ -158,7 +158,7 @@ export default function GymGallery({ profile, showToast }: Props) {
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) closeForm(); }}>
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
-          <div className="relative bg-zinc-900 border border-zinc-700 rounded-2xl w-full max-w-md">
+          <div className="relative bg-zinc-900 border border-zinc-700 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
               <h3 className="text-base font-bold text-white">Añadir foto a la galería</h3>
               <button onClick={closeForm} className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer transition-colors">

@@ -163,13 +163,20 @@ export default function DailyCheckin({ profile, showToast }: Props) {
       <div className="space-y-4">
         {/* Energía */}
         <div>
-          <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-widest mb-2">{t('mc_ci_energy')}</label>
+          <div className="flex items-baseline justify-between gap-2 mb-2">
+            <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">{t('mc_ci_energy')}</label>
+            {/* La etiqueta va aquí y no dentro de cada botón: en móvil cinco
+                palabras en columnas de ~56px quedaban partidas e ilegibles. */}
+            <span className="text-xs font-bold" style={{ color: scaleColor(energy, true) }}>{t(`mc_ci_energy_${energy}`)}</span>
+          </div>
           <div className="grid grid-cols-5 gap-1.5">
             {SCALE.map((v) => (
               <button key={v} onClick={() => setEnergy(v)}
-                className={`py-2 rounded-xl border text-[11px] font-bold transition-all cursor-pointer ${energy === v ? 'text-white' : 'text-zinc-500 border-white/10 hover:border-white/25'}`}
+                aria-label={t(`mc_ci_energy_${v}`)}
+                aria-pressed={energy === v}
+                className={`h-11 rounded-xl border text-sm font-black transition-all cursor-pointer ${energy === v ? 'text-white' : 'text-zinc-600 border-white/10 hover:border-white/25'}`}
                 style={energy === v ? { background: `${scaleColor(v, true)}22`, borderColor: `${scaleColor(v, true)}77` } : { background: 'rgba(255,255,255,0.02)' }}>
-                {t(`mc_ci_energy_${v}`)}
+                {v}
               </button>
             ))}
           </div>
@@ -177,13 +184,18 @@ export default function DailyCheckin({ profile, showToast }: Props) {
 
         {/* Cansancio */}
         <div>
-          <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-widest mb-2">{t('mc_ci_soreness')}</label>
+          <div className="flex items-baseline justify-between gap-2 mb-2">
+            <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">{t('mc_ci_soreness')}</label>
+            <span className="text-xs font-bold" style={{ color: scaleColor(soreness, false) }}>{t(`mc_ci_sore_${soreness}`)}</span>
+          </div>
           <div className="grid grid-cols-5 gap-1.5">
             {SCALE.map((v) => (
               <button key={v} onClick={() => setSoreness(v)}
-                className={`py-2 rounded-xl border text-[11px] font-bold transition-all cursor-pointer ${soreness === v ? 'text-white' : 'text-zinc-500 border-white/10 hover:border-white/25'}`}
+                aria-label={t(`mc_ci_sore_${v}`)}
+                aria-pressed={soreness === v}
+                className={`h-11 rounded-xl border text-sm font-black transition-all cursor-pointer ${soreness === v ? 'text-white' : 'text-zinc-600 border-white/10 hover:border-white/25'}`}
                 style={soreness === v ? { background: `${scaleColor(v, false)}22`, borderColor: `${scaleColor(v, false)}77` } : { background: 'rgba(255,255,255,0.02)' }}>
-                {t(`mc_ci_sore_${v}`)}
+                {v}
               </button>
             ))}
           </div>

@@ -189,7 +189,7 @@ export default function NutritionTracker({ profile, showToast, onGoWeight }: Pro
       {showGoal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) setShowGoal(false); }}>
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
-          <div className="relative rk-card w-full max-w-sm" style={{ padding: 24 }}>
+          <div className="relative rk-card w-full max-w-sm max-h-[90vh] overflow-y-auto" style={{ padding: 24 }}>
             <div className="flex items-center justify-between mb-5">
               <h3 className="rk-h3" style={{ fontSize: '1.15rem', color: '#fff' }}>OBJETIVO DE HIDRATACIÓN</h3>
               <button onClick={() => setShowGoal(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/[0.05] text-zinc-400 hover:text-white cursor-pointer transition-colors">
