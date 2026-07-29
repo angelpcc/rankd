@@ -462,6 +462,7 @@ export default {
   mc_ai_quota_out_desc: 'Se renuevan el día 1. Si necesitas más, escríbenos y te ampliamos la cuota.',
   mc_ai_limits_off_title: 'Control de gasto sin configurar',
   mc_ai_limits_off_desc: 'La IA no responderá hasta que el control de consumo esté activo en el servidor. Es a propósito: evita que se dispare el gasto.',
+  mc_ai_searching: 'Buscando precios y tiendas actuales en la web…',
 
   // ── Coach IA ──
   mc_coach_eyebrow: 'TU ESQUINA INTELIGENTE',

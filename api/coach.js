@@ -15,11 +15,17 @@ const MODEL = 'claude-opus-4-8';
 // Tarifa vigente del modelo, en USD por millón de tokens.
 const PRICE_IN_PER_M = 5;
 const PRICE_OUT_PER_M = 25;
+// Búsqueda web del asesor de Material: $10 por cada 1.000 búsquedas.
+const PRICE_SEARCH = 0.01;
+// Tope de búsquedas por respuesta: acota el coste de un solo turno aunque el
+// usuario tenga muchas disponibles en el mes.
+const SEARCHES_PER_TURN = 3;
 
 function costOf(usage) {
   const inTok = usage?.input_tokens || 0;
   const outTok = usage?.output_tokens || 0;
-  return +(((inTok * PRICE_IN_PER_M) + (outTok * PRICE_OUT_PER_M)) / 1_000_000).toFixed(5);
+  const searches = usage?.server_tool_use?.web_search_requests || 0;
+  return +(((inTok * PRICE_IN_PER_M) + (outTok * PRICE_OUT_PER_M)) / 1_000_000 + searches * PRICE_SEARCH).toFixed(5);
 }
 
 function currentPeriod() {
@@ -71,13 +77,18 @@ async function checkQuota(req) {
     return { ok: false, status: 429, code: 'quota_reached', used, quota,
       message: 'Has agotado tus consultas de IA de este mes. Se renuevan el día 1. Si necesitas más, escríbenos y te ampliamos la cuota.' };
   }
-  return { ok: true, db, user, used, quota, warnAtPct: row?.warn_at_pct ?? 80 };
+  return {
+    ok: true, db, user, used, quota, warnAtPct: row?.warn_at_pct ?? 80,
+    // Sub-tope de búsqueda web (solo Material). undefined si la migración 0015
+    // no está aplicada → el servidor no activa la herramienta (falla cerrado).
+    searchesUsed: row?.searches_used, searchesQuota: row?.searches_quota,
+  };
 }
 
 /** Deja constancia del consumo real. Nunca debe tumbar la respuesta al usuario. */
-async function recordUsage(db, userId, section, kind, usage) {
+async function recordUsage(db, userId, section, kind, usage, searches) {
   try {
-    await db.from('ai_usage').insert({
+    const row = {
       user_id: userId,
       period: currentPeriod(),
       section: String(section || 'training'),
@@ -85,7 +96,12 @@ async function recordUsage(db, userId, section, kind, usage) {
       input_tokens: usage?.input_tokens || 0,
       output_tokens: usage?.output_tokens || 0,
       cost_usd: costOf(usage),
-    });
+    };
+    // Solo se envía la columna 'searches' cuando la búsqueda estaba activa. Así,
+    // si la migración 0015 no está, nunca se intenta escribir una columna que no
+    // existe y el registro del chat (que sí importa para la cuota) no se pierde.
+    if (typeof searches === 'number') row.searches = searches;
+    await db.from('ai_usage').insert(row);
   } catch { /* el usuario ya tiene su respuesta */ }
 }
 
@@ -160,6 +176,15 @@ Marcas de referencia (mismo criterio que la guía de RANKD; úsalo, no te lo inv
 - No inventes modelos exactos con precios cerrados; habla de gamas y características a buscar.
 - Responde SIEMPRE en español y con formato claro (listas, negritas con **).`,
 };
+
+// Instrucciones extra que se añaden al asesor de Material SOLO cuando tiene
+// búsqueda web disponible este mes. Sin ellas, responde con su guía de marcas.
+const GEAR_SEARCH_ADDENDUM = `Tienes acceso a BÚSQUEDA WEB para consultar precios y disponibilidad reales. Úsala con cabeza porque cada búsqueda tiene un coste:
+- Busca SOLO cuando el usuario pregunte por precios actuales, dónde comprar, ofertas o un modelo concreto. Para orientar sobre qué características buscar, responde con tu criterio sin gastar búsquedas.
+- Da precios ORIENTATIVOS en euros y añade el enlace a la tienda en formato markdown [nombre de la tienda](URL) para que pueda pinchar. Usa SOLO URLs que provengan de la búsqueda; nunca las inventes.
+- Prioriza tiendas que envíen a España.
+- Siempre que des precios, cierra con una nota breve avisando de que los precios y el stock cambian según la tienda y la fecha: son solo una referencia.
+- Sigues sin tener acuerdos comerciales con nadie: recomiendas por criterio técnico, no por comisión.`;
 
 // ── Esquemas para extraer el plan y poder guardarlo en el diario ──
 const EXTRACT_SCHEMAS = {
@@ -296,19 +321,50 @@ export default async function handler(req, res) {
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no'); // evita buffering en proxies
 
-    const stream = anthropic.messages.stream({
-      model: MODEL,
-      max_tokens: 1500,
-      system: buildSystem(profile || {}),
-      messages: clean,
-    });
+    // ── BÚSQUEDA WEB: solo en Material y solo si al usuario le quedan búsquedas ──
+    // Falla cerrado: si la migración 0015 no está, searchesQuota es undefined y
+    // no se activa nada (el asesor responde con su guía de marcas, sin gastar).
+    const searchRemaining = (typeof gate.searchesQuota === 'number')
+      ? Math.max(0, gate.searchesQuota - (gate.searchesUsed || 0))
+      : 0;
+    const canSearch = section === 'gear' && searchRemaining > 0;
+
+    let systemPrompt = buildSystem(profile || {});
+    const params = { model: MODEL, max_tokens: 1500, messages: clean };
+    if (canSearch) {
+      systemPrompt += '\n\n' + GEAR_SEARCH_ADDENDUM;
+      params.tools = [{
+        type: 'web_search_20260209',
+        name: 'web_search',
+        // Nunca más búsquedas por turno que las que le quedan en el mes.
+        max_uses: Math.min(SEARCHES_PER_TURN, searchRemaining),
+        // Sesga precios y tiendas a España (resultados en euros).
+        user_location: { type: 'approximate', country: 'ES', timezone: 'Europe/Madrid' },
+      }];
+    }
+    params.system = systemPrompt;
+
+    const stream = anthropic.messages.stream(params);
 
     stream.on('text', (delta) => {
       res.write(`data: ${JSON.stringify({ delta })}\n\n`);
     });
 
+    // Avisa al front en cuanto el modelo lanza una búsqueda, para mostrar
+    // "buscando precios..." mientras aún no ha llegado texto.
+    if (canSearch) {
+      stream.on('streamEvent', (event) => {
+        if (event?.type === 'content_block_start'
+            && event.content_block?.type === 'server_tool_use'
+            && event.content_block?.name === 'web_search') {
+          res.write(`data: ${JSON.stringify({ searching: true })}\n\n`);
+        }
+      });
+    }
+
     const final = await stream.finalMessage();
-    await recordUsage(gate.db, gate.user.id, section, 'chat', final.usage);
+    const searchCount = final.usage?.server_tool_use?.web_search_requests || 0;
+    await recordUsage(gate.db, gate.user.id, section, 'chat', final.usage, canSearch ? searchCount : undefined);
 
     // Se devuelve la cuota ya actualizada para que el front avise al usuario
     // cuando se acerque al tope, sin tener que consultarlo aparte.

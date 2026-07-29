@@ -13,6 +13,7 @@ interface UsageRow {
   input_tokens: number;
   output_tokens: number;
   cost_usd: number;
+  searches?: number;
   created_at: string;
 }
 
@@ -20,6 +21,8 @@ interface Limits {
   monthly_messages: number;
   warn_at_pct: number;
   enabled: boolean;
+  // Sub-tope de búsqueda web, solo para el asesor de Material.
+  monthly_searches: number;
 }
 
 const SECTION_LABEL: Record<string, string> = {
@@ -49,6 +52,7 @@ export default function AiUsagePanel({ showToast }: Props) {
 
   const [limitInput, setLimitInput] = useState('40');
   const [warnInput, setWarnInput] = useState('80');
+  const [searchInput, setSearchInput] = useState('8');
   const [enabled, setEnabled] = useState(true);
 
   const period = currentPeriod();
@@ -69,10 +73,12 @@ export default function AiUsagePanel({ showToast }: Props) {
       monthly_messages: l.monthly_messages ?? 40,
       warn_at_pct: l.warn_at_pct ?? 80,
       enabled: l.enabled !== false,
+      monthly_searches: l.monthly_searches ?? 8,
     };
     setLimits(parsed);
     setLimitInput(String(parsed.monthly_messages));
     setWarnInput(String(parsed.warn_at_pct));
+    setSearchInput(String(parsed.monthly_searches));
     setEnabled(parsed.enabled);
 
     const usage = (usageRes.data || []) as UsageRow[];
@@ -98,6 +104,7 @@ export default function AiUsagePanel({ showToast }: Props) {
       monthly_messages: Math.max(0, parseInt(limitInput, 10) || 0),
       warn_at_pct: Math.min(100, Math.max(1, parseInt(warnInput, 10) || 80)),
       enabled,
+      monthly_searches: Math.max(0, parseInt(searchInput, 10) || 0),
     };
     const { error } = await supabase.from('app_settings')
       .upsert({ key: 'ai_limits', value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
@@ -129,6 +136,8 @@ export default function AiUsagePanel({ showToast }: Props) {
     const cost = thisMonth.reduce((a, r) => a + Number(r.cost_usd || 0), 0);
     const inTok = thisMonth.reduce((a, r) => a + (r.input_tokens || 0), 0);
     const outTok = thisMonth.reduce((a, r) => a + (r.output_tokens || 0), 0);
+    // Búsquedas web del mes (solo las hace el asesor de Material).
+    const searches = thisMonth.reduce((a, r) => a + (r.searches || 0), 0);
 
     const byUser = new Map<string, { msgs: number; cost: number }>();
     thisMonth.forEach((r) => {
@@ -146,6 +155,7 @@ export default function AiUsagePanel({ showToast }: Props) {
       cost,
       inTok,
       outTok,
+      searches,
       users: byUser.size,
       top: [...byUser.entries()].sort((a, b) => b[1].cost - a[1].cost).slice(0, 12),
       bySection: [...bySection.entries()].sort((a, b) => b[1] - a[1]),
@@ -244,6 +254,31 @@ export default function AiUsagePanel({ showToast }: Props) {
           </p>
         )}
 
+        {/* Sub-tope de búsqueda web · solo el asesor de Material */}
+        <div className="mt-4 pt-4 border-t border-white/[0.06]">
+          <div className="flex items-center gap-2 mb-1">
+            <i className="ri-earth-line text-sky-400"></i>
+            <h3 className="text-sm font-bold text-white">Búsqueda web · solo Material</h3>
+          </div>
+          <p className="text-xs text-zinc-500 mb-3 leading-relaxed">
+            El asesor de Material puede consultar precios y tiendas reales. Cada búsqueda cuesta aparte
+            (~$0,01), así que tiene su propio tope. Recomendado: 5–10 al mes por usuario.
+          </p>
+          <div className="grid sm:grid-cols-2 gap-3 sm:items-end">
+            <div>
+              <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-widest mb-1.5">Búsquedas/mes</label>
+              <input value={searchInput} onChange={(e) => setSearchInput(e.target.value)} inputMode="numeric"
+                className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-sky-500" />
+            </div>
+            <p className="text-[11px] text-zinc-500 sm:pb-2.5 leading-relaxed">
+              <span className="text-white font-bold">{stats.searches}</span> búsquedas hechas este mes.
+              {searchInput.trim() === '0' && (
+                <span className="block text-zinc-600 mt-0.5">Con 0, el asesor responde solo con su guía de marcas (no busca).</span>
+              )}
+            </p>
+          </div>
+        </div>
+
         <button onClick={saveLimits} disabled={saving}
           className="rk-btn rk-btn-primary mt-4 w-full sm:w-auto disabled:opacity-60" style={{ fontSize: '0.85rem', padding: '0.7rem 1.6rem' }}>
           {saving ? 'GUARDANDO...' : 'GUARDAR TOPE'}
@@ -328,7 +363,7 @@ export default function AiUsagePanel({ showToast }: Props) {
 
       <p className="text-[11px] text-zinc-600 leading-relaxed flex items-start gap-1.5">
         <i className="ri-information-line mt-0.5 flex-shrink-0"></i>
-        El coste es una estimación con la tarifa del modelo ({`$${5}/M entrada, $${25}/M salida`}) sobre los tokens que devuelve la API en cada llamada. La factura real de Anthropic manda.
+        El coste es una estimación con la tarifa del modelo ($5/M entrada, $25/M salida) más las búsquedas web del asesor de Material ($10 por 1.000). La factura real de Anthropic manda.
       </p>
     </div>
   );

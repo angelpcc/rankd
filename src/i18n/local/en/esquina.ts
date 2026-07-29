@@ -462,6 +462,7 @@ export default {
   mc_ai_quota_out_desc: 'They reset on the 1st. If you need more, get in touch and we will raise your quota.',
   mc_ai_limits_off_title: 'Spend control not configured',
   mc_ai_limits_off_desc: 'The AI will not answer until usage control is active on the server. That is deliberate: it stops costs running away.',
+  mc_ai_searching: 'Searching the web for current prices and stores…',
 
   // ── AI Coach ──
   mc_coach_eyebrow: 'YOUR SMART CORNER',

@@ -38,11 +38,12 @@ function isoFromOffset(offset: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-// Marcador de vídeo que emite el Coach de Entrenamiento: [VIDEO: nombre].
-// Lo convertimos en un botón que abre una búsqueda de YouTube para esa técnica.
-// Usamos búsqueda (no una URL concreta) para que el enlace SIEMPRE sea válido:
-// la IA no puede inventar un vídeo que no exista.
-const VIDEO_RE = /\[VIDEO:\s*([^\]]+)\]/gi;
+// Dos marcadores conviven en el texto de la IA:
+//  - [VIDEO: nombre]        → Coach de Entrenamiento: botón a búsqueda de YouTube.
+//    Usamos búsqueda (no una URL concreta) para que el enlace SIEMPRE sea válido.
+//  - [texto](https://...)   → Asesor de Material: enlace real de compra que sale
+//    de la búsqueda web. Se limita a http/https para no colar esquemas raros.
+const INLINE_RE = /\[VIDEO:\s*([^\]]+)\]|\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/gi;
 
 function youtubeSearch(query: string): string {
   return `https://www.youtube.com/results?search_query=${encodeURIComponent(query.trim() + ' técnica tutorial')}`;
@@ -57,22 +58,36 @@ function renderBold(text: string, keyBase: string) {
   );
 }
 
-// Renderiza una línea: negritas + los marcadores [VIDEO: ...] como botones.
+// Renderiza una línea: negritas + los marcadores [VIDEO: ...] y los enlaces
+// markdown [texto](url) como botones/enlaces pinchables.
 function renderInline(text: string, keyBase: string) {
   const nodes: ReactNode[] = [];
   let last = 0;
   let idx = 0;
   let m: RegExpExecArray | null;
-  VIDEO_RE.lastIndex = 0;
-  while ((m = VIDEO_RE.exec(text)) !== null) {
+  INLINE_RE.lastIndex = 0;
+  while ((m = INLINE_RE.exec(text)) !== null) {
     if (m.index > last) nodes.push(...renderBold(text.slice(last, m.index), `${keyBase}-t${idx}`));
-    const q = m[1].trim();
-    nodes.push(
-      <a key={`${keyBase}-v${idx}`} href={youtubeSearch(q)} target="_blank" rel="noopener noreferrer"
-        className="inline-flex items-center gap-1.5 align-middle mx-0.5 my-0.5 rounded-lg bg-red-600/12 border border-red-500/35 text-red-300 hover:bg-red-600/20 hover:text-red-200 transition-colors px-2 py-0.5 text-xs font-semibold no-underline">
-        <i className="ri-play-circle-fill"></i>Ver: {q}
-      </a>
-    );
+    if (m[1] !== undefined) {
+      // Vídeo de apoyo → búsqueda de YouTube
+      const q = m[1].trim();
+      nodes.push(
+        <a key={`${keyBase}-v${idx}`} href={youtubeSearch(q)} target="_blank" rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 align-middle mx-0.5 my-0.5 rounded-lg bg-red-600/12 border border-red-500/35 text-red-300 hover:bg-red-600/20 hover:text-red-200 transition-colors px-2 py-0.5 text-xs font-semibold no-underline">
+          <i className="ri-play-circle-fill"></i>Ver: {q}
+        </a>
+      );
+    } else {
+      // Enlace real de compra (asesor de Material)
+      const label = m[2].trim();
+      const url = m[3].trim();
+      nodes.push(
+        <a key={`${keyBase}-lnk${idx}`} href={url} target="_blank" rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 align-middle mx-0.5 my-0.5 rounded-lg bg-white/[0.06] border border-white/15 text-sky-300 hover:text-sky-200 hover:border-white/30 transition-colors px-2 py-0.5 text-xs font-semibold no-underline">
+          <i className="ri-external-link-line"></i>{label}
+        </a>
+      );
+    }
     last = m.index + m[0].length;
     idx++;
   }
@@ -104,6 +119,9 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [streaming, setStreaming] = useState(false);
+  // El asesor de Material puede buscar en la web: mientras busca (aún sin texto)
+  // mostramos un aviso honesto de que está consultando precios reales.
+  const [searching, setSearching] = useState(false);
   const [savingPlan, setSavingPlan] = useState(false);
   const [savedNote, setSavedNote] = useState<string | null>(null);
   const [notConfigured, setNotConfigured] = useState(false);
@@ -214,6 +232,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
     setInput('');
     setSending(true);
     setSavedNote(null);
+    setSearching(false);
 
     try {
       // El token identifica al usuario en el servidor: sin él no hay forma de
@@ -263,6 +282,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
       const decoder = new TextDecoder();
       let buffer = '';
       let acc = '';
+      let sawText = false; // para apagar el aviso de "buscando" en el primer token
 
       for (;;) {
         const { done, value } = await reader.read();
@@ -276,12 +296,16 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
           try {
             const obj = JSON.parse(line.slice(5).trim());
             if (obj.delta) {
+              if (!sawText) { sawText = true; setSearching(false); } // ya llega texto
               acc += obj.delta;
               setMessages((prev) => {
                 const copy = [...prev];
                 copy[copy.length - 1] = { role: 'assistant', content: acc };
                 return copy;
               });
+            } else if (obj.searching) {
+              // El asesor de Material ha lanzado una búsqueda web.
+              setSearching(true);
             } else if (obj.quota) {
               // Llega con el evento final: sirve para avisar al usuario
               // cuando se está acercando a su tope del mes.
@@ -308,6 +332,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
     } catch {
       setMessages((prev) => [...prev, { role: 'assistant', content: 'Se ha cortado la conexión con la IA. Inténtalo de nuevo.' }]);
     }
+    setSearching(false);
     setStreaming(false);
     setSending(false);
   }, [messages, physical, section, sending]);
@@ -438,7 +463,9 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${m.role === 'user' ? 'bg-red-600 text-white' : 'bg-white/[0.05] border border-white/10 text-zinc-200'}`}>
                 {m.role === 'assistant'
-                  ? <div className="space-y-0.5">{renderRich(m.content)}{streaming && i === messages.length - 1 && <span className="inline-block w-1.5 h-3.5 bg-zinc-400 ml-0.5 align-middle animate-pulse" />}</div>
+                  ? (searching && m.content === '' && i === messages.length - 1
+                      ? <span className="flex items-center gap-2 text-zinc-400"><i className="ri-earth-line text-sky-400 animate-pulse"></i>{t('mc_ai_searching')}</span>
+                      : <div className="space-y-0.5">{renderRich(m.content)}{streaming && i === messages.length - 1 && <span className="inline-block w-1.5 h-3.5 bg-zinc-400 ml-0.5 align-middle animate-pulse" />}</div>)
                   : m.content}
               </div>
             </div>
