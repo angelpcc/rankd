@@ -12,6 +12,7 @@ import NutritionTracker from '@/pages/mi-esquina/components/NutritionTracker';
 import WeightTracker from '@/pages/mi-esquina/components/WeightTracker';
 import GoalsPanel from '@/pages/mi-esquina/components/GoalsPanel';
 import ShareProgress from '@/pages/mi-esquina/components/ShareProgress';
+import DocumentsPanel, { DocumentExpiryAlert } from '@/pages/mi-esquina/components/DocumentsPanel';
 import DailyCheckin from '@/pages/mi-esquina/components/DailyCheckin';
 import QuickRoutines from '@/pages/mi-esquina/components/QuickRoutines';
 import WeeklySummary from '@/pages/mi-esquina/components/WeeklySummary';
@@ -29,7 +30,7 @@ import NotificationBell from '@/components/feature/NotificationBell';
 
 type Section =
   | 'resumen' | 'calendario' | 'diario' | 'rutinas' | 'sparring' | 'notas'
-  | 'peso' | 'fuerza' | 'objetivos' | 'compartir' | 'coach' | 'material' | 'nutricion' | 'timer' | 'mensajes';
+  | 'peso' | 'fuerza' | 'objetivos' | 'documentos' | 'compartir' | 'coach' | 'material' | 'nutricion' | 'timer' | 'mensajes';
 
 interface SectionDef { id: Section; labelKey: string; icon: string }
 
@@ -46,6 +47,7 @@ const PRO_SECTIONS: SectionDef[] = [
   { id: 'peso', labelKey: 'mc_nav_weight', icon: 'ri-scales-2-line' },
   { id: 'fuerza', labelKey: 'mc_nav_strength', icon: 'ri-hammer-line' },
   { id: 'objetivos', labelKey: 'mc_nav_goals', icon: 'ri-flag-line' },
+  { id: 'documentos', labelKey: 'mc_nav_docs', icon: 'ri-folder-shield-2-line' },
   { id: 'compartir', labelKey: 'mc_nav_share', icon: 'ri-share-forward-line' },
   { id: 'coach', labelKey: 'mc_nav_coach', icon: 'ri-sparkling-2-line' },
   { id: 'material', labelKey: 'mc_nav_gear', icon: 'ri-t-shirt-line' },
@@ -282,6 +284,11 @@ export default function MiEsquinaPage() {
                 </Reveal>
               )}
 
+              {/* PRO: si un papel caduca, que se entere ANTES de que le toque pelear */}
+              {!isHobby && (
+                <DocumentExpiryAlert profile={profile} onOpen={() => setSection('documentos')} />
+              )}
+
               {/* Check-in del día */}
               <Reveal delay={40}>
                 <DailyCheckin profile={profile} showToast={showToast} />
@@ -456,6 +463,8 @@ export default function MiEsquinaPage() {
           {activeSection === 'fuerza' && <StrengthLog profile={profile} showToast={showToast} />}
 
           {activeSection === 'objetivos' && <GoalsPanel profile={profile} showToast={showToast} />}
+
+          {activeSection === 'documentos' && !isHobby && <DocumentsPanel profile={profile} showToast={showToast} />}
 
           {activeSection === 'compartir' && <ShareProgress profile={profile} mode={mode} showToast={showToast} />}
 
