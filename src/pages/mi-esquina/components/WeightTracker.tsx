@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable } from '@/lib/dbState';
 import Reveal from '@/components/base/Reveal';
+import WeightCutPlanner from '@/pages/mi-esquina/components/WeightCutPlanner';
 import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 interface Props {
@@ -382,6 +383,20 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
       )}
 
       {isPro && <p className="text-[11px] text-zinc-600 leading-relaxed flex items-start gap-1.5"><i className="ri-information-line mt-0.5"></i>{t('mc_w_health_note')}</p>}
+
+      {/* PRO: planificador de corte hasta el pesaje */}
+      {isPro && (
+        <>
+          <div className="rk-rule" style={{ width: '100%', opacity: 0.5 }} />
+          <WeightCutPlanner
+            current={currentWeight}
+            target={targetWeight}
+            weighIn={weighInDate}
+            classLabel={classLabel}
+            onSetGoal={openGoal}
+          />
+        </>
+      )}
 
       {/* Modal objetivo */}
       {showGoal && (
