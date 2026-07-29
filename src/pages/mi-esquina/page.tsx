@@ -23,6 +23,7 @@ import GearBrands from '@/pages/mi-esquina/components/GearBrands';
 import SectionCoach from '@/pages/mi-esquina/components/SectionCoach';
 import MealLog from '@/pages/mi-esquina/components/MealLog';
 import Reveal from '@/components/base/Reveal';
+import CountUp from '@/components/base/CountUp';
 import NotificationBell from '@/components/feature/NotificationBell';
 
 type Section =
@@ -70,11 +71,15 @@ const HOBBY_SECTIONS: SectionDef[] = [
 
 export default function MiEsquinaPage() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const i18nLocale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
   const { user, profile, loading: authLoading } = useAuth();
   const [section, setSection] = useState<Section>('resumen');
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
-  const [stats, setStats] = useState({ total: 0, week: 0, weekMin: 0, todayLogged: false, streak: 0, lastWeekMin: 0 });
+  const [stats, setStats] = useState({
+    total: 0, week: 0, weekMin: 0, todayLogged: false, streak: 0, lastWeekMin: 0,
+    last7: [] as { key: string; min: number; today: boolean }[],
+  });
   // Se incrementa al registrar algo, para que el resumen semanal se recalcule
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -116,6 +121,18 @@ export default function MiEsquinaPage() {
       const cursor = new Date(now);
       if (!todayLogged) cursor.setDate(cursor.getDate() - 1);
       for (;;) { if (days.has(iso(cursor))) { streak++; cursor.setDate(cursor.getDate() - 1); } else break; }
+      // Minutos de cada uno de los últimos 7 días, para la mini gráfica
+      const last7: { key: string; min: number; today: boolean }[] = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i);
+        const key = iso(d);
+        last7.push({
+          key,
+          min: data.filter((s) => s.session_date === key).reduce((a, s) => a + (s.duration_min || 0), 0),
+          today: i === 0,
+        });
+      }
+
       setStats({
         total: data.length,
         week: week.length,
@@ -123,6 +140,7 @@ export default function MiEsquinaPage() {
         lastWeekMin: lastWeek.reduce((a, s) => a + (s.duration_min || 0), 0),
         todayLogged,
         streak,
+        last7,
       });
     };
     load();
@@ -200,9 +218,19 @@ export default function MiEsquinaPage() {
         </div>
       </div>
 
+      {/* Confirmación: en móvil ocupa el ancho y sube desde abajo, donde está
+          el pulgar; el icono entra con su propia animación para que se note
+          que la acción ha ido bien sin tener que leer el texto. */}
       {toast && (
-        <div className={`fixed bottom-20 lg:bottom-6 right-6 z-50 text-white text-sm px-5 py-3 rounded-xl flex items-center gap-2 ${toast.type === 'error' ? 'bg-red-600' : 'bg-green-600'}`}>
-          <i className={toast.type === 'error' ? 'ri-error-warning-line' : 'ri-check-line'}></i>{toast.msg}
+        <div
+          role="status"
+          className={`anim-fade-up fixed z-50 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-sm text-white text-sm px-4 py-3.5 rounded-2xl flex items-center gap-3 ${toast.type === 'error' ? 'bg-red-600' : 'bg-green-600'}`}
+          style={{ bottom: 'calc(1.25rem + env(safe-area-inset-bottom, 0px))', boxShadow: '0 12px 40px rgba(0,0,0,0.5)' }}
+        >
+          <span className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full bg-white/20 anim-scale-in">
+            <i className={`text-lg ${toast.type === 'error' ? 'ri-error-warning-line' : 'ri-check-line'}`}></i>
+          </span>
+          <span className="flex-1 min-w-0 font-semibold leading-snug">{toast.msg}</span>
         </div>
       )}
 
@@ -319,21 +347,52 @@ export default function MiEsquinaPage() {
                 </div>
               </Reveal>
 
-              {/* Cifras */}
+              {/* Cifras: cuentan al aparecer, para que se lean en vez de pasar
+                  desapercibidas como un dato estático más */}
               <Reveal delay={160}>
                 <div className="grid grid-cols-3 gap-3">
                   {[
-                    { v: String(stats.total), l: t('mc_stat_total'), c: '#ffffff' },
-                    { v: String(isHobby ? stats.streak : stats.week), l: isHobby ? t('mc_stat_streak') : t('mc_stat_week'), c: '#E10600' },
-                    { v: stats.weekMin >= 60 ? `${Math.floor(stats.weekMin / 60)}h ${stats.weekMin % 60}m` : `${stats.weekMin}m`, l: t('mc_stat_time'), c: '#4ade80' },
+                    { n: stats.total, suf: '', l: t('mc_stat_total'), c: '#ffffff' },
+                    { n: isHobby ? stats.streak : stats.week, suf: '', l: isHobby ? t('mc_stat_streak') : t('mc_stat_week'), c: '#E10600' },
+                    { n: stats.weekMin, suf: 'min', l: t('mc_stat_time'), c: '#4ade80' },
                   ].map((s) => (
                     <div key={s.l} className="rk-card" style={{ padding: '22px 14px', textAlign: 'center' }}>
-                      <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(28px,5vw,40px)', lineHeight: 1, color: s.c, margin: 0 }}>{s.v}</p>
+                      <CountUp value={s.n} suffix={s.suf}
+                        style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(28px,5vw,40px)', lineHeight: 1, color: s.c }} />
                       <p className="rk-body" style={{ fontSize: '0.72rem', letterSpacing: '0.16em', textTransform: 'uppercase', marginTop: 8 }}>{s.l}</p>
                     </div>
                   ))}
                 </div>
               </Reveal>
+
+              {/* Últimos 7 días: la carga de la semana de un vistazo, sin leer cifras */}
+              {stats.last7.some((d) => d.min > 0) && (
+                <Reveal delay={175}>
+                  <div className="rk-card" style={{ padding: '18px 20px', transform: 'none' }}>
+                    <p className="text-[11px] font-bold tracking-[0.22em] uppercase text-zinc-600 mb-3">{t('mc_ws_title')}</p>
+                    <div className="flex items-end justify-between gap-1.5" style={{ height: 76 }}>
+                      {stats.last7.map((d) => {
+                        const max = Math.max(...stats.last7.map((x) => x.min), 1);
+                        const h = d.min > 0 ? Math.max(8, Math.round((d.min / max) * 62)) : 3;
+                        const dayLabel = new Date(d.key + 'T12:00:00')
+                          .toLocaleDateString(i18nLocale, { weekday: 'narrow' }).toUpperCase();
+                        return (
+                          <div key={d.key} className="flex-1 flex flex-col items-center gap-1.5 min-w-0">
+                            <span className="text-[9px] text-zinc-600 tabular-nums">{d.min > 0 ? d.min : ''}</span>
+                            <div className="w-full rounded-md rk-bar-fill" style={{
+                              height: h,
+                              background: d.min === 0
+                                ? 'rgba(255,255,255,0.06)'
+                                : d.today ? '#E10600' : 'rgba(225,6,0,0.45)',
+                            }} />
+                            <span className={`text-[10px] font-bold ${d.today ? 'text-red-400' : 'text-zinc-600'}`}>{dayLabel}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </Reveal>
+              )}
 
               {/* AFICIONADO: en qué se enfoca su esquina */}
               {isHobby && (
