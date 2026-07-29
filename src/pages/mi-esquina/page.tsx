@@ -16,6 +16,7 @@ import QuickRoutines from '@/pages/mi-esquina/components/QuickRoutines';
 import WeeklySummary from '@/pages/mi-esquina/components/WeeklySummary';
 import FightPrep from '@/pages/mi-esquina/components/FightPrep';
 import SparringLog from '@/pages/mi-esquina/components/SparringLog';
+import StrengthLog from '@/pages/mi-esquina/components/StrengthLog';
 import TechniqueNotes from '@/pages/mi-esquina/components/TechniqueNotes';
 import GearChecklist from '@/pages/mi-esquina/components/GearChecklist';
 import GearBrands from '@/pages/mi-esquina/components/GearBrands';
@@ -26,7 +27,7 @@ import NotificationBell from '@/components/feature/NotificationBell';
 
 type Section =
   | 'resumen' | 'calendario' | 'diario' | 'rutinas' | 'sparring' | 'notas'
-  | 'peso' | 'objetivos' | 'coach' | 'material' | 'nutricion' | 'timer' | 'mensajes';
+  | 'peso' | 'fuerza' | 'objetivos' | 'coach' | 'material' | 'nutricion' | 'timer' | 'mensajes';
 
 interface SectionDef { id: Section; labelKey: string; icon: string }
 
@@ -41,6 +42,7 @@ const PRO_SECTIONS: SectionDef[] = [
   { id: 'sparring', labelKey: 'mc_nav_sparring', icon: 'ri-boxing-line' },
   { id: 'notas', labelKey: 'mc_nav_notes', icon: 'ri-book-open-line' },
   { id: 'peso', labelKey: 'mc_nav_weight', icon: 'ri-scales-2-line' },
+  { id: 'fuerza', labelKey: 'mc_nav_strength', icon: 'ri-hammer-line' },
   { id: 'objetivos', labelKey: 'mc_nav_goals', icon: 'ri-flag-line' },
   { id: 'coach', labelKey: 'mc_nav_coach', icon: 'ri-sparkling-2-line' },
   { id: 'material', labelKey: 'mc_nav_gear', icon: 'ri-t-shirt-line' },
@@ -57,6 +59,7 @@ const HOBBY_SECTIONS: SectionDef[] = [
   { id: 'diario', labelKey: 'mc_nav_diary', icon: 'ri-calendar-check-line' },
   { id: 'rutinas', labelKey: 'mc_nav_routines', icon: 'ri-repeat-line' },
   { id: 'peso', labelKey: 'mc_nav_progress', icon: 'ri-line-chart-line' },
+  { id: 'fuerza', labelKey: 'mc_nav_strength', icon: 'ri-hammer-line' },
   { id: 'objetivos', labelKey: 'mc_nav_goals', icon: 'ri-flag-line' },
   { id: 'coach', labelKey: 'mc_nav_coach', icon: 'ri-sparkling-2-line' },
   { id: 'material', labelKey: 'mc_nav_gear', icon: 'ri-t-shirt-line' },
@@ -234,7 +237,9 @@ export default function MiEsquinaPage() {
         </div>
 
         {/* Main */}
-        <main className="flex-1 px-4 sm:px-6 lg:px-10 py-8 pt-24 lg:pt-8 pb-16 min-w-0">
+        {/* key = sección: React remonta el contenido y la animación de entrada
+            se reproduce en cada cambio, dando sensación de navegación real */}
+        <main key={activeSection} className="rk-section-in flex-1 px-4 sm:px-6 lg:px-10 py-8 pt-24 lg:pt-8 pb-16 min-w-0">
 
           {/* ══════════ RESUMEN ══════════ */}
           {activeSection === 'resumen' && (
@@ -385,6 +390,8 @@ export default function MiEsquinaPage() {
           {activeSection === 'notas' && !isHobby && <TechniqueNotes profile={profile} showToast={showToast} />}
 
           {activeSection === 'peso' && <WeightTracker profile={profile} showToast={showToast} mode={mode} />}
+
+          {activeSection === 'fuerza' && <StrengthLog profile={profile} showToast={showToast} />}
 
           {activeSection === 'objetivos' && <GoalsPanel profile={profile} showToast={showToast} />}
 
