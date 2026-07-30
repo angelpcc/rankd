@@ -26,6 +26,7 @@ const EventoDetailPage = lazy(() => import('../pages/evento/page'));
 const TermsPage = lazy(() => import('../pages/terms/page'));
 const EsquinaPage = lazy(() => import('../pages/esquina/page'));
 const MiEsquinaPage = lazy(() => import('../pages/mi-esquina/page'));
+const TimerPage = lazy(() => import('../pages/timer/page'));
 const StorePage = lazy(() => import('../pages/tienda/page'));
 const NewsPage = lazy(() => import('../pages/noticias/page'));
 const AdminPage = lazy(() => import('../pages/admin/page'));
@@ -189,6 +190,14 @@ const routes: RouteObject[] = [
     element: (
       <Suspense fallback={<LoadingSpinner />}>
         <MiEsquinaPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/mi-esquina/timer',
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <TimerPage />
       </Suspense>
     ),
   },

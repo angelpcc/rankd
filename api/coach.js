@@ -264,7 +264,7 @@ export default async function handler(req, res) {
     return res.status(503).json({ error: 'not_configured', message: 'La IA aún no está configurada en el servidor.' });
   }
 
-  const { section, profile, messages, extract } = req.body || {};
+  const { section, profile, messages, extract, timerCombos } = req.body || {};
   const buildSystem = SYSTEMS[section];
   if (!buildSystem) return res.status(400).json({ error: 'Sección de IA no válida' });
 
@@ -311,6 +311,45 @@ export default async function handler(req, res) {
     } catch (err) {
       const status = err?.status === 429 ? 429 : 500;
       return res.status(status).json({ error: 'ia_error', message: status === 429 ? 'La IA está saturada, prueba en un momento.' : 'No se pudo extraer el plan.' });
+    }
+  }
+
+  // ── MODO COMBINACIONES DEL TEMPORIZADOR ──
+  // Reparte una combinación por asalto y las devuelve como texto listo para
+  // cargarse en el temporizador. Cuenta como un turno normal de la cuota.
+  if (timerCombos) {
+    const rounds = Math.max(1, Math.min(30, Number(timerCombos.rounds) || 3));
+    const DISC = { boxing: 'boxeo', mma: 'MMA', kickboxing: 'kickboxing', muay_thai: 'Muay Thai' };
+    const disc = DISC[timerCombos.discipline] || 'boxeo';
+    const ask = String(timerCombos.prompt || '').slice(0, 500);
+    try {
+      const response = await anthropic.messages.create({
+        model: MODEL,
+        max_tokens: 900,
+        system: `Eres el entrenador de IA de RANKD. Genera EXACTAMENTE ${rounds} combinaciones de ${disc}, una por asalto.
+Reglas estrictas:
+- Cada combinación es SOLO la secuencia de golpes en notación de gimnasio, separada por comas (ej. "jab, cross, gancho izquierdo" o "jab al cuerpo, cross, salgo lateral").
+- Nada de numeración, títulos ni explicaciones: solo la secuencia.
+- Varía las combinaciones entre asaltos; adáptalas al nivel y a lo que pida el usuario.
+${ask ? `- El usuario quiere trabajar: ${ask}` : ''}
+Responde en el idioma del usuario (por defecto español).`,
+        messages: [...clean, { role: 'user', content: `Dame ${rounds} combinaciones, una por asalto.` }],
+        output_config: { format: { type: 'json_schema', name: 'combos_temporizador', schema: {
+          type: 'object',
+          properties: { combos: { type: 'array', description: 'Una combinación por asalto', items: { type: 'string' } } },
+          required: ['combos'], additionalProperties: false,
+        } } },
+      });
+      const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
+      let out;
+      try { out = JSON.parse(text); } catch { out = null; }
+      await recordUsage(gate.db, gate.user.id, section, 'chat', response.usage);
+      const combos = Array.isArray(out?.combos) ? out.combos.filter((c) => typeof c === 'string' && c.trim()).map((c) => c.trim()) : [];
+      if (combos.length === 0) return res.status(422).json({ error: 'no_combos', message: 'No se pudieron generar combinaciones.' });
+      return res.status(200).json({ combos });
+    } catch (err) {
+      const status = err?.status === 429 ? 429 : 500;
+      return res.status(status).json({ error: 'ia_error', message: status === 429 ? 'La IA está saturada, prueba en un momento.' : 'No se pudieron generar las combinaciones.' });
     }
   }
 

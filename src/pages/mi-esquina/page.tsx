@@ -6,7 +6,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSEO } from '@/hooks/useSEO';
 import FighterTraining from '@/pages/dashboard/components/FighterTraining';
 import MessagesPanel from '@/pages/dashboard/components/messages/MessagesPanel';
-import RoundTimer from '@/pages/mi-esquina/components/RoundTimer';
 import TrainingCalendar from '@/pages/mi-esquina/components/TrainingCalendar';
 import NutritionTracker from '@/pages/mi-esquina/components/NutritionTracker';
 import WeightTracker from '@/pages/mi-esquina/components/WeightTracker';
@@ -246,7 +245,7 @@ export default function MiEsquinaPage() {
         <aside className="hidden lg:flex flex-col w-60 flex-shrink-0 border-r border-zinc-800/70 py-6 px-3 sticky h-[calc(100vh-3.5rem)] overflow-y-auto" style={{ top: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
           <nav className="space-y-1 flex-1">
             {SECTIONS.map((s) => (
-              <button key={s.id} onClick={() => setSection(s.id)}
+              <button key={s.id} onClick={() => (s.id === 'timer' ? navigate('/mi-esquina/timer') : setSection(s.id))}
                 className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer text-left ${activeSection === s.id ? 'bg-red-600 text-white shadow-lg shadow-red-600/25' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/70'}`}>
                 <i className={`${s.icon} text-base flex-shrink-0`}></i>
                 <span className="flex-1">{t(s.labelKey)}</span>
@@ -263,7 +262,7 @@ export default function MiEsquinaPage() {
         <div className="lg:hidden fixed left-0 right-0 z-30 bg-zinc-950/95 backdrop-blur border-b border-zinc-800 overflow-x-auto" style={{ top: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
           <div className="flex px-3 py-2 gap-1 min-w-max">
             {SECTIONS.map((s) => (
-              <button key={s.id} onClick={() => setSection(s.id)}
+              <button key={s.id} onClick={() => (s.id === 'timer' ? navigate('/mi-esquina/timer') : setSection(s.id))}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${activeSection === s.id ? 'bg-red-600 text-white' : 'text-zinc-400'}`}>
                 <i className={s.icon}></i>{t(s.labelKey)}
               </button>
@@ -474,8 +473,6 @@ export default function MiEsquinaPage() {
           {activeSection === 'documentos' && !isHobby && <DocumentsPanel profile={profile} showToast={showToast} />}
 
           {activeSection === 'compartir' && <ShareProgress profile={profile} mode={mode} showToast={showToast} />}
-
-          {activeSection === 'timer' && <RoundTimer />}
 
           {activeSection === 'mensajes' && <div className="max-w-5xl"><MessagesPanel currentUserId={profile.id} /></div>}
 
