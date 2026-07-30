@@ -587,6 +587,7 @@ export default {
   mc_ng_sleep_t: 'The free supplement: sleep',
   mc_ng_sleep_b: '7-9 hours. Sleep is where you absorb training, recover and lock in technique. Training hard on little sleep is training at half power.',
   mc_ng_disclaimer: 'General informational content, not a substitute for advice from a doctor or registered dietitian. If you compete or have weight goals, work with a professional.',
+  mc_ng_safety_banner: 'Everything in this section is guidance only and does not replace a doctor or a registered dietitian. For any medical condition, pregnancy or problem with food, see a professional.',
   mc_ng_log_title: 'YOUR DIET, DAY BY DAY',
   mc_ng_log_head: 'NUTRITION',
   mc_ng_log_head_2: 'COACH',

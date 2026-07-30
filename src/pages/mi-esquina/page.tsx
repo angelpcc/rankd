@@ -543,6 +543,12 @@ export default function MiEsquinaPage() {
           {/* ══ NUTRICIÓN ══ */}
           {activeSection === 'nutricion' && (
             <div className="space-y-8 max-w-4xl">
+              {/* Aviso sanitario permanente y visible desde el primer momento */}
+              <div className="flex items-start gap-3 rounded-2xl border border-[#C9A84C]/30 bg-[#C9A84C]/[0.07] px-4 py-3.5">
+                <i className="ri-heart-pulse-line text-[#C9A84C] text-lg mt-0.5 flex-shrink-0"></i>
+                <p className="text-xs text-zinc-300 leading-relaxed">{t('mc_ng_safety_banner')}</p>
+              </div>
+
               <NutritionTracker profile={profile} showToast={showToast} onGoWeight={() => go('progreso', 'peso')} />
 
               <div className="rk-rule" style={{ width: '100%', opacity: 0.5 }} />

@@ -587,6 +587,7 @@ export default {
   mc_ng_sleep_t: 'El suplemento gratis: dormir',
   mc_ng_sleep_b: '7-9 horas. El sueño es donde asimilas el entrenamiento, recuperas y consolidas técnica. Entrenar mucho durmiendo poco es entrenar a medias.',
   mc_ng_disclaimer: 'Contenido informativo general, no sustituye el consejo de un médico o dietista-nutricionista. Si compites o tienes objetivos de peso, trabaja con un profesional.',
+  mc_ng_safety_banner: 'Todo lo de esta sección es orientativo y no sustituye a un médico ni a un dietista-nutricionista colegiado. Ante cualquier patología, embarazo o problema con la comida, consulta a un profesional.',
   mc_ng_log_title: 'TU DIETA, A DIARIO',
   mc_ng_log_head: 'COACH DE',
   mc_ng_log_head_2: 'NUTRICIÓN',
