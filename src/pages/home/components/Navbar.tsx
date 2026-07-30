@@ -50,36 +50,47 @@ export default function Navbar() {
         ? 'brand'
         : 'org'; // promoter, gym, manager
 
+  // R12-T12: menú de escritorio ajustado por rol para que cada perfil vea
+  // solo lo suyo. "Crear cuenta" (visitante) y el acceso al panel (roles con
+  // sesión) viven en los botones de la derecha, no en esta lista.
   const NAV_BY_ROLE: Record<typeof role, NavLink[]> = {
     visitor: [
-      { labelKey: 'nav_how_it_works', href: '/como-funciona', isAnchor: false },
-      { labelKey: 'nav_directory', href: '/fighters', isAnchor: false },
+      { labelKey: 'nav_home', href: '/beta', isAnchor: false },
       { labelKey: 'nav_events', href: '/eventos', isAnchor: false },
       { labelKey: 'nav_news', href: '/noticias', isAnchor: false },
       { labelKey: 'nav_brands', href: '/brands', isAnchor: false },
+      { labelKey: 'nav_promoters', href: '/promotoras', isAnchor: false },
     ],
+    // El aficionado no compite: se deja fuera Oportunidades a propósito.
     fighter_hobby: [
       { labelKey: 'nav_my_corner', href: '/mi-esquina', isAnchor: false },
       { labelKey: 'nav_events', href: '/eventos', isAnchor: false },
-      { labelKey: 'nav_news', href: '/noticias', isAnchor: false },
       { labelKey: 'nav_brands', href: '/brands', isAnchor: false },
+      { labelKey: 'nav_news', href: '/noticias', isAnchor: false },
+      { labelKey: 'nav_messages', href: '/dashboard?tab=messages', isAnchor: false },
     ],
     fighter_pro: [
       { labelKey: 'nav_my_corner', href: '/mi-esquina', isAnchor: false },
       { labelKey: 'nav_opportunities', href: '/opportunities', isAnchor: false },
-      { labelKey: 'nav_directory', href: '/fighters', isAnchor: false },
+      { labelKey: 'nav_events', href: '/eventos', isAnchor: false },
+      { labelKey: 'nav_brands', href: '/brands', isAnchor: false },
       { labelKey: 'nav_news', href: '/noticias', isAnchor: false },
+      { labelKey: 'nav_messages', href: '/dashboard?tab=messages', isAnchor: false },
     ],
     org: [
-      { labelKey: 'nav_my_panel', href: '/dashboard', isAnchor: false },
-      { labelKey: 'nav_directory', href: '/fighters', isAnchor: false },
       { labelKey: 'nav_events', href: '/eventos', isAnchor: false },
+      { labelKey: 'nav_directory', href: '/fighters', isAnchor: false },
+      { labelKey: 'nav_brands', href: '/brands', isAnchor: false },
+      { labelKey: 'nav_opportunities', href: '/opportunities', isAnchor: false },
+      { labelKey: 'nav_news', href: '/noticias', isAnchor: false },
       { labelKey: 'nav_messages', href: '/dashboard?tab=messages', isAnchor: false },
     ],
     brand: [
-      { labelKey: 'nav_my_panel', href: '/dashboard', isAnchor: false },
       { labelKey: 'nav_directory', href: '/fighters', isAnchor: false },
-      { labelKey: 'nav_brands', href: '/brands', isAnchor: false },
+      { labelKey: 'nav_promoters', href: '/promotoras', isAnchor: false },
+      { labelKey: 'nav_events', href: '/eventos', isAnchor: false },
+      { labelKey: 'nav_opportunities', href: '/opportunities', isAnchor: false },
+      { labelKey: 'nav_news', href: '/noticias', isAnchor: false },
       { labelKey: 'nav_messages', href: '/dashboard?tab=messages', isAnchor: false },
     ],
   };
@@ -149,7 +160,7 @@ export default function Navbar() {
           </a>
 
           {/* Desktop Links */}
-          <ul className="nav-desktop" style={{ display: 'flex', alignItems: 'center', gap: 32, listStyle: 'none', margin: 0, padding: 0 }}>
+          <ul className="nav-desktop" style={{ display: 'flex', alignItems: 'center', gap: 24, listStyle: 'none', margin: 0, padding: 0 }}>
             {navLinks.map((link) => (
               <li key={link.href}>
                 <a href={link.href} onClick={(e) => { e.preventDefault(); handleNav(link.href); }}
