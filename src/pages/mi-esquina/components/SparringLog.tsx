@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
-import { isMissingTable } from '@/lib/dbState';
+import { isMissingTable, isMissingColumn } from '@/lib/dbState';
+import SparringPlayer from '@/pages/mi-esquina/components/SparringPlayer';
 
 interface Props {
   profile: Profile;
@@ -19,7 +20,14 @@ interface Sparring {
   what_worked: string | null;
   what_didnt: string | null;
   notes: string | null;
+  video_path: string | null;
+  video_url: string | null;
+  video_kind: string | null;
 }
+
+// Tope de subida: 500 MB (igual que el bucket). El vídeo pesa mucho; para
+// sesiones largas es mejor un enlace externo.
+const MAX_UPLOAD_MB = 500;
 
 const LEVELS = [
   { value: 'similar', key: 'mc_sp_level_similar', color: '#38bdf8' },
@@ -55,6 +63,12 @@ export default function SparringLog({ profile, showToast }: Props) {
   const [worked, setWorked] = useState('');
   const [didnt, setDidnt] = useState('');
   const [notes, setNotes] = useState('');
+  // Vídeo del sparring: sin vídeo / subir archivo / enlace externo
+  const [videoMode, setVideoMode] = useState<'none' | 'upload' | 'external'>('none');
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoLink, setVideoLink] = useState('');
+  // Sparring abierto en el reproductor
+  const [playing, setPlaying] = useState<Sparring | null>(null);
 
   const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
 
@@ -74,11 +88,39 @@ export default function SparringLog({ profile, showToast }: Props) {
   const reset = () => {
     setDate(todayISO()); setRounds('5'); setRoundMin('3'); setPartner('');
     setLevel('similar'); setIntensity(3); setWorked(''); setDidnt(''); setNotes('');
+    setVideoMode('none'); setVideoFile(null); setVideoLink('');
+  };
+
+  const onPickVideo = (f: File | null) => {
+    if (!f) { setVideoFile(null); return; }
+    if (f.size > MAX_UPLOAD_MB * 1024 * 1024) { showToast(t('mc_sv_too_big', { mb: MAX_UPLOAD_MB }), 'error'); return; }
+    setVideoFile(f);
   };
 
   const create = async () => {
     setSaving(true);
-    const { data, error } = await supabase.from('sparring_sessions').insert({
+
+    // 1) Si hay archivo, se sube primero a la carpeta privada del usuario.
+    let uploadedPath: string | null = null;
+    let video_path: string | null = null;
+    let video_url: string | null = null;
+    let video_kind: string | null = null;
+    if (videoMode === 'upload' && videoFile) {
+      const ext = (videoFile.name.split('.').pop() || 'mp4').toLowerCase();
+      const path = `${profile.id}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from('sparring-videos').upload(path, videoFile, { contentType: videoFile.type || 'video/mp4' });
+      if (upErr) {
+        // El bucket puede no existir aún (migración 0020 sin aplicar): guardamos
+        // el sparring sin vídeo en vez de perder el registro entero.
+        showToast(t('mc_sv_upload_fail'), 'error');
+      } else {
+        uploadedPath = path; video_path = path; video_kind = 'upload';
+      }
+    } else if (videoMode === 'external' && videoLink.trim()) {
+      video_url = videoLink.trim(); video_kind = 'external';
+    }
+
+    const base = {
       fighter_profile_id: profile.id,
       session_date: date,
       rounds: parseInt(rounds, 10) || 1,
@@ -89,20 +131,37 @@ export default function SparringLog({ profile, showToast }: Props) {
       what_worked: worked.trim() || null,
       what_didnt: didnt.trim() || null,
       notes: notes.trim() || null,
-    }).select().maybeSingle();
+    };
+
+    let res = await supabase.from('sparring_sessions').insert({ ...base, video_path, video_url, video_kind }).select().maybeSingle();
+    if (res.error && isMissingColumn(res.error)) {
+      // Migración 0020 sin aplicar: guardamos el sparring sin las columnas de vídeo.
+      if (uploadedPath) await supabase.storage.from('sparring-videos').remove([uploadedPath]);
+      res = await supabase.from('sparring_sessions').insert(base).select().maybeSingle();
+      if (!res.error && res.data) showToast(t('mc_sv_video_soon'), 'error');
+    }
     setSaving(false);
-    if (error || !data) { showToast(t('error_save'), 'error'); return; }
-    setItems((prev) => [data as Sparring, ...prev].sort((a, b) => b.session_date.localeCompare(a.session_date)));
+    if (res.error || !res.data) {
+      if (uploadedPath) await supabase.storage.from('sparring-videos').remove([uploadedPath]);
+      showToast(t('error_save'), 'error');
+      return;
+    }
+    setItems((prev) => [res.data as Sparring, ...prev].sort((a, b) => b.session_date.localeCompare(a.session_date)));
     setShowForm(false);
     reset();
     showToast(t('mc_sp_saved'));
   };
 
   const remove = async (id: string) => {
+    const target = items.find((x) => x.id === id);
     setItems((prev) => prev.filter((x) => x.id !== id));
     const { error } = await supabase.from('sparring_sessions').delete().eq('id', id);
-    if (error) { showToast(t('error_save'), 'error'); load(); }
+    if (error) { showToast(t('error_save'), 'error'); load(); return; }
+    // Al borrar en cascada se van las notas; el archivo de vídeo hay que quitarlo a mano.
+    if (target?.video_path) await supabase.storage.from('sparring-videos').remove([target.video_path]);
   };
+
+  const hasVideo = (x: Sparring) => !!(x.video_path || x.video_url);
 
   // Cifras de los últimos 30 días: es la ventana que importa antes de pelear.
   const stats = useMemo(() => {
@@ -135,6 +194,11 @@ export default function SparringLog({ profile, showToast }: Props) {
         <p className="text-sm text-zinc-400 mt-2 leading-relaxed">{t('mc_coming_soon_desc')}</p>
       </div>
     );
+  }
+
+  // Reproductor a pantalla completa del sparring seleccionado.
+  if (playing) {
+    return <SparringPlayer profile={profile} sparring={playing} showToast={showToast} onBack={() => setPlaying(null)} />;
   }
 
   return (
@@ -205,10 +269,17 @@ export default function SparringLog({ profile, showToast }: Props) {
             return (
               <div key={x.id} className="rk-card group" style={{ padding: '18px 20px' }}>
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 flex-shrink-0 flex flex-col items-center justify-center rounded-xl bg-red-600/12 border border-red-500/30">
-                    <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, lineHeight: 1, color: '#E10600' }}>{x.rounds}</span>
-                    <span className="text-[8px] text-zinc-500 uppercase tracking-wider">{t('mc_sp_rounds_short')}</span>
-                  </div>
+                  {hasVideo(x) ? (
+                    <button onClick={() => setPlaying(x)} aria-label={t('mc_sv_watch')}
+                      className="w-12 h-12 flex-shrink-0 relative flex items-center justify-center rounded-xl bg-red-600 border border-red-500 cursor-pointer hover:bg-red-500 transition-colors">
+                      <i className="ri-play-fill text-white text-2xl"></i>
+                    </button>
+                  ) : (
+                    <div className="w-12 h-12 flex-shrink-0 flex flex-col items-center justify-center rounded-xl bg-red-600/12 border border-red-500/30">
+                      <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, lineHeight: 1, color: '#E10600' }}>{x.rounds}</span>
+                      <span className="text-[8px] text-zinc-500 uppercase tracking-wider">{t('mc_sp_rounds_short')}</span>
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-bold text-white">
@@ -220,6 +291,11 @@ export default function SparringLog({ profile, showToast }: Props) {
                           style={{ background: `${lvl.color}18`, borderColor: `${lvl.color}44`, color: lvl.color }}>
                           {t(lvl.key)}
                         </span>
+                      )}
+                      {hasVideo(x) && (
+                        <button onClick={() => setPlaying(x)} className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-red-500/40 text-red-400 bg-red-600/10 inline-flex items-center gap-1 cursor-pointer hover:bg-red-600/20 transition-colors">
+                          <i className="ri-vidicon-line"></i>{t('mc_sv_watch')}
+                        </button>
                       )}
                     </div>
                     <p className="text-xs text-zinc-500 mt-0.5 capitalize">
@@ -319,6 +395,50 @@ export default function SparringLog({ profile, showToast }: Props) {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Vídeo del sparring: subir o enlazar */}
+              <div>
+                <label className="block text-xs text-zinc-400 mb-2">
+                  {t('mc_sv_video')} <span className="text-zinc-600">({t('mc_optional')})</span>
+                </label>
+                <div className="grid grid-cols-3 gap-2 mb-2.5">
+                  {([
+                    { v: 'none', key: 'mc_sv_mode_none', icon: 'ri-close-line' },
+                    { v: 'upload', key: 'mc_sv_mode_upload', icon: 'ri-upload-2-line' },
+                    { v: 'external', key: 'mc_sv_mode_link', icon: 'ri-links-line' },
+                  ] as const).map((m) => (
+                    <button key={m.v} type="button" onClick={() => { setVideoMode(m.v); if (m.v !== 'upload') setVideoFile(null); if (m.v !== 'external') setVideoLink(''); }}
+                      className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-[11px] font-bold transition-all cursor-pointer ${videoMode === m.v ? 'bg-red-600/20 border-red-500/50 text-red-400' : 'bg-white/[0.02] border-white/10 text-zinc-500 hover:border-white/20'}`}>
+                      <i className={m.icon}></i>{t(m.key)}
+                    </button>
+                  ))}
+                </div>
+                {videoMode === 'upload' && (
+                  <div>
+                    {videoFile ? (
+                      <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
+                        <i className="ri-film-line text-red-400"></i>
+                        <span className="flex-1 min-w-0 truncate text-xs text-zinc-300">{videoFile.name}</span>
+                        <span className="text-[10px] text-zinc-500">{(videoFile.size / 1048576).toFixed(0)} MB</span>
+                        <button type="button" onClick={() => setVideoFile(null)} className="text-zinc-500 hover:text-red-400 cursor-pointer p-1" aria-label={t('mc_close')}><i className="ri-close-line"></i></button>
+                      </div>
+                    ) : (
+                      <label className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 bg-white/[0.02] px-3 py-4 cursor-pointer hover:border-white/30 transition-colors text-sm text-zinc-400">
+                        <i className="ri-upload-cloud-2-line text-lg"></i>{t('mc_sv_pick_file')}
+                        <input type="file" accept="video/*" className="hidden" onChange={(e) => onPickVideo(e.target.files?.[0] || null)} />
+                      </label>
+                    )}
+                    <p className="text-[11px] text-zinc-600 mt-1.5">{t('mc_sv_upload_hint', { mb: MAX_UPLOAD_MB })}</p>
+                  </div>
+                )}
+                {videoMode === 'external' && (
+                  <div>
+                    <input value={videoLink} onChange={(e) => setVideoLink(e.target.value)} inputMode="url" placeholder={t('mc_sv_link_ph')}
+                      className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" />
+                    <p className="text-[11px] text-zinc-600 mt-1.5">{t('mc_sv_link_hint')}</p>
+                  </div>
+                )}
               </div>
 
               <div>
