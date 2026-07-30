@@ -4,22 +4,18 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useSEO } from '@/hooks/useSEO';
-import FighterTraining from '@/pages/dashboard/components/FighterTraining';
 import MessagesPanel from '@/pages/dashboard/components/messages/MessagesPanel';
-import TrainingCalendar from '@/pages/mi-esquina/components/TrainingCalendar';
 import NutritionTracker from '@/pages/mi-esquina/components/NutritionTracker';
-import WeightTracker from '@/pages/mi-esquina/components/WeightTracker';
 import GoalsPanel from '@/pages/mi-esquina/components/GoalsPanel';
 import ShareProgress from '@/pages/mi-esquina/components/ShareProgress';
 import DocumentsPanel, { DocumentExpiryAlert } from '@/pages/mi-esquina/components/DocumentsPanel';
-import FightAnalysis from '@/pages/mi-esquina/components/FightAnalysis';
 import DailyCheckin from '@/pages/mi-esquina/components/DailyCheckin';
 import QuickRoutines from '@/pages/mi-esquina/components/QuickRoutines';
 import WeeklySummary from '@/pages/mi-esquina/components/WeeklySummary';
 import FightPrep from '@/pages/mi-esquina/components/FightPrep';
-import SparringLog from '@/pages/mi-esquina/components/SparringLog';
-import StrengthLog from '@/pages/mi-esquina/components/StrengthLog';
-import TechniqueNotes from '@/pages/mi-esquina/components/TechniqueNotes';
+import AgendaHub from '@/pages/mi-esquina/components/AgendaHub';
+import ProgressHub from '@/pages/mi-esquina/components/ProgressHub';
+import RingHub from '@/pages/mi-esquina/components/RingHub';
 import GearChecklist, { GearReplacementAlert } from '@/pages/mi-esquina/components/GearChecklist';
 import GearBrands from '@/pages/mi-esquina/components/GearBrands';
 import SectionCoach from '@/pages/mi-esquina/components/SectionCoach';
@@ -28,28 +24,31 @@ import Reveal from '@/components/base/Reveal';
 import CountUp from '@/components/base/CountUp';
 import NotificationBell from '@/components/feature/NotificationBell';
 
+// R12-T0: la barra lateral se reorganizó de 17/13 a 11/9 secciones fusionando
+// grupos que se solapaban. 'agenda' = calendario+diario+rutinas,
+// 'progreso' = peso+fuerza, 'ring' = sparring+combates+notas técnicas.
+// 'compartir' deja de ser sección de barra lateral y vive como acción del
+// resumen (sigue siendo un destino válido, por eso se mantiene en el tipo).
 type Section =
-  | 'resumen' | 'calendario' | 'diario' | 'rutinas' | 'sparring' | 'notas' | 'combates'
-  | 'peso' | 'fuerza' | 'objetivos' | 'documentos' | 'compartir' | 'coach' | 'material' | 'nutricion' | 'timer' | 'mensajes';
+  | 'resumen' | 'agenda' | 'progreso' | 'ring' | 'objetivos' | 'documentos'
+  | 'compartir' | 'coach' | 'material' | 'nutricion' | 'timer' | 'mensajes';
 
 interface SectionDef { id: Section; labelKey: string; icon: string }
 
+// Secciones alcanzables por botón (no viven en la barra lateral) pero que
+// siguen siendo destinos válidos que deben renderizarse.
+const EXTRA_SECTIONS: Section[] = ['compartir'];
+
 // ── Qué ve cada perfil ──
-// El que compite lo tiene TODO: sparring y libreta técnica son suyos, y el
-// calendario y el peso van enfocados al combate.
+// El que compite lo tiene TODO: el Ring (sparring, combates y libreta técnica)
+// es suyo, y la Agenda y el Peso van enfocados al combate.
 const PRO_SECTIONS: SectionDef[] = [
   { id: 'resumen', labelKey: 'mc_nav_summary', icon: 'ri-dashboard-line' },
-  { id: 'calendario', labelKey: 'mc_nav_calendar', icon: 'ri-calendar-2-line' },
-  { id: 'diario', labelKey: 'mc_nav_diary', icon: 'ri-calendar-check-line' },
-  { id: 'rutinas', labelKey: 'mc_nav_routines', icon: 'ri-repeat-line' },
-  { id: 'sparring', labelKey: 'mc_nav_sparring', icon: 'ri-boxing-line' },
-  { id: 'notas', labelKey: 'mc_nav_notes', icon: 'ri-book-open-line' },
-  { id: 'combates', labelKey: 'mc_nav_fights', icon: 'ri-sword-line' },
-  { id: 'peso', labelKey: 'mc_nav_weight', icon: 'ri-scales-2-line' },
-  { id: 'fuerza', labelKey: 'mc_nav_strength', icon: 'ri-hammer-line' },
+  { id: 'agenda', labelKey: 'mc_nav_agenda', icon: 'ri-calendar-todo-line' },
+  { id: 'progreso', labelKey: 'mc_nav_progress_hub', icon: 'ri-line-chart-line' },
+  { id: 'ring', labelKey: 'mc_nav_ring', icon: 'ri-boxing-line' },
   { id: 'objetivos', labelKey: 'mc_nav_goals', icon: 'ri-flag-line' },
   { id: 'documentos', labelKey: 'mc_nav_docs', icon: 'ri-folder-shield-2-line' },
-  { id: 'compartir', labelKey: 'mc_nav_share', icon: 'ri-share-forward-line' },
   { id: 'coach', labelKey: 'mc_nav_coach', icon: 'ri-sparkling-2-line' },
   { id: 'material', labelKey: 'mc_nav_gear', icon: 'ri-t-shirt-line' },
   { id: 'nutricion', labelKey: 'mc_nav_nutrition', icon: 'ri-restaurant-line' },
@@ -57,17 +56,13 @@ const PRO_SECTIONS: SectionDef[] = [
   { id: 'mensajes', labelKey: 'mc_nav_messages', icon: 'ri-message-3-line' },
 ];
 
-// El aficionado ve menos, pero todo lo que ve es suyo: nada de sparring,
-// libreta técnica ni categorías de peso, que solo serían ruido.
+// El aficionado ve menos, pero todo lo que ve es suyo: nada de Ring ni
+// documentos de competición, que solo serían ruido.
 const HOBBY_SECTIONS: SectionDef[] = [
   { id: 'resumen', labelKey: 'mc_nav_summary', icon: 'ri-dashboard-line' },
-  { id: 'calendario', labelKey: 'mc_nav_calendar', icon: 'ri-calendar-2-line' },
-  { id: 'diario', labelKey: 'mc_nav_diary', icon: 'ri-calendar-check-line' },
-  { id: 'rutinas', labelKey: 'mc_nav_routines', icon: 'ri-repeat-line' },
-  { id: 'peso', labelKey: 'mc_nav_progress', icon: 'ri-line-chart-line' },
-  { id: 'fuerza', labelKey: 'mc_nav_strength', icon: 'ri-hammer-line' },
+  { id: 'agenda', labelKey: 'mc_nav_agenda', icon: 'ri-calendar-todo-line' },
+  { id: 'progreso', labelKey: 'mc_nav_progress_hub', icon: 'ri-line-chart-line' },
   { id: 'objetivos', labelKey: 'mc_nav_goals', icon: 'ri-flag-line' },
-  { id: 'compartir', labelKey: 'mc_nav_share', icon: 'ri-share-forward-line' },
   { id: 'coach', labelKey: 'mc_nav_coach', icon: 'ri-sparkling-2-line' },
   { id: 'material', labelKey: 'mc_nav_gear', icon: 'ri-t-shirt-line' },
   { id: 'nutricion', labelKey: 'mc_nav_nutrition', icon: 'ri-restaurant-line' },
@@ -81,6 +76,8 @@ export default function MiEsquinaPage() {
   const i18nLocale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
   const { user, profile, loading: authLoading } = useAuth();
   const [section, setSection] = useState<Section>('resumen');
+  // Pestaña con la que abrir un hub (Agenda/Progreso/Ring) desde un acceso rápido.
+  const [pendingTab, setPendingTab] = useState<string | undefined>(undefined);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [stats, setStats] = useState({
     total: 0, week: 0, weekMin: 0, todayLogged: false, streak: 0, lastWeekMin: 0,
@@ -166,8 +163,13 @@ export default function MiEsquinaPage() {
   const firstName = (profile.full_name || '').split(' ')[0] || 'RANKD';
 
   // Si el perfil cambia de modo, una sección que ya no existe dejaría la
-  // pantalla en blanco: en ese caso volvemos al resumen.
-  const activeSection: Section = SECTIONS.some((s) => s.id === section) ? section : 'resumen';
+  // pantalla en blanco: en ese caso volvemos al resumen. Las EXTRA_SECTIONS
+  // (compartir) no están en la barra pero siguen siendo destinos válidos.
+  const activeSection: Section =
+    SECTIONS.some((s) => s.id === section) || EXTRA_SECTIONS.includes(section) ? section : 'resumen';
+
+  // Navega a una sección y, opcionalmente, abre un hub en una pestaña concreta.
+  const go = (s: Section, tab?: string) => { setPendingTab(tab); setSection(s); };
 
   // Guía de nutrición: el bloque de peso cambia según el perfil.
   const NUTRITION_GUIDE = [
@@ -181,21 +183,23 @@ export default function MiEsquinaPage() {
     { icon: 'ri-moon-line', t: 'mc_ng_sleep_t', b: 'mc_ng_sleep_b' },
   ];
 
-  // Accesos rápidos del resumen, distintos por perfil.
-  const QUICK_CARDS: { s: Section; icon: string; titleKey: string }[] = isHobby
+  // Accesos rápidos del resumen, distintos por perfil. `tab` abre el hub en la
+  // pestaña indicada. Compartir vive aquí ahora que dejó la barra lateral.
+  const QUICK_CARDS: { s: Section; tab?: string; icon: string; titleKey: string }[] = isHobby
     ? [
-        { s: 'diario', icon: 'ri-calendar-check-line', titleKey: 'mc_nav_diary' },
-        { s: 'rutinas', icon: 'ri-repeat-line', titleKey: 'mc_nav_routines' },
-        { s: 'peso', icon: 'ri-line-chart-line', titleKey: 'mc_nav_progress' },
+        { s: 'agenda', tab: 'diario', icon: 'ri-calendar-check-line', titleKey: 'mc_nav_diary' },
+        { s: 'agenda', tab: 'rutinas', icon: 'ri-repeat-line', titleKey: 'mc_nav_routines' },
+        { s: 'progreso', tab: 'peso', icon: 'ri-line-chart-line', titleKey: 'mc_nav_progress' },
         { s: 'coach', icon: 'ri-sparkling-2-line', titleKey: 'mc_nav_coach' },
+        { s: 'compartir', icon: 'ri-share-forward-line', titleKey: 'mc_nav_share' },
       ]
     : [
-        { s: 'diario', icon: 'ri-calendar-check-line', titleKey: 'mc_nav_diary' },
-        { s: 'sparring', icon: 'ri-boxing-line', titleKey: 'mc_nav_sparring' },
-        { s: 'notas', icon: 'ri-book-open-line', titleKey: 'mc_nav_notes' },
-        { s: 'peso', icon: 'ri-scales-2-line', titleKey: 'mc_nav_weight' },
-        { s: 'calendario', icon: 'ri-calendar-2-line', titleKey: 'mc_nav_calendar' },
+        { s: 'agenda', tab: 'diario', icon: 'ri-calendar-check-line', titleKey: 'mc_nav_diary' },
+        { s: 'ring', tab: 'sparring', icon: 'ri-boxing-line', titleKey: 'mc_nav_sparring' },
+        { s: 'progreso', tab: 'peso', icon: 'ri-scales-2-line', titleKey: 'mc_nav_weight' },
+        { s: 'agenda', tab: 'plan', icon: 'ri-calendar-2-line', titleKey: 'mc_nav_calendar' },
         { s: 'coach', icon: 'ri-sparkling-2-line', titleKey: 'mc_nav_coach' },
+        { s: 'compartir', icon: 'ri-share-forward-line', titleKey: 'mc_nav_share' },
       ];
 
   return (
@@ -245,7 +249,7 @@ export default function MiEsquinaPage() {
         <aside className="hidden lg:flex flex-col w-60 flex-shrink-0 border-r border-zinc-800/70 py-6 px-3 sticky h-[calc(100vh-3.5rem)] overflow-y-auto" style={{ top: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
           <nav className="space-y-1 flex-1">
             {SECTIONS.map((s) => (
-              <button key={s.id} onClick={() => (s.id === 'timer' ? navigate('/mi-esquina/timer') : setSection(s.id))}
+              <button key={s.id} onClick={() => (s.id === 'timer' ? navigate('/mi-esquina/timer') : go(s.id))}
                 className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer text-left ${activeSection === s.id ? 'bg-red-600 text-white shadow-lg shadow-red-600/25' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/70'}`}>
                 <i className={`${s.icon} text-base flex-shrink-0`}></i>
                 <span className="flex-1">{t(s.labelKey)}</span>
@@ -262,7 +266,7 @@ export default function MiEsquinaPage() {
         <div className="lg:hidden fixed left-0 right-0 z-30 bg-zinc-950/95 backdrop-blur border-b border-zinc-800 overflow-x-auto" style={{ top: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
           <div className="flex px-3 py-2 gap-1 min-w-max">
             {SECTIONS.map((s) => (
-              <button key={s.id} onClick={() => (s.id === 'timer' ? navigate('/mi-esquina/timer') : setSection(s.id))}
+              <button key={s.id} onClick={() => (s.id === 'timer' ? navigate('/mi-esquina/timer') : go(s.id))}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${activeSection === s.id ? 'bg-red-600 text-white' : 'text-zinc-400'}`}>
                 <i className={s.icon}></i>{t(s.labelKey)}
               </button>
@@ -281,7 +285,7 @@ export default function MiEsquinaPage() {
               {/* PRO: lo primero es el combate que viene */}
               {!isHobby && (
                 <Reveal>
-                  <FightPrep profile={profile} onOpenCalendar={() => setSection('calendario')} />
+                  <FightPrep profile={profile} onOpenCalendar={() => go('agenda', 'plan')} />
                 </Reveal>
               )}
 
@@ -338,7 +342,7 @@ export default function MiEsquinaPage() {
                         <p className="text-sm font-bold text-white">{t('mc_today_pending')}</p>
                         <p className="text-xs text-zinc-400 mt-0.5">{stats.streak > 0 ? t('mc_today_streak_risk', { n: stats.streak }) : t('mc_today_streak_start')}</p>
                       </div>
-                      <button onClick={() => setSection('diario')} className="rk-btn rk-btn-primary flex-shrink-0 w-full sm:w-auto" style={{ fontSize: '0.8rem', padding: '0.6rem 1.2rem' }}>
+                      <button onClick={() => go('agenda', 'diario')} className="rk-btn rk-btn-primary flex-shrink-0 w-full sm:w-auto" style={{ fontSize: '0.8rem', padding: '0.6rem 1.2rem' }}>
                         {t('mc_today_cta')}
                       </button>
                     </div>
@@ -440,7 +444,7 @@ export default function MiEsquinaPage() {
               <Reveal delay={200}>
                 <div className="grid sm:grid-cols-2 gap-3">
                   {QUICK_CARDS.map((c) => (
-                    <button key={c.s} onClick={() => setSection(c.s)} className="rk-card text-left group flex items-center gap-3.5" style={{ padding: 18, cursor: 'pointer' }}>
+                    <button key={`${c.s}-${c.tab || ''}`} onClick={() => go(c.s, c.tab)} className="rk-card text-left group flex items-center gap-3.5" style={{ padding: 18, cursor: 'pointer' }}>
                       <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl bg-red-600/12 border border-red-500/25 text-red-400"><i className={`${c.icon} text-lg`}></i></div>
                       <p className="text-sm font-bold text-white flex-1">{t(c.titleKey)}</p>
                       <i className="ri-arrow-right-line text-zinc-600 group-hover:text-red-400 transition-colors"></i>
@@ -452,21 +456,21 @@ export default function MiEsquinaPage() {
           )}
 
           {/* ══════════ SECCIONES ══════════ */}
-          {activeSection === 'diario' && <FighterTraining profile={profile} showToast={showToast} />}
+          {/* Agenda: plan + diario + rutinas (R12-T0) */}
+          {activeSection === 'agenda' && (
+            <AgendaHub profile={profile} showToast={showToast} mode={mode}
+              onLogged={() => setRefreshKey((k) => k + 1)} initialTab={pendingTab} />
+          )}
 
-          {activeSection === 'rutinas' && <QuickRoutines profile={profile} showToast={showToast} onLogged={() => setRefreshKey((k) => k + 1)} />}
+          {/* Progreso: peso + fuerza (R12-T0) */}
+          {activeSection === 'progreso' && (
+            <ProgressHub profile={profile} showToast={showToast} mode={mode} initialTab={pendingTab} />
+          )}
 
-          {activeSection === 'calendario' && <TrainingCalendar profile={profile} showToast={showToast} mode={mode} />}
-
-          {activeSection === 'sparring' && !isHobby && <SparringLog profile={profile} showToast={showToast} />}
-
-          {activeSection === 'notas' && !isHobby && <TechniqueNotes profile={profile} showToast={showToast} />}
-
-          {activeSection === 'combates' && !isHobby && <FightAnalysis profile={profile} showToast={showToast} />}
-
-          {activeSection === 'peso' && <WeightTracker profile={profile} showToast={showToast} mode={mode} />}
-
-          {activeSection === 'fuerza' && <StrengthLog profile={profile} showToast={showToast} />}
+          {/* Ring: sparring + combates + notas técnicas (R12-T0, solo competición) */}
+          {activeSection === 'ring' && !isHobby && (
+            <RingHub profile={profile} showToast={showToast} initialTab={pendingTab} />
+          )}
 
           {activeSection === 'objetivos' && <GoalsPanel profile={profile} showToast={showToast} />}
 
@@ -539,7 +543,7 @@ export default function MiEsquinaPage() {
           {/* ══ NUTRICIÓN ══ */}
           {activeSection === 'nutricion' && (
             <div className="space-y-8 max-w-4xl">
-              <NutritionTracker profile={profile} showToast={showToast} onGoWeight={() => setSection('peso')} />
+              <NutritionTracker profile={profile} showToast={showToast} onGoWeight={() => go('progreso', 'peso')} />
 
               <div className="rk-rule" style={{ width: '100%', opacity: 0.5 }} />
 

@@ -16,6 +16,21 @@ export default {
   mc_nav_nutrition: 'Nutrition',
   mc_nav_timer: 'Round timer',
   mc_nav_messages: 'Messages',
+  // Merged sections (R12-T0)
+  mc_nav_agenda: 'Planner',
+  mc_nav_progress_hub: 'Progress',
+  mc_nav_ring: 'Ring',
+  // Planner tabs
+  mc_ag_plan: 'Plan',
+  mc_ag_log: 'Log',
+  mc_ag_routines: 'Routines',
+  // Progress tabs
+  mc_pr_tab_weight: 'Weight',
+  mc_pr_tab_strength: 'Strength',
+  // Ring tabs
+  mc_rg_sparring: 'Sparring',
+  mc_rg_fights: 'Fights',
+  mc_rg_notes: 'Technique',
 
   // ── Header and general ──
   mc_brand_my: 'MY',

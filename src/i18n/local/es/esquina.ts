@@ -16,6 +16,21 @@ export default {
   mc_nav_nutrition: 'Nutrición',
   mc_nav_timer: 'Temporizador',
   mc_nav_messages: 'Mensajes',
+  // Secciones fusionadas (R12-T0)
+  mc_nav_agenda: 'Agenda',
+  mc_nav_progress_hub: 'Progreso',
+  mc_nav_ring: 'Ring',
+  // Pestañas de la Agenda
+  mc_ag_plan: 'Plan',
+  mc_ag_log: 'Diario',
+  mc_ag_routines: 'Rutinas',
+  // Pestañas de Progreso
+  mc_pr_tab_weight: 'Peso',
+  mc_pr_tab_strength: 'Fuerza',
+  // Pestañas del Ring
+  mc_rg_sparring: 'Sparring',
+  mc_rg_fights: 'Combates',
+  mc_rg_notes: 'Técnica',
 
   // ── Cabecera y general ──
   mc_brand_my: 'MI',
