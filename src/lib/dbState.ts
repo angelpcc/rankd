@@ -15,3 +15,17 @@ export function isMissingTable(error: { code?: string; message?: string } | null
     msg.includes('schema cache')
   );
 }
+
+// Detecta el error de "esa columna aún no existe" (migración aditiva sin
+// aplicar). Permite insertar con las columnas nuevas y, si fallan, reintentar
+// sin ellas — igual que hace GearChecklist con la vida útil del material.
+export function isMissingColumn(error: { code?: string; message?: string } | null | undefined): boolean {
+  if (!error) return false;
+  const code = error.code || '';
+  const msg = (error.message || '').toLowerCase();
+  return (
+    code === '42703' ||       // undefined_column (Postgres)
+    code === 'PGRST204' ||    // PostgREST: columna no encontrada en el esquema
+    (msg.includes('column') && (msg.includes('does not exist') || msg.includes('could not find')))
+  );
+}

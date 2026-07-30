@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Profile } from '@/lib/supabase';
 import HubTabs, { HubTab } from '@/pages/mi-esquina/components/HubTabs';
-import TrainingCalendar from '@/pages/mi-esquina/components/TrainingCalendar';
+import WeeklyAgenda from '@/pages/mi-esquina/components/WeeklyAgenda';
 import FighterTraining from '@/pages/dashboard/components/FighterTraining';
 import QuickRoutines from '@/pages/mi-esquina/components/QuickRoutines';
 
@@ -32,7 +32,7 @@ export default function AgendaHub({ profile, showToast, mode, onLogged, initialT
   return (
     <div className="max-w-4xl">
       <HubTabs tabs={TABS} active={tab} onChange={setTab} />
-      {tab === 'plan' && <TrainingCalendar profile={profile} showToast={showToast} mode={mode} />}
+      {tab === 'plan' && <WeeklyAgenda profile={profile} showToast={showToast} mode={mode} />}
       {tab === 'diario' && <FighterTraining profile={profile} showToast={showToast} />}
       {tab === 'rutinas' && <QuickRoutines profile={profile} showToast={showToast} onLogged={onLogged} />}
     </div>
