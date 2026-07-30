@@ -5,6 +5,7 @@ import Fighters from './components/Fighters';
 import Opportunities from './components/Opportunities';
 import BrandsSection from './components/Brands';
 import Partners from './components/Partners';
+import FAQ from './components/FAQ';
 import Contact from './components/Contact';
 import Footer from './components/Footer';
 import SEOContent from '@/components/SEOContent';
@@ -40,6 +41,7 @@ export default function HomePage() {
       <Opportunities />
       <BrandsSection />
       <Partners />
+      <FAQ />
       <Contact />
       <Footer />
     </main>
