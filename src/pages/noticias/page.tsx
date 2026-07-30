@@ -159,9 +159,12 @@ export default function NewsPage() {
 
   const sources = useMemo(() => [...new Set(items.map((i) => i.source))], [items]);
 
+  // Pirámide de jerarquía: 1 portada grande → 2 destacadas medianas → resto en
+  // rejilla. Da sensación de periódico vivo en vez de una lista plana.
   const featured = filtered[0];
-  const rest = filtered.slice(1, visible + 1);
-  const hasMore = filtered.length > visible + 1;
+  const highlights = filtered.slice(1, 3);
+  const rest = filtered.slice(3, 3 + visible);
+  const hasMore = filtered.length > 3 + visible;
 
   const FILTERS: { id: typeof cat; label: string; icon: string; n: number }[] = [
     { id: 'all', label: 'Todo', icon: 'ri-flashlight-line', n: counts.all },
@@ -319,6 +322,38 @@ export default function NewsPage() {
               </a>
             )}
 
+            {/* ── Destacadas medianas (nivel intermedio) ── */}
+            {highlights.length > 0 && (
+              <div className="grid md:grid-cols-2 gap-4 mb-4">
+                {highlights.map((item, i) => (
+                  <a key={item.link} href={item.link} target="_blank" rel="noopener noreferrer"
+                    className="group flex bg-white/[0.025] border border-white/[0.07] rounded-2xl overflow-hidden hover:border-red-500/45 hover:-translate-y-1 transition-all duration-300 anim-fade-up"
+                    style={{ animationDelay: `${i * 80}ms` }}>
+                    <div className="relative w-[40%] min-w-[130px] bg-zinc-950 overflow-hidden">
+                      <NewsImage item={item} />
+                      <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to right, transparent 55%, rgba(5,5,5,0.35))' }} />
+                      {isHot(item.pubDate) && (
+                        <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 text-[10px] font-black text-white bg-red-600 px-2 py-0.5 rounded-full shadow-lg shadow-red-600/40 uppercase tracking-wider">
+                          <i className="ri-fire-fill"></i> Reciente
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0 p-4 sm:p-5 flex flex-col justify-center">
+                      <div className="flex items-center gap-1.5 text-[11px] text-zinc-500 mb-1.5">
+                        <span className="font-bold text-zinc-400 uppercase tracking-wide truncate">{item.source}</span>
+                        <span>·</span><span className="whitespace-nowrap">{timeAgo(item.pubDate)}</span>
+                        <span className="text-zinc-700">·</span><span className="text-zinc-500 truncate">{item.category}</span>
+                      </div>
+                      <h3 className="font-bold text-white leading-snug group-hover:text-red-400 transition-colors line-clamp-3" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 19 }}>
+                        {item.title}
+                      </h3>
+                      {item.description && <p className="text-xs text-zinc-500 mt-2 leading-relaxed line-clamp-2 hidden sm:block">{item.description}</p>}
+                    </div>
+                  </a>
+                ))}
+              </div>
+            )}
+
             {/* ── Resto en rejilla ── */}
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {rest.map((item, i) => (
@@ -339,7 +374,7 @@ export default function NewsPage() {
                       <span className="font-bold text-zinc-400 uppercase tracking-wide truncate">{item.source}</span>
                       <span>·</span><span className="whitespace-nowrap">{timeAgo(item.pubDate)}</span>
                     </div>
-                    <h3 className="font-bold text-white leading-snug group-hover:text-red-400 transition-colors flex-1" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16 }}>
+                    <h3 className="font-bold text-white leading-snug group-hover:text-red-400 transition-colors flex-1 line-clamp-3" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16 }}>
                       {item.title}
                     </h3>
                     <span className="inline-flex items-center gap-1 text-xs font-bold text-red-400 mt-3 group-hover:gap-2 transition-all">
@@ -392,6 +427,14 @@ export default function NewsPage() {
         .rk-noscroll { scrollbar-width: none; }
         .line-clamp-4 {
           display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        .line-clamp-3 {
+          display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        .line-clamp-2 {
+          display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
           overflow: hidden;
         }
         @media (prefers-reduced-motion: reduce) { .rk-skeleton { animation: none; } }
