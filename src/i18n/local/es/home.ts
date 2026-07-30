@@ -1,10 +1,10 @@
 export default {
   // Hero
-  hero_eyebrow: 'Conectando talento y oportunidades',
-  hero_headline_1: 'Donde el talento',
-  hero_headline_2: 'encuentra',
-  hero_headline_3: 'oportunidades reales',
-  hero_subtext: 'Conectamos peleadores con promotoras, managers y marcas.',
+  hero_eyebrow: 'El ecosistema del combate',
+  hero_headline_1: 'El ecosistema del',
+  hero_headline_2: 'boxeo y el combate',
+  hero_headline_3: 'en un solo sitio',
+  hero_subtext: 'Entrenamientos, oportunidades, eventos, patrocinadores y actualidad. Todo el boxeo, el MMA y los deportes de contacto, reunidos en RANKD.',
   hero_indicator_active: 'Plataforma activa',
   hero_indicator_disciplines: 'Boxeo · MMA · Kickboxing · Muay Thai',
   hero_indicator_location: 'Madrid, España',
@@ -100,6 +100,7 @@ export default {
   partners_cta_headline_2: 'Los primeros tienen ventaja.',
   partners_cta_desc: 'Estamos construyendo el ecosistema de referencia para los deportes de contacto en español. Los primeros perfiles tendrán mayor visibilidad y prioridad ante promotoras y marcas.',
   partners_cta_btn: 'Crear mi perfil gratis',
+  partners_cta_note: 'Sin tarjeta · Totalmente gratis',
 
   // Brands page
   brands_page_headline_1: 'Marcas del deporte',
@@ -524,6 +525,23 @@ export default {
   contact_follow: 'Síguenos',
   fighters_empty_discipline: 'Todavía no hay peleadores en esta disciplina.',
   brands_coming_soon_home: 'Próximamente podrás descubrir equipamiento y marcas dentro de RANKD.',
+
+  // Beneficios (R12-T10)
+  ben_eyebrow: 'Qué te da RANKD',
+  ben_headline_1: 'Una plataforma,',
+  ben_headline_2: 'todo el combate',
+  ben_subtext: 'Cinco piezas que trabajan juntas: entrenas, conectas, descubres eventos, encuentras marcas y sigues la actualidad.',
+  ben_corner_t: 'Mi Esquina',
+  ben_corner_d: 'Tu espacio de entrenamiento: agenda, sparrings, peso, nutrición y coach IA. Mira tu evolución.',
+  ben_connect_t: 'Conexiones',
+  ben_connect_d: 'Combates, patrocinios, managers y colaboraciones. Contacta directo, sin intermediarios.',
+  ben_events_t: 'Eventos',
+  ben_events_d: 'Descubre las veladas del sector y compra tu entrada sin salir de RANKD.',
+  ben_brands_t: 'Marcas',
+  ben_brands_d: 'Patrocinadores y equipamiento. Las marcas encuentran atletas reales; tú, con quién trabajar.',
+  ben_news_t: 'Noticias',
+  ben_news_d: 'La actualidad del boxeo, el MMA y el combate, reunida y al momento.',
+  ben_explore: 'Explorar',
 
   // FAQ
   faq_eyebrow: 'Preguntas frecuentes',

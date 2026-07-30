@@ -1,10 +1,10 @@
 export default {
   // Hero
-  hero_eyebrow: 'Connecting talent and opportunities',
-  hero_headline_1: 'Where talent',
-  hero_headline_2: 'finds',
-  hero_headline_3: 'real opportunities',
-  hero_subtext: 'We connect fighters with promoters, managers and brands.',
+  hero_eyebrow: 'The combat sports ecosystem',
+  hero_headline_1: 'The home of',
+  hero_headline_2: 'boxing & combat',
+  hero_headline_3: 'all in one place',
+  hero_subtext: 'Training, opportunities, events, sponsors and news. All of boxing, MMA and combat sports, together on RANKD.',
   hero_indicator_active: 'Platform active',
   hero_free_no_fees: 'Free · No fees',
   hero_card_fighter_desc: 'Build your profile and get found',
@@ -100,6 +100,7 @@ export default {
   partners_cta_headline_2: 'Early adopters have the advantage.',
   partners_cta_desc: 'We are building the reference ecosystem for combat sports. The first profiles will have greater visibility and priority with promoters and brands.',
   partners_cta_btn: 'Create my free profile',
+  partners_cta_note: 'No card · Completely free',
 
   // Brands page
   brands_page_headline_1: 'Combat sports',
@@ -524,6 +525,23 @@ export default {
   contact_follow: 'Follow us',
   fighters_empty_discipline: 'No fighters in this discipline yet.',
   brands_coming_soon_home: 'Soon you\'ll be able to discover gear and brands inside RANKD.',
+
+  // Benefits (R12-T10)
+  ben_eyebrow: 'What RANKD gives you',
+  ben_headline_1: 'One platform,',
+  ben_headline_2: 'all of combat',
+  ben_subtext: 'Five pieces that work together: you train, connect, discover events, find brands and follow the news.',
+  ben_corner_t: 'My Corner',
+  ben_corner_d: 'Your training space: planner, sparring, weight, nutrition and AI coach. Watch your progress.',
+  ben_connect_t: 'Connections',
+  ben_connect_d: 'Fights, sponsorships, managers and collaborations. Reach out directly, no middlemen.',
+  ben_events_t: 'Events',
+  ben_events_d: 'Discover the shows in the scene and buy your ticket without leaving RANKD.',
+  ben_brands_t: 'Brands',
+  ben_brands_d: 'Sponsors and gear. Brands find real athletes; you choose who to work with.',
+  ben_news_t: 'News',
+  ben_news_d: 'The latest in boxing, MMA and combat, gathered and up to the minute.',
+  ben_explore: 'Explore',
 
   // FAQ
   faq_eyebrow: 'Frequently asked',
