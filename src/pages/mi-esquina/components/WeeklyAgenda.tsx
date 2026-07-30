@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable, isMissingColumn } from '@/lib/dbState';
+import { parseTrainingFromSpeech } from '@/lib/dictation';
+import VoiceButton from '@/components/feature/VoiceButton';
 
 interface Props {
   profile: Profile;
@@ -611,6 +613,20 @@ function LogForm({ date, extraCols, onSubmit, onDone }: {
   const [part, setPart] = useState<string>('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [interpreted, setInterpreted] = useState(false);
+
+  // Dictado: interpreta el lenguaje natural y PRE-RELLENA. No guarda: el
+  // peleador revisa los campos y confirma con el botón de guardar.
+  const applyDictation = (text: string) => {
+    const p = parseTrainingFromSpeech(text);
+    if (p.type) setType(p.type);
+    if (p.durationMin) setDuration(String(p.durationMin));
+    if (p.intensity) setIntensity(p.intensity);
+    if (p.feeling) setFeeling(p.feeling);
+    if (p.part) setPart(p.part);
+    setNotes((prev) => (prev.trim() ? prev : p.notes));
+    setInterpreted(true);
+  };
 
   const submit = async () => {
     setSaving(true);
@@ -629,7 +645,13 @@ function LogForm({ date, extraCols, onSubmit, onDone }: {
 
   return (
     <div className="rk-card space-y-3.5" style={{ padding: 18 }}>
-      <p className="text-[11px] font-bold tracking-widest uppercase text-zinc-500">{t('mc_ag_log_form_title')}</p>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <p className="text-[11px] font-bold tracking-widest uppercase text-zinc-500">{t('mc_ag_log_form_title')}</p>
+        <VoiceButton onResult={applyDictation} />
+      </div>
+      {interpreted && (
+        <p className="text-[11px] text-red-400 flex items-center gap-1.5"><i className="ri-sparkling-line"></i>{t('mc_vo_interpreted')}</p>
+      )}
       <div>
         <label className="block text-xs text-zinc-400 mb-2">{t('mc_rt_type')}</label>
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">

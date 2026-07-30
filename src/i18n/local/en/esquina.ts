@@ -93,6 +93,12 @@ export default {
   mc_sv_open_link: 'Open video',
   mc_sv_no_video: 'This sparring has no video.',
 
+  // ── Voice dictation (R12-T3) ──
+  mc_vo_dictate: 'Dictate',
+  mc_vo_listening: 'Listening',
+  mc_vo_stop: 'tap to stop',
+  mc_vo_interpreted: 'Interpreted for you. Check and adjust it before saving.',
+
   // ── Header and general ──
   mc_brand_my: 'MY',
   mc_brand_corner: 'CORNER',

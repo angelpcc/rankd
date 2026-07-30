@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable } from '@/lib/dbState';
+import VoiceButton from '@/components/feature/VoiceButton';
 
 interface Props {
   profile: Profile;
@@ -215,8 +216,11 @@ export default function DailyCheckin({ profile, showToast }: Props) {
             <label className="block text-[11px] font-bold text-zinc-400 uppercase tracking-widest mb-2">
               {t('mc_ci_note')} <span className="text-zinc-600 font-normal normal-case tracking-normal">({t('mc_optional')})</span>
             </label>
-            <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={140} placeholder={t('mc_ci_note_ph')}
-              className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-sky-500 transition-colors" />
+            <div className="flex gap-2">
+              <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={140} placeholder={t('mc_ci_note_ph')}
+                className="flex-1 bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-sky-500 transition-colors" />
+              <VoiceButton onResult={(txt) => setNote((prev) => (prev.trim() ? (prev + ' ' + txt).slice(0, 140) : txt.slice(0, 140)))} compact />
+            </div>
           </div>
         </div>
 

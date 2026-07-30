@@ -93,6 +93,12 @@ export default {
   mc_sv_open_link: 'Abrir vídeo',
   mc_sv_no_video: 'Este sparring no tiene vídeo.',
 
+  // ── Dictado por voz (R12-T3) ──
+  mc_vo_dictate: 'Dictar',
+  mc_vo_listening: 'Escuchando',
+  mc_vo_stop: 'toca para parar',
+  mc_vo_interpreted: 'Lo he interpretado. Revísalo y ajústalo antes de guardar.',
+
   // ── Cabecera y general ──
   mc_brand_my: 'MI',
   mc_brand_corner: 'ESQUINA',

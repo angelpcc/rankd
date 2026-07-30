@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase, Profile } from '@/lib/supabase';
+import VoiceButton from '@/components/feature/VoiceButton';
 
 interface Props {
   profile: Profile;
@@ -118,6 +119,7 @@ export default function MealLog({ profile, showToast }: Props) {
         <input value={desc} onChange={(e) => setDesc(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') add(); }}
           className="flex-1 bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-green-500"
           placeholder="Ej: 150g pollo, arroz y ensalada" />
+        <VoiceButton onResult={(txt) => setDesc((prev) => (prev.trim() ? prev + ' ' + txt : txt))} compact />
         <button onClick={add} disabled={saving || !desc.trim()} className="rk-btn rk-btn-primary flex items-center disabled:opacity-50" style={{ padding: '0 1.1rem', fontSize: '0.95rem' }}>
           {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <i className="ri-add-line"></i>}
         </button>

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable } from '@/lib/dbState';
+import VoiceButton from '@/components/feature/VoiceButton';
 
 export interface SparringLite {
   id: string;
@@ -202,6 +203,8 @@ export default function SparringPlayer({ profile, sparring, showToast, onBack }:
                 className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-500 resize-none"
                 placeholder={t('mc_sv_note_ph')} />
               <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
+                <VoiceButton onResult={(txt) => setBody((prev) => (prev.trim() ? prev + ' ' + txt : txt))} compact />
                 {nativePlayer ? (
                   <button onClick={() => setAttachTime((v) => !v)}
                     className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border transition-colors cursor-pointer ${attachTime ? 'text-red-400 bg-red-600/10 border-red-500/30' : 'text-zinc-500 border-white/10'}`}>
@@ -209,6 +212,7 @@ export default function SparringPlayer({ profile, sparring, showToast, onBack }:
                     {attachTime ? t('mc_sv_at_time', { time: fmt(currentTime) }) : t('mc_sv_no_time')}
                   </button>
                 ) : <span className="text-[11px] text-zinc-600">{t('mc_sv_session_note')}</span>}
+                </div>
                 <button onClick={addNote} disabled={saving || !body.trim()} className="rk-btn rk-btn-primary disabled:opacity-50" style={{ fontSize: '0.8rem', padding: '0.5rem 1.1rem' }}>
                   {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : t('mc_sv_add_note')}
                 </button>

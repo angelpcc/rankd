@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import Reveal from '@/components/base/Reveal';
+import VoiceButton from '@/components/feature/VoiceButton';
+import { parseTrainingFromSpeech } from '@/lib/dictation';
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 interface Props {
@@ -90,6 +93,7 @@ function EmptyChartState({ icon, text }: { icon: string; text: string }) {
 }
 
 export default function FighterTraining({ profile, showToast }: Props) {
+  const { t } = useTranslation();
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -135,6 +139,19 @@ export default function FighterTraining({ profile, showToast }: Props) {
       showToast('Sesión registrada 💪');
     }
     setSaving(false);
+  };
+
+  // Dictado por voz: interpreta y pre-rellena el formulario; el peleador revisa
+  // y confirma pulsando guardar (nunca se guarda solo).
+  const [interpreted, setInterpreted] = useState(false);
+  const applyDictation = (text: string) => {
+    const p = parseTrainingFromSpeech(text);
+    if (p.type) setType(p.type);
+    if (p.durationMin) setDuration(String(p.durationMin));
+    if (p.intensity) setIntensity(p.intensity);
+    setNotes((prev) => (prev.trim() ? prev : p.notes));
+    setShowForm(true);
+    setInterpreted(true);
   };
 
   const deleteSession = async (id: string) => {
@@ -205,10 +222,13 @@ export default function FighterTraining({ profile, showToast }: Props) {
           </h2>
           <p className="text-zinc-400 text-sm mt-1.5 max-w-md">Registra tus sesiones, mantén la disciplina y observa tu progreso semana a semana.</p>
         </div>
-        <button onClick={() => setShowForm(!showForm)} className={`rk-btn ${showForm ? 'rk-btn-ghost' : 'rk-btn-primary'} flex items-center gap-2`} style={{ fontSize: '0.85rem', padding: '0.7rem 1.4rem' }}>
-          <i className={showForm ? 'ri-close-line' : 'ri-add-line'}></i>
-          {showForm ? 'CERRAR' : 'REGISTRAR SESIÓN'}
-        </button>
+        <div className="flex items-center gap-2">
+          <VoiceButton onResult={applyDictation} />
+          <button onClick={() => setShowForm(!showForm)} className={`rk-btn ${showForm ? 'rk-btn-ghost' : 'rk-btn-primary'} flex items-center gap-2`} style={{ fontSize: '0.85rem', padding: '0.7rem 1.4rem' }}>
+            <i className={showForm ? 'ri-close-line' : 'ri-add-line'}></i>
+            {showForm ? 'CERRAR' : 'REGISTRAR SESIÓN'}
+          </button>
+        </div>
       </div>
 
       {/* Racha — protagonista */}
@@ -356,7 +376,13 @@ export default function FighterTraining({ profile, showToast }: Props) {
       {showForm && (
         <Reveal>
           <div className="rk-card space-y-4" style={{ padding: '22px 20px' }}>
-            <h3 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>NUEVA SESIÓN</h3>
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <h3 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>NUEVA SESIÓN</h3>
+              <VoiceButton onResult={applyDictation} />
+            </div>
+            {interpreted && (
+              <p className="text-[11px] text-red-400 flex items-center gap-1.5"><i className="ri-sparkling-line"></i>{t('mc_vo_interpreted')}</p>
+            )}
             <div>
               <label className="block text-xs text-zinc-400 mb-2">Tipo de entrenamiento</label>
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
