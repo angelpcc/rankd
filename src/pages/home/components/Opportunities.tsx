@@ -50,6 +50,18 @@ export default function Opportunities() {
     { key: 'patrocinio', labelKey: 'opp_filter_sponsorship' },
   ];
 
+  // R12-T13: tira visual del abanico de conexiones del ecosistema (no solo
+  // combates): personas y organizaciones que se encuentran en RANKD.
+  const CONNECTION_KINDS = [
+    { icon: 'ri-boxing-line', labelKey: 'opp_kind_fights' },
+    { icon: 'ri-hand-coin-line', labelKey: 'opp_kind_sponsors' },
+    { icon: 'ri-user-star-line', labelKey: 'opp_kind_managers' },
+    { icon: 'ri-medal-line', labelKey: 'opp_kind_ambassadors' },
+    { icon: 'ri-team-line', labelKey: 'opp_kind_collabs' },
+    { icon: 'ri-home-gear-line', labelKey: 'opp_kind_gyms' },
+    { icon: 'ri-user-follow-line', labelKey: 'opp_kind_coaches' },
+  ];
+
   const filtered = active === 'Todos' ? opportunities.slice(0, 6) : opportunities.filter((o) => o.type === active).slice(0, 6);
 
   const formatDate = (d: string | null) => {
@@ -90,6 +102,17 @@ export default function Opportunities() {
             </h2>
           </div>
           <p className="text-white/62 text-base leading-relaxed max-w-md lg:text-right font-inter">{t('opp_subtext')}</p>
+        </div>
+
+        {/* Abanico de conexiones — deja claro que no es solo una bolsa de combates */}
+        <div className="flex flex-wrap items-center gap-2.5 mb-10">
+          <span className="text-white/40 text-xs font-semibold uppercase tracking-[0.15em] font-inter mr-1">{t('opp_kinds_intro')}</span>
+          {CONNECTION_KINDS.map((k) => (
+            <span key={k.labelKey}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/72 bg-white/[0.04] border border-white/10 rounded-full px-3 py-1.5 font-inter">
+              <i className={`${k.icon} text-sm text-[#E10600]`} />{t(k.labelKey)}
+            </span>
+          ))}
         </div>
 
         {/* Filtros */}

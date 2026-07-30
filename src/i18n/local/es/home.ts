@@ -41,14 +41,22 @@ export default {
   how_role_see_path: 'Ver mi camino',
 
   // Opportunities section
-  opp_eyebrow: 'Oportunidades Reales',
-  opp_headline_1: 'Tu próxima',
-  opp_headline_2: 'gran oportunidad',
-  opp_subtext: 'Combates, contratos, patrocinios y eventos disponibles ahora mismo para peleadores como tú.',
+  opp_eyebrow: 'Conexiones del sector',
+  opp_headline_1: 'Donde el sector',
+  opp_headline_2: 'se conecta',
+  opp_subtext: 'Combates, patrocinios, managers, embajadores, colaboraciones, gimnasios y entrenadores. Personas y organizaciones que se encuentran aquí.',
   opp_filter_all: 'Todos',
   opp_filter_fight: 'Combate',
   opp_filter_contract: 'Contrato',
   opp_filter_sponsorship: 'Patrocinio',
+  opp_kinds_intro: 'Todo tipo de conexión',
+  opp_kind_fights: 'Combates',
+  opp_kind_sponsors: 'Patrocinios',
+  opp_kind_managers: 'Managers',
+  opp_kind_ambassadors: 'Embajadores',
+  opp_kind_collabs: 'Colaboraciones',
+  opp_kind_gyms: 'Gimnasios',
+  opp_kind_coaches: 'Entrenadores',
   opp_filter_event: 'Evento',
 
   // Fighters section
