@@ -21,7 +21,7 @@ import FightPrep from '@/pages/mi-esquina/components/FightPrep';
 import SparringLog from '@/pages/mi-esquina/components/SparringLog';
 import StrengthLog from '@/pages/mi-esquina/components/StrengthLog';
 import TechniqueNotes from '@/pages/mi-esquina/components/TechniqueNotes';
-import GearChecklist from '@/pages/mi-esquina/components/GearChecklist';
+import GearChecklist, { GearReplacementAlert } from '@/pages/mi-esquina/components/GearChecklist';
 import GearBrands from '@/pages/mi-esquina/components/GearBrands';
 import SectionCoach from '@/pages/mi-esquina/components/SectionCoach';
 import MealLog from '@/pages/mi-esquina/components/MealLog';
@@ -290,6 +290,9 @@ export default function MiEsquinaPage() {
               {!isHobby && (
                 <DocumentExpiryAlert profile={profile} onOpen={() => setSection('documentos')} />
               )}
+
+              {/* Si toca renovar material, avisar desde el resumen */}
+              <GearReplacementAlert profile={profile} onOpen={() => setSection('material')} />
 
               {/* Check-in del día */}
               <Reveal delay={40}>
