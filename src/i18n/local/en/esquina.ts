@@ -93,6 +93,21 @@ export default {
   mc_sv_open_link: 'Open video',
   mc_sv_no_video: 'This sparring has no video.',
 
+  // ── AI drops the plan into the agenda (R12-T4) ──
+  mc_ai_plan_q_agenda: 'Add this plan to your agenda?',
+  mc_ai_plan_q_diary: 'Add these meals to your diary?',
+  mc_ai_plan_yes: 'Yes, add it',
+  mc_ai_plan_no: 'No',
+  mc_ai_plan_adding: 'Adding…',
+  mc_ai_plan_none: "I couldn't find a concrete plan to add in the conversation.",
+  mc_ai_plan_save_fail: "Couldn't add the plan to your agenda.",
+  mc_ai_meals_save_fail: "Couldn't add the meals to your diary.",
+  mc_ai_plan_added_agenda_one: '1 session added to your agenda ✓',
+  mc_ai_plan_added_agenda_other: '{{count}} sessions added to your agenda ✓',
+  mc_ai_meals_added_one: '1 meal added to your diary ✓',
+  mc_ai_meals_added_other: '{{count}} meals added to your diary ✓',
+  mc_ai_from_ai: 'Suggested by AI',
+
   // ── Voice dictation (R12-T3) ──
   mc_vo_dictate: 'Dictate',
   mc_vo_listening: 'Listening',

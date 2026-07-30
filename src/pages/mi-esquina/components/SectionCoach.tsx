@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
+import { isMissingColumn } from '@/lib/dbState';
 
 type Section = 'training' | 'nutrition' | 'gear';
 type Accent = 'red' | 'gold' | 'sky';
@@ -124,6 +125,8 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
   const [searching, setSearching] = useState(false);
   const [savingPlan, setSavingPlan] = useState(false);
   const [savedNote, setSavedNote] = useState<string | null>(null);
+  // El peleador puede descartar la propuesta de añadir el plan: es opcional.
+  const [dismissedPlan, setDismissedPlan] = useState(false);
   const [notConfigured, setNotConfigured] = useState(false);
   const [checking, setChecking] = useState(true);
   // Cuota de IA del mes: la devuelve el servidor al final de cada respuesta
@@ -232,6 +235,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
     setInput('');
     setSending(true);
     setSavedNote(null);
+    setDismissedPlan(false);
     setSearching(false);
 
     try {
@@ -335,7 +339,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
     setSearching(false);
     setStreaming(false);
     setSending(false);
-  }, [messages, physical, section, sending]);
+  }, [messages, physical, section, sending, t]);
 
   // ── Guardar el plan acordado en el diario correspondiente ──
   const savePlan = useCallback(async () => {
@@ -356,19 +360,36 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
       }
 
       if (section === 'training') {
-        const rows = (data.plan?.sessions || []).map((s: Record<string, number | string>) => ({
-          fighter_profile_id: profile.id,
-          session_date: isoFromOffset(Number(s.day_offset)),
-          session_type: String(s.session_type),
-          duration_min: Number(s.duration_min) || null,
-          intensity: Number(s.intensity) || 3,
-          notes: String(s.notes || '').slice(0, 500) || null,
-        }));
-        if (rows.length === 0) { showToast?.('No he encontrado un plan concreto en la conversación', 'error'); setSavingPlan(false); return; }
-        const { error } = await supabase.from('training_sessions').insert(rows);
-        if (error) { showToast?.('No se pudo guardar en el diario', 'error'); setSavingPlan(false); return; }
-        setSavedNote(`${rows.length} ${rows.length === 1 ? 'sesión guardada' : 'sesiones guardadas'} en tu diario de entrenos`);
-        showToast?.(`Plan guardado: ${rows.length} ${rows.length === 1 ? 'sesión' : 'sesiones'} 💪`);
+        // El plan de la IA se reparte día a día en el PLAN de la agenda
+        // (planned_events, hacia adelante), no en el registro de lo ya hecho.
+        // Se marca source='ai' para pintarlo distinto; el peleador puede
+        // editarlo o borrarlo como cualquier otra entrada.
+        const rows = (data.plan?.sessions || []).map((s: Record<string, number | string>) => {
+          const type = String(s.session_type || 'tecnica');
+          const stKey = `mc_st_${type}`;
+          const label = t(stKey);
+          return {
+            fighter_profile_id: profile.id,
+            event_date: isoFromOffset(Number(s.day_offset)),
+            kind: 'training',
+            session_type: type,
+            title: label && label !== stKey ? label : type,
+            time: null,
+            notes: String(s.notes || '').slice(0, 500) || null,
+            done: false,
+            source: 'ai',
+          };
+        });
+        if (rows.length === 0) { showToast?.(t('mc_ai_plan_none'), 'error'); setSavingPlan(false); return; }
+        // Reintenta sin `source` si la migración 0021 aún no está aplicada.
+        let insErr = (await supabase.from('planned_events').insert(rows)).error;
+        if (insErr && isMissingColumn(insErr)) {
+          const bare = rows.map((r: Record<string, unknown>) => { const copy = { ...r }; delete copy.source; return copy; });
+          insErr = (await supabase.from('planned_events').insert(bare)).error;
+        }
+        if (insErr) { showToast?.(t('mc_ai_plan_save_fail'), 'error'); setSavingPlan(false); return; }
+        setSavedNote(t('mc_ai_plan_added_agenda', { count: rows.length }));
+        showToast?.(t('mc_ai_plan_added_agenda', { count: rows.length }));
       } else {
         const rows = (data.plan?.meals || []).map((m: Record<string, number | string>) => ({
           fighter_profile_id: profile.id,
@@ -376,20 +397,20 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
           meal_type: String(m.meal_type),
           description: String(m.description || '').slice(0, 500),
         })).filter((r: { description: string }) => r.description);
-        if (rows.length === 0) { showToast?.('No he encontrado un plan concreto en la conversación', 'error'); setSavingPlan(false); return; }
+        if (rows.length === 0) { showToast?.(t('mc_ai_plan_none'), 'error'); setSavingPlan(false); return; }
         const { error } = await supabase.from('meal_entries').insert(rows);
-        if (error) { showToast?.('No se pudo guardar en el diario de comidas', 'error'); setSavingPlan(false); return; }
-        setSavedNote(`${rows.length} ${rows.length === 1 ? 'comida guardada' : 'comidas guardadas'} en tu diario`);
-        showToast?.(`Plan guardado: ${rows.length} ${rows.length === 1 ? 'comida' : 'comidas'} 🍽️`);
+        if (error) { showToast?.(t('mc_ai_meals_save_fail'), 'error'); setSavingPlan(false); return; }
+        setSavedNote(t('mc_ai_meals_added', { count: rows.length }));
+        showToast?.(t('mc_ai_meals_added', { count: rows.length }));
       }
     } catch {
       showToast?.('No se pudo guardar el plan', 'error');
     }
     setSavingPlan(false);
-  }, [savingPlan, section, physical, messages, profile.id, showToast]);
+  }, [savingPlan, section, physical, messages, profile.id, showToast, t]);
 
   const lastIsAssistant = messages.length > 0 && messages[messages.length - 1].role === 'assistant';
-  const showSaveBar = canSavePlan && lastIsAssistant && !streaming && !sending && messages[messages.length - 1].content.length > 80;
+  const showSaveBar = canSavePlan && lastIsAssistant && !streaming && !sending && !dismissedPlan && messages[messages.length - 1].content.length > 80;
 
   if (checking) {
     return (
@@ -504,7 +525,8 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
         </div>
       )}
 
-      {/* Guardar plan en el diario */}
+      {/* ¿Añadir el plan propuesto? Es opcional: la IA lo propone y el peleador
+          decide. Nunca se añade sin que pulse "Sí". */}
       {showSaveBar && !quotaBlocked && (
         <div className="px-3 pb-2 flex-shrink-0">
           {savedNote ? (
@@ -513,12 +535,24 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
               <span className="text-xs text-green-300 flex-1">{savedNote}</span>
             </div>
           ) : (
-            <button onClick={savePlan} disabled={savingPlan}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-white/[0.04] border border-white/12 hover:border-white/30 text-sm text-white py-2.5 transition-colors cursor-pointer disabled:opacity-60">
-              {savingPlan
-                ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Guardando plan...</>
-                : <><i className="ri-save-line"></i> Guardar este plan en mi {section === 'training' ? 'diario de entrenos' : 'diario de comidas'}</>}
-            </button>
+            <div className="rounded-xl bg-white/[0.04] border border-white/12 px-3.5 py-2.5">
+              <p className="text-xs text-zinc-300 mb-2 flex items-center gap-1.5">
+                <i className={`ri-sparkling-line ${a.text}`}></i>
+                {section === 'training' ? t('mc_ai_plan_q_agenda') : t('mc_ai_plan_q_diary')}
+              </p>
+              <div className="flex gap-2">
+                <button onClick={savePlan} disabled={savingPlan}
+                  className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-red-600 hover:bg-red-500 text-sm font-semibold text-white py-2 transition-colors cursor-pointer disabled:opacity-60">
+                  {savingPlan
+                    ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {t('mc_ai_plan_adding')}</>
+                    : <><i className={section === 'training' ? 'ri-calendar-todo-line' : 'ri-restaurant-line'}></i> {t('mc_ai_plan_yes')}</>}
+                </button>
+                <button onClick={() => setDismissedPlan(true)} disabled={savingPlan}
+                  className="px-3.5 rounded-lg border border-white/12 text-sm text-zinc-400 hover:text-white hover:border-white/30 transition-colors cursor-pointer disabled:opacity-60">
+                  {t('mc_ai_plan_no')}
+                </button>
+              </div>
+            </div>
           )}
         </div>
       )}

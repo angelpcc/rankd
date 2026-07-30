@@ -21,6 +21,7 @@ interface PlannedEvent {
   time: string | null;
   notes: string | null;
   done: boolean;
+  source?: string | null; // 'ai' = lo propuso el coach; si no, añadido a mano
 }
 
 interface TrainingSession {
@@ -290,6 +291,7 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro' }: Props
                     return (
                       <div key={e.id} className="flex items-center gap-1.5 min-w-0">
                         <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: cfg.color }} />
+                        {e.source === 'ai' && <i className="ri-sparkling-fill text-[9px] flex-shrink-0" style={{ color: cfg.color }} title={t('mc_ai_from_ai')}></i>}
                         <span className={`text-[11px] truncate ${e.done ? 'text-zinc-600 line-through' : 'text-zinc-300'}`}>{e.title}</span>
                       </div>
                     );
@@ -476,7 +478,14 @@ function DayDetail({ date, locale, mode, availableKinds, planned, sessions, extr
                     </button>
                     <i className={cfg.icon} style={{ color: cfg.color }}></i>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-semibold ${e.done ? 'text-zinc-500 line-through' : 'text-white'}`}>{e.title}</p>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className={`text-sm font-semibold ${e.done ? 'text-zinc-500 line-through' : 'text-white'}`}>{e.title}</p>
+                        {e.source === 'ai' && (
+                          <span className="inline-flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full text-red-300 bg-red-600/12 border border-red-500/30">
+                            <i className="ri-sparkling-fill"></i>{t('mc_ai_from_ai')}
+                          </span>
+                        )}
+                      </div>
                       {(e.time || e.notes) && <p className="text-[11px] text-zinc-500 truncate">{[e.time, e.notes].filter(Boolean).join(' · ')}</p>}
                     </div>
                     <button onClick={() => onRemovePlan(e.id)} className="w-7 h-7 flex items-center justify-center text-zinc-600 hover:text-red-400 cursor-pointer flex-shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">

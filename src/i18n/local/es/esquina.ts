@@ -93,6 +93,21 @@ export default {
   mc_sv_open_link: 'Abrir vídeo',
   mc_sv_no_video: 'Este sparring no tiene vídeo.',
 
+  // ── La IA vuelca el plan en la agenda (R12-T4) ──
+  mc_ai_plan_q_agenda: '¿Quieres añadir este plan a tu agenda?',
+  mc_ai_plan_q_diary: '¿Quieres añadir estas comidas a tu diario?',
+  mc_ai_plan_yes: 'Sí, añadir',
+  mc_ai_plan_no: 'No',
+  mc_ai_plan_adding: 'Añadiendo…',
+  mc_ai_plan_none: 'No he encontrado un plan concreto que añadir en la conversación.',
+  mc_ai_plan_save_fail: 'No se pudo añadir el plan a tu agenda.',
+  mc_ai_meals_save_fail: 'No se pudo añadir las comidas a tu diario.',
+  mc_ai_plan_added_agenda_one: 'Añadida 1 sesión a tu agenda ✓',
+  mc_ai_plan_added_agenda_other: 'Añadidas {{count}} sesiones a tu agenda ✓',
+  mc_ai_meals_added_one: 'Añadida 1 comida a tu diario ✓',
+  mc_ai_meals_added_other: 'Añadidas {{count}} comidas a tu diario ✓',
+  mc_ai_from_ai: 'Propuesto por la IA',
+
   // ── Dictado por voz (R12-T3) ──
   mc_vo_dictate: 'Dictar',
   mc_vo_listening: 'Escuchando',
