@@ -20,6 +20,19 @@ export default {
   auth_register_terms_and: 'y',
   auth_platform_launch: 'Plataforma en fase de lanzamiento',
   auth_continue_btn: 'Continuar',
+  // Acceso con Google
+  auth_or: 'o',
+  auth_google_btn: 'Continuar con Google',
+  auth_google_error: 'No se pudo conectar con Google. Inténtalo de nuevo.',
+  auth_oauth_error: 'No se pudo terminar de crear tu cuenta. Inténtalo de nuevo.',
+  auth_oauth_badge: 'Último paso',
+  auth_oauth_choose_title: 'Casi listo',
+  auth_oauth_choose_subtitle: 'Elige tu tipo de cuenta para terminar',
+  auth_oauth_cancel: 'Usar otra cuenta',
+  // Registro paso 1 (elección de tipo)
+  auth_step_1_of_2: 'Paso 1 de 2',
+  auth_who_title: '¿Quién eres?',
+  auth_who_subtitle: 'Elige tu tipo de cuenta para empezar',
 
   // Registro page
   registro_badge: 'Estamos empezando — sé de los primeros en Rankd',

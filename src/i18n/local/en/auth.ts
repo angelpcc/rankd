@@ -20,6 +20,19 @@ export default {
   auth_register_terms_and: 'and',
   auth_platform_launch: 'Platform in launch phase',
   auth_continue_btn: 'Continue',
+  // Google sign-in
+  auth_or: 'or',
+  auth_google_btn: 'Continue with Google',
+  auth_google_error: 'Couldn\'t connect with Google. Please try again.',
+  auth_oauth_error: 'Couldn\'t finish creating your account. Please try again.',
+  auth_oauth_badge: 'Last step',
+  auth_oauth_choose_title: 'Almost there',
+  auth_oauth_choose_subtitle: 'Choose your account type to finish',
+  auth_oauth_cancel: 'Use another account',
+  // Register step 1 (type selection)
+  auth_step_1_of_2: 'Step 1 of 2',
+  auth_who_title: 'Who are you?',
+  auth_who_subtitle: 'Choose your account type to get started',
 
   // Registro page
   registro_badge: 'We are just starting — be among the first on Rankd',

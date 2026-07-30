@@ -1,10 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import type { User } from '@supabase/supabase-js';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase, UserType } from '@/lib/supabase';
 import { sendWelcomeEmail } from '@/lib/email';
 
 type AuthMode = 'login' | 'register';
+
+// Logo de Google en sus colores, para el botón de acceso.
+function GoogleIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true" className="flex-shrink-0">
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+    </svg>
+  );
+}
 
 const COUNTRY_MAP: Record<string, string> = {
   'Spain': 'España', 'Mexico': 'México', 'Argentina': 'Argentina',
@@ -106,6 +119,10 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  // Usuario recién entrado con Google que aún no tiene tipo de cuenta: le
+  // pedimos que lo elija antes de mandarlo a su onboarding.
+  const [oauthUser, setOauthUser] = useState<User | null>(null);
+  const oauthChoose = !!oauthUser;
 
   const redirectByRole = (ut: string, isNewUser = false) => {
     if (isNewUser) {
@@ -126,6 +143,73 @@ export default function AuthPage() {
       case 'manager': navigate('/dashboard/org'); break;
       default: navigate('/dashboard');
     }
+  };
+
+  const routeByProfile = (ut: string, aMode: string | null, isNew = false) => {
+    if (ut === 'fighter' && aMode === 'hobby') { navigate('/mi-esquina'); return; }
+    redirectByRole(ut, isNew);
+  };
+
+  // Al volver del redirect de Google, Supabase deja la sesión lista. Si el
+  // usuario ya tiene tipo de cuenta, lo llevamos a su espacio; si es nuevo
+  // (Google no trae tipo), le pedimos que lo elija. Solo actuamos sobre
+  // proveedores externos: el email/contraseña lo enrutan sus propios handlers.
+  useEffect(() => {
+    let alive = true;
+    const handle = async (u: User) => {
+      if (!alive) return;
+      if ((u.app_metadata?.provider || 'email') === 'email') return;
+      const { data: prof } = await supabase
+        .from('profiles').select('user_type, athlete_mode').eq('id', u.id).maybeSingle();
+      if (!alive) return;
+      if (prof?.user_type) routeByProfile(prof.user_type, prof.athlete_mode ?? null);
+      else { setOauthUser(u); setMode('register'); setStep(1); setExpanded(null); setError(''); }
+    };
+    supabase.auth.getSession().then(({ data: { session } }) => { if (session?.user) handle(session.user); });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) handle(session.user);
+    });
+    return () => { alive = false; subscription.unsubscribe(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleGoogle = async () => {
+    setLoading(true);
+    setError('');
+    const { error: err } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/auth` },
+    });
+    // Si sale bien, el navegador se va a Google y no seguimos por aquí.
+    if (err) { setError(t('auth_google_error')); setLoading(false); }
+  };
+
+  // El usuario de Google elige su tipo → creamos su perfil y a onboarding.
+  const completeOauthProfile = async (ut: UserType, aMode: 'competitor' | 'hobby' = 'competitor') => {
+    if (!oauthUser) return;
+    setLoading(true);
+    setError('');
+    const meta = (oauthUser.user_metadata || {}) as Record<string, string>;
+    const fullName = meta.full_name || meta.name || (oauthUser.email?.split('@')[0]) || '';
+    const country = await detectCountryByIP();
+    const { error: upErr } = await supabase.from('profiles').upsert({
+      id: oauthUser.id,
+      user_type: ut,
+      full_name: fullName,
+      country: country || null,
+      athlete_mode: ut === 'fighter' ? aMode : null,
+    }, { onConflict: 'id' });
+    if (upErr) { setError(t('auth_oauth_error')); setLoading(false); return; }
+    sendWelcomeEmail(oauthUser.email || '', fullName, ut);
+    routeByProfile(ut, ut === 'fighter' ? aMode : null, true);
+  };
+
+  const cancelOauth = async () => {
+    await supabase.auth.signOut();
+    setOauthUser(null);
+    setMode('login');
+    setStep(1);
+    setError('');
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -217,11 +301,29 @@ export default function AuthPage() {
   };
 
   const selectType = (ut: UserType, mode: 'competitor' | 'hobby' = 'competitor') => {
+    // Si viene de Google, ya tiene sesión: solo falta crear su perfil.
+    if (oauthChoose) { completeOauthProfile(ut, mode); return; }
     setUserType(ut);
     setAthleteMode(mode);
     setError('');
     setStep(2);
   };
+
+  // Botón de Google + separador "o", reutilizado en login y registro.
+  const googleBlock = (
+    <div className="space-y-4">
+      <button type="button" onClick={handleGoogle} disabled={loading}
+        className="w-full flex items-center justify-center gap-3 bg-white hover:bg-white/90 text-[#1f1f1f] font-semibold py-3.5 rounded-xl transition-colors cursor-pointer disabled:opacity-60 font-inter">
+        <GoogleIcon />
+        {t('auth_google_btn')}
+      </button>
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-px bg-white/[0.08]"></div>
+        <span className="text-white/40 text-xs font-inter uppercase tracking-widest">{t('auth_or')}</span>
+        <div className="flex-1 h-px bg-white/[0.08]"></div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0B0B0B] flex flex-col items-center justify-center relative overflow-hidden px-4 py-8 sm:py-12" style={{ paddingTop: 'calc(2rem + env(safe-area-inset-top, 0px))', paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}>
@@ -234,7 +336,8 @@ export default function AuthPage() {
       </div>
 
       <div className="relative z-10 w-full max-w-[440px]">
-        {/* Tabs */}
+        {/* Tabs (ocultas cuando un usuario de Google elige su tipo de cuenta) */}
+        {!oauthChoose && (
         <div className="flex bg-[#141414] rounded-2xl p-1 mb-6 sm:mb-8 border border-white/[0.06]">
           <button onClick={() => { setMode('login'); setStep(1); setExpanded(null); setError(''); }} className={`flex-1 py-3 text-sm font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap font-inter ${mode === 'login' ? 'bg-[#E10600] text-white' : 'text-white/55 hover:text-white/85'}`}>
             {t('auth_tab_login')}
@@ -243,6 +346,7 @@ export default function AuthPage() {
             {t('auth_tab_register')}
           </button>
         </div>
+        )}
 
         <div className="bg-[#111111] border border-white/[0.06] rounded-2xl p-5 sm:p-8">
           {mode === 'login' ? (
@@ -251,6 +355,7 @@ export default function AuthPage() {
                 <h1 className="text-xl font-bold text-white mb-1 font-unbounded">{t('auth_login_title')}</h1>
                 <p className="text-white/55 text-sm font-inter">{t('auth_login_subtitle')}</p>
               </div>
+              {googleBlock}
               <div>
                 <label className="block text-xs text-white/60 mb-2 font-inter uppercase tracking-wide font-semibold">{t('label_email')}</label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="tu@email.com" className="w-full bg-white/[0.04] border border-white/[0.08] text-white text-sm rounded-xl px-4 py-3.5 focus:outline-none focus:border-[#E10600] placeholder-white/20 font-inter transition-colors" />
@@ -279,11 +384,15 @@ export default function AuthPage() {
                 <div className="space-y-4">
                   <div className="mb-5">
                     <div className="flex items-center gap-2 mb-3">
-                      <span className="text-[10px] font-bold text-[#E10600] bg-[#E10600]/10 border border-[#E10600]/25 px-2.5 py-1 rounded-full uppercase tracking-widest font-inter">Paso 1 de 2</span>
+                      <span className="text-[10px] font-bold text-[#E10600] bg-[#E10600]/10 border border-[#E10600]/25 px-2.5 py-1 rounded-full uppercase tracking-widest font-inter">
+                        {oauthChoose ? t('auth_oauth_badge') : t('auth_step_1_of_2')}
+                      </span>
                     </div>
-                    <h1 className="text-xl font-bold text-white mb-1 font-unbounded">¿Quién eres?</h1>
-                    <p className="text-white/55 text-sm font-inter">Elige tu tipo de cuenta para empezar</p>
+                    <h1 className="text-xl font-bold text-white mb-1 font-unbounded">{oauthChoose ? t('auth_oauth_choose_title') : t('auth_who_title')}</h1>
+                    <p className="text-white/55 text-sm font-inter">{oauthChoose ? t('auth_oauth_choose_subtitle') : t('auth_who_subtitle')}</p>
                   </div>
+
+                  {!oauthChoose && googleBlock}
 
                   {MAIN_TYPES.map((tp) => {
                     const isOpen = expanded === tp.key;
@@ -359,6 +468,12 @@ export default function AuthPage() {
                   })}
 
                   {error && <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 font-inter">{error}</p>}
+
+                  {oauthChoose && (
+                    <button type="button" onClick={cancelOauth} className="w-full text-center text-white/45 hover:text-white/75 text-xs font-inter cursor-pointer transition-colors pt-1">
+                      {t('auth_oauth_cancel')}
+                    </button>
+                  )}
                 </div>
               ) : (
                 <form onSubmit={handleRegister} className="space-y-5">
