@@ -104,7 +104,7 @@ function drawCard(ctx: CanvasRenderingContext2D, d: CardData, H: number) {
   const P = 72;
   // Fondo
   ctx.fillStyle = '#0b0b0d';
-  ctx.fillRect(0, 0, CARD_W, CARD_H);
+  ctx.fillRect(0, 0, CARD_W, H);
   // Resplandor rojo arriba a la derecha
   const glow = ctx.createRadialGradient(CARD_W - 60, 40, 20, CARD_W - 60, 40, 520);
   glow.addColorStop(0, 'rgba(225,6,0,0.22)');

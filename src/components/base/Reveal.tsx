@@ -62,7 +62,7 @@ export default function Reveal({
 
   return (
     <Tag
-      ref={ref as React.RefObject<HTMLDivElement>}
+      ref={ref as React.RefObject<never>}
       className={`${VARIANT_CLASS[variant]} ${visible ? 'is-visible' : ''} ${className}`}
       style={{ transitionDelay: `${delay}ms` }}
     >

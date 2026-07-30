@@ -114,6 +114,7 @@ export const MOCK_PROFILES: Profile[] = [
 export const MOCK_FIGHTERS: Fighter[] = [
   {
     id: 'mock-fighter-1',
+    is_public: true,
     profile_id: 'mock-profile-1',
     nickname: 'El Toro',
     discipline: 'boxing',
@@ -138,6 +139,7 @@ export const MOCK_FIGHTERS: Fighter[] = [
   },
   {
     id: 'mock-fighter-2',
+    is_public: true,
     profile_id: 'mock-profile-2',
     nickname: 'El Vikingo',
     discipline: 'mma',
@@ -162,6 +164,7 @@ export const MOCK_FIGHTERS: Fighter[] = [
   },
   {
     id: 'mock-fighter-3',
+    is_public: true,
     profile_id: 'mock-profile-3',
     nickname: 'La Tormenta',
     discipline: 'kickboxing',
@@ -186,6 +189,7 @@ export const MOCK_FIGHTERS: Fighter[] = [
   },
   {
     id: 'mock-fighter-4',
+    is_public: true,
     profile_id: 'mock-profile-4',
     nickname: 'Cobra',
     discipline: 'muay_thai',
@@ -210,6 +214,7 @@ export const MOCK_FIGHTERS: Fighter[] = [
   },
   {
     id: 'mock-fighter-5',
+    is_public: true,
     profile_id: 'mock-profile-5',
     nickname: 'El Vasco',
     discipline: 'boxing',
@@ -234,6 +239,7 @@ export const MOCK_FIGHTERS: Fighter[] = [
   },
   {
     id: 'mock-fighter-6',
+    is_public: true,
     profile_id: 'mock-profile-6',
     nickname: 'El Malagueño',
     discipline: 'mma',
@@ -411,6 +417,7 @@ export const MOCK_ORG_PROFILES: Profile[] = [
 export const MOCK_ORGANIZATIONS: Organization[] = [
   {
     id: 'mock-org-1',
+    is_public: true,
     profile_id: 'mock-org-profile-1',
     org_name: 'Elite Combat España',
     org_type: 'promoter',
@@ -425,6 +432,7 @@ export const MOCK_ORGANIZATIONS: Organization[] = [
   },
   {
     id: 'mock-org-2',
+    is_public: true,
     profile_id: 'mock-org-profile-2',
     org_name: 'Iberian Fight Management',
     org_type: 'manager',
@@ -439,6 +447,7 @@ export const MOCK_ORGANIZATIONS: Organization[] = [
   },
   {
     id: 'mock-org-3',
+    is_public: true,
     profile_id: 'mock-org-profile-3',
     org_name: 'Valencia Fight Academy',
     org_type: 'gym',
