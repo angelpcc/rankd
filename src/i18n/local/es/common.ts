@@ -1,4 +1,9 @@
 export default {
+  lg_back: 'Volver',
+  lg_terms_title: 'Términos y Condiciones',
+  lg_privacy_title: 'Política de Privacidad',
+  lg_seo_terms: 'Términos y condiciones de uso de RANKD.',
+  lg_seo_privacy: 'Política de privacidad de RANKD y tratamiento de datos (RGPD).',
   // Nav
   nav_home: 'Inicio',
   nav_how_it_works: 'Cómo Funciona',

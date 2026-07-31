@@ -1,4 +1,9 @@
 export default {
+  lg_back: 'Back',
+  lg_terms_title: 'Terms & Conditions',
+  lg_privacy_title: 'Privacy Policy',
+  lg_seo_terms: 'RANKD terms and conditions of use.',
+  lg_seo_privacy: 'RANKD privacy policy and data processing (GDPR).',
   // Nav
   nav_home: 'Home',
   nav_how_it_works: 'How It Works',
