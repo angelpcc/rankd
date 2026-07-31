@@ -7,6 +7,7 @@ import OrgApplicants from './OrgApplicants';
 import OrgFighterSearch from './OrgFighterSearch';
 import GymGallery from './GymGallery';
 import PromoterEvents from './PromoterEvents';
+import GymCoaches from './GymCoaches';
 import MessagesPanel from './messages/MessagesPanel';
 import VerificationPanel from './VerificationPanel';
 import ProfileCompletionBanner from './ProfileCompletionBanner';
@@ -36,7 +37,7 @@ const orgTypeBg: Record<string, string> = {
   organizer: 'bg-zinc-700 border-zinc-600 text-zinc-300',
 };
 
-type ActiveTab = 'overview' | 'opportunities' | 'applicants' | 'fighters' | 'gallery' | 'events' | 'messages' | 'verification' | 'profile';
+type ActiveTab = 'overview' | 'opportunities' | 'applicants' | 'fighters' | 'gallery' | 'events' | 'coaches' | 'messages' | 'verification' | 'profile';
 
 export default function OrgDashboard({ profile }: Props) {
   const { t } = useTranslation();
@@ -256,6 +257,7 @@ export default function OrgDashboard({ profile }: Props) {
     { id: 'applicants', label: t('dash_org_tab_applicants'), icon: 'ri-user-received-line', badge: totalApplicants || undefined },
     { id: 'fighters', label: t('dash_org_tab_fighters'), icon: 'ri-search-line' },
     ...(isGym ? [{ id: 'gallery' as ActiveTab, label: t('dash_org_tab_gallery'), icon: 'ri-image-2-line' }] : []),
+    ...(isGym ? [{ id: 'coaches' as ActiveTab, label: t('cl_coaches_tab'), icon: 'ri-whistle-line' }] : []),
     ...(isPromoter ? [{ id: 'events' as ActiveTab, label: t('dash_org_tab_events'), icon: 'ri-calendar-event-line' }] : []),
     { id: 'messages', label: t('dash_org_tab_messages'), icon: 'ri-message-3-line', badge: unreadMessages || undefined },
     { id: 'verification', label: t('dash_org_tab_verification'), icon: 'ri-verified-badge-line' },
@@ -641,6 +643,13 @@ export default function OrgDashboard({ profile }: Props) {
           {activeTab === 'events' && isPromoter && (
             <div className="max-w-5xl">
               <PromoterEvents profile={profile} showToast={showToast} />
+            </div>
+          )}
+
+          {/* ── COACHES TAB (gym only) ── */}
+          {activeTab === 'coaches' && isGym && (
+            <div className="max-w-5xl">
+              <GymCoaches profile={profile} showToast={showToast} />
             </div>
           )}
 

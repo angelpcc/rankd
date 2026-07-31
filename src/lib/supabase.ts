@@ -87,7 +87,7 @@ type RpcFn = typeof client.rpc;
 
 export const supabase = client;
 
-export type UserType = 'fighter' | 'promoter' | 'manager' | 'brand' | 'gym';
+export type UserType = 'fighter' | 'promoter' | 'manager' | 'brand' | 'gym' | 'coach';
 
 export interface Profile {
   id: string;
@@ -268,6 +268,53 @@ export interface OrgEvent {
   status: string;
   created_at: string;
   updated_at: string;
+}
+
+// ── Espacio de entrenador (R13-T1) ──
+export interface GymStaff {
+  id: string;
+  org_profile_id: string;
+  coach_profile_id: string;
+  role: string;
+  status: 'active' | 'inactive';
+  created_at: string;
+}
+
+export interface GymInvitation {
+  id: string;
+  org_profile_id: string;
+  code: string;
+  email: string | null;
+  invited_name: string | null;
+  role: string;
+  status: 'pending' | 'accepted' | 'revoked';
+  accepted_by: string | null;
+  accepted_at: string | null;
+  created_at: string;
+}
+
+export interface GymRosterEntry {
+  id: string;
+  org_profile_id: string;
+  fighter_profile_id: string | null;
+  display_name: string;
+  note: string | null;
+  status: 'active' | 'left';
+  shares_activity: boolean;
+  created_at: string;
+}
+
+export interface ClubSession {
+  id: string;
+  org_profile_id: string;
+  coach_profile_id: string | null;
+  session_date: string;
+  part_of_day: 'morning' | 'afternoon' | 'evening';
+  session_type: string;
+  title: string;
+  group_label: string | null;
+  notes: string | null;
+  created_at: string;
 }
 
 // Interfaces for Supabase tables

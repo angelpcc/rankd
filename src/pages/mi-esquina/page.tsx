@@ -17,6 +17,7 @@ import AgendaHub from '@/pages/mi-esquina/components/AgendaHub';
 import ProgressHub from '@/pages/mi-esquina/components/ProgressHub';
 import RingHub from '@/pages/mi-esquina/components/RingHub';
 import GearChecklist, { GearReplacementAlert } from '@/pages/mi-esquina/components/GearChecklist';
+import GymLink from '@/pages/mi-esquina/components/GymLink';
 import GearBrands from '@/pages/mi-esquina/components/GearBrands';
 import SectionCoach from '@/pages/mi-esquina/components/SectionCoach';
 import MealLog from '@/pages/mi-esquina/components/MealLog';
@@ -296,6 +297,9 @@ export default function MiEsquinaPage() {
 
               {/* Si toca renovar material, avisar desde el resumen */}
               <GearReplacementAlert profile={profile} onOpen={() => setSection('material')} />
+
+              {/* Tu gimnasio en RANKD: consentimiento para compartir actividad */}
+              <GymLink profile={profile} showToast={showToast} />
 
               {/* Check-in del día */}
               <Reveal delay={40}>

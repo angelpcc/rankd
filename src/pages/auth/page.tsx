@@ -124,7 +124,19 @@ export default function AuthPage() {
   const [oauthUser, setOauthUser] = useState<User | null>(null);
   const oauthChoose = !!oauthUser;
 
+  // Abrir directamente en registro (p. ej. desde una invitación de entrenador).
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    if (p.get('register') === '1') { setMode('register'); setStep(1); }
+  }, []);
+
+  // Si el usuario venía de aceptar una invitación de entrenador, esa intención
+  // manda sobre el enrutado normal por rol.
+  const pendingInvite = () => { try { return localStorage.getItem('rankd_pending_invite'); } catch { return null; } };
+
   const redirectByRole = (ut: string, isNewUser = false) => {
+    if (pendingInvite()) { navigate('/unirse'); return; }
+    if (ut === 'coach') { navigate('/club'); return; }
     if (isNewUser) {
       switch (ut) {
         case 'fighter': navigate('/onboarding/fighter'); return;
@@ -146,6 +158,7 @@ export default function AuthPage() {
   };
 
   const routeByProfile = (ut: string, aMode: string | null, isNew = false) => {
+    if (pendingInvite()) { navigate('/unirse'); return; }
     if (ut === 'fighter' && aMode === 'hobby') { navigate('/mi-esquina'); return; }
     redirectByRole(ut, isNew);
   };
@@ -230,7 +243,9 @@ export default function AuthPage() {
     }
     if (data.user) {
       const { data: prof } = await supabase.from('profiles').select('user_type, athlete_mode').eq('id', data.user.id).maybeSingle();
-      if (prof?.user_type === 'fighter' && prof?.athlete_mode === 'hobby') {
+      if (pendingInvite()) {
+        navigate('/unirse');
+      } else if (prof?.user_type === 'fighter' && prof?.athlete_mode === 'hobby') {
         navigate('/mi-esquina');
       } else {
         redirectByRole(prof?.user_type ?? '');
@@ -288,7 +303,9 @@ export default function AuthPage() {
           country: country || null,
           athlete_mode: userType === 'fighter' ? athleteMode : null,
         }, { onConflict: 'id', ignoreDuplicates: true });
-        if (userType === 'fighter' && athleteMode === 'hobby') {
+        if (pendingInvite()) {
+          navigate('/unirse');
+        } else if (userType === 'fighter' && athleteMode === 'hobby') {
           navigate('/mi-esquina');
         } else {
           redirectByRole(userType, true);

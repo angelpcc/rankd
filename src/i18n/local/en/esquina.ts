@@ -107,6 +107,7 @@ export default {
   mc_ai_meals_added_one: '1 meal added to your diary ✓',
   mc_ai_meals_added_other: '{{count}} meals added to your diary ✓',
   mc_ai_from_ai: 'Suggested by AI',
+  mc_from_coach: 'From your coach',
 
   // ── Voice dictation (R12-T3) ──
   mc_vo_dictate: 'Dictate',

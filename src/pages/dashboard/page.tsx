@@ -9,6 +9,7 @@ import BrandDashboard from './components/BrandDashboard';
 function getDashboardRoute(userType: string): string {
   switch (userType) {
     case 'fighter': return '/dashboard/fighter';
+    case 'coach': return '/club';
     case 'brand': return '/dashboard/brand';
     case 'promoter':
     case 'gym':
@@ -33,6 +34,10 @@ export default function DashboardPage() {
     // If user lands on /dashboard (no subroute), redirect to the correct one
     if (!loading && profile && location.pathname === '/dashboard') {
       navigate(getDashboardRoute(profile.user_type), { replace: true });
+    }
+    // Un entrenador no tiene panel de organización: su sitio es el espacio de club.
+    if (!loading && profile && profile.user_type === 'coach' && location.pathname.startsWith('/dashboard')) {
+      navigate('/club', { replace: true });
     }
   }, [user, profile, loading, navigate, location.pathname]);
 

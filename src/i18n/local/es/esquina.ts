@@ -107,6 +107,7 @@ export default {
   mc_ai_meals_added_one: 'Añadida 1 comida a tu diario ✓',
   mc_ai_meals_added_other: 'Añadidas {{count}} comidas a tu diario ✓',
   mc_ai_from_ai: 'Propuesto por la IA',
+  mc_from_coach: 'De tu entrenador',
 
   // ── Dictado por voz (R12-T3) ──
   mc_vo_dictate: 'Dictar',

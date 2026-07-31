@@ -30,6 +30,8 @@ const TimerPage = lazy(() => import('../pages/timer/page'));
 const StorePage = lazy(() => import('../pages/tienda/page'));
 const NewsPage = lazy(() => import('../pages/noticias/page'));
 const AdminPage = lazy(() => import('../pages/admin/page'));
+const ClubPage = lazy(() => import('../pages/club/page'));
+const ClubInvitePage = lazy(() => import('../pages/club/invite/page'));
 const PrivacyPage = lazy(() => import('../pages/privacy/page'));
 
 const routes: RouteObject[] = [
@@ -198,6 +200,22 @@ const routes: RouteObject[] = [
     element: (
       <Suspense fallback={<LoadingSpinner />}>
         <TimerPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/club',
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <ClubPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/unirse',
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <ClubInvitePage />
       </Suspense>
     ),
   },
