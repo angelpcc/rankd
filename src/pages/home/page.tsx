@@ -1,6 +1,7 @@
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import HowItWorks from './components/HowItWorks';
+import Benefits from './components/Benefits';
 import Fighters from './components/Fighters';
 import Opportunities from './components/Opportunities';
 import BrandsSection from './components/Brands';
@@ -35,13 +36,16 @@ export default function HomePage() {
       {/* Contenido indexable por Google — invisible visualmente */}
       <SEOContent />
       <Navbar />
+      {/* Narrativa (R12-T15): descubre → cómo funciona → qué te da → quién
+          está → conecta → marcas → dudas → únete → contacto */}
       <Hero />
       <HowItWorks />
+      <Benefits />
       <Fighters />
       <Opportunities />
       <BrandsSection />
-      <Partners />
       <FAQ />
+      <Partners />
       <Contact />
       <Footer />
     </main>
