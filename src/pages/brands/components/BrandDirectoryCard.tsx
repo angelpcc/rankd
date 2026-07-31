@@ -1,4 +1,6 @@
+import { useEffect, useRef } from 'react';
 import type { BrandWithItems } from '@/hooks/useBrands';
+import { trackBrandView, trackBrandWebsiteClick, trackBrandProductClick } from '@/lib/trackBrand';
 
 interface Props {
   brand: BrandWithItems;
@@ -50,9 +52,23 @@ export default function BrandDirectoryCard({ brand }: Props) {
 
   const hasProducts = brand.products.length > 0;
   const hasServices = brand.services.length > 0;
+  const orgId = brand.user_id || '';
+
+  // Impresión del escaparate: se cuenta una vez cuando la tarjeta entra en
+  // pantalla (no en cada render), como "cuánta gente ha visto tu escaparate".
+  const cardRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!orgId || !cardRef.current) return;
+    const el = cardRef.current;
+    const obs = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) { trackBrandView(orgId); obs.disconnect(); }
+    }, { threshold: 0.5 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [orgId]);
 
   return (
-    <article className="group bg-white/[0.03] border border-white/[0.08] rounded-2xl overflow-hidden hover:border-red-500/40 hover:-translate-y-0.5 transition-all duration-300 flex flex-col">
+    <article ref={cardRef} className="group bg-white/[0.03] border border-white/[0.08] rounded-2xl overflow-hidden hover:border-red-500/40 hover:-translate-y-0.5 transition-all duration-300 flex flex-col">
       {/* Brand header */}
       <div className={`relative p-5 flex items-center gap-4 ${cfg.headerBg}`}>
         {/* Logo */}
@@ -97,23 +113,40 @@ export default function BrandDirectoryCard({ brand }: Props) {
           {hasProducts ? (
             <>
               <div className={`grid gap-2 ${type === 'both' ? 'grid-cols-2' : 'grid-cols-3'}`}>
-                {featuredProducts.map((product) => (
-                  <div key={product.id} className="group/prod relative rounded-xl overflow-hidden bg-white/[0.04] border border-white/[0.08] aspect-square">
-                    {product.image_url ? (
-                      <img src={product.image_url} alt={product.name} className="w-full h-full object-cover object-top" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <i className="ri-image-line text-gray-300 text-xl"></i>
+                {featuredProducts.map((product) => {
+                  const inner = (
+                    <>
+                      {product.image_url ? (
+                        <img src={product.image_url} alt={product.name} className="w-full h-full object-cover object-top" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <i className="ri-image-line text-gray-300 text-xl"></i>
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-black/0 group-hover/prod:bg-black/50 transition-colors flex items-end">
+                        <div className="w-full p-1.5 translate-y-full group-hover/prod:translate-y-0 transition-transform duration-200">
+                          <p className="text-white text-[10px] font-semibold leading-tight truncate">{product.name}</p>
+                          {product.price && <p className="text-yellow-400 text-[10px] font-bold">{product.price}</p>}
+                        </div>
                       </div>
-                    )}
-                    <div className="absolute inset-0 bg-black/0 group-hover/prod:bg-black/50 transition-colors flex items-end">
-                      <div className="w-full p-1.5 translate-y-full group-hover/prod:translate-y-0 transition-transform duration-200">
-                        <p className="text-white text-[10px] font-semibold leading-tight truncate">{product.name}</p>
-                        {product.price && <p className="text-yellow-400 text-[10px] font-bold">{product.price}</p>}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                      {product.external_link && (
+                        <span className="absolute top-1.5 right-1.5 w-5 h-5 rounded-md bg-black/55 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover/prod:opacity-100 transition-opacity">
+                          <i className="ri-shopping-cart-line text-white text-[11px]"></i>
+                        </span>
+                      )}
+                    </>
+                  );
+                  const cls = 'group/prod relative rounded-xl overflow-hidden bg-white/[0.04] border border-white/[0.08] aspect-square block';
+                  return product.external_link ? (
+                    <a key={product.id} href={product.external_link} target="_blank" rel="nofollow noreferrer"
+                      onClick={() => trackBrandProductClick(orgId, product.id)}
+                      className={`${cls} cursor-pointer hover:border-yellow-500/40`}>
+                      {inner}
+                    </a>
+                  ) : (
+                    <div key={product.id} className={cls}>{inner}</div>
+                  );
+                })}
               </div>
               {brand.products.length > featuredProducts.length && (
                 <p className="text-xs text-gray-400 font-inter mt-1.5">+{brand.products.length - featuredProducts.length} más</p>
@@ -201,6 +234,7 @@ export default function BrandDirectoryCard({ brand }: Props) {
             href={brand.website}
             target="_blank"
             rel="nofollow noreferrer"
+            onClick={() => trackBrandWebsiteClick(orgId)}
             className={`flex items-center justify-center gap-1.5 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap font-inter ${cfg.ctaColor}`}
           >
             <i className="ri-external-link-line"></i>

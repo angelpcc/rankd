@@ -7,12 +7,13 @@ import BrandTalentSearch from './BrandTalentSearch';
 import BrandEventSearch from './BrandEventSearch';
 import BrandProducts from './BrandProducts';
 import BrandServices from './BrandServices';
+import BrandMetrics from './BrandMetrics';
 import MessagesPanel from './messages/MessagesPanel';
 import VerificationPanel from './VerificationPanel';
 
 interface Props { profile: Profile; }
 
-type ActiveTab = 'overview' | 'talent' | 'events' | 'sponsorships' | 'products' | 'services' | 'messages' | 'verification' | 'profile';
+type ActiveTab = 'overview' | 'talent' | 'events' | 'sponsorships' | 'products' | 'services' | 'metrics' | 'messages' | 'verification' | 'profile';
 
 const industries = [
   'Equipamiento deportivo', 'Nutrición / Suplementos', 'Ropa deportiva',
@@ -233,6 +234,7 @@ export default function BrandDashboard({ profile }: Props) {
       ? [{ id: 'services' as ActiveTab, label: t('dash_brand_tab_services'), icon: 'ri-service-line' }]
       : []
     ),
+    { id: 'metrics',       label: t('dash_brand_tab_metrics'),       icon: 'ri-line-chart-line' },
     { id: 'talent',        label: t('dash_brand_tab_talent'),        icon: 'ri-user-star-line' },
     { id: 'events',        label: t('dash_brand_tab_events'),        icon: 'ri-calendar-event-line' },
     { id: 'sponsorships',  label: t('dash_brand_tab_sponsorships'),  icon: 'ri-hand-coin-line', badge: openOpps.length || undefined },
@@ -247,7 +249,7 @@ export default function BrandDashboard({ profile }: Props) {
   const tabById = new Map(tabs.map((tb) => [tb.id, tb]));
   const navGroups: { labelKey?: string; ids: ActiveTab[] }[] = [
     { ids: ['overview'] },
-    { labelKey: 'dash_brand_group_storefront', ids: ['products', 'services'] },
+    { labelKey: 'dash_brand_group_storefront', ids: ['products', 'services', 'metrics'] },
     { labelKey: 'dash_brand_group_sponsor', ids: ['talent', 'events', 'sponsorships'] },
     { labelKey: 'dash_brand_group_general', ids: ['messages', 'verification', 'profile'] },
   ];
@@ -569,6 +571,13 @@ export default function BrandDashboard({ profile }: Props) {
           {activeTab === 'services' && (
             <div className="max-w-5xl">
               <BrandServices profile={profile} showToast={showToast} />
+            </div>
+          )}
+
+          {/* ── METRICS ── */}
+          {activeTab === 'metrics' && (
+            <div className="max-w-5xl">
+              <BrandMetrics profile={profile} />
             </div>
           )}
 
