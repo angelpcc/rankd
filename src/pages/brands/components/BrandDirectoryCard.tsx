@@ -1,9 +1,11 @@
 import { useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { BrandWithItems } from '@/hooks/useBrands';
 import { trackBrandView, trackBrandWebsiteClick, trackBrandProductClick } from '@/lib/trackBrand';
 
 interface Props {
   brand: BrandWithItems;
+  rating?: { avg: number; n: number };
 }
 
 const MODALITY_ICONS: Record<string, string> = {
@@ -33,7 +35,8 @@ const TYPE_CONFIG = {
   },
 };
 
-export default function BrandDirectoryCard({ brand }: Props) {
+export default function BrandDirectoryCard({ brand, rating }: Props) {
+  const navigate = useNavigate();
   const initials = brand.name
     .split(' ')
     .map((w) => w[0])
@@ -69,8 +72,8 @@ export default function BrandDirectoryCard({ brand }: Props) {
 
   return (
     <article ref={cardRef} className="group bg-white/[0.03] border border-white/[0.08] rounded-2xl overflow-hidden hover:border-red-500/40 hover:-translate-y-0.5 transition-all duration-300 flex flex-col">
-      {/* Brand header */}
-      <div className={`relative p-5 flex items-center gap-4 ${cfg.headerBg}`}>
+      {/* Brand header (clic → perfil público de la marca) */}
+      <div onClick={() => orgId && navigate(`/marca/${orgId}`)} className={`relative p-5 flex items-center gap-4 cursor-pointer ${cfg.headerBg}`}>
         {/* Logo */}
         <div className="w-12 h-12 flex-shrink-0 rounded-xl overflow-hidden bg-white/10 flex items-center justify-center border border-white/10">
           {brand.logo_url ? (
@@ -83,9 +86,10 @@ export default function BrandDirectoryCard({ brand }: Props) {
         {/* Info */}
         <div className="flex-1 min-w-0">
           <h3 className="font-unbounded font-bold text-white text-sm leading-tight truncate">{brand.name}</h3>
-          {brand.category && (
-            <span className="text-xs text-white/45 font-inter mt-0.5 block truncate">{brand.category}</span>
-          )}
+          <div className="flex items-center gap-2 mt-0.5">
+            {brand.category && <span className="text-xs text-white/45 font-inter truncate">{brand.category}</span>}
+            {rating && rating.n > 0 && <span className="text-[11px] text-[#C9A84C] flex items-center gap-0.5 flex-shrink-0"><i className="ri-star-fill"></i>{rating.avg.toFixed(1)}</span>}
+          </div>
         </div>
 
         {/* Type badge */}

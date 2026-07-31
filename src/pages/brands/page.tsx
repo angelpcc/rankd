@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { supabase } from '@/lib/supabase';
 import Navbar from '@/pages/home/components/Navbar';
 import Footer from '@/pages/home/components/Footer';
 import BrandDirectoryCard from './components/BrandDirectoryCard';
@@ -36,6 +37,14 @@ export default function BrandsPage() {
 
   const { t } = useTranslation();
   const { brands, loading } = useBrands();
+  const [ratings, setRatings] = useState<Map<string, { avg: number; n: number }>>(new Map());
+
+  useEffect(() => {
+    const ids = brands.map((b) => b.user_id).filter(Boolean) as string[];
+    if (ids.length === 0) return;
+    supabase.from('org_rating_summary').select('org_profile_id, avg_rating, review_count').in('org_profile_id', ids)
+      .then(({ data }) => setRatings(new Map((data || []).map((r) => [r.org_profile_id, { avg: Number(r.avg_rating) || 0, n: r.review_count || 0 }]))));
+  }, [brands]);
 
   const SORT_OPTIONS = [
     { value: 'recent', label: t('brands_sort_recent') },
@@ -347,7 +356,7 @@ export default function BrandsPage() {
         {!loading && filtered.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {filtered.map((brand) => (
-              <BrandDirectoryCard key={brand.id} brand={brand} />
+              <BrandDirectoryCard key={brand.id} brand={brand} rating={brand.user_id ? ratings.get(brand.user_id) : undefined} />
             ))}
           </div>
         )}

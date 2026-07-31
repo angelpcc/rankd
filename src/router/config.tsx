@@ -32,6 +32,8 @@ const NewsPage = lazy(() => import('../pages/noticias/page'));
 const AdminPage = lazy(() => import('../pages/admin/page'));
 const ClubPage = lazy(() => import('../pages/club/page'));
 const ClubInvitePage = lazy(() => import('../pages/club/invite/page'));
+const PromotoraPublicPage = lazy(() => import('../pages/promotora/page'));
+const MarcaPublicPage = lazy(() => import('../pages/marca/page'));
 const PrivacyPage = lazy(() => import('../pages/privacy/page'));
 
 const routes: RouteObject[] = [
@@ -168,6 +170,22 @@ const routes: RouteObject[] = [
     element: (
       <Suspense fallback={<LoadingSpinner />}>
         <PromotorasPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/promotora/:id',
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <PromotoraPublicPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/marca/:id',
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <MarcaPublicPage />
       </Suspense>
     ),
   },

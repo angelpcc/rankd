@@ -10,6 +10,7 @@ interface OrgRow {
   org: Organization;
   profile: Profile | null;
   upcomingEvents: number;
+  rating?: { avg: number; n: number };
 }
 
 type TypeFilter = 'all' | 'promoter' | 'gym' | 'manager';
@@ -57,11 +58,13 @@ export default function PromotorasPage() {
       if (!orgs || orgs.length === 0) { setRows([]); setLoading(false); return; }
 
       const ids = orgs.map((o) => o.profile_id).filter(Boolean);
-      const [{ data: profiles }, { data: events }] = await Promise.all([
+      const [{ data: profiles }, { data: events }, { data: ratings }] = await Promise.all([
         supabase.from('profiles').select('*').in('id', ids),
         supabase.from('organization_events').select('org_profile_id, event_date').in('org_profile_id', ids),
+        supabase.from('org_rating_summary').select('org_profile_id, avg_rating, review_count').in('org_profile_id', ids),
       ]);
       const pmap = new Map((profiles || []).map((p) => [p.id, p]));
+      const rmap = new Map((ratings || []).map((r) => [r.org_profile_id, { avg: Number(r.avg_rating) || 0, n: r.review_count || 0 }]));
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const evCount = new Map<string, number>();
       (events || []).forEach((e) => {
@@ -71,7 +74,7 @@ export default function PromotorasPage() {
 
       setRows(orgs
         .filter((o) => o.org_type !== 'brand') // las marcas tienen su propio directorio
-        .map((o) => ({ org: o, profile: pmap.get(o.profile_id) || null, upcomingEvents: evCount.get(o.profile_id) || 0 })));
+        .map((o) => ({ org: o, profile: pmap.get(o.profile_id) || null, upcomingEvents: evCount.get(o.profile_id) || 0, rating: rmap.get(o.profile_id) })));
       setLoading(false);
     };
     load();
@@ -231,7 +234,7 @@ export default function PromotorasPage() {
               const t = r.org.org_type || 'organizer';
               return (
                 <Reveal key={r.org.id} delay={Math.min(i, 6) * 50}>
-                  <article className="rk-card h-full flex flex-col" style={{ padding: 18 }}>
+                  <article onClick={() => r.profile && navigate(`/promotora/${r.profile.id}`)} className="rk-card h-full flex flex-col cursor-pointer" style={{ padding: 18 }}>
                     <div className="flex items-start gap-3">
                       {r.profile?.avatar_url || r.org.logo_url ? (
                         <img src={r.org.logo_url || r.profile?.avatar_url || ''} alt="" className="w-12 h-12 rounded-xl object-cover border border-white/10 flex-shrink-0" />
@@ -253,6 +256,7 @@ export default function PromotorasPage() {
 
                     {/* Datos de un vistazo */}
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-3 text-xs text-zinc-500">
+                      {r.rating && r.rating.n > 0 && <span className="flex items-center gap-1 text-[#C9A84C]"><i className="ri-star-fill"></i>{r.rating.avg.toFixed(1)} ({r.rating.n})</span>}
                       {r.profile?.location && <span className="flex items-center gap-1"><i className="ri-map-pin-line"></i>{r.profile.location}</span>}
                       {r.org.founded_year && <span className="flex items-center gap-1"><i className="ri-time-line"></i>Desde {r.org.founded_year}</span>}
                       {r.org.fighters_managed > 0 && <span className="flex items-center gap-1"><i className="ri-group-line"></i>{r.org.fighters_managed}</span>}
@@ -260,7 +264,7 @@ export default function PromotorasPage() {
 
                     <div className="mt-auto pt-3.5">
                       {r.upcomingEvents > 0 ? (
-                        <button onClick={() => navigate('/eventos')} className="w-full flex items-center justify-center gap-2 rounded-xl bg-red-600/12 border border-red-500/30 text-red-300 hover:bg-red-600/20 text-xs font-bold py-2.5 transition-colors cursor-pointer">
+                        <button onClick={(e) => { e.stopPropagation(); navigate('/eventos'); }} className="w-full flex items-center justify-center gap-2 rounded-xl bg-red-600/12 border border-red-500/30 text-red-300 hover:bg-red-600/20 text-xs font-bold py-2.5 transition-colors cursor-pointer">
                           <i className="ri-calendar-event-line"></i>{r.upcomingEvents} {r.upcomingEvents === 1 ? 'evento próximo' : 'eventos próximos'}
                         </button>
                       ) : (

@@ -336,6 +336,18 @@ export interface EventBout {
   created_at: string;
 }
 
+// ── Reseñas de confianza (R13-T7) ──
+export interface OrgReview {
+  id: string;
+  org_profile_id: string;
+  reviewer_profile_id: string;
+  rating: number;
+  comment: string | null;
+  relationship: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // Interfaces for Supabase tables
 export interface ContactSubmission {
   id: string;
