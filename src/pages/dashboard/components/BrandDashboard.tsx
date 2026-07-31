@@ -241,6 +241,17 @@ export default function BrandDashboard({ profile }: Props) {
     { id: 'profile',       label: t('dash_brand_tab_profile'),       icon: 'ri-store-2-line' },
   ];
 
+  // R13-T3: la barra lateral se agrupa en las dos funciones de una marca para
+  // que no se mezclen "esto es para vender" (Escaparate) y "esto es para
+  // patrocinar" (Patrocinio). Cada grupo solo muestra las pestañas que existen.
+  const tabById = new Map(tabs.map((tb) => [tb.id, tb]));
+  const navGroups: { labelKey?: string; ids: ActiveTab[] }[] = [
+    { ids: ['overview'] },
+    { labelKey: 'dash_brand_group_storefront', ids: ['products', 'services'] },
+    { labelKey: 'dash_brand_group_sponsor', ids: ['talent', 'events', 'sponsorships'] },
+    { labelKey: 'dash_brand_group_general', ids: ['messages', 'verification', 'profile'] },
+  ];
+
   return (
     <div className="min-h-screen bg-[#070707] text-white">
       <DashboardNav profile={profile} />
@@ -272,23 +283,34 @@ export default function BrandDashboard({ profile }: Props) {
             )}
           </div>
 
-          {/* Nav */}
-          <nav className="flex-1 p-3 space-y-1">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer text-left ${activeTab === tab.id ? 'bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/35' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
-              >
-                <i className={`${tab.icon} text-base flex-shrink-0`}></i>
-                <span className="flex-1">{tab.label}</span>
-                {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${activeTab === tab.id ? 'bg-[#C9A84C]/30 text-[#dcc06a]' : 'bg-[#C9A84C]/20 text-[#C9A84C]'}`}>
-                    {tab.badge}
-                  </span>
-                )}
-              </button>
-            ))}
+          {/* Nav agrupada por función */}
+          <nav className="flex-1 p-3 space-y-3">
+            {navGroups.map((group, gi) => {
+              const items = group.ids.map((id) => tabById.get(id)).filter(Boolean) as typeof tabs;
+              if (items.length === 0) return null;
+              return (
+                <div key={gi} className="space-y-1">
+                  {group.labelKey && (
+                    <p className="px-3 pt-1 pb-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-600">{t(group.labelKey)}</p>
+                  )}
+                  {items.map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer text-left ${activeTab === tab.id ? 'bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/35' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
+                    >
+                      <i className={`${tab.icon} text-base flex-shrink-0`}></i>
+                      <span className="flex-1">{tab.label}</span>
+                      {tab.badge !== undefined && tab.badge > 0 && (
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${activeTab === tab.id ? 'bg-[#C9A84C]/30 text-[#dcc06a]' : 'bg-[#C9A84C]/20 text-[#C9A84C]'}`}>
+                          {tab.badge}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              );
+            })}
           </nav>
 
           {/* Quick action */}
@@ -423,29 +445,29 @@ export default function BrandDashboard({ profile }: Props) {
                   <div className="flex items-center gap-3 mb-1.5">
                     <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#C9A84C]/12 border border-[#C9A84C]/35 text-[#C9A84C]"><i className="ri-store-3-line text-lg"></i></div>
                     <div>
-                      <p className="rk-eyebrow" style={{ fontSize: '0.6rem' }}>FUNCIÓN 1</p>
-                      <h3 className="rk-h3 text-white" style={{ fontSize: '1.05rem' }}>VENDER PRODUCTO</h3>
+                      <p className="rk-eyebrow" style={{ fontSize: '0.6rem' }}>{t('dash_brand_fn1_eyebrow')}</p>
+                      <h3 className="rk-h3 text-white" style={{ fontSize: '1.05rem' }}>{t('dash_brand_fn1_title')}</h3>
                     </div>
                   </div>
-                  <p className="text-xs text-zinc-400 leading-relaxed mb-4">Tu catálogo de equipamiento, nutrición o servicios, visible para peleadores y público general.</p>
+                  <p className="text-xs text-zinc-400 leading-relaxed mb-4">{t('dash_brand_fn1_desc')}</p>
                   <div className="space-y-2 mt-auto">
                     {(brandType === 'product' || brandType === 'both') && (
                       <button onClick={() => setActiveTab('products')} className="w-full flex items-center gap-2.5 rounded-xl bg-white/[0.03] border border-white/10 hover:border-[#C9A84C]/40 px-3.5 py-2.5 text-left transition-colors cursor-pointer group">
                         <i className="ri-shopping-bag-line text-[#C9A84C]"></i>
-                        <span className="text-sm text-white flex-1">Gestionar productos</span>
+                        <span className="text-sm text-white flex-1">{t('dash_brand_fn1_products')}</span>
                         <i className="ri-arrow-right-line text-zinc-600 group-hover:text-[#C9A84C] transition-colors"></i>
                       </button>
                     )}
                     {(brandType === 'service' || brandType === 'both') && (
                       <button onClick={() => setActiveTab('services')} className="w-full flex items-center gap-2.5 rounded-xl bg-white/[0.03] border border-white/10 hover:border-[#C9A84C]/40 px-3.5 py-2.5 text-left transition-colors cursor-pointer group">
                         <i className="ri-service-line text-[#C9A84C]"></i>
-                        <span className="text-sm text-white flex-1">Gestionar servicios</span>
+                        <span className="text-sm text-white flex-1">{t('dash_brand_fn1_services')}</span>
                         <i className="ri-arrow-right-line text-zinc-600 group-hover:text-[#C9A84C] transition-colors"></i>
                       </button>
                     )}
                     <a href="/brands" target="_blank" rel="noopener noreferrer" className="w-full flex items-center gap-2.5 rounded-xl bg-white/[0.03] border border-white/10 hover:border-[#C9A84C]/40 px-3.5 py-2.5 text-left transition-colors cursor-pointer group">
                       <i className="ri-external-link-line text-zinc-400"></i>
-                      <span className="text-sm text-white flex-1">Ver mi escaparate público</span>
+                      <span className="text-sm text-white flex-1">{t('dash_brand_fn1_public')}</span>
                       <i className="ri-arrow-right-line text-zinc-600 group-hover:text-[#C9A84C] transition-colors"></i>
                     </a>
                   </div>
@@ -456,25 +478,25 @@ export default function BrandDashboard({ profile }: Props) {
                   <div className="flex items-center gap-3 mb-1.5">
                     <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-600/12 border border-red-500/30 text-red-400"><i className="ri-hand-coin-line text-lg"></i></div>
                     <div>
-                      <p className="rk-eyebrow" style={{ fontSize: '0.6rem' }}>FUNCIÓN 2</p>
-                      <h3 className="rk-h3 text-white" style={{ fontSize: '1.05rem' }}>PATROCINAR Y DARTE A CONOCER</h3>
+                      <p className="rk-eyebrow" style={{ fontSize: '0.6rem' }}>{t('dash_brand_fn2_eyebrow')}</p>
+                      <h3 className="rk-h3 text-white" style={{ fontSize: '1.05rem' }}>{t('dash_brand_fn2_title')}</h3>
                     </div>
                   </div>
-                  <p className="text-xs text-zinc-400 leading-relaxed mb-4">Encuentra peleadores para patrocinar y hazte visible ante promotoras y eventos del sector.</p>
+                  <p className="text-xs text-zinc-400 leading-relaxed mb-4">{t('dash_brand_fn2_desc')}</p>
                   <div className="space-y-2 mt-auto">
                     <button onClick={() => setActiveTab('talent')} className="w-full flex items-center gap-2.5 rounded-xl bg-white/[0.03] border border-white/10 hover:border-red-500/40 px-3.5 py-2.5 text-left transition-colors cursor-pointer group">
                       <i className="ri-user-star-line text-red-400"></i>
-                      <span className="text-sm text-white flex-1">Buscar peleadores</span>
+                      <span className="text-sm text-white flex-1">{t('dash_brand_fn2_search')}</span>
                       <i className="ri-arrow-right-line text-zinc-600 group-hover:text-red-400 transition-colors"></i>
                     </button>
                     <button onClick={() => setActiveTab('sponsorships')} className="w-full flex items-center gap-2.5 rounded-xl bg-white/[0.03] border border-white/10 hover:border-red-500/40 px-3.5 py-2.5 text-left transition-colors cursor-pointer group">
                       <i className="ri-megaphone-line text-red-400"></i>
-                      <span className="text-sm text-white flex-1">Publicar patrocinio</span>
+                      <span className="text-sm text-white flex-1">{t('dash_brand_fn2_publish')}</span>
                       <i className="ri-arrow-right-line text-zinc-600 group-hover:text-red-400 transition-colors"></i>
                     </button>
                     <button onClick={() => setActiveTab('events')} className="w-full flex items-center gap-2.5 rounded-xl bg-white/[0.03] border border-white/10 hover:border-red-500/40 px-3.5 py-2.5 text-left transition-colors cursor-pointer group">
                       <i className="ri-calendar-event-line text-red-400"></i>
-                      <span className="text-sm text-white flex-1">Explorar eventos</span>
+                      <span className="text-sm text-white flex-1">{t('dash_brand_fn2_events')}</span>
                       <i className="ri-arrow-right-line text-zinc-600 group-hover:text-red-400 transition-colors"></i>
                     </button>
                   </div>
