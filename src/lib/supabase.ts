@@ -317,6 +317,25 @@ export interface ClubSession {
   created_at: string;
 }
 
+// ── Cartelera de combates (R13-T2) ──
+export interface EventBout {
+  id: string;
+  event_id: string;
+  org_profile_id: string;
+  bout_order: number;
+  fighter_a_profile_id: string | null;
+  fighter_a_name: string | null;
+  fighter_b_profile_id: string | null;
+  fighter_b_name: string | null;
+  weight_class: string | null;
+  rounds: number | null;
+  is_main: boolean;
+  status: 'confirmed' | 'tentative';
+  result: 'a' | 'b' | 'draw' | null;
+  notes: string | null;
+  created_at: string;
+}
+
 // Interfaces for Supabase tables
 export interface ContactSubmission {
   id: string;

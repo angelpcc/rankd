@@ -78,12 +78,16 @@ export default function EventosPage() {
 
   useEffect(() => {
     const load = async () => {
-      const { data: evs } = await supabase
+      const { data: evsRaw } = await supabase
         .from('organization_events')
         .select('*')
         .order('event_date', { ascending: true });
 
-      if (!evs || evs.length === 0) { setEvents([]); setLoading(false); return; }
+      // Los borradores no salen en la cartelera pública. Se filtra en cliente
+      // para no romper si la columna `status` aún no existe (degradación).
+      const evs = (evsRaw || []).filter((e) => e.status !== 'draft');
+
+      if (evs.length === 0) { setEvents([]); setLoading(false); return; }
 
       const orgIds = Array.from(new Set(evs.map((e) => e.org_profile_id).filter(Boolean)));
       const [{ data: profiles }, { data: tickets }] = await Promise.all([

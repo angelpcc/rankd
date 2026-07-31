@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase, OrgEvent, Profile } from '@/lib/supabase';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import ImageUploader from '@/components/base/ImageUploader';
+import BoutManager from './BoutManager';
 // Venta interna desconectada: EventTicketsManager sigue en el repositorio por
 // si algún día se activa, pero ya no se monta en la interfaz.
 
@@ -30,6 +31,10 @@ export default function PromoterEvents({ profile, showToast }: Props) {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [formStatus, setFormStatus] = useState<'draft' | 'published'>('published');
+  const [filter, setFilter] = useState<'all' | 'published' | 'draft' | 'past'>('all');
+  const [cardEvent, setCardEvent] = useState<OrgEvent | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
 
   const { uploading, uploadImage, deleteImage } = useImageUpload({
@@ -52,6 +57,7 @@ export default function PromoterEvents({ profile, showToast }: Props) {
   const openCreate = () => {
     setEditingId(null);
     setForm(emptyForm);
+    setFormStatus('published');
     setImagePreview(null);
     setPendingFile(null);
     setShowForm(true);
@@ -66,9 +72,21 @@ export default function PromoterEvents({ profile, showToast }: Props) {
       location: ev.location || '',
       external_link: ev.external_link || '',
     });
+    setFormStatus(ev.status === 'draft' ? 'draft' : 'published');
     setImagePreview(ev.image_url || null);
     setPendingFile(null);
     setShowForm(true);
+  };
+
+  // Publicar / pasar a borrador desde la tarjeta, sin abrir el formulario.
+  const toggleStatus = async (ev: OrgEvent) => {
+    const next = ev.status === 'draft' ? 'published' : 'draft';
+    setTogglingId(ev.id);
+    const { error } = await supabase.from('organization_events').update({ status: next, updated_at: new Date().toISOString() }).eq('id', ev.id);
+    setTogglingId(null);
+    if (error) { showToast(t('error_save'), 'error'); return; }
+    setEvents((prev) => prev.map((e) => e.id === ev.id ? { ...e, status: next } : e));
+    showToast(next === 'published' ? t('evb_status_published') : t('evb_status_draft'));
   };
 
   const handleImageSelected = (file: File) => {
@@ -105,6 +123,7 @@ export default function PromoterEvents({ profile, showToast }: Props) {
         event_date: form.event_date || null,
         location: form.location.trim() || null,
         external_link: form.external_link.trim() || null,
+        status: formStatus,
         updated_at: new Date().toISOString(),
       };
 
@@ -153,6 +172,14 @@ export default function PromoterEvents({ profile, showToast }: Props) {
 
   const isBusy = saving || uploading;
 
+  const isPastEvent = (ev: OrgEvent) => !!ev.event_date && new Date(ev.event_date + 'T23:59:59') < new Date();
+  const visibleEvents = events.filter((ev) => {
+    if (filter === 'past') return isPastEvent(ev);
+    if (filter === 'draft') return ev.status === 'draft';
+    if (filter === 'published') return ev.status !== 'draft' && !isPastEvent(ev);
+    return true;
+  });
+
   return (
     <div className="max-w-5xl">
       {/* Header */}
@@ -169,6 +196,18 @@ export default function PromoterEvents({ profile, showToast }: Props) {
           Crear evento
         </button>
       </div>
+
+      {/* Filtro por estado */}
+      {events.length > 0 && (
+        <div className="flex gap-1.5 mb-5 overflow-x-auto">
+          {(['all', 'published', 'draft', 'past'] as const).map((f) => (
+            <button key={f} onClick={() => setFilter(f)}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors cursor-pointer ${filter === f ? 'bg-red-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:text-white'}`}>
+              {f === 'all' ? t('evb_filter_all') : f === 'published' ? t('evb_filter_published') : f === 'draft' ? t('evb_filter_draft') : t('evb_filter_past')}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Form modal */}
       {showForm && (
@@ -254,6 +293,20 @@ export default function PromoterEvents({ profile, showToast }: Props) {
                 <p className="text-[11px] text-zinc-500 mt-1.5 leading-relaxed">{t('ev_hint_ticket_url')}</p>
               </div>
 
+              {/* Visibilidad: borrador vs publicado */}
+              <div>
+                <label className="block text-xs text-zinc-400 mb-1.5">{t('evb_visibility')}</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['published', 'draft'] as const).map((s) => (
+                    <button key={s} type="button" onClick={() => setFormStatus(s)}
+                      className={`flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-semibold transition-colors cursor-pointer ${formStatus === s ? (s === 'published' ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400' : 'bg-amber-500/15 border-amber-500/40 text-amber-400') : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-600'}`}>
+                      <i className={s === 'published' ? 'ri-global-line' : 'ri-draft-line'} />{s === 'published' ? t('evb_status_published') : t('evb_status_draft')}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] text-zinc-500 mt-1.5 leading-relaxed">{formStatus === 'published' ? t('evb_published_hint') : t('evb_draft_hint')}</p>
+              </div>
+
               <div className="flex gap-3 pt-2">
                 <button onClick={() => setShowForm(false)} disabled={isBusy} className="flex-1 py-3 rounded-xl border border-zinc-700 text-zinc-400 hover:text-white text-sm font-medium transition-colors cursor-pointer whitespace-nowrap disabled:opacity-50">
                   Cancelar
@@ -296,8 +349,12 @@ export default function PromoterEvents({ profile, showToast }: Props) {
         </div>
       ) : (
         <div className="space-y-4">
-          {events.map((ev) => {
+          {visibleEvents.length === 0 ? (
+            <p className="text-center text-zinc-500 text-sm py-10">{t('evb_none_in_filter')}</p>
+          ) : visibleEvents.map((ev) => {
             const dateInfo = formatDate(ev.event_date);
+            const past = isPastEvent(ev);
+            const isDraft = ev.status === 'draft';
             return (
               <div key={ev.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden hover:border-zinc-700 transition-colors">
                 <div className="flex flex-col sm:flex-row">
@@ -310,6 +367,14 @@ export default function PromoterEvents({ profile, showToast }: Props) {
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <h3 className="text-base font-bold text-white leading-snug">{ev.title}</h3>
                       <div className="flex items-center gap-1 flex-shrink-0">
+                        <button onClick={() => setCardEvent(ev)} className="h-8 px-2.5 flex items-center gap-1.5 rounded-lg bg-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-700 transition-colors cursor-pointer" title={t('evb_manage_card')}>
+                          <i className="ri-sword-line text-sm"></i><span className="text-xs font-semibold hidden sm:inline">{t('evb_card')}</span>
+                        </button>
+                        {!past && (
+                          <button onClick={() => toggleStatus(ev)} disabled={togglingId === ev.id} className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors cursor-pointer disabled:opacity-50 ${isDraft ? 'bg-emerald-600/15 text-emerald-400 hover:bg-emerald-600/25' : 'bg-zinc-800 text-zinc-400 hover:text-amber-400'}`} title={isDraft ? t('evb_publish') : t('evb_unpublish')}>
+                            {togglingId === ev.id ? <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div> : <i className={isDraft ? 'ri-global-line text-sm' : 'ri-draft-line text-sm'}></i>}
+                          </button>
+                        )}
                         <button onClick={() => openEdit(ev)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors cursor-pointer">
                           <i className="ri-edit-line text-sm"></i>
                         </button>
@@ -327,6 +392,9 @@ export default function PromoterEvents({ profile, showToast }: Props) {
                     </div>
                     {ev.description && <p className="text-zinc-500 text-sm leading-relaxed line-clamp-2 mb-3">{ev.description}</p>}
                     <div className="flex flex-wrap items-center gap-3">
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${past ? 'text-zinc-500 bg-zinc-800 border-zinc-700' : isDraft ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30'}`}>
+                        {past ? t('evb_status_past') : isDraft ? t('evb_status_draft') : t('evb_status_published')}
+                      </span>
                       {dateInfo && (
                         <div className="flex items-center gap-2">
                           <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${dateInfo.color}`}>{dateInfo.badge}</span>
@@ -350,6 +418,17 @@ export default function PromoterEvents({ profile, showToast }: Props) {
             );
           })}
         </div>
+      )}
+
+      {/* Gestor de cartelera de combates (pantalla completa) */}
+      {cardEvent && (
+        <BoutManager
+          profile={profile}
+          eventId={cardEvent.id}
+          eventTitle={cardEvent.title}
+          showToast={showToast}
+          onClose={() => setCardEvent(null)}
+        />
       )}
     </div>
   );

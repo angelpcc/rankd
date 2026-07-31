@@ -7,6 +7,7 @@ import Footer from '@/pages/home/components/Footer';
 // La venta interna (EventTickets) queda desconectada de la interfaz: de
 // momento cada promotora vende en su propia web y aquí solo enlazamos.
 import ExternalTickets from './components/ExternalTickets';
+import EventCard from './components/EventCard';
 
 function formatLongDate(d: string | null): string | null {
   if (!d) return null;
@@ -153,6 +154,9 @@ export default function EventoPage() {
               <p className="text-sm text-zinc-400">La promotora aún no ha añadido una descripción para este evento.</p>
             </div>
           )}
+
+          {/* Cartelera de combates (si la promotora la ha publicado) */}
+          <EventCard eventId={event.id} />
         </div>
 
         {/* Entradas */}
