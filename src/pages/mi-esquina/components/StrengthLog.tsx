@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable } from '@/lib/dbState';
+import { parseStrengthFromSpeech } from '@/lib/dictation';
+import VoiceButton from '@/components/feature/VoiceButton';
 import Reveal from '@/components/base/Reveal';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
@@ -22,11 +24,31 @@ interface StrengthSet {
 
 interface SetInput { reps: string; weight: string }
 
-/** Ejercicios habituales en preparación de deportes de contacto. */
-const COMMON = [
-  'Press banca', 'Sentadilla', 'Peso muerto', 'Dominadas',
-  'Press militar', 'Remo con barra', 'Hip thrust', 'Zancadas',
-];
+/** Biblioteca amplia de ejercicios habituales, para sugerir mientras se escribe.
+ *  El campo sigue siendo libre: el usuario puede teclear el suyo y quedará
+ *  disponible la próxima vez (se deriva de sus registros). */
+const EXERCISE_LIBRARY: Record<'es' | 'en', string[]> = {
+  es: [
+    'Press banca', 'Press inclinado', 'Press con mancuernas', 'Aperturas', 'Fondos',
+    'Sentadilla', 'Sentadilla frontal', 'Prensa de piernas', 'Zancadas', 'Hip thrust',
+    'Extensión de cuádriceps', 'Curl femoral', 'Gemelos',
+    'Peso muerto', 'Peso muerto rumano', 'Dominadas', 'Jalón al pecho',
+    'Remo con barra', 'Remo con mancuerna', 'Face pull', 'Encogimientos',
+    'Press militar', 'Press Arnold', 'Elevaciones laterales',
+    'Curl de bíceps', 'Curl martillo', 'Extensión de tríceps', 'Press francés',
+    'Plancha', 'Elevación de piernas',
+  ],
+  en: [
+    'Bench press', 'Incline press', 'Dumbbell press', 'Chest fly', 'Dips',
+    'Squat', 'Front squat', 'Leg press', 'Lunges', 'Hip thrust',
+    'Leg extension', 'Leg curl', 'Calf raise',
+    'Deadlift', 'Romanian deadlift', 'Pull-ups', 'Lat pulldown',
+    'Barbell row', 'Dumbbell row', 'Face pull', 'Shrugs',
+    'Overhead press', 'Arnold press', 'Lateral raise',
+    'Biceps curl', 'Hammer curl', 'Triceps extension', 'Skull crusher',
+    'Plank', 'Leg raise',
+  ],
+};
 
 /** Epley: estimación de una repetición máxima. Orientativa, no oficial. */
 function epley(weight: number, reps: number): number {
@@ -63,6 +85,9 @@ export default function StrengthLog({ profile, showToast }: Props) {
   const [exercise, setExercise] = useState('');
   const [date, setDate] = useState(todayISO());
   const [sets, setSets] = useState<SetInput[]>([{ reps: '8', weight: '' }]);
+  const [exOpen, setExOpen] = useState(false);
+  const [interpreted, setInterpreted] = useState(false);
+  const library = EXERCISE_LIBRARY[i18n.language === 'en' ? 'en' : 'es'];
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -149,7 +174,22 @@ export default function StrengthLog({ profile, showToast }: Props) {
       }));
   }, [rows]);
 
-  const resetForm = () => { setExercise(''); setDate(todayISO()); setSets([{ reps: '8', weight: '' }]); };
+  const resetForm = () => { setExercise(''); setDate(todayISO()); setSets([{ reps: '8', weight: '' }]); setInterpreted(false); setExOpen(false); };
+
+  // Dictado de fuerza: "press banca, tres series de doce con cincuenta kilos".
+  // Interpreta y PRE-RELLENA; el usuario revisa y confirma con Guardar.
+  const applyStrengthDictation = (text: string) => {
+    const ownLabels = exercises.map(([, l]) => l);
+    const p = parseStrengthFromSpeech(text, [...ownLabels, ...library]);
+    if (p.exercise) setExercise(p.exercise);
+    if (p.sets || p.reps || p.weight) {
+      const n = Math.max(1, p.sets ?? sets.length);
+      const reps = p.reps ? String(p.reps) : (sets[0]?.reps || '8');
+      const weight = p.weight ? String(p.weight) : '';
+      setSets(Array.from({ length: n }, () => ({ reps, weight })));
+    }
+    setInterpreted(true);
+  };
 
   const save = async () => {
     const ex = exercise.trim();
@@ -218,6 +258,14 @@ export default function StrengthLog({ profile, showToast }: Props) {
       </div>
     );
   }
+
+  // Sugerencias del autocompletado: lo que el usuario ya ha usado + biblioteca.
+  const exPool = [...new Set([...exercises.map(([, l]) => l), ...library])];
+  const exQuery = normalize(exercise);
+  const exSuggestions = (exQuery
+    ? exPool.filter((x) => normalize(x).includes(exQuery) && normalize(x) !== exQuery)
+    : exPool
+  ).slice(0, 10);
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -401,26 +449,39 @@ export default function StrengthLog({ profile, showToast }: Props) {
             style={{ padding: 24, transform: 'none', paddingBottom: 'calc(24px + env(safe-area-inset-bottom, 0px))' }}>
             <div className="flex items-center justify-between mb-5">
               <h3 className="rk-h3" style={{ fontSize: '1.15rem', color: '#fff' }}>{t('mc_str_new')}</h3>
-              <button onClick={() => setShowForm(false)} aria-label={t('mc_close')}
-                className="w-9 h-9 flex items-center justify-center rounded-full bg-white/[0.05] text-zinc-400 hover:text-white cursor-pointer transition-colors">
-                <i className="ri-close-line"></i>
-              </button>
+              <div className="flex items-center gap-2">
+                <VoiceButton onResult={applyStrengthDictation} />
+                <button onClick={() => setShowForm(false)} aria-label={t('mc_close')}
+                  className="w-9 h-9 flex items-center justify-center rounded-full bg-white/[0.05] text-zinc-400 hover:text-white cursor-pointer transition-colors">
+                  <i className="ri-close-line"></i>
+                </button>
+              </div>
             </div>
+
+            {interpreted && (
+              <p className="text-[11px] text-red-400 flex items-center gap-1.5 mb-3"><i className="ri-sparkling-line"></i>{t('mc_vo_interpreted')}</p>
+            )}
 
             <div className="space-y-4">
               <div>
                 <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_str_exercise')}</label>
-                <input value={exercise} onChange={(e) => setExercise(e.target.value)} autoFocus maxLength={50}
+                <input value={exercise}
+                  onChange={(e) => { setExercise(e.target.value); setExOpen(true); }}
+                  onFocus={() => setExOpen(true)}
+                  autoFocus maxLength={50}
                   placeholder={t('mc_str_exercise_ph')}
                   className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-red-500" />
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {[...new Set([...exercises.map(([, l]) => l), ...COMMON])].slice(0, 8).map((c) => (
-                    <button key={c} onClick={() => setExercise(c)}
-                      className="text-[11px] text-zinc-400 bg-white/[0.03] border border-white/10 hover:border-white/25 hover:text-white px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer">
-                      {c}
-                    </button>
-                  ))}
-                </div>
+                {/* Autocompletado: sugerencias mientras escribe, desplegables */}
+                {exOpen && exSuggestions.length > 0 && (
+                  <div className="mt-2 rounded-xl border border-white/10 bg-white/[0.02] p-1.5 max-h-40 overflow-y-auto rk-noscroll-x">
+                    {exSuggestions.map((c) => (
+                      <button key={c} onMouseDown={(e) => e.preventDefault()} onClick={() => { setExercise(c); setExOpen(false); }}
+                        className="w-full text-left text-sm text-zinc-300 hover:text-white hover:bg-white/[0.05] px-3 py-2 rounded-lg cursor-pointer flex items-center gap-2">
+                        <i className="ri-search-line text-xs text-zinc-600"></i>{c}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>

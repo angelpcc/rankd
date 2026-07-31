@@ -79,6 +79,83 @@ function parseDuration(raw: string): number | undefined {
   return undefined;
 }
 
+// ── Dictado del registro de FUERZA (R13-T10) ──
+// "he hecho press banca, tres series de doce con cincuenta kilos"
+//   → { exercise:'Press banca', sets:3, reps:12, weight:50 }
+
+export interface ParsedStrength {
+  exercise?: string;
+  sets?: number;
+  reps?: number;
+  weight?: number;
+  notes: string;
+}
+
+const NUMW: Record<string, number> = {
+  cero: 0, zero: 0, un: 1, uno: 1, una: 1, one: 1, dos: 2, two: 2, tres: 3, three: 3,
+  cuatro: 4, four: 4, cinco: 5, five: 5, seis: 6, six: 6, siete: 7, seven: 7, ocho: 8, eight: 8,
+  nueve: 9, nine: 9, diez: 10, ten: 10, once: 11, eleven: 11, doce: 12, twelve: 12,
+  trece: 13, thirteen: 13, catorce: 14, fourteen: 14, quince: 15, fifteen: 15,
+  dieciseis: 16, sixteen: 16, diecisiete: 17, seventeen: 17, dieciocho: 18, eighteen: 18,
+  diecinueve: 19, nineteen: 19, veinte: 20, twenty: 20, veintiuno: 21, veintidos: 22,
+  veintitres: 23, veinticuatro: 24, veinticinco: 25, veintiseis: 26, veintisiete: 27,
+  veintiocho: 28, veintinueve: 29, treinta: 30, thirty: 30, cuarenta: 40, forty: 40,
+  cincuenta: 50, fifty: 50, sesenta: 60, sixty: 60, setenta: 70, seventy: 70,
+  ochenta: 80, eighty: 80, noventa: 90, ninety: 90, cien: 100, ciento: 100, hundred: 100,
+};
+
+// Convierte números en palabra a dígitos, incluyendo "cincuenta y cinco" = 55.
+function digitize(s: string): string {
+  let out = s;
+  out = out.replace(/(treinta|cuarenta|cincuenta|sesenta|setenta|ochenta|noventa)\s+y\s+(uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve)/g,
+    (_m, a, b) => String((NUMW[a] || 0) + (NUMW[b] || 0)));
+  out = out.replace(/(thirty|forty|fifty|sixty|seventy|eighty|ninety)[\s-]+(one|two|three|four|five|six|seven|eight|nine)/g,
+    (_m, a, b) => String((NUMW[a] || 0) + (NUMW[b] || 0)));
+  // Palabras sueltas → dígitos (las más largas primero para no partir compuestos).
+  Object.keys(NUMW).sort((a, b) => b.length - a.length).forEach((w) => {
+    out = out.replace(new RegExp(`\\b${w}\\b`, 'g'), String(NUMW[w]));
+  });
+  return out;
+}
+
+const clampN = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
+
+export function parseStrengthFromSpeech(text: string, library: string[] = []): ParsedStrength {
+  const raw = norm(text);
+  const s = digitize(raw);
+  const out: ParsedStrength = { notes: text.trim() };
+
+  // Peso: "50 kilos" / "con 50 kg"
+  const wm = s.match(/(\d+(?:[.,]\d+)?)\s*(?:kilos?|kgs?|kg)\b/) || s.match(/(?:con|with)\s+(\d+(?:[.,]\d+)?)\b/);
+  if (wm) { const w = parseFloat(wm[1].replace(',', '.')); if (w > 0 && w <= 500) out.weight = w; }
+
+  // "3 series" / "3 sets"
+  const sm = s.match(/(\d+)\s*(?:series?|sets?)\b/);
+  if (sm) out.sets = clampN(parseInt(sm[1], 10), 1, 20);
+
+  // "3 por 12" / "3x12" → series x repeticiones
+  const pxr = s.match(/(\d+)\s*(?:x|por|by)\s*(\d+)/);
+  if (pxr) {
+    if (out.sets === undefined) out.sets = clampN(parseInt(pxr[1], 10), 1, 20);
+    out.reps = clampN(parseInt(pxr[2], 10), 1, 100);
+  }
+
+  // "de 12" / "de 12 repeticiones" / "12 reps"
+  if (out.reps === undefined) {
+    const rm = s.match(/(?:de|por|of)\s*(\d+)\s*(?:repe|reps?|repeticion|repeticiones)?\b/) || s.match(/(\d+)\s*(?:repe|reps?|repeticion|repeticiones)\b/);
+    if (rm) { const r = parseInt(rm[1], 10); if (r > 0 && r <= 100) out.reps = r; }
+  }
+
+  // Ejercicio: el nombre de la biblioteca más largo que aparezca en el texto.
+  const found = library
+    .map((l) => ({ l, n: norm(l) }))
+    .filter((x) => x.n && raw.includes(x.n))
+    .sort((a, b) => b.n.length - a.n.length)[0];
+  if (found) out.exercise = found.l;
+
+  return out;
+}
+
 export function parseTrainingFromSpeech(text: string): ParsedTraining {
   const s = norm(text);
   const out: ParsedTraining = { notes: text.trim() };
