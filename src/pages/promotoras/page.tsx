@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { supabase, Organization, Profile } from '@/lib/supabase';
 import { useSEO } from '@/hooks/useSEO';
 import Navbar from '@/pages/home/components/Navbar';
@@ -15,14 +16,14 @@ interface OrgRow {
 
 type TypeFilter = 'all' | 'promoter' | 'gym' | 'manager';
 
-const TYPE_TILES: { value: Exclude<TypeFilter, 'all'>; label: string; icon: string; desc: string }[] = [
-  { value: 'promoter', label: 'Promotoras', icon: 'ri-trophy-line', desc: 'Organizan veladas' },
-  { value: 'gym', label: 'Gimnasios', icon: 'ri-building-4-line', desc: 'Clubes y equipos' },
-  { value: 'manager', label: 'Managers', icon: 'ri-user-star-line', desc: 'Representan peleadores' },
+const TYPE_TILES: { value: Exclude<TypeFilter, 'all'>; labelKey: string; icon: string; descKey: string }[] = [
+  { value: 'promoter', labelKey: 'prm_tile_promoter', icon: 'ri-trophy-line', descKey: 'prm_tile_promoter_desc' },
+  { value: 'gym', labelKey: 'prm_tile_gym', icon: 'ri-building-4-line', descKey: 'prm_tile_gym_desc' },
+  { value: 'manager', labelKey: 'prm_tile_manager', icon: 'ri-user-star-line', descKey: 'prm_tile_manager_desc' },
 ];
 
-const typeLabel: Record<string, string> = {
-  promoter: 'Promotora', gym: 'Gimnasio', manager: 'Manager', organizer: 'Organizador', brand: 'Marca',
+const typeLabelKey: Record<string, string> = {
+  promoter: 'prm_type_promoter', gym: 'prm_type_gym', manager: 'prm_type_manager', organizer: 'prm_type_organizer', brand: 'prm_type_brand',
 };
 const typeCls: Record<string, string> = {
   promoter: 'bg-red-600/15 border-red-500/30 text-red-400',
@@ -32,6 +33,7 @@ const typeCls: Record<string, string> = {
 };
 
 export default function PromotorasPage() {
+  const { t } = useTranslation();
   useSEO({
     title: 'Promotoras y gimnasios | RANKD',
     description: 'Directorio de promotoras, gimnasios y managers de deportes de combate. Encuentra quién organiza veladas cerca de ti y dónde entrenar.',
@@ -127,16 +129,16 @@ export default function PromotorasPage() {
         <span aria-hidden="true" className="pointer-events-none select-none absolute -right-6 bottom-0 hidden md:block" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(110px,15vw,220px)', lineHeight: 0.7, color: 'transparent', WebkitTextStroke: '1px rgba(255,255,255,0.04)' }}>CLUBS</span>
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 md:px-10 py-14 md:py-20">
           <div className="flex items-center gap-3 mb-4">
-            <span className="rk-index">QUIÉN MUEVE ESTO</span>
+            <span className="rk-index">{t('prm_index')}</span>
             <span style={{ flex: '0 0 30px', height: 1, background: 'rgba(255,255,255,0.16)' }} />
-            <span className="rk-eyebrow">Directorio</span>
+            <span className="rk-eyebrow">{t('prm_eyebrow')}</span>
           </div>
           <h1 className="rk-h1" style={{ color: '#fff', margin: 0 }}>
-            PROMOTORAS Y <span className="rk-red-glow">GIMNASIOS</span>
+            {t('prm_title')} <span className="rk-red-glow">{t('prm_title_2')}</span>
           </h1>
           <div className="rk-rule" style={{ width: 88, margin: '20px 0' }} />
           <p className="rk-body max-w-xl" style={{ margin: 0 }}>
-            Quién organiza las veladas, dónde se entrena y quién representa a los peleadores. Encuentra a los que mueven el combate cerca de ti.
+            {t('prm_hero_sub')}
           </p>
         </div>
       </div>
@@ -146,21 +148,21 @@ export default function PromotorasPage() {
         {!loading && rows.length > 0 && (
           <>
             <div className="flex items-center gap-3 mb-3">
-              <span className="rk-eyebrow">EXPLORA POR</span>
+              <span className="rk-eyebrow">{t('prm_explore')}</span>
               <span style={{ flex: '0 0 28px', height: 1, background: 'rgba(255,255,255,0.14)' }} />
-              <span className="text-xs text-zinc-500">Tipo</span>
+              <span className="text-xs text-zinc-500">{t('prm_type')}</span>
             </div>
             <div className="grid grid-cols-3 gap-2.5 mb-4">
-              {TYPE_TILES.map((t) => {
-                const count = typeCounts[t.value] || 0;
-                const active = typeFilter === t.value;
+              {TYPE_TILES.map((tile) => {
+                const count = typeCounts[tile.value] || 0;
+                const active = typeFilter === tile.value;
                 return (
-                  <button key={t.value} onClick={() => setTypeFilter(active ? 'all' : t.value)}
+                  <button key={tile.value} onClick={() => setTypeFilter(active ? 'all' : tile.value)}
                     className={`group relative rounded-2xl border p-3.5 text-left transition-all cursor-pointer overflow-hidden ${active ? 'border-red-500/50 bg-red-600/[0.1]' : 'border-white/[0.08] bg-white/[0.02] hover:border-white/25 hover:bg-white/[0.04]'}`}>
                     <div className="absolute -right-2 -top-3 opacity-[0.06] group-hover:opacity-10 transition-opacity" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 58, lineHeight: 1 }}>{count}</div>
-                    <i className={`${t.icon} text-xl ${active ? 'text-red-400' : 'text-zinc-400 group-hover:text-white'} transition-colors`}></i>
-                    <p className="text-sm font-bold text-white mt-2 leading-tight">{t.label}</p>
-                    <p className="text-[11px] text-zinc-500 mt-0.5">{count} · {t.desc}</p>
+                    <i className={`${tile.icon} text-xl ${active ? 'text-red-400' : 'text-zinc-400 group-hover:text-white'} transition-colors`}></i>
+                    <p className="text-sm font-bold text-white mt-2 leading-tight">{t(tile.labelKey)}</p>
+                    <p className="text-[11px] text-zinc-500 mt-0.5">{count} · {t(tile.descKey)}</p>
                   </button>
                 );
               })}
@@ -174,18 +176,18 @@ export default function PromotorasPage() {
             <i className="ri-search-line absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500"></i>
             <input value={search} onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl pl-11 pr-4 py-2.5 focus:outline-none focus:border-red-500"
-              placeholder="Buscar por nombre o ciudad..." />
+              placeholder={t('prm_search_ph')} />
           </div>
           <select value={location} onChange={(e) => setLocation(e.target.value)}
             className="bg-white/[0.04] border border-white/10 text-zinc-200 text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer sm:min-w-[180px]">
-            <option value="">Todas las ubicaciones</option>
+            <option value="">{t('prm_all_locations')}</option>
             {locations.map((l) => <option key={l} value={l}>{l}</option>)}
           </select>
           <select value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
             className="bg-white/[0.04] border border-white/10 text-zinc-200 text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer sm:min-w-[170px]">
-            <option value="events">Con más eventos</option>
-            <option value="name">Nombre (A-Z)</option>
-            <option value="recent">Más recientes</option>
+            <option value="events">{t('prm_sort_events')}</option>
+            <option value="name">{t('prm_sort_name')}</option>
+            <option value="recent">{t('prm_sort_recent')}</option>
           </select>
         </div>
 
@@ -193,18 +195,18 @@ export default function PromotorasPage() {
         <div className="flex flex-wrap gap-2 mb-6">
           <button onClick={() => setOnlyWithEvents((v) => !v)}
             className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors cursor-pointer ${onlyWithEvents ? 'bg-red-600/15 border-red-500/35 text-red-300' : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white hover:border-white/25'}`}>
-            <i className="ri-calendar-event-line"></i>Con eventos próximos
+            <i className="ri-calendar-event-line"></i>{t('prm_with_events')}
           </button>
           <button onClick={() => setOnlyVerified((v) => !v)}
             className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors cursor-pointer ${onlyVerified ? 'bg-green-500/15 border-green-500/35 text-green-300' : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white hover:border-white/25'}`}>
-            <i className="ri-verified-badge-line"></i>Solo verificadas
+            <i className="ri-verified-badge-line"></i>{t('prm_only_verified')}
           </button>
           {activeFilters > 0 && (
             <button onClick={clearAll} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border border-white/10 text-zinc-500 hover:text-red-400 transition-colors cursor-pointer">
-              <i className="ri-close-line"></i>Limpiar
+              <i className="ri-close-line"></i>{t('prm_clear')}
             </button>
           )}
-          <span className="ml-auto self-center text-xs text-zinc-500">{loading ? 'Cargando...' : `${filtered.length} de ${rows.length}`}</span>
+          <span className="ml-auto self-center text-xs text-zinc-500">{loading ? t('prm_loading') : t('prm_count', { shown: filtered.length, total: rows.length })}</span>
         </div>
 
         {/* Resultados */}
@@ -215,23 +217,23 @@ export default function PromotorasPage() {
             <div className="w-20 h-20 mx-auto mb-5 flex items-center justify-center rounded-2xl bg-red-600/10 border border-red-500/25 anim-float">
               <i className="ri-trophy-line text-4xl text-red-400"></i>
             </div>
-            <h2 className="rk-h3 text-white">AÚN NO HAY PROMOTORAS PUBLICADAS</h2>
-            <p className="text-sm text-zinc-400 mt-2 max-w-sm mx-auto">Las promotoras y gimnasios aparecen aquí en cuanto publican su perfil. ¿Organizas veladas o diriges un club?</p>
-            <button onClick={() => navigate('/auth')} className="rk-btn rk-btn-primary mt-6" style={{ fontSize: '0.85rem' }}>PUBLICAR MI ORGANIZACIÓN</button>
+            <h2 className="rk-h3 text-white">{t('prm_empty_title')}</h2>
+            <p className="text-sm text-zinc-400 mt-2 max-w-sm mx-auto">{t('prm_empty_desc')}</p>
+            <button onClick={() => navigate('/auth')} className="rk-btn rk-btn-primary mt-6" style={{ fontSize: '0.85rem' }}>{t('prm_empty_cta')}</button>
           </div>
         ) : filtered.length === 0 ? (
           <div className="rk-card text-center" style={{ padding: '56px 24px' }}>
             <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center rounded-2xl bg-white/[0.04] border border-white/10">
               <i className="ri-filter-off-line text-3xl text-zinc-500"></i>
             </div>
-            <h2 className="rk-h3 text-white">NINGUNA COINCIDE CON ESE FILTRO</h2>
-            <p className="text-sm text-zinc-400 mt-2">Prueba con otra ubicación o quita algún filtro.</p>
-            <button onClick={clearAll} className="rk-btn rk-btn-ghost mt-5" style={{ fontSize: '0.8rem', padding: '0.6rem 1.3rem' }}>LIMPIAR FILTROS</button>
+            <h2 className="rk-h3 text-white">{t('prm_no_match_title')}</h2>
+            <p className="text-sm text-zinc-400 mt-2">{t('prm_no_match_desc')}</p>
+            <button onClick={clearAll} className="rk-btn rk-btn-ghost mt-5" style={{ fontSize: '0.8rem', padding: '0.6rem 1.3rem' }}>{t('prm_clear_filters')}</button>
           </div>
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map((r, i) => {
-              const t = r.org.org_type || 'organizer';
+              const orgType = r.org.org_type || 'organizer';
               return (
                 <Reveal key={r.org.id} delay={Math.min(i, 6) * 50}>
                   <article onClick={() => r.profile && navigate(`/promotora/${r.profile.id}`)} className="rk-card h-full flex flex-col cursor-pointer" style={{ padding: 18 }}>
@@ -240,15 +242,15 @@ export default function PromotorasPage() {
                         <img src={r.org.logo_url || r.profile?.avatar_url || ''} alt="" className="w-12 h-12 rounded-xl object-cover border border-white/10 flex-shrink-0" />
                       ) : (
                         <div className="w-12 h-12 rounded-xl bg-white/[0.05] border border-white/10 flex items-center justify-center flex-shrink-0">
-                          <i className={`${TYPE_TILES.find((x) => x.value === t)?.icon || 'ri-building-line'} text-zinc-400`}></i>
+                          <i className={`${TYPE_TILES.find((x) => x.value === orgType)?.icon || 'ri-building-line'} text-zinc-400`}></i>
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <h3 className="text-sm font-bold text-white truncate">{r.org.org_name || 'Organización'}</h3>
-                          {r.org.verified && <i className="ri-verified-badge-fill text-green-400 text-sm" title="Verificada"></i>}
+                          <h3 className="text-sm font-bold text-white truncate">{r.org.org_name || t('prm_org_fallback')}</h3>
+                          {r.org.verified && <i className="ri-verified-badge-fill text-green-400 text-sm" title={t('prm_verified')}></i>}
                         </div>
-                        <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border mt-1 ${typeCls[t] || typeCls.organizer}`}>{typeLabel[t] || t}</span>
+                        <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border mt-1 ${typeCls[orgType] || typeCls.organizer}`}>{t(typeLabelKey[orgType] || 'prm_type_organizer')}</span>
                       </div>
                     </div>
 
@@ -258,17 +260,17 @@ export default function PromotorasPage() {
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-3 text-xs text-zinc-500">
                       {r.rating && r.rating.n > 0 && <span className="flex items-center gap-1 text-[#C9A84C]"><i className="ri-star-fill"></i>{r.rating.avg.toFixed(1)} ({r.rating.n})</span>}
                       {r.profile?.location && <span className="flex items-center gap-1"><i className="ri-map-pin-line"></i>{r.profile.location}</span>}
-                      {r.org.founded_year && <span className="flex items-center gap-1"><i className="ri-time-line"></i>Desde {r.org.founded_year}</span>}
+                      {r.org.founded_year && <span className="flex items-center gap-1"><i className="ri-time-line"></i>{t('prm_since')} {r.org.founded_year}</span>}
                       {r.org.fighters_managed > 0 && <span className="flex items-center gap-1"><i className="ri-group-line"></i>{r.org.fighters_managed}</span>}
                     </div>
 
                     <div className="mt-auto pt-3.5">
                       {r.upcomingEvents > 0 ? (
                         <button onClick={(e) => { e.stopPropagation(); navigate('/eventos'); }} className="w-full flex items-center justify-center gap-2 rounded-xl bg-red-600/12 border border-red-500/30 text-red-300 hover:bg-red-600/20 text-xs font-bold py-2.5 transition-colors cursor-pointer">
-                          <i className="ri-calendar-event-line"></i>{r.upcomingEvents} {r.upcomingEvents === 1 ? 'evento próximo' : 'eventos próximos'}
+                          <i className="ri-calendar-event-line"></i>{r.upcomingEvents === 1 ? t('prm_event_one', { n: r.upcomingEvents }) : t('prm_event_many', { n: r.upcomingEvents })}
                         </button>
                       ) : (
-                        <div className="w-full text-center text-[11px] text-zinc-600 py-2.5 border border-white/[0.06] rounded-xl">Sin eventos anunciados</div>
+                        <div className="w-full text-center text-[11px] text-zinc-600 py-2.5 border border-white/[0.06] rounded-xl">{t('prm_no_events')}</div>
                       )}
                     </div>
                   </article>
