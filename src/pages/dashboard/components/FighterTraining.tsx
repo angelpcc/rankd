@@ -23,15 +23,13 @@ interface TrainingSession {
 }
 
 const SESSION_TYPES = [
-  { value: 'sparring', label: 'Sparring', icon: 'ri-boxing-line', color: 'text-red-400 bg-red-500/10 border-red-500/25', hex: '#E10600' },
-  { value: 'tecnica', label: 'Técnica', icon: 'ri-focus-3-line', color: 'text-sky-400 bg-sky-500/10 border-sky-500/25', hex: '#38bdf8' },
-  { value: 'fuerza', label: 'Fuerza', icon: 'ri-hammer-line', color: 'text-orange-400 bg-orange-500/10 border-orange-500/25', hex: '#fb923c' },
-  { value: 'cardio', label: 'Cardio', icon: 'ri-run-line', color: 'text-green-400 bg-green-500/10 border-green-500/25', hex: '#4ade80' },
-  { value: 'flexibilidad', label: 'Movilidad', icon: 'ri-yoga-line', color: 'text-purple-400 bg-purple-500/10 border-purple-500/25', hex: '#a78bfa' },
-  { value: 'recuperacion', label: 'Recuperación', icon: 'ri-heart-pulse-line', color: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/25', hex: '#facc15' },
+  { value: 'sparring', labelKey: 'mc_st_sparring', icon: 'ri-boxing-line', color: 'text-red-400 bg-red-500/10 border-red-500/25', hex: '#E10600' },
+  { value: 'tecnica', labelKey: 'mc_st_tecnica', icon: 'ri-focus-3-line', color: 'text-sky-400 bg-sky-500/10 border-sky-500/25', hex: '#38bdf8' },
+  { value: 'fuerza', labelKey: 'mc_st_fuerza', icon: 'ri-hammer-line', color: 'text-orange-400 bg-orange-500/10 border-orange-500/25', hex: '#fb923c' },
+  { value: 'cardio', labelKey: 'mc_st_cardio', icon: 'ri-run-line', color: 'text-green-400 bg-green-500/10 border-green-500/25', hex: '#4ade80' },
+  { value: 'flexibilidad', labelKey: 'mc_st_flexibilidad', icon: 'ri-yoga-line', color: 'text-purple-400 bg-purple-500/10 border-purple-500/25', hex: '#a78bfa' },
+  { value: 'recuperacion', labelKey: 'mc_st_recuperacion', icon: 'ri-heart-pulse-line', color: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/25', hex: '#facc15' },
 ];
-
-const DAY_LABELS = ['D', 'L', 'M', 'X', 'J', 'V', 'S'];
 
 const typeCfg = (v: string) => SESSION_TYPES.find((t) => t.value === v) || SESSION_TYPES[0];
 
@@ -63,13 +61,13 @@ function computeStreak(sessions: TrainingSession[]): number {
   return streak;
 }
 
-function streakMessage(streak: number): string {
-  if (streak === 0) return 'Registra hoy y enciende tu racha';
-  if (streak < 3) return 'Vas arrancando, no la sueltes';
-  if (streak < 7) return 'En racha. Sigue sumando días';
-  if (streak < 14) return 'Racha semanal completa. Esto ya es disciplina';
-  if (streak < 30) return 'Dos semanas seguidas. Se nota el hábito';
-  return 'Racha de élite. Pocos llegan hasta aquí';
+function streakKey(streak: number): string {
+  if (streak === 0) return 'mc_ft_streak_0';
+  if (streak < 3) return 'mc_ft_streak_1';
+  if (streak < 7) return 'mc_ft_streak_2';
+  if (streak < 14) return 'mc_ft_streak_3';
+  if (streak < 30) return 'mc_ft_streak_4';
+  return 'mc_ft_streak_5';
 }
 
 function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: any[]; label?: string }) {
@@ -93,7 +91,8 @@ function EmptyChartState({ icon, text }: { icon: string; text: string }) {
 }
 
 export default function FighterTraining({ profile, showToast }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -131,12 +130,12 @@ export default function FighterTraining({ profile, showToast }: Props) {
       notes: notes.trim() || null,
     }).select().maybeSingle();
     if (error) {
-      showToast('No se pudo guardar la sesión', 'error');
+      showToast(t('error_save'), 'error');
     } else if (data) {
       setSessions((prev) => [data, ...prev].sort((a, b) => b.session_date.localeCompare(a.session_date)));
       setNotes('');
       setShowForm(false);
-      showToast('Sesión registrada 💪');
+      showToast(t('mc_ft_saved'));
     }
     setSaving(false);
   };
@@ -156,9 +155,9 @@ export default function FighterTraining({ profile, showToast }: Props) {
 
   const deleteSession = async (id: string) => {
     const { error } = await supabase.from('training_sessions').delete().eq('id', id);
-    if (error) { showToast('No se pudo eliminar', 'error'); return; }
+    if (error) { showToast(t('error_save'), 'error'); return; }
     setSessions((prev) => prev.filter((s) => s.id !== id));
-    showToast('Sesión eliminada');
+    showToast(t('mc_ft_deleted'));
   };
 
   // Stats
@@ -175,10 +174,10 @@ export default function FighterTraining({ profile, showToast }: Props) {
       d.setDate(d.getDate() - i);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       const minutes = sessions.filter((s) => s.session_date === key).reduce((a, s) => a + (s.duration_min || 0), 0);
-      days.push({ key, label: DAY_LABELS[d.getDay()], minutes, isToday: i === 0 });
+      days.push({ key, label: d.toLocaleDateString(locale, { weekday: 'narrow' }).toUpperCase(), minutes, isToday: i === 0 });
     }
     return days;
-  }, [sessions]);
+  }, [sessions, locale]);
 
   const breakdown = useMemo(() => {
     const map = new Map<string, number>();
@@ -202,10 +201,10 @@ export default function FighterTraining({ profile, showToast }: Props) {
       const minutes = sessions
         .filter((s) => { const d = new Date(s.session_date + 'T12:00:00'); return d >= ws && d < we; })
         .reduce((a, s) => a + (s.duration_min || 0), 0);
-      weeks.push({ key: ws.toISOString(), label: ws.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }), minutes });
+      weeks.push({ key: ws.toISOString(), label: ws.toLocaleDateString(locale, { day: 'numeric', month: 'short' }), minutes });
     }
     return weeks;
-  }, [sessions]);
+  }, [sessions, locale]);
   const trendHasData = weeklyTrend.some((w) => w.minutes > 0);
 
   if (loading) {
@@ -216,17 +215,17 @@ export default function FighterTraining({ profile, showToast }: Props) {
     <div className="space-y-5 max-w-4xl">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <p className="rk-eyebrow">TU DIARIO</p>
+          <p className="rk-eyebrow">{t('mc_ft_eyebrow')}</p>
           <h2 className="rk-h2" style={{ fontSize: 'clamp(1.8rem,4vw,2.4rem)', color: '#fff', margin: '4px 0 0' }}>
-            DIARIO DE <span className="rk-red-glow">ENTRENOS</span>
+            {t('mc_ft_title')} <span className="rk-red-glow">{t('mc_ft_title_2')}</span>
           </h2>
-          <p className="text-zinc-400 text-sm mt-1.5 max-w-md">Registra tus sesiones, mantén la disciplina y observa tu progreso semana a semana.</p>
+          <p className="text-zinc-400 text-sm mt-1.5 max-w-md">{t('mc_ft_sub')}</p>
         </div>
         <div className="flex items-center gap-2">
           <VoiceButton onResult={applyDictation} />
           <button onClick={() => setShowForm(!showForm)} className={`rk-btn ${showForm ? 'rk-btn-ghost' : 'rk-btn-primary'} flex items-center gap-2`} style={{ fontSize: '0.85rem', padding: '0.7rem 1.4rem' }}>
             <i className={showForm ? 'ri-close-line' : 'ri-add-line'}></i>
-            {showForm ? 'CERRAR' : 'REGISTRAR SESIÓN'}
+            {showForm ? t('mc_ft_close') : t('mc_ft_new')}
           </button>
         </div>
       </div>
@@ -241,14 +240,14 @@ export default function FighterTraining({ profile, showToast }: Props) {
                 <i className="ri-fire-fill text-3xl sm:text-4xl text-orange-400"></i>
               </div>
               <div>
-                <p className="rk-eyebrow">RACHA ACTUAL</p>
+                <p className="rk-eyebrow">{t('mc_ft_streak_label')}</p>
                 <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(44px,9vw,68px)', lineHeight: 0.9, color: '#fff', margin: '2px 0 0' }}>
-                  {streak}<span style={{ fontSize: '0.32em', color: 'rgba(255,255,255,0.4)', marginLeft: 8 }}>{streak === 1 ? 'DÍA' : 'DÍAS'}</span>
+                  {streak}<span style={{ fontSize: '0.32em', color: 'rgba(255,255,255,0.4)', marginLeft: 8 }}>{(streak === 1 ? t('mc_ft_day') : t('mc_ft_days')).toUpperCase()}</span>
                 </p>
               </div>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm sm:text-base text-white font-semibold">{streakMessage(streak)}</p>
+              <p className="text-sm sm:text-base text-white font-semibold">{t(streakKey(streak))}</p>
               <div className="flex items-center gap-2 sm:gap-2.5 mt-4">
                 {last7.map((d) => (
                   <div key={d.key} className="flex flex-col items-center gap-1.5">
@@ -268,9 +267,9 @@ export default function FighterTraining({ profile, showToast }: Props) {
       <Reveal delay={80}>
         <div className="grid grid-cols-3 gap-3">
           {[
-            { v: String(thisWeek.length), l: 'Sesiones esta semana', c: '#ffffff' },
-            { v: weekMinutes >= 60 ? `${Math.floor(weekMinutes / 60)}h ${weekMinutes % 60}m` : `${weekMinutes}m`, l: 'Tiempo esta semana', c: '#4ade80' },
-            { v: String(sessions.length), l: 'Sesiones registradas', c: '#C9A84C' },
+            { v: String(thisWeek.length), l: t('mc_ft_stat_week_sessions'), c: '#ffffff' },
+            { v: weekMinutes >= 60 ? `${Math.floor(weekMinutes / 60)}h ${weekMinutes % 60}m` : `${weekMinutes}m`, l: t('mc_ft_stat_week_time'), c: '#4ade80' },
+            { v: String(sessions.length), l: t('mc_ft_stat_total'), c: '#C9A84C' },
           ].map((s) => (
             <div key={s.l} className="rk-card text-center" style={{ padding: '16px 10px' }}>
               <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(24px,5vw,32px)', lineHeight: 1, color: s.c, margin: 0 }}>{s.v}</p>
@@ -285,12 +284,12 @@ export default function FighterTraining({ profile, showToast }: Props) {
         <Reveal delay={120}>
           <div className="rk-card h-full" style={{ padding: '22px 20px' }}>
             <div className="flex items-center justify-between mb-0.5">
-              <h3 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>VOLUMEN SEMANAL</h3>
+              <h3 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>{t('mc_ft_vol_title')}</h3>
               {weekMinutes > 0 && <span className="text-xs text-zinc-500">{weekMinutes} min</span>}
             </div>
-            <p className="text-xs text-zinc-500 mb-2">Minutos entrenados en los últimos 7 días</p>
+            <p className="text-xs text-zinc-500 mb-2">{t('mc_ft_vol_sub')}</p>
             {sessions.length === 0 ? (
-              <EmptyChartState icon="ri-bar-chart-2-line" text="Registra tu primera sesión y verás aquí tu volumen semanal." />
+              <EmptyChartState icon="ri-bar-chart-2-line" text={t('mc_ft_vol_empty')} />
             ) : (
               <div style={{ height: 200 }}>
                 <ResponsiveContainer width="100%" height="100%">
@@ -311,10 +310,10 @@ export default function FighterTraining({ profile, showToast }: Props) {
 
         <Reveal delay={160}>
           <div className="rk-card h-full" style={{ padding: '22px 20px' }}>
-            <h3 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>REPARTO POR TIPO</h3>
-            <p className="text-xs text-zinc-500 mb-2">Últimas {sessions.length} sesiones registradas</p>
+            <h3 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>{t('mc_ft_breakdown_title')}</h3>
+            <p className="text-xs text-zinc-500 mb-2">{t('mc_ft_breakdown_sub', { n: sessions.length })}</p>
             {breakdown.length === 0 ? (
-              <EmptyChartState icon="ri-pie-chart-2-line" text="Cuando registres sesiones, verás aquí el reparto por tipo de entrenamiento." />
+              <EmptyChartState icon="ri-pie-chart-2-line" text={t('mc_ft_breakdown_empty')} />
             ) : (
               <div className="flex flex-col sm:flex-row items-center gap-5 pt-1">
                 <div className="relative flex-shrink-0" style={{ width: 148, height: 148 }}>
@@ -328,14 +327,14 @@ export default function FighterTraining({ profile, showToast }: Props) {
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                     <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, color: '#fff', lineHeight: 1 }}>{totalTrackedMinutes}</span>
-                    <span className="text-[9px] text-zinc-500 uppercase tracking-wider mt-0.5">min totales</span>
+                    <span className="text-[9px] text-zinc-500 uppercase tracking-wider mt-0.5">{t('mc_ft_total_min')}</span>
                   </div>
                 </div>
                 <div className="flex-1 w-full space-y-2.5">
                   {breakdown.map((b) => (
                     <div key={b.value} className="flex items-center gap-2.5">
                       <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: b.hex }} />
-                      <span className="text-xs text-zinc-300 flex-1 truncate">{b.label}</span>
+                      <span className="text-xs text-zinc-300 flex-1 truncate">{t(b.labelKey)}</span>
                       <span className="text-xs font-bold text-white">{b.pct}%</span>
                     </div>
                   ))}
@@ -351,10 +350,10 @@ export default function FighterTraining({ profile, showToast }: Props) {
         <Reveal delay={180}>
           <div className="rk-card" style={{ padding: '22px 20px' }}>
             <div className="flex items-center justify-between mb-0.5">
-              <h3 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>EVOLUCIÓN DEL VOLUMEN</h3>
-              <span className="text-xs text-zinc-500">Últimas 8 semanas</span>
+              <h3 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>{t('mc_ft_trend_title')}</h3>
+              <span className="text-xs text-zinc-500">{t('mc_ft_trend_range')}</span>
             </div>
-            <p className="text-xs text-zinc-500 mb-2">Minutos entrenados por semana — mira tu progreso con perspectiva</p>
+            <p className="text-xs text-zinc-500 mb-2">{t('mc_ft_trend_sub')}</p>
             <div style={{ height: 200 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={weeklyTrend} margin={{ top: 8, right: 4, left: -18, bottom: 0 }}>
@@ -377,36 +376,36 @@ export default function FighterTraining({ profile, showToast }: Props) {
         <Reveal>
           <div className="rk-card space-y-4" style={{ padding: '22px 20px' }}>
             <div className="flex items-center justify-between gap-3 flex-wrap">
-              <h3 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>NUEVA SESIÓN</h3>
+              <h3 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>{t('mc_ft_form_title')}</h3>
               <VoiceButton onResult={applyDictation} />
             </div>
             {interpreted && (
               <p className="text-[11px] text-red-400 flex items-center gap-1.5"><i className="ri-sparkling-line"></i>{t('mc_vo_interpreted')}</p>
             )}
             <div>
-              <label className="block text-xs text-zinc-400 mb-2">Tipo de entrenamiento</label>
+              <label className="block text-xs text-zinc-400 mb-2">{t('mc_ft_type')}</label>
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                {SESSION_TYPES.map((t) => (
-                  <button key={t.value} type="button" onClick={() => setType(t.value)}
-                    className={`flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl border text-xs font-medium transition-all cursor-pointer ${type === t.value ? t.color : 'bg-white/[0.03] border-white/10 text-zinc-500 hover:border-white/25'}`}>
-                    <i className={`${t.icon} text-base`}></i>
-                    {t.label}
+                {SESSION_TYPES.map((st) => (
+                  <button key={st.value} type="button" onClick={() => setType(st.value)}
+                    className={`flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl border text-xs font-medium transition-all cursor-pointer ${type === st.value ? st.color : 'bg-white/[0.03] border-white/10 text-zinc-500 hover:border-white/25'}`}>
+                    <i className={`${st.icon} text-base`}></i>
+                    {t(st.labelKey)}
                   </button>
                 ))}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">Fecha</label>
+                <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_ft_date')}</label>
                 <input type="date" value={date} max={todayISO()} onChange={(e) => setDate(e.target.value)} className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer" />
               </div>
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">Duración (minutos)</label>
+                <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_ft_duration')}</label>
                 <input type="number" min="5" max="600" step="5" value={duration} onChange={(e) => setDuration(e.target.value)} className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder="60" />
               </div>
             </div>
             <div>
-              <label className="block text-xs text-zinc-400 mb-2">Intensidad</label>
+              <label className="block text-xs text-zinc-400 mb-2">{t('mc_ft_intensity')}</label>
               <div className="flex gap-2">
                 {[1, 2, 3, 4, 5].map((n) => (
                   <button key={n} type="button" onClick={() => setIntensity(n)}
@@ -415,14 +414,14 @@ export default function FighterTraining({ profile, showToast }: Props) {
                   </button>
                 ))}
               </div>
-              <p className="text-[11px] text-zinc-500 mt-1.5">{['Suave', 'Moderada', 'Media', 'Dura', 'Al límite'][intensity - 1]}</p>
+              <p className="text-[11px] text-zinc-500 mt-1.5">{t(`mc_ft_int_${intensity}`)}</p>
             </div>
             <div>
-              <label className="block text-xs text-zinc-400 mb-1.5">Notas (opcional)</label>
-              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 resize-none" placeholder="Trabajé jab y movimiento lateral, buenas sensaciones..." />
+              <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_ft_notes')}</label>
+              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 resize-none" placeholder={t('mc_ft_notes_ph')} />
             </div>
             <button onClick={addSession} disabled={saving} className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60" style={{ fontSize: '1rem' }}>
-              {saving ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> GUARDANDO...</> : <><i className="ri-check-line"></i> GUARDAR SESIÓN</>}
+              {saving ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {t('mc_saving')}</> : <><i className="ri-check-line"></i> {t('mc_ft_save')}</>}
             </button>
           </div>
         </Reveal>
@@ -438,10 +437,10 @@ export default function FighterTraining({ profile, showToast }: Props) {
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-sm font-bold text-white">Coach IA</h3>
-                <span className="text-[10px] font-bold text-yellow-400 bg-yellow-500/10 border border-yellow-500/30 px-2 py-0.5 rounded-full uppercase tracking-wider">Muy pronto</span>
+                <h3 className="text-sm font-bold text-white">{t('mc_ft_coach_title')}</h3>
+                <span className="text-[10px] font-bold text-yellow-400 bg-yellow-500/10 border border-yellow-500/30 px-2 py-0.5 rounded-full uppercase tracking-wider">{t('mc_ai_soon')}</span>
               </div>
-              <p className="text-xs text-zinc-400 mt-1 leading-relaxed">Tu entrenador personal con inteligencia artificial: pregúntale sobre planificación, estrategia y preparación. Conocerá tu perfil, tu récord y tu diario de entrenamiento.</p>
+              <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{t('mc_ft_coach_desc')}</p>
             </div>
           </div>
         </div>
@@ -449,17 +448,17 @@ export default function FighterTraining({ profile, showToast }: Props) {
 
       {/* Historial */}
       <div>
-        <h3 className="text-sm font-semibold text-white mb-3">Historial</h3>
+        <h3 className="text-sm font-semibold text-white mb-3">{t('mc_ft_history')}</h3>
         {sessions.length === 0 ? (
           <Reveal>
             <div className="rk-card text-center" style={{ padding: '52px 24px' }}>
               <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center rounded-2xl bg-red-600/10 border border-red-500/25 anim-float">
                 <i className="ri-boxing-line text-3xl text-red-400"></i>
               </div>
-              <h3 className="rk-h3" style={{ fontSize: '1.25rem', color: '#fff' }}>TU HISTORIAL EMPIEZA HOY</h3>
-              <p className="text-sm text-zinc-400 mt-2 max-w-xs mx-auto leading-relaxed">Cada sesión que registras suma a tu racha y a tu progreso. El primer paso es el más importante.</p>
+              <h3 className="rk-h3" style={{ fontSize: '1.25rem', color: '#fff' }}>{t('mc_ft_empty_title')}</h3>
+              <p className="text-sm text-zinc-400 mt-2 max-w-xs mx-auto leading-relaxed">{t('mc_ft_empty_desc')}</p>
               <button onClick={() => setShowForm(true)} className="rk-btn rk-btn-primary mt-6" style={{ fontSize: '0.9rem', padding: '0.85rem 1.8rem' }}>
-                REGISTRAR MI PRIMERA SESIÓN
+                {t('mc_ft_empty_cta')}
               </button>
             </div>
           </Reveal>
@@ -475,7 +474,7 @@ export default function FighterTraining({ profile, showToast }: Props) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-bold text-white">{cfg.label}</p>
+                        <p className="text-sm font-bold text-white">{t(cfg.labelKey)}</p>
                         {s.duration_min && <span className="text-[11px] text-zinc-400 bg-white/5 px-2 py-0.5 rounded-full">{s.duration_min} min</span>}
                         {s.intensity && (
                           <span className="flex items-center gap-0.5">
@@ -484,7 +483,7 @@ export default function FighterTraining({ profile, showToast }: Props) {
                         )}
                       </div>
                       <p className="text-xs text-zinc-500 mt-1 capitalize">
-                        {new Date(s.session_date + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                        {new Date(s.session_date + 'T12:00:00').toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })}
                       </p>
                       {s.notes && <p className="text-xs text-zinc-400 mt-1.5 pl-2.5 border-l-2 border-white/10 leading-relaxed">{s.notes}</p>}
                     </div>

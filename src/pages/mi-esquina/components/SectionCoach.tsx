@@ -61,7 +61,7 @@ function renderBold(text: string, keyBase: string) {
 
 // Renderiza una línea: negritas + los marcadores [VIDEO: ...] y los enlaces
 // markdown [texto](url) como botones/enlaces pinchables.
-function renderInline(text: string, keyBase: string) {
+function renderInline(text: string, keyBase: string, watchLabel: string) {
   const nodes: ReactNode[] = [];
   let last = 0;
   let idx = 0;
@@ -75,7 +75,7 @@ function renderInline(text: string, keyBase: string) {
       nodes.push(
         <a key={`${keyBase}-v${idx}`} href={youtubeSearch(q)} target="_blank" rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 align-middle mx-0.5 my-0.5 rounded-lg bg-red-600/12 border border-red-500/35 text-red-300 hover:bg-red-600/20 hover:text-red-200 transition-colors px-2 py-0.5 text-xs font-semibold no-underline">
-          <i className="ri-play-circle-fill"></i>Ver: {q}
+          <i className="ri-play-circle-fill"></i>{watchLabel} {q}
         </a>
       );
     } else {
@@ -97,12 +97,12 @@ function renderInline(text: string, keyBase: string) {
 }
 
 // Formateo ligero del markdown que devuelve la IA (negritas, listas, saltos, vídeos).
-function renderRich(text: string) {
+function renderRich(text: string, watchLabel: string) {
   return text.split('\n').map((line, i) => {
     const trimmed = line.trim();
     const bullet = /^[-*•]\s+/.test(trimmed);
     const clean = bullet ? trimmed.replace(/^[-*•]\s+/, '') : line;
-    const parts = renderInline(clean, `l${i}`);
+    const parts = renderInline(clean, `l${i}`, watchLabel);
     if (bullet) {
       return <div key={i} className="flex gap-2 pl-1"><span className="text-zinc-600 mt-1.5 flex-shrink-0" style={{ fontSize: 6 }}>●</span><span>{parts}</span></div>;
     }
@@ -273,7 +273,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
       }
       if (!res.ok || !res.body) {
         const d = await res.json().catch(() => ({}));
-        setMessages((prev) => [...prev, { role: 'assistant', content: d.message || 'No se pudo generar respuesta. Inténtalo de nuevo.' }]);
+        setMessages((prev) => [...prev, { role: 'assistant', content: d.message || t('mc_ai_err_generate') }]);
         setSending(false);
         return;
       }
@@ -329,12 +329,12 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
       if (!acc.trim()) {
         setMessages((prev) => {
           const copy = [...prev];
-          copy[copy.length - 1] = { role: 'assistant', content: 'No he podido generar respuesta, inténtalo de nuevo.' };
+          copy[copy.length - 1] = { role: 'assistant', content: t('mc_ai_err_empty') };
           return copy;
         });
       }
     } catch {
-      setMessages((prev) => [...prev, { role: 'assistant', content: 'Se ha cortado la conexión con la IA. Inténtalo de nuevo.' }]);
+      setMessages((prev) => [...prev, { role: 'assistant', content: t('mc_ai_err_connection') }]);
     }
     setSearching(false);
     setStreaming(false);
@@ -354,7 +354,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        showToast?.(data.message || 'No he encontrado un plan concreto que guardar', 'error');
+        showToast?.(data.message || t('mc_ai_plan_none'), 'error');
         setSavingPlan(false);
         return;
       }
@@ -404,7 +404,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
         showToast?.(t('mc_ai_meals_added', { count: rows.length }));
       }
     } catch {
-      showToast?.('No se pudo guardar el plan', 'error');
+      showToast?.(t('mc_ai_plan_save_generic'), 'error');
     }
     setSavingPlan(false);
   }, [savingPlan, section, physical, messages, profile.id, showToast, t]);
@@ -428,11 +428,11 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
           <div className={`w-16 h-16 mx-auto mb-5 flex items-center justify-center rounded-2xl ${a.bg} border ${a.border} anim-float`}>
             <i className={`ri-sparkling-2-line text-3xl ${a.text}`}></i>
           </div>
-          <span className={`inline-block text-[10px] font-bold uppercase tracking-[0.18em] px-2.5 py-1 rounded-full ${a.bg} ${a.text} mb-3`}>Muy pronto</span>
+          <span className={`inline-block text-[10px] font-bold uppercase tracking-[0.18em] px-2.5 py-1 rounded-full ${a.bg} ${a.text} mb-3`}>{t('mc_ai_soon')}</span>
           <h3 className="rk-h3" style={{ fontSize: '1.3rem', color: '#fff' }}>{title.toUpperCase()}</h3>
           <p className="text-sm text-zinc-400 mt-2.5 leading-relaxed max-w-sm mx-auto">{intro}</p>
           <p className="text-xs text-zinc-500 mt-4 max-w-sm mx-auto leading-relaxed">
-            Estamos afinando este asistente. Cuando se active, usará tu perfil físico y tus datos de Mi Esquina para responderte{canSavePlan ? ', y podrás guardar el plan directamente en tu diario' : ''}. Mientras tanto, el resto de la sección funciona con normalidad.
+            {t('mc_ai_soon_desc', { extra: canSavePlan ? t('mc_ai_soon_desc_save') : '' })}
           </p>
           <div className="flex flex-wrap gap-2 justify-center mt-5 opacity-60">
             {suggestions.slice(0, 3).map((s) => (
@@ -457,7 +457,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
             <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${a.bg} ${a.text}`}>IA</span>
           </div>
           <p className="text-[11px] text-zinc-500 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: a.dot }} /> Usa tu perfil físico como contexto
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: a.dot }} /> {t('mc_ai_context')}
           </p>
         </div>
       </div>
@@ -486,7 +486,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
                 {m.role === 'assistant'
                   ? (searching && m.content === '' && i === messages.length - 1
                       ? <span className="flex items-center gap-2 text-zinc-400"><i className="ri-earth-line text-sky-400 animate-pulse"></i>{t('mc_ai_searching')}</span>
-                      : <div className="space-y-0.5">{renderRich(m.content)}{streaming && i === messages.length - 1 && <span className="inline-block w-1.5 h-3.5 bg-zinc-400 ml-0.5 align-middle animate-pulse" />}</div>)
+                      : <div className="space-y-0.5">{renderRich(m.content, t('mc_ai_video_watch'))}{streaming && i === messages.length - 1 && <span className="inline-block w-1.5 h-3.5 bg-zinc-400 ml-0.5 align-middle animate-pulse" />}</div>)
                   : m.content}
               </div>
             </div>
@@ -566,14 +566,14 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input); } }}
             disabled={sending}
             className={`flex-1 bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none ${a.ring} disabled:opacity-60`}
-            placeholder="Escribe tu pregunta..."
+            placeholder={t('mc_ai_input_ph')}
           />
           <button onClick={() => send(input)} disabled={sending || !input.trim()}
             className="rk-btn rk-btn-primary flex items-center justify-center disabled:opacity-50" style={{ padding: '0 1.1rem', fontSize: '1rem' }}>
             <i className="ri-send-plane-2-fill"></i>
           </button>
         </div>
-        <p className="text-[10px] text-zinc-600 mt-2 text-center">La IA puede equivocarse. No sustituye a tu entrenador, médico ni dietista.</p>
+        <p className="text-[10px] text-zinc-600 mt-2 text-center">{t('mc_ai_disclaimer')}</p>
       </div>
     </div>
   );
