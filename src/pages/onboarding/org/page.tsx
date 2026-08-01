@@ -1,22 +1,24 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 
-const orgTypeConfig: Record<string, { label: string; desc: string; icon: string; color: string; dashPath: string }> = {
-  promoter: { label: 'Promotora', desc: 'Organizo eventos y combates', icon: 'ri-trophy-line', color: 'text-red-400', dashPath: '/dashboard/org' },
-  gym:      { label: 'Gimnasio', desc: 'Entreno y gestiono atletas', icon: 'ri-building-4-line', color: 'text-emerald-400', dashPath: '/dashboard/org' },
-  manager:  { label: 'Manager', desc: 'Represento peleadores', icon: 'ri-user-star-line', color: 'text-zinc-300', dashPath: '/dashboard/org' },
-  brand:    { label: 'Marca', desc: 'Patrocino atletas y eventos', icon: 'ri-store-2-line', color: 'text-yellow-400', dashPath: '/dashboard/brand' },
+const orgTypeConfig: Record<string, { labelKey: string; icon: string; color: string; dashPath: string }> = {
+  promoter: { labelKey: 'onb_type_promoter', icon: 'ri-trophy-line', color: 'text-red-400', dashPath: '/dashboard/org' },
+  gym:      { labelKey: 'onb_type_gym', icon: 'ri-building-4-line', color: 'text-emerald-400', dashPath: '/dashboard/org' },
+  manager:  { labelKey: 'onb_type_manager', icon: 'ri-user-star-line', color: 'text-zinc-300', dashPath: '/dashboard/org' },
+  brand:    { labelKey: 'onb_type_brand', icon: 'ri-store-2-line', color: 'text-yellow-400', dashPath: '/dashboard/brand' },
 };
 
 const STEPS = [
-  { id: 1, label: 'Organización', icon: 'ri-building-line' },
-  { id: 2, label: 'Contacto', icon: 'ri-links-line' },
-  { id: 3, label: 'Logo', icon: 'ri-image-line' },
+  { id: 1, labelKey: 'onb_org_step1', icon: 'ri-building-line' },
+  { id: 2, labelKey: 'onb_org_step2', icon: 'ri-links-line' },
+  { id: 3, labelKey: 'onb_org_step3', icon: 'ri-image-line' },
 ];
 
 export default function OrgOnboardingPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { profile, user } = useAuth();
   const [step, setStep] = useState(1);
@@ -28,6 +30,8 @@ export default function OrgOnboardingPage() {
 
   const userType = profile?.user_type || 'promoter';
   const cfg = orgTypeConfig[userType] || orgTypeConfig.promoter;
+  const typeLabel = t(cfg.labelKey);
+  const typeLow = typeLabel.toLowerCase();
 
   // Form state
   const [orgName, setOrgName] = useState('');
@@ -116,7 +120,7 @@ export default function OrgOnboardingPage() {
 
       navigate(cfg.dashPath);
     } catch {
-      setError('Error al guardar. Inténtalo de nuevo.');
+      setError(t('error_save'));
     } finally {
       setSaving(false);
     }
@@ -134,7 +138,7 @@ export default function OrgOnboardingPage() {
             <span className="font-unbounded font-black tracking-tighter leading-none text-[17px] text-[#E10600]" style={{ letterSpacing: '-0.04em' }}>KD</span>
           </a>
           <button onClick={() => navigate(cfg.dashPath)} className="text-xs text-zinc-500 hover:text-zinc-300 cursor-pointer transition-colors whitespace-nowrap">
-            Completar después
+            {t('onb_finish_later')}
           </button>
         </div>
         <div className="h-1 bg-zinc-800">
@@ -154,7 +158,7 @@ export default function OrgOnboardingPage() {
                   <div className={`w-9 h-9 flex items-center justify-center rounded-full border-2 transition-all ${done ? 'bg-red-600 border-red-600' : active ? 'border-red-500 bg-red-500/10' : 'border-zinc-700 bg-zinc-900'}`}>
                     {done ? <i className="ri-check-line text-white text-sm"></i> : <i className={`${s.icon} text-sm ${active ? 'text-red-400' : 'text-zinc-600'}`}></i>}
                   </div>
-                  <span className={`text-xs font-medium hidden sm:block ${active ? 'text-white' : done ? 'text-zinc-400' : 'text-zinc-600'}`}>{s.label}</span>
+                  <span className={`text-xs font-medium hidden sm:block ${active ? 'text-white' : done ? 'text-zinc-400' : 'text-zinc-600'}`}>{t(s.labelKey)}</span>
                 </div>
                 {idx < STEPS.length - 1 && <div className={`flex-1 h-px mx-3 transition-colors ${done ? 'bg-red-600' : 'bg-zinc-800'}`} />}
               </div>
@@ -172,40 +176,40 @@ export default function OrgOnboardingPage() {
             <div>
               <div className={`inline-flex items-center gap-2 text-sm font-semibold mb-2 ${cfg.color}`}>
                 <i className={cfg.icon}></i>
-                {cfg.label}
+                {typeLabel}
               </div>
-              <h2 className="text-2xl font-black text-white">Cuéntanos sobre tu {cfg.label.toLowerCase()}</h2>
-              <p className="text-zinc-400 text-sm mt-1">Esta información aparecerá en tu perfil público</p>
+              <h2 className="text-2xl font-black text-white">{t('onb_org_s1_title', { type: typeLow })}</h2>
+              <p className="text-zinc-400 text-sm mt-1">{t('onb_org_s1_sub')}</p>
             </div>
 
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-zinc-300 mb-1.5">
-                  Nombre de la {cfg.label.toLowerCase()} <span className="text-red-500">*</span>
+                  {t('onb_org_name_label', { type: typeLow })} <span className="text-red-500">*</span>
                 </label>
                 <input
                   value={orgName}
                   onChange={(e) => setOrgName(e.target.value)}
                   className="w-full bg-zinc-900 border border-zinc-700 text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 placeholder-zinc-600"
-                  placeholder={`Nombre oficial de tu ${cfg.label.toLowerCase()}`}
+                  placeholder={t('onb_org_name_ph', { type: typeLow })}
                   autoFocus
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1.5">Descripción</label>
+                <label className="block text-sm font-medium text-zinc-300 mb-1.5">{t('onb_desc')}</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={4}
                   maxLength={500}
                   className="w-full bg-zinc-900 border border-zinc-700 text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 placeholder-zinc-600 resize-none"
-                  placeholder={`Describe tu ${cfg.label.toLowerCase()}, misión y actividad...`}
+                  placeholder={t('onb_org_desc_ph', { type: typeLow })}
                 />
                 <p className="text-xs text-zinc-600 mt-1 text-right">{description.length}/500</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-1.5">Ubicación</label>
+                  <label className="block text-sm font-medium text-zinc-300 mb-1.5">{t('onb_location')}</label>
                   <input
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
@@ -214,7 +218,7 @@ export default function OrgOnboardingPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-1.5">Año de fundación</label>
+                  <label className="block text-sm font-medium text-zinc-300 mb-1.5">{t('onb_founded')}</label>
                   <input
                     type="number"
                     value={foundedYear}
@@ -231,7 +235,7 @@ export default function OrgOnboardingPage() {
               disabled={!orgName.trim()}
               className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
             >
-              Continuar <i className="ri-arrow-right-line"></i>
+              {t('onb_continue')} <i className="ri-arrow-right-line"></i>
             </button>
           </div>
         )}
@@ -240,14 +244,14 @@ export default function OrgOnboardingPage() {
         {step === 2 && (
           <div className="space-y-6 pt-2">
             <div>
-              <h2 className="text-2xl font-black text-white">Contacto y redes</h2>
-              <p className="text-zinc-400 text-sm mt-1">Para que los peleadores puedan encontrarte y contactarte</p>
+              <h2 className="text-2xl font-black text-white">{t('onb_org_s2_title')}</h2>
+              <p className="text-zinc-400 text-sm mt-1">{t('onb_org_s2_sub')}</p>
             </div>
 
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-zinc-300 mb-1.5">
-                  <i className="ri-global-line mr-1.5 text-zinc-400"></i>Sitio web
+                  <i className="ri-global-line mr-1.5 text-zinc-400"></i>{t('onb_website')}
                 </label>
                 <input
                   value={website}
@@ -282,10 +286,10 @@ export default function OrgOnboardingPage() {
 
             <div className="flex gap-3">
               <button onClick={() => setStep(1)} className="flex-1 py-3.5 rounded-xl border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500 text-sm font-medium transition-colors cursor-pointer whitespace-nowrap">
-                <i className="ri-arrow-left-line mr-1"></i>Atrás
+                <i className="ri-arrow-left-line mr-1"></i>{t('onb_back')}
               </button>
               <button onClick={() => setStep(3)} className="flex-[2] bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2">
-                Continuar <i className="ri-arrow-right-line"></i>
+                {t('onb_continue')} <i className="ri-arrow-right-line"></i>
               </button>
             </div>
           </div>
@@ -295,8 +299,8 @@ export default function OrgOnboardingPage() {
         {step === 3 && (
           <div className="space-y-6 pt-2">
             <div>
-              <h2 className="text-2xl font-black text-white">Logo o foto</h2>
-              <p className="text-zinc-400 text-sm mt-1">Añade el logo de tu {cfg.label.toLowerCase()} para dar una imagen profesional</p>
+              <h2 className="text-2xl font-black text-white">{t('onb_org_s3_title')}</h2>
+              <p className="text-zinc-400 text-sm mt-1">{t('onb_org_s3_sub', { type: typeLow })}</p>
             </div>
 
             <div className="flex flex-col items-center gap-5 py-6">
@@ -320,19 +324,19 @@ export default function OrgOnboardingPage() {
               <input ref={fileRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
               <button onClick={() => fileRef.current?.click()} disabled={uploading} className="flex items-center gap-2 text-sm font-semibold text-red-400 hover:text-red-300 cursor-pointer transition-colors disabled:opacity-50 whitespace-nowrap">
                 <i className="ri-upload-cloud-line"></i>
-                {avatarUrl ? 'Cambiar logo' : 'Subir logo'}
+                {avatarUrl ? t('onb_change_logo') : t('onb_upload_logo')}
               </button>
-              <p className="text-xs text-zinc-600">JPG, PNG o WebP · Máx. 5MB</p>
+              <p className="text-xs text-zinc-600">{t('onb_file_hint')}</p>
             </div>
 
             {error && <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">{error}</p>}
 
             <div className="flex gap-3">
               <button onClick={() => setStep(2)} className="flex-1 py-3.5 rounded-xl border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500 text-sm font-medium transition-colors cursor-pointer whitespace-nowrap">
-                <i className="ri-arrow-left-line mr-1"></i>Atrás
+                <i className="ri-arrow-left-line mr-1"></i>{t('onb_back')}
               </button>
               <button onClick={saveAndFinish} disabled={saving} className="flex-[2] bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white font-bold py-3.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2">
-                {saving ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Guardando...</> : <><i className="ri-rocket-line"></i> Ir a mi dashboard</>}
+                {saving ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {t('onb_saving')}</> : <><i className="ri-rocket-line"></i> {t('onb_go_dashboard')}</>}
               </button>
             </div>
           </div>
