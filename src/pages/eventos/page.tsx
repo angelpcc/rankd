@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { supabase, OrgEvent, Profile } from '@/lib/supabase';
 import { useSEO } from '@/hooks/useSEO';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,26 +15,26 @@ interface EventWithOrg extends OrgEvent {
 
 type TimeFilter = 'upcoming' | 'past' | 'all';
 
-function dateBadge(d: string | null): { label: string; badge: string; cls: string; days: number } | null {
+function dateBadge(d: string | null, locale: string): { label: string; badgeKey: string; cls: string; days: number } | null {
   if (!d) return null;
   const date = new Date(d + 'T12:00:00');
   const now = new Date();
   const diffDays = Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  const label = date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
-  if (diffDays < 0) return { label, badge: 'Finalizado', cls: 'text-zinc-500 bg-white/[0.04] border-white/10', days: diffDays };
-  if (diffDays === 0) return { label, badge: 'Hoy', cls: 'text-red-400 bg-red-500/12 border-red-500/30', days: diffDays };
-  if (diffDays <= 7) return { label, badge: 'Esta semana', cls: 'text-red-400 bg-red-500/12 border-red-500/30', days: diffDays };
-  if (diffDays <= 30) return { label, badge: 'Este mes', cls: 'text-orange-400 bg-orange-500/12 border-orange-500/30', days: diffDays };
-  return { label, badge: 'Próximo', cls: 'text-emerald-400 bg-emerald-500/12 border-emerald-500/30', days: diffDays };
+  const label = date.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+  if (diffDays < 0) return { label, badgeKey: 'evp_badge_finished', cls: 'text-zinc-500 bg-white/[0.04] border-white/10', days: diffDays };
+  if (diffDays === 0) return { label, badgeKey: 'evp_badge_today', cls: 'text-red-400 bg-red-500/12 border-red-500/30', days: diffDays };
+  if (diffDays <= 7) return { label, badgeKey: 'evp_badge_week', cls: 'text-red-400 bg-red-500/12 border-red-500/30', days: diffDays };
+  if (diffDays <= 30) return { label, badgeKey: 'evp_badge_month', cls: 'text-orange-400 bg-orange-500/12 border-orange-500/30', days: diffDays };
+  return { label, badgeKey: 'evp_badge_upcoming', cls: 'text-emerald-400 bg-emerald-500/12 border-emerald-500/30', days: diffDays };
 }
 
-/** Cuenta atrás en palabras para el evento más cercano. */
-function countdown(days: number): string {
-  if (days === 0) return 'Es hoy';
-  if (days === 1) return 'Mañana';
-  if (days <= 7) return `En ${days} días`;
-  if (days <= 14) return 'La semana que viene';
-  return `En ${Math.round(days / 7)} semanas`;
+/** Cuenta atrás en palabras: devuelve clave i18n + número para interpolar. */
+function countdown(days: number): { key: string; n: number } {
+  if (days === 0) return { key: 'evp_cd_today', n: 0 };
+  if (days === 1) return { key: 'evp_cd_tomorrow', n: 1 };
+  if (days <= 7) return { key: 'evp_cd_days', n: days };
+  if (days <= 14) return { key: 'evp_cd_next_week', n: 0 };
+  return { key: 'evp_cd_weeks', n: Math.round(days / 7) };
 }
 
 /** La ciudad suele venir como "Sala X, Madrid": nos quedamos con lo último. */
@@ -61,6 +62,8 @@ function Skeletons() {
 }
 
 export default function EventosPage() {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
   useSEO({
     title: 'Eventos y veladas de combate | RANKD',
     description: 'Galas de boxeo, veladas de MMA, kickboxing y muay thai. Descubre los próximos eventos de deportes de combate y consigue tus entradas en RANKD.',
@@ -143,7 +146,7 @@ export default function EventosPage() {
   const next = filter === 'upcoming' && !query && city === 'all'
     ? upcoming.find((e) => !!e.event_date)
     : undefined;
-  const nextBadge = next ? dateBadge(next.event_date) : null;
+  const nextBadge = next ? dateBadge(next.event_date, locale) : null;
   const grid = next ? shown.filter((e) => e.id !== next.id) : shown;
 
   const isFiltering = !!query.trim() || city !== 'all';
@@ -159,26 +162,26 @@ export default function EventosPage() {
         <span aria-hidden="true" className="pointer-events-none select-none absolute -right-6 bottom-0 hidden md:block" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(120px,16vw,240px)', lineHeight: 0.7, color: 'transparent', WebkitTextStroke: '1px rgba(255,255,255,0.04)' }}>FIGHT</span>
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 md:px-10 py-14 md:py-20">
           <div className="flex items-center gap-3 mb-4">
-            <span className="rk-index">LA CARTELERA</span>
+            <span className="rk-index">{t('evp_index')}</span>
             <span style={{ flex: '0 0 34px', height: 1, background: 'rgba(255,255,255,0.16)' }} />
-            <span className="rk-eyebrow">Eventos</span>
+            <span className="rk-eyebrow">{t('evp_eyebrow')}</span>
           </div>
           <h1 className="rk-h1" style={{ color: '#fff', margin: 0 }}>
-            PRÓXIMAS <span className="rk-red-glow">VELADAS</span>
+            {t('evp_title')} <span className="rk-red-glow">{t('evp_title_2')}</span>
           </h1>
           <div className="rk-rule" style={{ width: 88, margin: '20px 0' }} />
           <p className="rk-body max-w-xl" style={{ margin: 0 }}>
-            Galas de boxeo, veladas de MMA y kickboxing. Descubre los próximos eventos de deportes de combate y consigue tu entrada.
+            {t('evp_hero_sub')}
           </p>
           {!loading && events.length > 0 && (
             <div className="flex items-center gap-x-5 gap-y-2 mt-6 flex-wrap text-xs" style={{ fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 1 }}>
-              <span className="text-zinc-400"><span className="text-white font-bold">{upcoming.length}</span> por venir</span>
+              <span className="text-zinc-400"><span className="text-white font-bold">{upcoming.length}</span> {t('evp_stat_upcoming')}</span>
               <span className="text-zinc-700">|</span>
-              <span className="text-zinc-400"><span className="text-white font-bold">{cities.length}</span> {cities.length === 1 ? 'ciudad' : 'ciudades'}</span>
+              <span className="text-zinc-400"><span className="text-white font-bold">{cities.length}</span> {cities.length === 1 ? t('evp_city') : t('evp_cities')}</span>
               {events.some((e) => e.hasTickets) && (
                 <>
                   <span className="text-zinc-700">|</span>
-                  <span className="text-zinc-400"><span className="text-white font-bold">{events.filter((e) => e.hasTickets).length}</span> con entradas a la venta</span>
+                  <span className="text-zinc-400"><span className="text-white font-bold">{events.filter((e) => e.hasTickets).length}</span> {t('evp_stat_tickets')}</span>
                 </>
               )}
             </div>
@@ -190,7 +193,7 @@ export default function EventosPage() {
         {/* Filtros + búsqueda */}
         <div className="flex flex-col lg:flex-row gap-3 mb-6">
           <div className="flex gap-2 overflow-x-auto rk-noscroll">
-            {([['upcoming', 'Próximos', upcoming.length], ['past', 'Finalizados', past.length], ['all', 'Todos', events.length]] as const).map(([val, label, count]) => (
+            {([['upcoming', t('evp_filter_upcoming'), upcoming.length], ['past', t('evp_filter_past'), past.length], ['all', t('evp_filter_all'), events.length]] as const).map(([val, label, count]) => (
               <button key={val} onClick={() => setFilter(val)}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all cursor-pointer border ${filter === val ? 'bg-red-600 border-red-600 text-white' : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white hover:border-white/25'}`}>
                 {label}<span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${filter === val ? 'bg-white/20' : 'bg-white/[0.06] text-zinc-500'}`}>{count}</span>
@@ -200,19 +203,19 @@ export default function EventosPage() {
 
           <div className="flex gap-2 flex-1 lg:justify-end">
             {cities.length > 1 && (
-              <select value={city} onChange={(e) => setCity(e.target.value)} aria-label="Filtrar por ciudad"
+              <select value={city} onChange={(e) => setCity(e.target.value)} aria-label={t('evp_aria_city')}
                 className="bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer transition-colors">
-                <option value="all">Todas las ciudades</option>
+                <option value="all">{t('evp_all_cities')}</option>
                 {cities.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             )}
             <div className="relative flex-1 lg:flex-none lg:w-64">
               <i className="ri-search-line absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 text-sm"></i>
               <input value={query} onChange={(e) => setQuery(e.target.value)}
-                placeholder="Buscar velada, sala o promotora..." aria-label="Buscar eventos"
+                placeholder={t('evp_search_ph')} aria-label={t('evp_aria_search')}
                 className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl pl-9 pr-8 py-2.5 focus:outline-none focus:border-red-500 transition-colors" />
               {query && (
-                <button onClick={() => setQuery('')} aria-label="Limpiar búsqueda"
+                <button onClick={() => setQuery('')} aria-label={t('evp_aria_clear')}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white cursor-pointer">
                   <i className="ri-close-circle-fill text-sm"></i>
                 </button>
@@ -229,19 +232,17 @@ export default function EventosPage() {
               <i className={`text-4xl text-red-400 ${isFiltering ? 'ri-search-eye-line' : 'ri-calendar-event-line'}`}></i>
             </div>
             <h2 className="rk-h3 text-white">
-              {isFiltering ? 'SIN RESULTADOS' : filter === 'past' ? 'AÚN NO HAY EVENTOS PASADOS' : 'NO HAY EVENTOS ANUNCIADOS'}
+              {isFiltering ? t('evp_empty_none') : filter === 'past' ? t('evp_empty_past') : t('evp_empty_upcoming')}
             </h2>
             <p className="text-sm text-zinc-400 mt-2 max-w-sm mx-auto">
-              {isFiltering
-                ? 'Prueba con otra palabra o quita el filtro de ciudad.'
-                : 'Las promotoras y gimnasios publican aquí sus galas y veladas. Vuelve pronto: el cartel se llena rápido.'}
+              {isFiltering ? t('evp_empty_filter_desc') : t('evp_empty_desc')}
             </p>
             {isFiltering ? (
               <button onClick={() => { setQuery(''); setCity('all'); }}
-                className="mt-5 text-sm font-bold text-red-400 hover:text-red-300 cursor-pointer">Ver todos los eventos</button>
+                className="mt-5 text-sm font-bold text-red-400 hover:text-red-300 cursor-pointer">{t('evp_see_all')}</button>
             ) : canPublish ? (
               <button onClick={() => navigate('/dashboard')} className="rk-btn rk-btn-primary mt-6" style={{ fontSize: '0.9rem', padding: '0.8rem 1.8rem' }}>
-                PUBLICAR MI EVENTO
+                {t('evp_publish_mine')}
               </button>
             ) : null}
           </div>
@@ -262,11 +263,11 @@ export default function EventosPage() {
                     <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(12,12,12,0.85) 0%, transparent 55%)' }} />
                     <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-red-600 to-transparent" />
                     <span className="absolute top-4 left-4 text-[11px] font-black tracking-wider uppercase text-white bg-red-600 px-3 py-1 rounded-full shadow-lg shadow-red-600/40">
-                      La próxima
+                      {t('evp_next_label')}
                     </span>
                   </div>
                   <div className="p-6 sm:p-8 flex flex-col justify-center">
-                    <p className="rk-eyebrow" style={{ color: '#E10600' }}>{countdown(nextBadge.days)}</p>
+                    <p className="rk-eyebrow" style={{ color: '#E10600' }}>{(() => { const c = countdown(nextBadge.days); return t(c.key, { n: c.n }); })()}</p>
                     <h2 style={{ fontFamily: "'Bebas Neue', sans-serif" }} className="text-3xl sm:text-4xl text-white leading-[0.95] mt-2 group-hover:text-red-300 transition-colors">
                       {next.title}
                     </h2>
@@ -276,10 +277,10 @@ export default function EventosPage() {
                       {next.org?.full_name && <span className="flex items-center gap-2"><i className="ri-trophy-line text-zinc-600"></i>{next.org.full_name}</span>}
                     </div>
                     <div className="flex items-center gap-3 mt-6 flex-wrap">
-                      <span className="rk-btn rk-btn-primary" style={{ fontSize: '0.85rem', padding: '0.7rem 1.5rem' }}>VER LA VELADA</span>
+                      <span className="rk-btn rk-btn-primary" style={{ fontSize: '0.85rem', padding: '0.7rem 1.5rem' }}>{t('evp_view_event')}</span>
                       {next.hasTickets && (
                         <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-2 rounded-lg">
-                          <i className="ri-ticket-2-line"></i> Entradas a la venta
+                          <i className="ri-ticket-2-line"></i> {t('evp_tickets_onsale')}
                         </span>
                       )}
                     </div>
@@ -290,8 +291,8 @@ export default function EventosPage() {
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {grid.map((ev, i) => {
-                const badge = dateBadge(ev.event_date);
-                const isPast = badge?.badge === 'Finalizado';
+                const badge = dateBadge(ev.event_date, locale);
+                const isPast = (badge?.days ?? 0) < 0;
                 return (
                   <Reveal key={ev.id} delay={Math.min(i, 6) * 50}>
                     <article
@@ -310,11 +311,11 @@ export default function EventosPage() {
                         <div className="absolute inset-0 bg-gradient-to-t from-[#0c0c0c] via-transparent to-transparent" />
                         <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-red-600 to-transparent" />
                         {badge && (
-                          <span className={`absolute top-3 left-3 text-[11px] font-bold px-2.5 py-1 rounded-full border backdrop-blur-sm ${badge.cls}`}>{badge.badge}</span>
+                          <span className={`absolute top-3 left-3 text-[11px] font-bold px-2.5 py-1 rounded-full border backdrop-blur-sm ${badge.cls}`}>{t(badge.badgeKey)}</span>
                         )}
                         {ev.hasTickets && !isPast && (
                           <span className="absolute top-3 right-3 inline-flex items-center gap-1 text-[10px] font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-400/40 backdrop-blur-sm px-2 py-1 rounded-full">
-                            <i className="ri-ticket-2-line"></i> Entradas
+                            <i className="ri-ticket-2-line"></i> {t('evp_tickets')}
                           </span>
                         )}
                       </div>
@@ -329,8 +330,8 @@ export default function EventosPage() {
                           ) : (
                             <div className="w-6 h-6 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center"><i className="ri-trophy-line text-[10px] text-zinc-500"></i></div>
                           )}
-                          <span className="text-xs text-zinc-400 truncate flex-1">{ev.org?.full_name || 'Promotora'}</span>
-                          <span className="text-xs font-bold text-red-400 flex items-center gap-1 group-hover:gap-1.5 transition-all">Ver <i className="ri-arrow-right-line"></i></span>
+                          <span className="text-xs text-zinc-400 truncate flex-1">{ev.org?.full_name || t('evp_promoter')}</span>
+                          <span className="text-xs font-bold text-red-400 flex items-center gap-1 group-hover:gap-1.5 transition-all">{t('evp_see')} <i className="ri-arrow-right-line"></i></span>
                         </div>
                       </div>
                     </article>
@@ -346,11 +347,11 @@ export default function EventosPage() {
                   <i className="ri-add-circle-line text-2xl"></i>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-white">¿Organizas una velada?</p>
-                  <p className="text-xs text-zinc-400 mt-0.5">Publícala aquí con su cartel, su ficha y sus entradas. Aparece en esta misma cartelera.</p>
+                  <p className="text-sm font-bold text-white">{t('evp_cta_title')}</p>
+                  <p className="text-xs text-zinc-400 mt-0.5">{t('evp_cta_desc')}</p>
                 </div>
                 <button onClick={() => navigate('/dashboard')} className="rk-btn rk-btn-primary w-full sm:w-auto flex-shrink-0" style={{ fontSize: '0.82rem', padding: '0.7rem 1.4rem' }}>
-                  PUBLICAR EVENTO
+                  {t('evp_cta_btn')}
                 </button>
               </div>
             )}
