@@ -159,6 +159,17 @@ export default {
   mc_go_toast_achieved: '¡Objetivo conseguido! 🏆',
   mc_go_toast_archived: 'Objetivo archivado',
   mc_go_toast_reactivated: 'Objetivo reactivado',
+  // ── Diario de comidas (MealLog) — R13-T5 ──
+  mc_meal_title: 'Diario de comidas',
+  mc_meal_breakfast: 'Desayuno',
+  mc_meal_lunch: 'Comida',
+  mc_meal_dinner: 'Cena',
+  mc_meal_snack: 'Snack',
+  mc_meal_ph: 'Ej: 150g pollo, arroz y ensalada',
+  mc_meal_empty: 'Apunta lo que comes y ve construyendo tu histórico. La IA de nutrición podrá ajustarlo sobre esta base.',
+  mc_meal_saved: 'Comida registrada',
+  mc_meal_unavailable_title: 'Diario de comidas en camino',
+  mc_meal_unavailable_desc: 'Se activará en cuanto se cree la tabla en el servidor.',
 
   // ── Dictado por voz (R12-T3) ──
   mc_vo_dictate: 'Dictar',
