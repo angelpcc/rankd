@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useSEO } from '@/hooks/useSEO';
 import Navbar from '@/pages/home/components/Navbar';
 import Footer from '@/pages/home/components/Footer';
@@ -7,98 +8,99 @@ import Reveal from '@/components/base/Reveal';
 
 type RoleId = 'fighter' | 'org' | 'brand' | 'public';
 
-const ROLES: { id: RoleId; label: string; icon: string; tagline: string; accent: string }[] = [
-  { id: 'fighter', label: 'Soy peleador', icon: 'ri-boxing-line', tagline: 'Entreno, compito o ambas', accent: '#E10600' },
-  { id: 'org', label: 'Promotora o gimnasio', icon: 'ri-trophy-line', tagline: 'Organizo eventos y busco talento', accent: '#E10600' },
-  { id: 'brand', label: 'Soy una marca', icon: 'ri-store-2-line', tagline: 'Patrocino y vendo producto', accent: '#C9A84C' },
-  { id: 'public', label: 'Solo quiero ver', icon: 'ri-user-heart-line', tagline: 'Aficionado a los deportes de combate', accent: '#C9A84C' },
+const ROLES: { id: RoleId; labelKey: string; icon: string; tagKey: string; accent: string }[] = [
+  { id: 'fighter', labelKey: 'cf_role_fighter_label', icon: 'ri-boxing-line', tagKey: 'cf_role_fighter_tag', accent: '#E10600' },
+  { id: 'org', labelKey: 'cf_role_org_label', icon: 'ri-trophy-line', tagKey: 'cf_role_org_tag', accent: '#E10600' },
+  { id: 'brand', labelKey: 'cf_role_brand_label', icon: 'ri-store-2-line', tagKey: 'cf_role_brand_tag', accent: '#C9A84C' },
+  { id: 'public', labelKey: 'cf_role_public_label', icon: 'ri-user-heart-line', tagKey: 'cf_role_public_tag', accent: '#C9A84C' },
 ];
 
-interface Block { icon: string; title: string; desc: string }
+interface Block { icon: string; titleKey: string; descKey: string }
 
-const CONTENT: Record<RoleId, { intro: string; groups: { name?: string; blocks: Block[] }[]; cta: { label: string; to: string }; note?: string }> = {
+const CONTENT: Record<RoleId, { introKey: string; groups: { nameKey?: string; blocks: Block[] }[]; cta: { labelKey: string; to: string }; noteKey?: string }> = {
   fighter: {
-    intro: 'RANKD es tu esquina digital: el sitio donde entrenas con método y, si compites, donde te encuentran. Funciona igual si peleas en veladas o si entrenas por afición — tú eliges cuánto quieres exponerte.',
+    introKey: 'cf_f_intro',
     groups: [
       {
-        name: 'Si entrenas por afición',
+        nameKey: 'cf_f_g1_name',
         blocks: [
-          { icon: 'ri-boxing-line', title: 'Mi Esquina, tu herramienta diaria', desc: 'Diario de entrenos con gráficos de volumen, racha de días, planificador semanal y temporizador de asaltos con campana. Todo lo que registras se queda y se convierte en tu progreso.' },
-          { icon: 'ri-restaurant-line', title: 'Nutrición y peso de verdad', desc: 'Registra hidratación y peso, ponte un objetivo y ve la evolución en un gráfico. Apunta tus comidas día a día para construir un histórico real, no consejos sueltos.' },
-          { icon: 'ri-shopping-bag-line', title: 'Material e inventario', desc: 'Marca el equipo que ya tienes, controla su estado y sabe cuándo toca reemplazar guantes, vendas o bucal. Con guía de compra sin humo.' },
+          { icon: 'ri-boxing-line', titleKey: 'cf_f_b1_t', descKey: 'cf_f_b1_d' },
+          { icon: 'ri-restaurant-line', titleKey: 'cf_f_b2_t', descKey: 'cf_f_b2_d' },
+          { icon: 'ri-shopping-bag-line', titleKey: 'cf_f_b3_t', descKey: 'cf_f_b3_d' },
         ],
       },
       {
-        name: 'Si compites',
+        nameKey: 'cf_f_g2_name',
         blocks: [
-          { icon: 'ri-profile-line', title: 'Tu ficha pública', desc: 'Récord, categoría, vídeos, logros y redes en un perfil que promotoras y marcas pueden encontrar en el directorio. Tú decides cuándo publicarlo.' },
-          { icon: 'ri-megaphone-line', title: 'Oportunidades reales', desc: 'Combates, patrocinios y contratos publicados por promotoras y marcas. Te postulas desde la plataforma y hablas por mensajes directos.' },
-          { icon: 'ri-shield-check-line', title: 'Verificación', desc: 'Solicita verificar tu récord para ganar credibilidad frente a quien te está evaluando.' },
+          { icon: 'ri-profile-line', titleKey: 'cf_f_b4_t', descKey: 'cf_f_b4_d' },
+          { icon: 'ri-megaphone-line', titleKey: 'cf_f_b5_t', descKey: 'cf_f_b5_d' },
+          { icon: 'ri-shield-check-line', titleKey: 'cf_f_b6_t', descKey: 'cf_f_b6_d' },
         ],
       },
     ],
-    cta: { label: 'CREAR MI ESQUINA GRATIS', to: '/auth' },
-    note: 'Gratis, sin comisiones. Si entrenas por afición no verás nada del marketplace: tu espacio es Mi Esquina.',
+    cta: { labelKey: 'cf_f_cta', to: '/auth' },
+    noteKey: 'cf_f_note',
   },
   org: {
-    intro: 'Si organizas veladas o diriges un gimnasio, RANKD te da las dos cosas que más cuestan: llenar el cartel y llenar el aforo. Sin intermediarios.',
+    introKey: 'cf_o_intro',
     groups: [
       {
         blocks: [
-          { icon: 'ri-calendar-event-line', title: 'Publica tus eventos', desc: 'Crea la velada con su cartel, fecha y ubicación. Aparece en la cartelera pública de RANKD, donde el público la descubre.' },
-          { icon: 'ri-ticket-2-line', title: 'Vende entradas', desc: 'Define tipos de entrada (General, VIP, Ringside), precio y aforo. El público reserva desde la ficha del evento y tú ves las reservas en tu panel, con el aforo actualizándose solo.' },
-          { icon: 'ri-search-eye-line', title: 'Busca peleadores', desc: 'Filtra el directorio por disciplina, categoría de peso, nivel, país y disponibilidad. Ves el récord de un vistazo, sin entrar perfil por perfil.' },
-          { icon: 'ri-user-received-line', title: 'Recibe postulaciones', desc: 'Publica oportunidades de combate y recibe candidatos ordenados en tu panel. Hablas con ellos por mensajes dentro de la plataforma.' },
+          { icon: 'ri-calendar-event-line', titleKey: 'cf_o_b1_t', descKey: 'cf_o_b1_d' },
+          { icon: 'ri-ticket-2-line', titleKey: 'cf_o_b2_t', descKey: 'cf_o_b2_d' },
+          { icon: 'ri-search-eye-line', titleKey: 'cf_o_b3_t', descKey: 'cf_o_b3_d' },
+          { icon: 'ri-user-received-line', titleKey: 'cf_o_b4_t', descKey: 'cf_o_b4_d' },
         ],
       },
     ],
-    cta: { label: 'CREAR CUENTA DE PROMOTORA', to: '/auth' },
-    note: 'El cobro con tarjeta de las entradas está en marcha; hoy las reservas te llegan con los datos del comprador para que cierres el pago.',
+    cta: { labelKey: 'cf_o_cta', to: '/auth' },
+    noteKey: 'cf_o_note',
   },
   brand: {
-    intro: 'Una marca en RANKD hace dos cosas muy distintas, y las tienes separadas para que no se mezclen: patrocinar talento y vender producto.',
+    introKey: 'cf_b_intro',
     groups: [
       {
-        name: 'Función 1 · Patrocinar y darte a conocer',
+        nameKey: 'cf_b_g1_name',
         blocks: [
-          { icon: 'ri-user-star-line', title: 'Encuentra a quién patrocinar', desc: 'Busca peleadores por disciplina, nivel y presencia digital. Ves su récord y sus redes antes de contactar.' },
-          { icon: 'ri-megaphone-line', title: 'Publica patrocinios', desc: 'Lanza oportunidades de patrocinio y recibe candidaturas de peleadores interesados.' },
-          { icon: 'ri-eye-line', title: 'Visibilidad ante el sector', desc: 'Apareces ante promotoras y gimnasios que organizan eventos y buscan patrocinadores.' },
+          { icon: 'ri-user-star-line', titleKey: 'cf_b_b1_t', descKey: 'cf_b_b1_d' },
+          { icon: 'ri-megaphone-line', titleKey: 'cf_b_b2_t', descKey: 'cf_b_b2_d' },
+          { icon: 'ri-eye-line', titleKey: 'cf_b_b3_t', descKey: 'cf_b_b3_d' },
         ],
       },
       {
-        name: 'Función 2 · Vender producto',
+        nameKey: 'cf_b_g2_name',
         blocks: [
-          { icon: 'ri-store-3-line', title: 'Tu escaparate público', desc: 'Publica tu catálogo de equipamiento, nutrición o servicios. Aparece en el directorio de marcas, donde peleadores y público general te encuentran.' },
-          { icon: 'ri-price-tag-3-line', title: 'Producto y servicios', desc: 'Da igual si vendes guantes, suplementos o servicios de fisioterapia: cada tipo tiene su sitio y su filtro.' },
+          { icon: 'ri-store-3-line', titleKey: 'cf_b_b4_t', descKey: 'cf_b_b4_d' },
+          { icon: 'ri-price-tag-3-line', titleKey: 'cf_b_b5_t', descKey: 'cf_b_b5_d' },
         ],
       },
     ],
-    cta: { label: 'REGISTRAR MI MARCA', to: '/auth' },
+    cta: { labelKey: 'cf_b_cta', to: '/auth' },
   },
   public: {
-    intro: 'No hace falta que pelees para usar RANKD. Si te gustan los deportes de combate, aquí encuentras qué ver y dónde equiparte.',
+    introKey: 'cf_p_intro',
     groups: [
       {
         blocks: [
-          { icon: 'ri-calendar-event-line', title: 'Descubre eventos cerca', desc: 'La cartelera pública con las próximas veladas de boxeo, MMA, kickboxing y muay thai, con fecha, ubicación y quién las organiza.' },
-          { icon: 'ri-ticket-2-line', title: 'Consigue tus entradas', desc: 'Reserva tu entrada desde la ficha del evento, eligiendo tipo y cantidad. Sin pasar por reventa.' },
-          { icon: 'ri-shopping-bag-line', title: 'Compra material', desc: 'Explora el directorio de marcas por categoría y disciplina: guantes, protecciones, ropa, nutrición.' },
-          { icon: 'ri-search-line', title: 'Sigue a los peleadores', desc: 'Consulta el directorio, mira récords, vídeos y redes de los que compiten.' },
+          { icon: 'ri-calendar-event-line', titleKey: 'cf_p_b1_t', descKey: 'cf_p_b1_d' },
+          { icon: 'ri-ticket-2-line', titleKey: 'cf_p_b2_t', descKey: 'cf_p_b2_d' },
+          { icon: 'ri-shopping-bag-line', titleKey: 'cf_p_b3_t', descKey: 'cf_p_b3_d' },
+          { icon: 'ri-search-line', titleKey: 'cf_p_b4_t', descKey: 'cf_p_b4_d' },
         ],
       },
     ],
-    cta: { label: 'VER PRÓXIMOS EVENTOS', to: '/eventos' },
+    cta: { labelKey: 'cf_p_cta', to: '/eventos' },
   },
 };
 
 const PILLARS = [
-  { icon: 'ri-links-line', title: 'Conecta el sector', desc: 'Peleadores, promotoras, gimnasios y marcas en un mismo sitio, hablando directamente entre ellos.' },
-  { icon: 'ri-tools-line', title: 'Herramientas reales', desc: 'No es solo un escaparate: Mi Esquina es una herramienta de entrenamiento de uso diario.' },
-  { icon: 'ri-money-euro-circle-line', title: 'Sin intermediarios', desc: 'Crear tu perfil es gratis y no nos llevamos comisión por los acuerdos que cierres.' },
+  { icon: 'ri-links-line', titleKey: 'cf_pillar1_t', descKey: 'cf_pillar1_d' },
+  { icon: 'ri-tools-line', titleKey: 'cf_pillar2_t', descKey: 'cf_pillar2_d' },
+  { icon: 'ri-money-euro-circle-line', titleKey: 'cf_pillar3_t', descKey: 'cf_pillar3_d' },
 ];
 
 export default function ComoFuncionaPage() {
+  const { t } = useTranslation();
   useSEO({
     title: 'Cómo funciona RANKD | La plataforma de deportes de combate',
     description: 'Descubre cómo funciona RANKD según quién eres: peleador, promotora, gimnasio, marca o aficionado. Mi Esquina, eventos, entradas, patrocinios y directorio.',
@@ -126,16 +128,16 @@ export default function ComoFuncionaPage() {
         <span aria-hidden="true" className="pointer-events-none select-none absolute -right-6 bottom-0 hidden md:block" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(110px,15vw,230px)', lineHeight: 0.7, color: 'transparent', WebkitTextStroke: '1px rgba(255,255,255,0.04)' }}>RANKD</span>
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 md:px-10 py-14 md:py-20">
           <div className="flex items-center gap-3 mb-4">
-            <span className="rk-index">EMPIEZA AQUÍ</span>
+            <span className="rk-index">{t('cf_index')}</span>
             <span style={{ flex: '0 0 34px', height: 1, background: 'rgba(255,255,255,0.16)' }} />
-            <span className="rk-eyebrow">Cómo funciona</span>
+            <span className="rk-eyebrow">{t('cf_eyebrow')}</span>
           </div>
           <h1 className="rk-h1" style={{ color: '#fff', margin: 0 }}>
-            TODO EL COMBATE,<br /><span className="rk-red-glow">EN UN SITIO</span>
+            {t('cf_title')}<br /><span className="rk-red-glow">{t('cf_title_2')}</span>
           </h1>
           <div className="rk-rule" style={{ width: 88, margin: '20px 0' }} />
           <p className="rk-body max-w-2xl" style={{ margin: 0 }}>
-            RANKD es la plataforma donde el mundo de los deportes de combate se organiza: los peleadores entrenan y se dan a conocer, las promotoras montan sus veladas y venden entradas, y las marcas patrocinan y venden su producto. Elige abajo quién eres y te contamos tu camino.
+            {t('cf_hero_sub')}
           </p>
         </div>
       </section>
@@ -144,13 +146,13 @@ export default function ComoFuncionaPage() {
       <section className="max-w-5xl mx-auto px-4 sm:px-6 md:px-10 py-10">
         <div className="grid sm:grid-cols-3 gap-4">
           {PILLARS.map((p, i) => (
-            <Reveal key={p.title} delay={i * 80}>
+            <Reveal key={p.titleKey} delay={i * 80}>
               <div className="rk-card h-full" style={{ padding: '20px 22px' }}>
                 <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-600/12 border border-red-500/25 text-red-400 mb-3">
                   <i className={`${p.icon} text-lg`}></i>
                 </div>
-                <h3 className="text-sm font-bold text-white">{p.title}</h3>
-                <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed">{p.desc}</p>
+                <h3 className="text-sm font-bold text-white">{t(p.titleKey)}</h3>
+                <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed">{t(p.descKey)}</p>
               </div>
             </Reveal>
           ))}
@@ -161,9 +163,9 @@ export default function ComoFuncionaPage() {
       <section className="max-w-5xl mx-auto px-4 sm:px-6 md:px-10 pb-16">
         <Reveal>
           <div className="mb-5">
-            <p className="rk-eyebrow">TU CAMINO</p>
-            <h2 className="rk-h2" style={{ fontSize: 'clamp(1.7rem,4vw,2.4rem)', color: '#fff', margin: '4px 0 0' }}>¿QUIÉN ERES?</h2>
-            <p className="text-zinc-400 text-sm mt-1.5">Elige tu perfil y verás exactamente qué puedes hacer aquí.</p>
+            <p className="rk-eyebrow">{t('cf_path')}</p>
+            <h2 className="rk-h2" style={{ fontSize: 'clamp(1.7rem,4vw,2.4rem)', color: '#fff', margin: '4px 0 0' }}>{t('cf_who')}</h2>
+            <p className="text-zinc-400 text-sm mt-1.5">{t('cf_who_sub')}</p>
           </div>
         </Reveal>
 
@@ -176,8 +178,8 @@ export default function ComoFuncionaPage() {
                 className={`rounded-2xl border p-4 text-left transition-all cursor-pointer ${isActive ? 'bg-white/[0.06] border-white/25' : 'bg-white/[0.02] border-white/[0.08] hover:border-white/20'}`}
                 style={isActive ? { borderColor: `${r.accent}66`, background: `${r.accent}12` } : undefined}>
                 <i className={`${r.icon} text-xl`} style={{ color: isActive ? r.accent : 'rgba(255,255,255,0.45)' }}></i>
-                <p className="text-sm font-bold text-white mt-2 leading-tight">{r.label}</p>
-                <p className="text-[11px] text-zinc-500 mt-0.5 leading-snug">{r.tagline}</p>
+                <p className="text-sm font-bold text-white mt-2 leading-tight">{t(r.labelKey)}</p>
+                <p className="text-[11px] text-zinc-500 mt-0.5 leading-snug">{t(r.tagKey)}</p>
               </button>
             );
           })}
@@ -190,25 +192,25 @@ export default function ComoFuncionaPage() {
               <div className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-xl border" style={{ background: `${activeRole.accent}18`, borderColor: `${activeRole.accent}45`, color: activeRole.accent }}>
                 <i className={`${activeRole.icon} text-xl`}></i>
               </div>
-              <p className="text-sm text-zinc-300 leading-relaxed flex-1">{active.intro}</p>
+              <p className="text-sm text-zinc-300 leading-relaxed flex-1">{t(active.introKey)}</p>
             </div>
 
-            {active.groups.map((g) => (
-              <div key={g.name || 'main'} className="mb-5 last:mb-0">
-                {g.name && (
+            {active.groups.map((g, gi) => (
+              <div key={g.nameKey || `main-${gi}`} className="mb-5 last:mb-0">
+                {g.nameKey && (
                   <div className="flex items-center gap-3 mb-3">
-                    <span className="text-xs font-bold uppercase tracking-[0.16em]" style={{ color: activeRole.accent }}>{g.name}</span>
+                    <span className="text-xs font-bold uppercase tracking-[0.16em]" style={{ color: activeRole.accent }}>{t(g.nameKey)}</span>
                     <span style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.09)' }} />
                   </div>
                 )}
                 <div className="grid sm:grid-cols-2 gap-3">
                   {g.blocks.map((b) => (
-                    <div key={b.title} className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4">
+                    <div key={b.titleKey} className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4">
                       <div className="flex items-center gap-2.5 mb-1.5">
                         <i className={`${b.icon} text-base`} style={{ color: activeRole.accent }}></i>
-                        <h4 className="text-sm font-bold text-white">{b.title}</h4>
+                        <h4 className="text-sm font-bold text-white">{t(b.titleKey)}</h4>
                       </div>
-                      <p className="text-xs text-zinc-400 leading-relaxed">{b.desc}</p>
+                      <p className="text-xs text-zinc-400 leading-relaxed">{t(b.descKey)}</p>
                     </div>
                   ))}
                 </div>
@@ -217,9 +219,9 @@ export default function ComoFuncionaPage() {
 
             <div className="mt-6 pt-5 border-t border-white/[0.07] flex flex-col sm:flex-row sm:items-center gap-3">
               <button onClick={() => navigate(active.cta.to)} className="rk-btn rk-btn-primary w-full sm:w-auto" style={{ fontSize: '0.9rem' }}>
-                {active.cta.label}
+                {t(active.cta.labelKey)}
               </button>
-              {active.note && <p className="text-[11px] text-zinc-500 leading-relaxed flex-1">{active.note}</p>}
+              {active.noteKey && <p className="text-[11px] text-zinc-500 leading-relaxed flex-1">{t(active.noteKey)}</p>}
             </div>
           </div>
         </div>
@@ -227,14 +229,14 @@ export default function ComoFuncionaPage() {
         {/* Enlaces rápidos */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-6">
           {[
-            { icon: 'ri-search-line', label: 'Peleadores', to: '/fighters' },
-            { icon: 'ri-calendar-event-line', label: 'Próximos eventos', to: '/eventos' },
-            { icon: 'ri-trophy-line', label: 'Promotoras y gimnasios', to: '/promotoras' },
-            { icon: 'ri-store-2-line', label: 'Marcas y tienda', to: '/brands' },
+            { icon: 'ri-search-line', labelKey: 'cf_link_fighters', to: '/fighters' },
+            { icon: 'ri-calendar-event-line', labelKey: 'cf_link_events', to: '/eventos' },
+            { icon: 'ri-trophy-line', labelKey: 'cf_link_promoters', to: '/promotoras' },
+            { icon: 'ri-store-2-line', labelKey: 'cf_link_brands', to: '/brands' },
           ].map((l) => (
             <button key={l.to} onClick={() => navigate(l.to)} className="rk-card p-4 flex items-center gap-3 cursor-pointer text-left group">
               <i className={`${l.icon} text-lg text-zinc-400 group-hover:text-red-400 transition-colors`}></i>
-              <span className="text-sm text-white flex-1">{l.label}</span>
+              <span className="text-sm text-white flex-1">{t(l.labelKey)}</span>
               <i className="ri-arrow-right-line text-zinc-600 group-hover:text-red-400 transition-colors"></i>
             </button>
           ))}
