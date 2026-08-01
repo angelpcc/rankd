@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable } from '@/lib/dbState';
 
@@ -21,11 +22,11 @@ interface Goal {
 }
 
 const CATEGORIES = [
-  { value: 'weight', label: 'Peso', icon: 'ri-scales-2-line', color: '#C9A84C', hint: 'Ej: llegar a 70 kg', unit: 'kg', numeric: true },
-  { value: 'performance', label: 'Rendimiento', icon: 'ri-flashlight-line', color: '#fb923c', hint: 'Ej: correr 10 km en 45 min', unit: '', numeric: true },
-  { value: 'competition', label: 'Competición', icon: 'ri-trophy-line', color: '#E10600', hint: 'Ej: debutar en amateur', unit: '', numeric: false },
-  { value: 'habit', label: 'Hábito', icon: 'ri-repeat-line', color: '#22c55e', hint: 'Ej: entrenar 4 días/semana', unit: '', numeric: false },
-  { value: 'other', label: 'Otro', icon: 'ri-focus-3-line', color: '#38bdf8', hint: 'Tu meta personal', unit: '', numeric: false },
+  { value: 'weight', labelKey: 'mc_go_cat_weight', hintKey: 'mc_go_hint_weight', icon: 'ri-scales-2-line', color: '#C9A84C', unit: 'kg', numeric: true },
+  { value: 'performance', labelKey: 'mc_go_cat_performance', hintKey: 'mc_go_hint_performance', icon: 'ri-flashlight-line', color: '#fb923c', unit: '', numeric: true },
+  { value: 'competition', labelKey: 'mc_go_cat_competition', hintKey: 'mc_go_hint_competition', icon: 'ri-trophy-line', color: '#E10600', unit: '', numeric: false },
+  { value: 'habit', labelKey: 'mc_go_cat_habit', hintKey: 'mc_go_hint_habit', icon: 'ri-repeat-line', color: '#22c55e', unit: '', numeric: false },
+  { value: 'other', labelKey: 'mc_go_cat_other', hintKey: 'mc_go_hint_other', icon: 'ri-focus-3-line', color: '#38bdf8', unit: '', numeric: false },
 ];
 
 const catCfg = (v: string) => CATEGORIES.find((c) => c.value === v) || CATEGORIES[4];
@@ -36,19 +37,23 @@ function daysUntil(deadline: string): number {
   return Math.round((d.getTime() - now.getTime()) / 86400000);
 }
 
-function deadlineLabel(deadline: string): { text: string; urgent: boolean; overdue: boolean } {
+interface DeadlineInfo { kind: 'overdue' | 'today' | '1day' | 'days' | 'weeks'; n: number; date: string; urgent: boolean; overdue: boolean; }
+
+function deadlineInfo(deadline: string, locale: string): DeadlineInfo {
   const days = daysUntil(deadline);
-  const nice = new Date(deadline + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
-  if (days < 0) return { text: `Venció el ${nice}`, urgent: false, overdue: true };
-  if (days === 0) return { text: 'La fecha límite es hoy', urgent: true, overdue: false };
-  if (days === 1) return { text: 'Queda 1 día', urgent: true, overdue: false };
-  if (days <= 14) return { text: `Quedan ${days} días · ${nice}`, urgent: true, overdue: false };
-  if (days <= 60) return { text: `Quedan ${days} días · ${nice}`, urgent: false, overdue: false };
-  const weeks = Math.round(days / 7);
-  return { text: `${weeks} semanas · ${nice}`, urgent: false, overdue: false };
+  const nice = new Date(deadline + 'T12:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+  if (days < 0) return { kind: 'overdue', n: 0, date: nice, urgent: false, overdue: true };
+  if (days === 0) return { kind: 'today', n: 0, date: nice, urgent: true, overdue: false };
+  if (days === 1) return { kind: '1day', n: 1, date: nice, urgent: true, overdue: false };
+  if (days <= 14) return { kind: 'days', n: days, date: nice, urgent: true, overdue: false };
+  if (days <= 60) return { kind: 'days', n: days, date: nice, urgent: false, overdue: false };
+  return { kind: 'weeks', n: Math.round(days / 7), date: nice, urgent: false, overdue: false };
 }
 
 export default function GoalsPanel({ profile, showToast }: Props) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
+
   const [goals, setGoals] = useState<Goal[]>([]);
   const [currentWeight, setCurrentWeight] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -80,13 +85,12 @@ export default function GoalsPanel({ profile, showToast }: Props) {
 
   const openForm = () => {
     resetForm();
-    // Prerelleno útil: el punto de partida de una meta de peso es tu peso actual.
     if (currentWeight !== null) setStart(String(currentWeight));
     setShowForm(true);
   };
 
   const create = async () => {
-    if (!title.trim()) { showToast('Ponle un título a tu objetivo', 'error'); return; }
+    if (!title.trim()) { showToast(t('mc_go_need_title'), 'error'); return; }
     const cfg = catCfg(category);
     setSaving(true);
     const targetNum = cfg.numeric && target ? parseFloat(target.replace(',', '.')) : null;
@@ -102,25 +106,25 @@ export default function GoalsPanel({ profile, showToast }: Props) {
       status: 'active',
     }).select().maybeSingle();
     setSaving(false);
-    if (error || !data) { showToast('No se pudo crear el objetivo', 'error'); return; }
+    if (error || !data) { showToast(t('error_save'), 'error'); return; }
     setGoals((prev) => [data as Goal, ...prev]);
     setShowForm(false);
     resetForm();
-    showToast('Objetivo creado 🎯');
+    showToast(t('mc_go_created'));
   };
 
   const setStatus = async (id: string, status: Goal['status']) => {
     const patch: Partial<Goal> = { status };
     if (status === 'achieved') patch.achieved_at = new Date().toISOString();
     const { error } = await supabase.from('fighter_goals').update(patch).eq('id', id);
-    if (error) { showToast('No se pudo actualizar', 'error'); return; }
+    if (error) { showToast(t('error_save'), 'error'); return; }
     setGoals((prev) => prev.map((g) => g.id === id ? { ...g, ...patch } as Goal : g));
-    showToast(status === 'achieved' ? '¡Objetivo conseguido! 🏆' : status === 'archived' ? 'Objetivo archivado' : 'Objetivo reactivado');
+    showToast(status === 'achieved' ? t('mc_go_toast_achieved') : status === 'archived' ? t('mc_go_toast_archived') : t('mc_go_toast_reactivated'));
   };
 
   const remove = async (id: string) => {
     const { error } = await supabase.from('fighter_goals').delete().eq('id', id);
-    if (error) { showToast('No se pudo eliminar', 'error'); return; }
+    if (error) { showToast(t('error_save'), 'error'); return; }
     setGoals((prev) => prev.filter((g) => g.id !== id));
   };
 
@@ -130,12 +134,24 @@ export default function GoalsPanel({ profile, showToast }: Props) {
     const current = g.category === 'weight' ? currentWeight : null;
     if (current === null || g.start_value === null) return null;
     const totalDist = g.target_value - g.start_value;
-    if (Math.abs(totalDist) < 0.01) return { pct: 100, current, label: 'En tu objetivo' };
+    if (Math.abs(totalDist) < 0.01) return { pct: 100, current, label: t('mc_go_at_target') };
     const doneDist = current - g.start_value;
     const pct = Math.max(0, Math.min(100, Math.round((doneDist / totalDist) * 100)));
     const remaining = +(g.target_value - current).toFixed(1);
-    const label = Math.abs(remaining) < 0.1 ? 'En tu objetivo' : `${current}${g.unit || ''} · faltan ${Math.abs(remaining)}${g.unit || ''}`;
+    const label = Math.abs(remaining) < 0.1
+      ? t('mc_go_at_target')
+      : t('mc_go_remaining', { current: `${current}${g.unit || ''}`, left: `${Math.abs(remaining)}${g.unit || ''}` });
     return { pct, current, label };
+  };
+
+  const deadlineText = (info: DeadlineInfo): string => {
+    switch (info.kind) {
+      case 'overdue': return t('mc_go_dl_overdue', { date: info.date });
+      case 'today': return t('mc_go_dl_today');
+      case '1day': return t('mc_go_dl_1day');
+      case 'weeks': return t('mc_go_dl_weeks', { n: info.n, date: info.date });
+      default: return t('mc_go_dl_days', { n: info.n, date: info.date });
+    }
   };
 
   const active = goals.filter((g) => g.status === 'active');
@@ -151,10 +167,8 @@ export default function GoalsPanel({ profile, showToast }: Props) {
         <div className="w-16 h-16 mx-auto mb-5 flex items-center justify-center rounded-2xl bg-red-600/10 border border-red-500/25 anim-float">
           <i className="ri-flag-line text-3xl text-red-400"></i>
         </div>
-        <h3 className="rk-h3" style={{ fontSize: '1.3rem', color: '#fff' }}>OBJETIVOS EN CAMINO</h3>
-        <p className="text-sm text-zinc-400 mt-2 leading-relaxed">
-          La sección de objetivos estará disponible en cuanto se active en el servidor. Vuelve en un momento.
-        </p>
+        <h3 className="rk-h3" style={{ fontSize: '1.3rem', color: '#fff' }}>{t('mc_go_unavailable_title')}</h3>
+        <p className="text-sm text-zinc-400 mt-2 leading-relaxed">{t('mc_go_unavailable_desc')}</p>
       </div>
     );
   }
@@ -163,14 +177,14 @@ export default function GoalsPanel({ profile, showToast }: Props) {
     <div className="space-y-6 max-w-4xl">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <p className="rk-eyebrow">HACIA DÓNDE VAS</p>
+          <p className="rk-eyebrow">{t('mc_go_eyebrow')}</p>
           <h2 className="rk-h2" style={{ fontSize: 'clamp(1.8rem,4vw,2.4rem)', color: '#fff', margin: '4px 0 0' }}>
-            TUS <span className="rk-red-glow">OBJETIVOS</span>
+            {t('mc_go_title')} <span className="rk-red-glow">{t('mc_go_title_2')}</span>
           </h2>
-          <p className="text-zinc-400 text-sm mt-1.5 max-w-md">Metas concretas con fecha límite. Lo que no se mide, no se mejora.</p>
+          <p className="text-zinc-400 text-sm mt-1.5 max-w-md">{t('mc_go_sub')}</p>
         </div>
         <button onClick={openForm} className="rk-btn rk-btn-primary flex items-center gap-2" style={{ fontSize: '0.85rem', padding: '0.7rem 1.4rem' }}>
-          <i className="ri-add-line"></i> NUEVO OBJETIVO
+          <i className="ri-add-line"></i> {t('mc_go_new')}
         </button>
       </div>
 
@@ -179,11 +193,9 @@ export default function GoalsPanel({ profile, showToast }: Props) {
           <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center rounded-2xl bg-white/[0.04] border border-white/10">
             <i className="ri-flag-2-line text-3xl text-zinc-600"></i>
           </div>
-          <p className="text-white font-bold">Ponte tu primera meta</p>
-          <p className="text-sm text-zinc-400 mt-1.5 max-w-sm mx-auto leading-relaxed">
-            Un peso a alcanzar, un debut, una marca de cardio. Con fecha límite se persigue mejor.
-          </p>
-          <button onClick={openForm} className="rk-btn rk-btn-primary mt-6" style={{ fontSize: '0.85rem', padding: '0.7rem 1.6rem' }}>CREAR OBJETIVO</button>
+          <p className="text-white font-bold">{t('mc_go_empty_title')}</p>
+          <p className="text-sm text-zinc-400 mt-1.5 max-w-sm mx-auto leading-relaxed">{t('mc_go_empty_desc')}</p>
+          <button onClick={openForm} className="rk-btn rk-btn-primary mt-6" style={{ fontSize: '0.85rem', padding: '0.7rem 1.6rem' }}>{t('mc_go_create')}</button>
         </div>
       ) : (
         <>
@@ -193,7 +205,7 @@ export default function GoalsPanel({ profile, showToast }: Props) {
               {active.map((g) => {
                 const cfg = catCfg(g.category);
                 const prog = progressOf(g);
-                const dl = g.deadline ? deadlineLabel(g.deadline) : null;
+                const dl = g.deadline ? deadlineInfo(g.deadline, locale) : null;
                 return (
                   <div key={g.id} className="rk-card group" style={{ padding: '18px 20px' }}>
                     <div className="flex items-start gap-4">
@@ -203,26 +215,26 @@ export default function GoalsPanel({ profile, showToast }: Props) {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="text-base font-bold text-white">{g.title}</p>
-                          <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full" style={{ background: `${cfg.color}18`, color: cfg.color }}>{cfg.label}</span>
+                          <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full" style={{ background: `${cfg.color}18`, color: cfg.color }}>{t(cfg.labelKey)}</span>
                         </div>
                         {g.target_value !== null && (
                           <p className="text-xs text-zinc-400 mt-1">
-                            Meta: <span className="font-bold text-white">{g.target_value}{g.unit}</span>
-                            {g.start_value !== null && <span className="text-zinc-600"> · desde {g.start_value}{g.unit}</span>}
+                            {t('mc_go_target_label')}: <span className="font-bold text-white">{g.target_value}{g.unit}</span>
+                            {g.start_value !== null && <span className="text-zinc-600"> · {t('mc_go_from')} {g.start_value}{g.unit}</span>}
                           </p>
                         )}
                         {dl && (
                           <p className={`text-xs mt-1 flex items-center gap-1.5 ${dl.overdue ? 'text-red-400' : dl.urgent ? 'text-orange-400' : 'text-zinc-500'}`}>
-                            <i className="ri-calendar-line"></i>{dl.text}
+                            <i className="ri-calendar-line"></i>{deadlineText(dl)}
                           </p>
                         )}
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        <button onClick={() => setStatus(g.id, 'achieved')} title="Marcar como conseguido"
+                        <button onClick={() => setStatus(g.id, 'achieved')} title={t('mc_go_mark_done')}
                           className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:text-green-400 hover:bg-green-500/10 transition-colors cursor-pointer">
                           <i className="ri-checkbox-circle-line"></i>
                         </button>
-                        <button onClick={() => remove(g.id)} title="Eliminar"
+                        <button onClick={() => remove(g.id)} title={t('mc_delete')}
                           className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-600 hover:text-red-400 transition-colors cursor-pointer opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
                           <i className="ri-delete-bin-line"></i>
                         </button>
@@ -242,7 +254,7 @@ export default function GoalsPanel({ profile, showToast }: Props) {
                       </div>
                     )}
                     {g.category === 'weight' && g.target_value !== null && currentWeight === null && (
-                      <p className="text-[11px] text-zinc-600 mt-3">Registra tu peso en la sección Control de peso para ver el progreso aquí.</p>
+                      <p className="text-[11px] text-zinc-600 mt-3">{t('mc_go_weight_hint')}</p>
                     )}
                   </div>
                 );
@@ -253,7 +265,7 @@ export default function GoalsPanel({ profile, showToast }: Props) {
           {/* Conseguidos / archivados */}
           {done.length > 0 && (
             <div>
-              <p className="text-[11px] font-bold tracking-[0.22em] uppercase text-zinc-600 mb-3">Historial</p>
+              <p className="text-[11px] font-bold tracking-[0.22em] uppercase text-zinc-600 mb-3">{t('mc_go_history')}</p>
               <div className="space-y-2">
                 {done.map((g) => {
                   const cfg = catCfg(g.category);
@@ -265,9 +277,9 @@ export default function GoalsPanel({ profile, showToast }: Props) {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className={`text-sm font-bold ${achieved ? 'text-white' : 'text-zinc-400'}`}>{g.title}</p>
-                        <p className="text-xs text-zinc-600">{achieved ? 'Conseguido' : 'Archivado'} · {cfg.label}</p>
+                        <p className="text-xs text-zinc-600">{achieved ? t('mc_go_achieved') : t('mc_go_archived')} · {t(cfg.labelKey)}</p>
                       </div>
-                      <button onClick={() => setStatus(g.id, 'active')} title="Reactivar" className="text-xs text-zinc-500 hover:text-white cursor-pointer px-2">Reactivar</button>
+                      <button onClick={() => setStatus(g.id, 'active')} title={t('mc_go_reactivate')} className="text-xs text-zinc-500 hover:text-white cursor-pointer px-2">{t('mc_go_reactivate')}</button>
                       <button onClick={() => remove(g.id)} className="w-8 h-8 flex items-center justify-center text-zinc-600 hover:text-red-400 cursor-pointer opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                         <i className="ri-delete-bin-line"></i>
                       </button>
@@ -286,7 +298,7 @@ export default function GoalsPanel({ profile, showToast }: Props) {
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
           <div className="relative rk-card w-full max-w-md max-h-[90vh] overflow-y-auto" style={{ padding: 24 }}>
             <div className="flex items-center justify-between mb-5">
-              <h3 className="rk-h3" style={{ fontSize: '1.15rem', color: '#fff' }}>NUEVO OBJETIVO</h3>
+              <h3 className="rk-h3" style={{ fontSize: '1.15rem', color: '#fff' }}>{t('mc_go_new')}</h3>
               <button onClick={() => setShowForm(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/[0.05] text-zinc-400 hover:text-white cursor-pointer transition-colors">
                 <i className="ri-close-line"></i>
               </button>
@@ -294,58 +306,57 @@ export default function GoalsPanel({ profile, showToast }: Props) {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs text-zinc-400 mb-2 font-semibold uppercase tracking-wide">Tipo</label>
+                <label className="block text-xs text-zinc-400 mb-2 font-semibold uppercase tracking-wide">{t('mc_go_type')}</label>
                 <div className="grid grid-cols-3 gap-2">
                   {CATEGORIES.map((c) => (
                     <button key={c.value} onClick={() => setCategory(c.value)}
                       className={`flex flex-col items-center gap-1 py-2.5 rounded-xl border transition-all cursor-pointer ${category === c.value ? 'border-white/30' : 'border-white/10 hover:border-white/20'}`}
                       style={{ background: category === c.value ? `${c.color}18` : 'rgba(255,255,255,0.02)' }}>
                       <i className={c.icon} style={{ color: c.color, fontSize: 16 }}></i>
-                      <span className="text-[11px] font-semibold text-white">{c.label}</span>
+                      <span className="text-[11px] font-semibold text-white">{t(c.labelKey)}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">Objetivo</label>
+                <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_go_field_title')}</label>
                 <input value={title} onChange={(e) => setTitle(e.target.value)} autoFocus maxLength={80}
                   className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500"
-                  placeholder={catCfg(category).hint} />
+                  placeholder={t(catCfg(category).hintKey)} />
               </div>
 
               {catCfg(category).numeric && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs text-zinc-400 mb-1.5">Partida {catCfg(category).unit && `(${catCfg(category).unit})`}</label>
+                    <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_go_start')} {catCfg(category).unit && `(${catCfg(category).unit})`}</label>
                     <input value={start} onChange={(e) => setStart(e.target.value)} inputMode="decimal"
                       className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500"
-                      placeholder="Ahora" />
+                      placeholder={t('mc_go_now_ph')} />
                   </div>
                   <div>
-                    <label className="block text-xs text-zinc-400 mb-1.5">Meta {catCfg(category).unit && `(${catCfg(category).unit})`}</label>
+                    <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_go_target')} {catCfg(category).unit && `(${catCfg(category).unit})`}</label>
                     <input value={target} onChange={(e) => setTarget(e.target.value)} inputMode="decimal"
                       className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500"
-                      placeholder="Objetivo" />
+                      placeholder={t('mc_go_target_ph')} />
                   </div>
                 </div>
               )}
 
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">Fecha límite {catCfg(category).value !== 'habit' ? '' : '(opcional)'}</label>
+                <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_go_deadline')} {catCfg(category).value === 'habit' ? t('mc_go_optional') : ''}</label>
                 <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)}
                   className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer" />
               </div>
 
               {category === 'weight' && (
                 <p className="text-[11px] text-zinc-500 bg-white/[0.03] border border-white/[0.07] rounded-xl px-3.5 py-2.5 leading-relaxed">
-                  <i className="ri-information-line mr-1"></i>
-                  En las metas de peso, el progreso se calcula solo con tu último pesaje de Control de peso.
+                  <i className="ri-information-line mr-1"></i>{t('mc_go_weight_info')}
                 </p>
               )}
 
               <button onClick={create} disabled={saving} className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60" style={{ fontSize: '0.95rem' }}>
-                {saving ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> CREANDO...</> : <><i className="ri-flag-line"></i> CREAR OBJETIVO</>}
+                {saving ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {t('mc_go_creating')}</> : <><i className="ri-flag-line"></i> {t('mc_go_create')}</>}
               </button>
             </div>
           </div>
