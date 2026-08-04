@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import OnboardingStep1 from './components/OnboardingStep1';
@@ -36,10 +37,10 @@ export interface FighterOnboardingData {
 }
 
 const STEPS = [
-  { id: 1, label: 'Identidad', icon: 'ri-user-line' },
-  { id: 2, label: 'Deporte', icon: 'ri-boxing-line' },
-  { id: 3, label: 'Presencia', icon: 'ri-instagram-line' },
-  { id: 4, label: 'Foto', icon: 'ri-camera-line' },
+  { id: 1, labelKey: 'onb_f_step1', icon: 'ri-user-line' },
+  { id: 2, labelKey: 'onb_f_step2', icon: 'ri-boxing-line' },
+  { id: 3, labelKey: 'onb_f_step3', icon: 'ri-instagram-line' },
+  { id: 4, labelKey: 'onb_f_step4', icon: 'ri-camera-line' },
 ];
 
 const initialData: FighterOnboardingData = {
@@ -51,6 +52,7 @@ const initialData: FighterOnboardingData = {
 };
 
 export default function FighterOnboardingPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { profile, user } = useAuth();
   const [step, setStep] = useState(1);
@@ -121,7 +123,7 @@ export default function FighterOnboardingPage() {
 
       navigate('/dashboard/fighter');
     } catch {
-      setError('Error al guardar. Inténtalo de nuevo.');
+      setError(t('error_save'));
     } finally {
       setSaving(false);
     }
@@ -143,7 +145,7 @@ export default function FighterOnboardingPage() {
             onClick={() => navigate('/dashboard/fighter')}
             className="text-xs text-zinc-500 hover:text-zinc-300 cursor-pointer transition-colors whitespace-nowrap"
           >
-            Completar después
+            {t('onb_finish_later')}
           </button>
         </div>
 
@@ -173,7 +175,7 @@ export default function FighterOnboardingPage() {
                     )}
                   </div>
                   <span className={`text-[10px] sm:text-xs font-medium ${active ? 'text-white' : done ? 'text-zinc-400' : 'text-zinc-600'}`}>
-                    {s.label}
+                    {t(s.labelKey)}
                   </span>
                 </div>
                 {idx < STEPS.length - 1 && (

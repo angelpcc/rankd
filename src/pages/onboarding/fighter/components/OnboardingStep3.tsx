@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { FighterOnboardingData } from '../page';
 
 interface Props {
@@ -47,13 +48,14 @@ const socialFields = [
 ];
 
 export default function OnboardingStep3({ data, onUpdate, onNext, onBack }: Props) {
+  const { t } = useTranslation();
   const hasSocial = data.instagram || data.tiktok || data.youtube || data.twitter;
 
   return (
     <div className="space-y-6 pt-2">
       <div>
-        <h2 className="text-2xl font-black text-white">Tu presencia digital</h2>
-        <p className="text-zinc-400 text-sm mt-1">Las marcas y promotoras buscan peleadores con presencia online</p>
+        <h2 className="text-2xl font-black text-white">{t('onb_f_s3_title')}</h2>
+        <p className="text-zinc-400 text-sm mt-1">{t('onb_f_s3_sub')}</p>
       </div>
 
       {/* Why it matters */}
@@ -63,10 +65,8 @@ export default function OnboardingStep3({ data, onUpdate, onNext, onBack }: Prop
             <i className="ri-lightbulb-line text-base"></i>
           </div>
           <div>
-            <p className="text-sm font-semibold text-white">¿Por qué importa?</p>
-            <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">
-              Los peleadores con redes sociales activas reciben <strong className="text-white">3x más contactos</strong> de promotoras y marcas. Añade al menos una red para destacar.
-            </p>
+            <p className="text-sm font-semibold text-white">{t('onb_f_why')}</p>
+            <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">{t('onb_f_why_desc')}</p>
           </div>
         </div>
       </div>
@@ -94,21 +94,21 @@ export default function OnboardingStep3({ data, onUpdate, onNext, onBack }: Prop
       <div>
         <label className="block text-sm font-medium text-zinc-300 mb-1.5">
           <i className="ri-video-line mr-1.5 text-red-400"></i>
-          Vídeo destacado
+          {t('onb_f_video')}
         </label>
         <input
           value={data.highlight_video}
           onChange={(e) => onUpdate({ highlight_video: e.target.value })}
           className="w-full bg-zinc-900 border border-zinc-700 text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 placeholder-zinc-600"
-          placeholder="https://youtube.com/watch?v=... o https://vimeo.com/..."
+          placeholder="https://youtube.com/watch?v=… · https://vimeo.com/…"
         />
-        <p className="text-xs text-zinc-600 mt-1">Tu mejor highlight, combate o entrenamiento</p>
+        <p className="text-xs text-zinc-600 mt-1">{t('onb_f_video_hint')}</p>
       </div>
 
       {/* Skip hint */}
       {!hasSocial && (
         <p className="text-xs text-zinc-600 text-center">
-          Puedes añadir tus redes más tarde desde tu dashboard
+          {t('onb_f_skip_hint')}
         </p>
       )}
 
@@ -118,13 +118,13 @@ export default function OnboardingStep3({ data, onUpdate, onNext, onBack }: Prop
           className="flex-1 py-3.5 rounded-xl border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500 text-sm font-medium transition-colors cursor-pointer whitespace-nowrap"
         >
           <i className="ri-arrow-left-line mr-1"></i>
-          Atrás
+          {t('onb_back')}
         </button>
         <button
           onClick={onNext}
           className="flex-[2] bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-2"
         >
-          Continuar
+          {t('onb_continue')}
           <i className="ri-arrow-right-line"></i>
         </button>
       </div>
