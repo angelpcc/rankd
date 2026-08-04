@@ -15,12 +15,12 @@ import { useOrgCompletion } from '@/hooks/useProfileCompletion';
 
 interface Props { profile: Profile; }
 
-const orgTypeLabels: Record<string, string> = {
-  promoter: 'Promotora',
-  manager: 'Manager',
-  brand: 'Marca',
-  gym: 'Gimnasio / Club',
-  organizer: 'Organizador',
+const orgTypeLabelKeys: Record<string, string> = {
+  promoter: 'dash_org_type_promoter',
+  manager: 'dash_org_type_manager',
+  brand: 'dash_org_type_brand',
+  gym: 'dash_org_type_gym',
+  organizer: 'dash_org_type_organizer',
 };
 const orgTypeIcons: Record<string, string> = {
   promoter: 'ri-trophy-line',
@@ -40,7 +40,8 @@ const orgTypeBg: Record<string, string> = {
 type ActiveTab = 'overview' | 'opportunities' | 'applicants' | 'fighters' | 'gallery' | 'events' | 'coaches' | 'messages' | 'verification' | 'profile';
 
 export default function OrgDashboard({ profile }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
   const [org, setOrg] = useState<Organization | null>(null);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [totalApplicants, setTotalApplicants] = useState(0);
@@ -235,7 +236,7 @@ export default function OrgDashboard({ profile }: Props) {
 
   // Hooks must be before any early return
   const orgCompletion = useOrgCompletion(profile, orgName, description);
-  const typeLabel = orgTypeLabels[profile.user_type] || profile.user_type;
+  const typeLabel = t(orgTypeLabelKeys[profile.user_type] || 'dash_org_type_organizer');
   const typeIcon = orgTypeIcons[profile.user_type] || 'ri-building-line';
   const typeBg = orgTypeBg[profile.user_type] || 'bg-zinc-700 border-zinc-600 text-zinc-300';
   const openOpps = opportunities.filter((o) => o.status === 'open');
@@ -443,7 +444,7 @@ export default function OrgDashboard({ profile }: Props) {
                   {
                     // Dato REAL (contado de organization_events), no el número
                     // que el usuario teclea en su perfil.
-                    label: 'Eventos publicados',
+                    label: t('dash_org_events_published'),
                     value: events.length,
                     icon: 'ri-calendar-event-line',
                     color: 'text-emerald-400',
@@ -470,14 +471,14 @@ export default function OrgDashboard({ profile }: Props) {
                 <div className="rk-card overflow-hidden">
                   <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07] gap-3">
                     <div className="min-w-0">
-                      <h2 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>PRÓXIMOS EVENTOS</h2>
+                      <h2 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>{t('dash_org_upcoming_events')}</h2>
                       {ticketsSold > 0 && (
-                        <p className="text-xs text-zinc-400 mt-0.5">{ticketsSold} {ticketsSold === 1 ? 'entrada reservada' : 'entradas reservadas'} en total</p>
+                        <p className="text-xs text-zinc-400 mt-0.5">{ticketsSold === 1 ? t('dash_org_tickets_total_one', { n: ticketsSold }) : t('dash_org_tickets_total_many', { n: ticketsSold })}</p>
                       )}
                     </div>
                     {isPromoter && (
                       <button onClick={() => setActiveTab('events')} className="text-xs text-red-400 hover:text-red-300 cursor-pointer whitespace-nowrap flex items-center gap-1 flex-shrink-0">
-                        Gestionar <i className="ri-arrow-right-line"></i>
+                        {t('dash_org_manage')} <i className="ri-arrow-right-line"></i>
                       </button>
                     )}
                   </div>
@@ -490,10 +491,10 @@ export default function OrgDashboard({ profile }: Props) {
                           <div className="w-14 h-14 mx-auto mb-3 flex items-center justify-center rounded-2xl bg-red-600/10 border border-red-500/25">
                             <i className="ri-calendar-event-line text-2xl text-red-400"></i>
                           </div>
-                          <p className="text-sm text-zinc-300 font-medium">Aún no has publicado ningún evento</p>
-                          <p className="text-xs text-zinc-500 mt-1 max-w-xs mx-auto">Publica tu próxima velada y véndela desde aquí: aparecerá en la cartelera pública de RANKD.</p>
+                          <p className="text-sm text-zinc-300 font-medium">{t('dash_org_no_events_title')}</p>
+                          <p className="text-xs text-zinc-500 mt-1 max-w-xs mx-auto">{t('dash_org_no_events_desc')}</p>
                           {isPromoter && (
-                            <button onClick={() => setActiveTab('events')} className="rk-btn rk-btn-primary mt-4" style={{ fontSize: '0.8rem', padding: '0.6rem 1.3rem' }}>CREAR MI PRIMER EVENTO</button>
+                            <button onClick={() => setActiveTab('events')} className="rk-btn rk-btn-primary mt-4" style={{ fontSize: '0.8rem', padding: '0.6rem 1.3rem' }}>{t('dash_org_create_first_event')}</button>
                           )}
                         </div>
                       );
@@ -501,8 +502,8 @@ export default function OrgDashboard({ profile }: Props) {
                     if (upcoming.length === 0) {
                       return (
                         <div className="text-center py-9 px-6">
-                          <p className="text-sm text-zinc-300">Todos tus eventos ya han pasado</p>
-                          <p className="text-xs text-zinc-500 mt-1">Publica la siguiente velada para mantener el cartel vivo.</p>
+                          <p className="text-sm text-zinc-300">{t('dash_org_all_past_title')}</p>
+                          <p className="text-xs text-zinc-500 mt-1">{t('dash_org_all_past_desc')}</p>
                         </div>
                       );
                     }
@@ -522,14 +523,14 @@ export default function OrgDashboard({ profile }: Props) {
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm text-white font-medium truncate">{ev.title}</p>
                                 <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                                  {d && <span className="text-xs text-zinc-500">{d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</span>}
-                                  {days !== null && days >= 0 && <span className="text-xs text-zinc-600">· {days === 0 ? 'hoy' : `en ${days} ${days === 1 ? 'día' : 'días'}`}</span>}
+                                  {d && <span className="text-xs text-zinc-500">{d.toLocaleDateString(locale, { day: 'numeric', month: 'short' })}</span>}
+                                  {days !== null && days >= 0 && <span className="text-xs text-zinc-600">· {days === 0 ? t('dash_org_ev_today') : days === 1 ? t('dash_org_ev_in_days_one') : t('dash_org_ev_in_days', { n: days })}</span>}
                                   {ev.location && <span className="text-xs text-zinc-600 truncate">· {ev.location}</span>}
                                 </div>
                               </div>
                               <div className="text-right flex-shrink-0">
                                 <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, lineHeight: 1 }} className={sold > 0 ? 'text-[#C9A84C]' : 'text-zinc-600'}>{sold}</p>
-                                <p className="text-[10px] text-zinc-500 uppercase tracking-wider">entradas</p>
+                                <p className="text-[10px] text-zinc-500 uppercase tracking-wider">{t('dash_org_tickets_label')}</p>
                               </div>
                             </div>
                           );
