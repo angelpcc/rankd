@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase, BrandProduct, Profile } from '@/lib/supabase';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import ImageUploader from '@/components/base/ImageUploader';
@@ -22,6 +23,7 @@ const emptyForm = {
 };
 
 export default function BrandProducts({ profile, showToast }: Props) {
+  const { t } = useTranslation();
   const [products, setProducts] = useState<BrandProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -82,18 +84,18 @@ export default function BrandProducts({ profile, showToast }: Props) {
   };
 
   const handleSave = async () => {
-    if (!form.name.trim()) { showToast('El nombre es obligatorio', 'error'); return; }
+    if (!form.name.trim()) { showToast(t('dash_bp_name_required'), 'error'); return; }
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { showToast('No autenticado', 'error'); return; }
+      if (!user) { showToast(t('dash_bp_not_auth'), 'error'); return; }
 
       let finalImageUrl: string | null = imagePreview && !pendingFile ? imagePreview : null;
 
       // Upload new image if selected
       if (pendingFile) {
         const url = await uploadImage(pendingFile);
-        if (!url) { showToast('Error al subir la imagen', 'error'); setSaving(false); return; }
+        if (!url) { showToast(t('dash_bp_img_error'), 'error'); setSaving(false); return; }
         finalImageUrl = url;
       }
 
@@ -112,16 +114,16 @@ export default function BrandProducts({ profile, showToast }: Props) {
       if (editingId) {
         const { error } = await supabase.from('brand_products').update(payload).eq('id', editingId);
         if (error) throw error;
-        showToast('Producto actualizado');
+        showToast(t('dash_bp_updated'));
       } else {
         const { error } = await supabase.from('brand_products').insert(payload);
         if (error) throw error;
-        showToast('Producto creado');
+        showToast(t('dash_bp_created'));
       }
       setShowForm(false);
       fetchProducts();
     } catch {
-      showToast('Error al guardar el producto', 'error');
+      showToast(t('dash_bp_save_error'), 'error');
     } finally {
       setSaving(false);
     }
@@ -135,9 +137,9 @@ export default function BrandProducts({ profile, showToast }: Props) {
     }
     const { error } = await supabase.from('brand_products').delete().eq('id', product.id);
     if (error) {
-      showToast('Error al eliminar', 'error');
+      showToast(t('dash_bp_delete_error'), 'error');
     } else {
-      showToast('Producto eliminado');
+      showToast(t('dash_bp_deleted'));
       setProducts((prev) => prev.filter((p) => p.id !== product.id));
     }
     setDeletingId(null);
@@ -150,15 +152,15 @@ export default function BrandProducts({ profile, showToast }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl font-bold text-white">Mis Productos</h2>
-          <p className="text-zinc-400 text-sm mt-1">Gestiona el catálogo de productos de tu marca</p>
+          <h2 className="text-xl font-bold text-white">{t('dash_bp_title')}</h2>
+          <p className="text-zinc-400 text-sm mt-1">{t('dash_bp_sub')}</p>
         </div>
         <button
           onClick={openCreate}
           className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-400 text-zinc-900 text-sm font-bold px-4 py-2.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
         >
           <i className="ri-add-line"></i>
-          Añadir producto
+          {t('dash_bp_add')}
         </button>
       </div>
 
@@ -168,7 +170,7 @@ export default function BrandProducts({ profile, showToast }: Props) {
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
           <div className="relative bg-zinc-900 border border-zinc-700 rounded-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-              <h3 className="text-base font-bold text-white">{editingId ? 'Editar producto' : 'Nuevo producto'}</h3>
+              <h3 className="text-base font-bold text-white">{editingId ? t('dash_bp_edit') : t('dash_bp_new')}</h3>
               <button onClick={() => setShowForm(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer transition-colors">
                 <i className="ri-close-line"></i>
               </button>
@@ -176,56 +178,56 @@ export default function BrandProducts({ profile, showToast }: Props) {
             <div className="p-6 space-y-4">
               {/* Image upload */}
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">Imagen del producto</label>
+                <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_bp_img_label')}</label>
                 <ImageUploader
                   value={imagePreview}
                   onChange={handleImageSelected}
                   onClear={handleClearImage}
                   uploading={uploading}
-                  label="Subir imagen del producto"
-                  hint="JPG, PNG o WEBP · Máx. 5 MB"
+                  label={t('dash_bp_img_upload')}
+                  hint={t('dash_bp_img_hint')}
                   aspectRatio="landscape"
                   accentColor="yellow"
                 />
               </div>
 
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">Nombre del producto <span className="text-red-400">*</span></label>
+                <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_bp_name_label')} <span className="text-red-400">*</span></label>
                 <input
                   value={form.name}
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                   className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-yellow-500"
-                  placeholder="Ej: Guantes Pro Series 12oz"
+                  placeholder={t('dash_bp_name_ph')}
                 />
               </div>
 
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">Categoría</label>
+                <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_bp_category')}</label>
                 <select
                   value={form.category}
                   onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
                   className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-yellow-500 cursor-pointer"
                 >
-                  <option value="">Seleccionar categoría...</option>
+                  <option value="">{t('dash_bp_select_cat')}</option>
                   {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">Descripción</label>
+                <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_bp_desc')}</label>
                 <textarea
                   value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                   rows={3}
                   maxLength={500}
                   className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-yellow-500 resize-none"
-                  placeholder="Describe el producto, materiales, características..."
+                  placeholder={t('dash_bp_desc_ph')}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1.5">Precio (opcional)</label>
+                  <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_bp_price')}</label>
                   <input
                     value={form.price}
                     onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
@@ -234,7 +236,7 @@ export default function BrandProducts({ profile, showToast }: Props) {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1.5">Link de compra</label>
+                  <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_bp_buy_link')}</label>
                   <input
                     value={form.external_link}
                     onChange={(e) => setForm((f) => ({ ...f, external_link: e.target.value }))}
@@ -246,7 +248,7 @@ export default function BrandProducts({ profile, showToast }: Props) {
 
               <div className="flex gap-3 pt-2">
                 <button onClick={() => setShowForm(false)} disabled={isBusy} className="flex-1 py-3 rounded-xl border border-zinc-700 text-zinc-400 hover:text-white text-sm font-medium transition-colors cursor-pointer whitespace-nowrap disabled:opacity-50">
-                  Cancelar
+                  {t('dash_bp_cancel')}
                 </button>
                 <button
                   onClick={handleSave}
@@ -254,8 +256,8 @@ export default function BrandProducts({ profile, showToast }: Props) {
                   className="flex-[2] bg-yellow-500 hover:bg-yellow-400 text-zinc-900 font-bold py-3 rounded-xl transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60 flex items-center justify-center gap-2"
                 >
                   {isBusy
-                    ? <><div className="w-4 h-4 border-2 border-zinc-900 border-t-transparent rounded-full animate-spin"></div> {uploading ? 'Subiendo imagen...' : 'Guardando...'}</>
-                    : <><i className="ri-save-line"></i> {editingId ? 'Actualizar' : 'Crear producto'}</>
+                    ? <><div className="w-4 h-4 border-2 border-zinc-900 border-t-transparent rounded-full animate-spin"></div> {uploading ? t('dash_bp_uploading') : t('dash_bp_saving')}</>
+                    : <><i className="ri-save-line"></i> {editingId ? t('dash_bp_update') : t('dash_bp_create_btn')}</>
                   }
                 </button>
               </div>
@@ -274,16 +276,16 @@ export default function BrandProducts({ profile, showToast }: Props) {
           <div className="w-16 h-16 flex items-center justify-center rounded-2xl bg-yellow-500/10 border border-yellow-500/20 mb-5">
             <i className="ri-shopping-bag-line text-3xl text-yellow-400"></i>
           </div>
-          <h3 className="text-base font-bold text-white mb-2">Sin productos todavía</h3>
+          <h3 className="text-base font-bold text-white mb-2">{t('dash_bp_empty_title')}</h3>
           <p className="text-zinc-500 text-sm leading-relaxed max-w-sm mb-6">
-            Añade los productos de tu marca para que los atletas y organizaciones puedan descubrirlos.
+            {t('dash_bp_empty_desc')}
           </p>
           <button
             onClick={openCreate}
             className="flex items-center gap-2 bg-yellow-500 hover:bg-yellow-400 text-zinc-900 text-sm font-bold px-5 py-2.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
           >
             <i className="ri-add-line"></i>
-            Añadir primer producto
+            {t('dash_bp_add_first')}
           </button>
         </div>
       ) : (
@@ -315,7 +317,7 @@ export default function BrandProducts({ profile, showToast }: Props) {
                   {product.price ? (
                     <span className="text-yellow-400 font-bold text-sm">{product.price}</span>
                   ) : (
-                    <span className="text-zinc-600 text-xs">Sin precio</span>
+                    <span className="text-zinc-600 text-xs">{t('dash_bp_no_price')}</span>
                   )}
                   <div className="flex items-center gap-1">
                     {product.external_link && (

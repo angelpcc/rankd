@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase, BrandService, Profile } from '@/lib/supabase';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import ImageUploader from '@/components/base/ImageUploader';
@@ -14,9 +15,9 @@ const SERVICE_CATEGORIES = [
 ];
 
 const MODALITIES = [
-  { value: 'online', label: 'Online', icon: 'ri-wifi-line' },
-  { value: 'presencial', label: 'Presencial', icon: 'ri-map-pin-line' },
-  { value: 'ambos', label: 'Ambos', icon: 'ri-global-line' },
+  { value: 'online', labelKey: 'dash_bs_mod_online', icon: 'ri-wifi-line' },
+  { value: 'presencial', labelKey: 'dash_bs_mod_presencial', icon: 'ri-map-pin-line' },
+  { value: 'ambos', labelKey: 'dash_bs_mod_ambos', icon: 'ri-global-line' },
 ] as const;
 
 const emptyForm = {
@@ -30,6 +31,7 @@ const emptyForm = {
 };
 
 export default function BrandServices({ profile, showToast }: Props) {
+  const { t } = useTranslation();
   const [services, setServices] = useState<BrandService[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -92,16 +94,16 @@ export default function BrandServices({ profile, showToast }: Props) {
   };
 
   const handleSave = async () => {
-    if (!form.title.trim()) { showToast('El título es obligatorio', 'error'); return; }
+    if (!form.title.trim()) { showToast(t('dash_bs_title_required'), 'error'); return; }
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { showToast('No autenticado', 'error'); return; }
+      if (!user) { showToast(t('dash_bp_not_auth'), 'error'); return; }
 
       let finalImageUrl: string | null = imagePreview && !pendingFile ? imagePreview : null;
       if (pendingFile) {
         const url = await uploadImage(pendingFile);
-        if (!url) { showToast('Error al subir la imagen', 'error'); setSaving(false); return; }
+        if (!url) { showToast(t('dash_bp_img_error'), 'error'); setSaving(false); return; }
         finalImageUrl = url;
       }
 
@@ -122,16 +124,16 @@ export default function BrandServices({ profile, showToast }: Props) {
       if (editingId) {
         const { error } = await supabase.from('brand_services').update(payload).eq('id', editingId);
         if (error) throw error;
-        showToast('Servicio actualizado');
+        showToast(t('dash_bs_updated'));
       } else {
         const { error } = await supabase.from('brand_services').insert(payload);
         if (error) throw error;
-        showToast('Servicio creado');
+        showToast(t('dash_bs_created'));
       }
       setShowForm(false);
       fetchServices();
     } catch {
-      showToast('Error al guardar el servicio', 'error');
+      showToast(t('dash_bs_save_error'), 'error');
     } finally {
       setSaving(false);
     }
@@ -142,9 +144,9 @@ export default function BrandServices({ profile, showToast }: Props) {
     if (service.image_url) await deleteImage(service.image_url);
     const { error } = await supabase.from('brand_services').delete().eq('id', service.id);
     if (error) {
-      showToast('Error al eliminar', 'error');
+      showToast(t('dash_bp_delete_error'), 'error');
     } else {
-      showToast('Servicio eliminado');
+      showToast(t('dash_bs_deleted'));
       setServices((prev) => prev.filter((s) => s.id !== service.id));
     }
     setDeletingId(null);
@@ -152,7 +154,7 @@ export default function BrandServices({ profile, showToast }: Props) {
 
   const isBusy = saving || uploading;
 
-  const modalityLabel = (m: string) => MODALITIES.find((x) => x.value === m)?.label || m;
+  const modalityLabel = (m: string) => { const mm = MODALITIES.find((x) => x.value === m); return mm ? t(mm.labelKey) : m; };
   const modalityIcon = (m: string) => MODALITIES.find((x) => x.value === m)?.icon || 'ri-global-line';
 
   return (
@@ -160,15 +162,15 @@ export default function BrandServices({ profile, showToast }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl font-bold text-white">Mis Servicios</h2>
-          <p className="text-zinc-400 text-sm mt-1">Gestiona los servicios que ofrece tu marca</p>
+          <h2 className="text-xl font-bold text-white">{t('dash_bs_title')}</h2>
+          <p className="text-zinc-400 text-sm mt-1">{t('dash_bs_sub')}</p>
         </div>
         <button
           onClick={openCreate}
           className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-zinc-900 text-sm font-bold px-4 py-2.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
         >
           <i className="ri-add-line"></i>
-          Añadir servicio
+          {t('dash_bs_add')}
         </button>
       </div>
 
@@ -181,7 +183,7 @@ export default function BrandServices({ profile, showToast }: Props) {
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
           <div className="relative bg-zinc-900 border border-zinc-700 rounded-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-              <h3 className="text-base font-bold text-white">{editingId ? 'Editar servicio' : 'Nuevo servicio'}</h3>
+              <h3 className="text-base font-bold text-white">{editingId ? t('dash_bs_edit') : t('dash_bs_new')}</h3>
               <button
                 onClick={() => setShowForm(false)}
                 className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer transition-colors"
@@ -192,14 +194,14 @@ export default function BrandServices({ profile, showToast }: Props) {
             <div className="p-6 space-y-4">
               {/* Image */}
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">Imagen del servicio (opcional)</label>
+                <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_bs_img_label')}</label>
                 <ImageUploader
                   value={imagePreview}
                   onChange={handleImageSelected}
                   onClear={handleClearImage}
                   uploading={uploading}
-                  label="Subir imagen"
-                  hint="JPG, PNG o WEBP · Máx. 5 MB"
+                  label={t('dash_bs_img_upload')}
+                  hint={t('dash_bp_img_hint')}
                   aspectRatio="landscape"
                   accentColor="yellow"
                 />
@@ -207,44 +209,44 @@ export default function BrandServices({ profile, showToast }: Props) {
 
               {/* Title */}
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">Título del servicio <span className="text-red-400">*</span></label>
+                <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_bs_title_label')} <span className="text-red-400">*</span></label>
                 <input
                   value={form.title}
                   onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                   className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-amber-500"
-                  placeholder="Ej: Patrocinio para peleadores profesionales"
+                  placeholder={t('dash_bs_title_ph')}
                 />
               </div>
 
               {/* Category */}
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">Tipo de servicio</label>
+                <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_bs_type')}</label>
                 <select
                   value={form.category}
                   onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
                   className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-amber-500 cursor-pointer"
                 >
-                  <option value="">Seleccionar tipo...</option>
+                  <option value="">{t('dash_bs_select_type')}</option>
                   {SERVICE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">Descripción</label>
+                <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_bp_desc')}</label>
                 <textarea
                   value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                   rows={3}
                   maxLength={500}
                   className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-amber-500 resize-none"
-                  placeholder="Describe el servicio, a quién va dirigido, qué incluye..."
+                  placeholder={t('dash_bs_desc_ph')}
                 />
               </div>
 
               {/* Modality */}
               <div>
-                <label className="block text-xs text-zinc-400 mb-2">Modalidad</label>
+                <label className="block text-xs text-zinc-400 mb-2">{t('dash_bs_modality')}</label>
                 <div className="grid grid-cols-3 gap-2">
                   {MODALITIES.map((m) => (
                     <button
@@ -254,7 +256,7 @@ export default function BrandServices({ profile, showToast }: Props) {
                       className={`flex flex-col items-center gap-1.5 py-3 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${form.modality === m.value ? 'bg-amber-500/20 border-amber-500/50 text-amber-400' : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-600'}`}
                     >
                       <i className={`${m.icon} text-base`}></i>
-                      {m.label}
+                      {t(m.labelKey)}
                     </button>
                   ))}
                 </div>
@@ -263,7 +265,7 @@ export default function BrandServices({ profile, showToast }: Props) {
               {/* Price + Location */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1.5">Precio (opcional)</label>
+                  <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_bp_price')}</label>
                   <input
                     value={form.price}
                     onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
@@ -272,7 +274,7 @@ export default function BrandServices({ profile, showToast }: Props) {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1.5">Ubicación</label>
+                  <label className="block text-xs text-zinc-400 mb-1.5">{t('pev_location')}</label>
                   <input
                     value={form.location}
                     onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
@@ -285,14 +287,14 @@ export default function BrandServices({ profile, showToast }: Props) {
 
               {/* Contact link */}
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">Link de contacto</label>
+                <label className="block text-xs text-zinc-400 mb-1.5">{t('dash_bs_contact')}</label>
                 <input
                   value={form.contact_link}
                   onChange={(e) => setForm((f) => ({ ...f, contact_link: e.target.value }))}
                   className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-amber-500"
-                  placeholder="https://... o mailto:... o https://wa.me/..."
+                  placeholder="https://… · mailto:… · https://wa.me/…"
                 />
-                <p className="text-xs text-zinc-600 mt-1">Web, WhatsApp o email de contacto</p>
+                <p className="text-xs text-zinc-600 mt-1">{t('dash_bs_contact_hint')}</p>
               </div>
 
               {/* Actions */}
@@ -302,7 +304,7 @@ export default function BrandServices({ profile, showToast }: Props) {
                   disabled={isBusy}
                   className="flex-1 py-3 rounded-xl border border-zinc-700 text-zinc-400 hover:text-white text-sm font-medium transition-colors cursor-pointer whitespace-nowrap disabled:opacity-50"
                 >
-                  Cancelar
+                  {t('dash_bp_cancel')}
                 </button>
                 <button
                   onClick={handleSave}
@@ -310,8 +312,8 @@ export default function BrandServices({ profile, showToast }: Props) {
                   className="flex-[2] bg-amber-500 hover:bg-amber-400 text-zinc-900 font-bold py-3 rounded-xl transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60 flex items-center justify-center gap-2"
                 >
                   {isBusy
-                    ? <><div className="w-4 h-4 border-2 border-zinc-900 border-t-transparent rounded-full animate-spin"></div>{uploading ? 'Subiendo...' : 'Guardando...'}</>
-                    : <><i className="ri-save-line"></i>{editingId ? 'Actualizar' : 'Crear servicio'}</>
+                    ? <><div className="w-4 h-4 border-2 border-zinc-900 border-t-transparent rounded-full animate-spin"></div>{uploading ? t('dash_bp_uploading') : t('dash_bp_saving')}</>
+                    : <><i className="ri-save-line"></i>{editingId ? t('dash_bp_update') : t('dash_bs_create_btn')}</>
                   }
                 </button>
               </div>
@@ -330,16 +332,16 @@ export default function BrandServices({ profile, showToast }: Props) {
           <div className="w-16 h-16 flex items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20 mb-5">
             <i className="ri-service-line text-3xl text-amber-400"></i>
           </div>
-          <h3 className="text-base font-bold text-white mb-2">Sin servicios todavía</h3>
+          <h3 className="text-base font-bold text-white mb-2">{t('dash_bs_empty_title')}</h3>
           <p className="text-zinc-500 text-sm leading-relaxed max-w-sm mb-6">
-            Añade los servicios que ofrece tu marca para que atletas y organizaciones puedan contactarte.
+            {t('dash_bs_empty_desc')}
           </p>
           <button
             onClick={openCreate}
             className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-zinc-900 text-sm font-bold px-5 py-2.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
           >
             <i className="ri-add-line"></i>
-            Añadir primer servicio
+            {t('dash_bs_add_first')}
           </button>
         </div>
       ) : (

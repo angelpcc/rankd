@@ -21,7 +21,8 @@ const emptyForm = {
 };
 
 export default function PromoterEvents({ profile, showToast }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
   const [events, setEvents] = useState<OrgEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -100,17 +101,17 @@ export default function PromoterEvents({ profile, showToast }: Props) {
   };
 
   const handleSave = async () => {
-    if (!form.title.trim()) { showToast('El título es obligatorio', 'error'); return; }
+    if (!form.title.trim()) { showToast(t('pev_title_required'), 'error'); return; }
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { showToast('No autenticado', 'error'); return; }
+      if (!user) { showToast(t('pev_not_auth'), 'error'); return; }
 
       let finalImageUrl: string | null = imagePreview && !pendingFile ? imagePreview : null;
 
       if (pendingFile) {
         const url = await uploadImage(pendingFile);
-        if (!url) { showToast('Error al subir el cartel', 'error'); setSaving(false); return; }
+        if (!url) { showToast(t('pev_poster_error'), 'error'); setSaving(false); return; }
         finalImageUrl = url;
       }
 
@@ -130,16 +131,16 @@ export default function PromoterEvents({ profile, showToast }: Props) {
       if (editingId) {
         const { error } = await supabase.from('organization_events').update(payload).eq('id', editingId);
         if (error) throw error;
-        showToast('Evento actualizado');
+        showToast(t('pev_updated'));
       } else {
         const { error } = await supabase.from('organization_events').insert(payload);
         if (error) throw error;
-        showToast('Evento creado');
+        showToast(t('pev_created'));
       }
       setShowForm(false);
       fetchEvents();
     } catch {
-      showToast('Error al guardar el evento', 'error');
+      showToast(t('pev_save_error'), 'error');
     } finally {
       setSaving(false);
     }
@@ -150,9 +151,9 @@ export default function PromoterEvents({ profile, showToast }: Props) {
     if (ev.image_url) await deleteImage(ev.image_url);
     const { error } = await supabase.from('organization_events').delete().eq('id', ev.id);
     if (error) {
-      showToast('Error al eliminar', 'error');
+      showToast(t('pev_delete_error'), 'error');
     } else {
-      showToast('Evento eliminado');
+      showToast(t('pev_deleted'));
       setEvents((prev) => prev.filter((e) => e.id !== ev.id));
     }
     setDeletingId(null);
@@ -163,11 +164,11 @@ export default function PromoterEvents({ profile, showToast }: Props) {
     const date = new Date(d);
     const now = new Date();
     const diffDays = Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    const formatted = date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
-    if (diffDays < 0) return { label: formatted, badge: 'Pasado', color: 'text-zinc-500 bg-zinc-800 border-zinc-700' };
-    if (diffDays <= 7) return { label: formatted, badge: 'Esta semana', color: 'text-red-400 bg-red-500/10 border-red-500/20' };
-    if (diffDays <= 30) return { label: formatted, badge: 'Este mes', color: 'text-orange-400 bg-orange-500/10 border-orange-500/20' };
-    return { label: formatted, badge: 'Próximo', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' };
+    const formatted = date.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+    if (diffDays < 0) return { label: formatted, badge: t('pev_badge_past'), color: 'text-zinc-500 bg-zinc-800 border-zinc-700' };
+    if (diffDays <= 7) return { label: formatted, badge: t('pev_badge_week'), color: 'text-red-400 bg-red-500/10 border-red-500/20' };
+    if (diffDays <= 30) return { label: formatted, badge: t('pev_badge_month'), color: 'text-orange-400 bg-orange-500/10 border-orange-500/20' };
+    return { label: formatted, badge: t('pev_badge_upcoming'), color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' };
   };
 
   const isBusy = saving || uploading;
@@ -185,15 +186,15 @@ export default function PromoterEvents({ profile, showToast }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl font-bold text-white">Mis Eventos</h2>
-          <p className="text-zinc-400 text-sm mt-1">Publica y gestiona los eventos de tu promotora</p>
+          <h2 className="text-xl font-bold text-white">{t('pev_title')}</h2>
+          <p className="text-zinc-400 text-sm mt-1">{t('pev_sub')}</p>
         </div>
         <button
           onClick={openCreate}
           className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
         >
           <i className="ri-add-line"></i>
-          Crear evento
+          {t('pev_create')}
         </button>
       </div>
 
@@ -215,7 +216,7 @@ export default function PromoterEvents({ profile, showToast }: Props) {
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
           <div className="relative bg-zinc-900 border border-zinc-700 rounded-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-              <h3 className="text-base font-bold text-white">{editingId ? 'Editar evento' : 'Nuevo evento'}</h3>
+              <h3 className="text-base font-bold text-white">{editingId ? t('pev_edit') : t('pev_new')}</h3>
               <button onClick={() => setShowForm(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer transition-colors">
                 <i className="ri-close-line"></i>
               </button>
@@ -223,44 +224,44 @@ export default function PromoterEvents({ profile, showToast }: Props) {
             <div className="p-6 space-y-4">
               {/* Poster upload */}
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">Cartel / imagen del evento</label>
+                <label className="block text-xs text-zinc-400 mb-1.5">{t('pev_poster_label')}</label>
                 <ImageUploader
                   value={imagePreview}
                   onChange={handleImageSelected}
                   onClear={handleClearImage}
                   uploading={uploading}
-                  label="Subir cartel del evento"
-                  hint="JPG, PNG o WEBP · Máx. 5 MB"
+                  label={t('pev_poster_upload')}
+                  hint={t('pev_poster_hint')}
                   aspectRatio="portrait"
                   accentColor="red"
                 />
               </div>
 
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">Título del evento <span className="text-red-400">*</span></label>
+                <label className="block text-xs text-zinc-400 mb-1.5">{t('pev_title_label')} <span className="text-red-400">*</span></label>
                 <input
                   value={form.title}
                   onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                   className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500"
-                  placeholder="Ej: Gala de Boxeo Madrid 2026"
+                  placeholder={t('pev_title_ph')}
                 />
               </div>
 
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">Descripción</label>
+                <label className="block text-xs text-zinc-400 mb-1.5">{t('pev_desc')}</label>
                 <textarea
                   value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                   rows={3}
                   maxLength={500}
                   className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 resize-none"
-                  placeholder="Describe el evento, cartel, categorías..."
+                  placeholder={t('pev_desc_ph')}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1.5">Fecha del evento</label>
+                  <label className="block text-xs text-zinc-400 mb-1.5">{t('pev_date')}</label>
                   <input
                     type="date"
                     value={form.event_date}
@@ -270,7 +271,7 @@ export default function PromoterEvents({ profile, showToast }: Props) {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1.5">Ubicación</label>
+                  <label className="block text-xs text-zinc-400 mb-1.5">{t('pev_location')}</label>
                   <input
                     value={form.location}
                     onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
@@ -309,7 +310,7 @@ export default function PromoterEvents({ profile, showToast }: Props) {
 
               <div className="flex gap-3 pt-2">
                 <button onClick={() => setShowForm(false)} disabled={isBusy} className="flex-1 py-3 rounded-xl border border-zinc-700 text-zinc-400 hover:text-white text-sm font-medium transition-colors cursor-pointer whitespace-nowrap disabled:opacity-50">
-                  Cancelar
+                  {t('pev_cancel')}
                 </button>
                 <button
                   onClick={handleSave}
@@ -317,8 +318,8 @@ export default function PromoterEvents({ profile, showToast }: Props) {
                   className="flex-[2] bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60 flex items-center justify-center gap-2"
                 >
                   {isBusy
-                    ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>{uploading ? 'Subiendo cartel...' : 'Guardando...'}</>
-                    : <><i className="ri-save-line"></i> {editingId ? 'Actualizar' : 'Crear evento'}</>
+                    ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>{uploading ? t('pev_uploading') : t('pev_saving')}</>
+                    : <><i className="ri-save-line"></i> {editingId ? t('pev_update') : t('pev_create')}</>
                   }
                 </button>
               </div>
@@ -338,13 +339,13 @@ export default function PromoterEvents({ profile, showToast }: Props) {
           <div className="w-16 h-16 flex items-center justify-center rounded-2xl bg-red-500/10 border border-red-500/20 mb-5">
             <i className="ri-calendar-event-line text-3xl text-red-400"></i>
           </div>
-          <h3 className="text-base font-bold text-white mb-2">Sin eventos publicados</h3>
+          <h3 className="text-base font-bold text-white mb-2">{t('pev_empty_title')}</h3>
           <p className="text-zinc-500 text-sm leading-relaxed max-w-sm mb-6">
-            Publica tus próximas galas, veladas y eventos para que los peleadores y el público puedan verlos.
+            {t('pev_empty_desc')}
           </p>
           <button onClick={openCreate} className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-5 py-2.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap">
             <i className="ri-add-line"></i>
-            Crear primer evento
+            {t('pev_create_first')}
           </button>
         </div>
       ) : (
