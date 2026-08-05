@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
 
 interface PublishBrandModalProps {
@@ -26,44 +27,45 @@ const ALL_CATEGORIES = [
 const TYPE_OPTIONS: {
   value: BrandType;
   icon: string;
-  title: string;
-  desc: string;
-  examples: string;
+  titleKey: string;
+  descKey: string;
+  examplesKey: string;
   accent: string;
 }[] = [
   {
     value: 'product',
     icon: 'ri-shopping-bag-line',
-    title: 'Marca de producto',
-    desc: 'Vende o muestra equipamiento, ropa, suplementos u otros productos físicos para deportistas de combate.',
-    examples: 'Guantes, vendas, ropa, nutrición...',
+    titleKey: 'br_type_product_title',
+    descKey: 'br_type_product_desc',
+    examplesKey: 'br_type_product_examples',
     accent: 'border-[#E10600] bg-red-50/40',
   },
   {
     value: 'service',
     icon: 'ri-service-line',
-    title: 'Marca de servicio',
-    desc: 'Ofrece servicios profesionales como patrocinio, management, fisioterapia, nutrición o equipamiento para eventos.',
-    examples: 'Patrocinio, management, fisio, nutrición...',
+    titleKey: 'br_type_service_title',
+    descKey: 'br_type_service_desc',
+    examplesKey: 'br_type_service_examples',
     accent: 'border-amber-400 bg-amber-50/40',
   },
   {
     value: 'both',
     icon: 'ri-store-3-line',
-    title: 'Productos y servicios',
-    desc: 'Tu marca ofrece tanto productos físicos como servicios profesionales dentro del ecosistema de combate.',
-    examples: 'Equipamiento + patrocinio, ropa + management...',
+    titleKey: 'br_type_both_title',
+    descKey: 'br_type_both_desc',
+    examplesKey: 'br_type_both_examples',
     accent: 'border-emerald-500 bg-emerald-50/40',
   },
 ];
 
-const TYPE_BADGE: Record<BrandType, { label: string; icon: string; cls: string }> = {
-  product: { label: 'Marca de producto', icon: 'ri-shopping-bag-line', cls: 'bg-[#E10600]/10 text-[#E10600]' },
-  service: { label: 'Marca de servicio', icon: 'ri-service-line', cls: 'bg-amber-50 text-amber-600' },
-  both:    { label: 'Productos y servicios', icon: 'ri-store-3-line', cls: 'bg-emerald-50 text-emerald-700' },
+const TYPE_BADGE: Record<BrandType, { labelKey: string; icon: string; cls: string }> = {
+  product: { labelKey: 'br_type_product_title', icon: 'ri-shopping-bag-line', cls: 'bg-[#E10600]/10 text-[#E10600]' },
+  service: { labelKey: 'br_type_service_title', icon: 'ri-service-line', cls: 'bg-amber-50 text-amber-600' },
+  both:    { labelKey: 'br_type_both_title', icon: 'ri-store-3-line', cls: 'bg-emerald-50 text-emerald-700' },
 };
 
 export default function PublishBrandModal({ onClose, onSuccess }: PublishBrandModalProps) {
+  const { t } = useTranslation();
   const [step, setStep] = useState<'type' | 'form'>('type');
   const [brandType, setBrandType] = useState<BrandType>('product');
   const [submitted, setSubmitted] = useState(false);
@@ -88,9 +90,9 @@ export default function PublishBrandModal({ onClose, onSuccess }: PublishBrandMo
   };
 
   const getDescPlaceholder = () => {
-    if (brandType === 'product') return 'Cuéntanos qué hace especial a tu marca, qué productos ofrecéis y a qué deportistas va dirigida...';
-    if (brandType === 'service') return 'Describe los servicios que ofreces, a quién van dirigidos y qué os diferencia...';
-    return 'Describe tu marca, los productos que vendéis y los servicios que ofrecéis dentro del ecosistema de combate...';
+    if (brandType === 'product') return t('br_desc_ph_product');
+    if (brandType === 'service') return t('br_desc_ph_service');
+    return t('br_desc_ph_both');
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -98,7 +100,7 @@ export default function PublishBrandModal({ onClose, onSuccess }: PublishBrandMo
     setError('');
     const form = e.currentTarget;
     const desc = (form.elements.namedItem('descripcion') as HTMLTextAreaElement).value;
-    if (desc.length > 500) { setError('La descripción no puede superar los 500 caracteres.'); return; }
+    if (desc.length > 500) { setError(t('br_err_desc_max')); return; }
 
     const name = (form.elements.namedItem('nombre_marca') as HTMLInputElement).value;
     const email = (form.elements.namedItem('email') as HTMLInputElement).value;
@@ -123,7 +125,7 @@ export default function PublishBrandModal({ onClose, onSuccess }: PublishBrandMo
       setSubmitted(true);
       onSuccess?.();
     } catch {
-      setError('Error al guardar. Inténtalo de nuevo.');
+      setError(t('br_err_save'));
     } finally {
       setSubmitting(false);
     }
@@ -141,9 +143,9 @@ export default function PublishBrandModal({ onClose, onSuccess }: PublishBrandMo
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 flex-shrink-0">
           <div>
-            <h2 className="font-unbounded font-bold text-[#0B0B0B] text-base">Publicar marca</h2>
+            <h2 className="font-unbounded font-bold text-[#0B0B0B] text-base">{t('br_publish')}</h2>
             <p className="text-gray-400 text-xs font-inter mt-0.5">
-              {step === 'type' ? 'Elige el tipo de marca' : badge.label}
+              {step === 'type' ? t('br_choose_type') : t(badge.labelKey)}
             </p>
           </div>
           <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors cursor-pointer">
@@ -157,18 +159,18 @@ export default function PublishBrandModal({ onClose, onSuccess }: PublishBrandMo
               <div className="w-16 h-16 flex items-center justify-center mx-auto mb-4 rounded-full bg-green-50">
                 <i className="ri-check-line text-3xl text-green-500"></i>
               </div>
-              <h3 className="font-unbounded font-bold text-[#0B0B0B] text-base mb-2">¡Marca registrada!</h3>
+              <h3 className="font-unbounded font-bold text-[#0B0B0B] text-base mb-2">{t('br_registered')}</h3>
               <p className="text-gray-400 text-sm font-inter leading-relaxed max-w-xs mx-auto">
-                Tu marca ha sido guardada y aparecerá en el directorio tras ser revisada.
+                {t('br_registered_desc')}
               </p>
               <button onClick={onClose} className="mt-6 bg-[#E10600] text-white font-semibold text-sm px-6 py-3 rounded-full hover:bg-red-700 transition-colors cursor-pointer whitespace-nowrap font-inter">
-                Cerrar
+                {t('br_close')}
               </button>
             </div>
           ) : step === 'type' ? (
             <div className="space-y-4">
               <p className="text-sm text-gray-500 font-inter leading-relaxed">
-                ¿Qué tipo de marca quieres registrar en Rankd?
+                {t('br_which_type')}
               </p>
               <div className="grid grid-cols-1 gap-3">
                 {TYPE_OPTIONS.map((opt) => (
@@ -184,15 +186,15 @@ export default function PublishBrandModal({ onClose, onSuccess }: PublishBrandMo
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-unbounded font-bold text-[#0B0B0B] text-sm">{opt.title}</span>
+                          <span className="font-unbounded font-bold text-[#0B0B0B] text-sm">{t(opt.titleKey)}</span>
                           {brandType === opt.value && (
                             <span className={`w-5 h-5 flex items-center justify-center rounded-full flex-shrink-0 ${opt.value === 'product' ? 'bg-[#E10600]' : opt.value === 'service' ? 'bg-amber-500' : 'bg-emerald-500'}`}>
                               <i className="ri-check-line text-white text-xs"></i>
                             </span>
                           )}
                         </div>
-                        <p className="text-gray-500 text-xs font-inter mt-1 leading-relaxed">{opt.desc}</p>
-                        <p className="text-gray-300 text-xs font-inter mt-1 italic">{opt.examples}</p>
+                        <p className="text-gray-500 text-xs font-inter mt-1 leading-relaxed">{t(opt.descKey)}</p>
+                        <p className="text-gray-300 text-xs font-inter mt-1 italic">{t(opt.examplesKey)}</p>
                       </div>
                     </div>
                   </button>
@@ -202,7 +204,7 @@ export default function PublishBrandModal({ onClose, onSuccess }: PublishBrandMo
                 onClick={() => setStep('form')}
                 className="w-full bg-[#E10600] text-white font-semibold text-sm py-3.5 rounded-full hover:bg-red-700 transition-colors cursor-pointer whitespace-nowrap font-inter flex items-center justify-center gap-2 mt-2"
               >
-                Continuar
+                {t('br_continue')}
                 <i className="ri-arrow-right-line"></i>
               </button>
             </div>
@@ -214,23 +216,23 @@ export default function PublishBrandModal({ onClose, onSuccess }: PublishBrandMo
                 className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 cursor-pointer font-inter mb-2"
               >
                 <i className="ri-arrow-left-line"></i>
-                Cambiar tipo
+                {t('br_change_type')}
               </button>
 
               {/* Type badge */}
               <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold font-inter ${badge.cls}`}>
                 <i className={badge.icon}></i>
-                {badge.label}
+                {t(badge.labelKey)}
               </div>
 
               {/* Nombre */}
               <div>
                 <label className="block text-xs font-semibold text-[#0B0B0B] font-inter mb-1.5">
-                  Nombre de la marca <span className="text-[#E10600]">*</span>
+                  {t('br_name_label')} <span className="text-[#E10600]">*</span>
                 </label>
                 <input
                   type="text" name="nombre_marca" required
-                  placeholder="Ej: Venum, Hayabusa, RDX..."
+                  placeholder={t('br_name_ph')}
                   className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-inter text-[#0B0B0B] placeholder-gray-300 focus:outline-none focus:border-[#E10600] transition-colors"
                 />
               </div>
@@ -238,21 +240,21 @@ export default function PublishBrandModal({ onClose, onSuccess }: PublishBrandMo
               {/* Email */}
               <div>
                 <label className="block text-xs font-semibold text-[#0B0B0B] font-inter mb-1.5">
-                  Email de contacto <span className="text-[#E10600]">*</span>
+                  {t('br_email_label')} <span className="text-[#E10600]">*</span>
                 </label>
                 <input
                   type="email" name="email" required
-                  placeholder="hola@tumarca.com"
+                  placeholder={t('br_email_ph')}
                   className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-inter text-[#0B0B0B] placeholder-gray-300 focus:outline-none focus:border-[#E10600] transition-colors"
                 />
               </div>
 
               {/* Web */}
               <div>
-                <label className="block text-xs font-semibold text-[#0B0B0B] font-inter mb-1.5">Web oficial</label>
+                <label className="block text-xs font-semibold text-[#0B0B0B] font-inter mb-1.5">{t('br_web_label')}</label>
                 <input
                   type="url" name="web_oficial"
-                  placeholder="https://tumarca.com"
+                  placeholder={t('br_web_ph')}
                   className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-inter text-[#0B0B0B] placeholder-gray-300 focus:outline-none focus:border-[#E10600] transition-colors"
                 />
               </div>
@@ -260,13 +262,13 @@ export default function PublishBrandModal({ onClose, onSuccess }: PublishBrandMo
               {/* Categoría */}
               <div>
                 <label className="block text-xs font-semibold text-[#0B0B0B] font-inter mb-1.5">
-                  Categoría principal <span className="text-[#E10600]">*</span>
+                  {t('br_cat_label')} <span className="text-[#E10600]">*</span>
                 </label>
                 <select
                   name="categoria" required
                   className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-inter text-[#0B0B0B] focus:outline-none focus:border-[#E10600] transition-colors bg-white cursor-pointer"
                 >
-                  <option value="">Selecciona una categoría</option>
+                  <option value="">{t('br_cat_select')}</option>
                   {getCategoryOptions().map((c) => (
                     <option key={c} value={c}>{c}</option>
                   ))}
@@ -276,7 +278,7 @@ export default function PublishBrandModal({ onClose, onSuccess }: PublishBrandMo
               {/* Descripción */}
               <div>
                 <label className="block text-xs font-semibold text-[#0B0B0B] font-inter mb-1.5">
-                  Descripción breve <span className="text-[#E10600]">*</span>
+                  {t('br_desc_label')} <span className="text-[#E10600]">*</span>
                 </label>
                 <textarea
                   name="descripcion" required rows={4} maxLength={500}
@@ -291,13 +293,13 @@ export default function PublishBrandModal({ onClose, onSuccess }: PublishBrandMo
 
               {/* Logo URL */}
               <div>
-                <label className="block text-xs font-semibold text-[#0B0B0B] font-inter mb-1.5">URL del logo (opcional)</label>
+                <label className="block text-xs font-semibold text-[#0B0B0B] font-inter mb-1.5">{t('br_logo_label')}</label>
                 <input
                   type="url" name="logo_url"
-                  placeholder="https://tumarca.com/logo.png"
+                  placeholder={t('br_logo_ph')}
                   className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-inter text-[#0B0B0B] placeholder-gray-300 focus:outline-none focus:border-[#E10600] transition-colors"
                 />
-                <p className="text-xs text-gray-300 font-inter mt-1">También puedes enviarnos el logo por email tras el registro.</p>
+                <p className="text-xs text-gray-300 font-inter mt-1">{t('br_logo_hint')}</p>
               </div>
 
               {error && (
@@ -312,11 +314,11 @@ export default function PublishBrandModal({ onClose, onSuccess }: PublishBrandMo
                 className="w-full bg-[#E10600] text-white font-semibold text-sm py-3.5 rounded-full hover:bg-red-700 transition-colors cursor-pointer whitespace-nowrap font-inter disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {submitting
-                  ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>Guardando...</>
-                  : <><i className="ri-send-plane-line"></i>Guardar marca</>
+                  ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>{t('br_saving')}</>
+                  : <><i className="ri-send-plane-line"></i>{t('br_save')}</>
                 }
               </button>
-              <p className="text-center text-xs text-gray-300 font-inter">Tu marca aparecerá en el directorio tras ser revisada</p>
+              <p className="text-center text-xs text-gray-300 font-inter">{t('br_after_review')}</p>
             </form>
           )}
         </div>

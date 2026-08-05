@@ -135,14 +135,14 @@ export default function BrandsPage() {
         <div className="relative max-w-7xl mx-auto px-6 md:px-10">
           <div className="flex items-center gap-3 mb-5">
             <div className="w-8 h-[2px] bg-[#E10600]"></div>
-            <span className="text-[#E10600] text-xs font-bold tracking-[0.25em] uppercase font-inter">{isHobby ? 'Tienda' : 'Directorio'}</span>
+            <span className="text-[#E10600] text-xs font-bold tracking-[0.25em] uppercase font-inter">{isHobby ? t('br_shop_eyebrow') : t('fd_directory')}</span>
           </div>
           <h1 className="font-unbounded font-black text-white leading-tight mb-3" style={{ fontSize: 'clamp(2.2rem, 5vw, 3.8rem)' }}>
-            {isHobby ? 'Equípate para entrenar' : t('brands_page_title')}
+            {isHobby ? t('br_shop_title') : t('brands_page_title')}
           </h1>
           <p className="text-white/70 text-sm md:text-base max-w-xl font-inter leading-relaxed mb-8">
             {isHobby
-              ? 'Marcas de guantes, protecciones, ropa y nutrición. Descubre sus productos y encuentra lo que necesitas para tu entrenamiento.'
+              ? t('br_shop_desc')
               : t('brands_page_desc')}
           </p>
 

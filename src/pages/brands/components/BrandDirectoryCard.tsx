@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import type { BrandWithItems } from '@/hooks/useBrands';
 import { trackBrandView, trackBrandWebsiteClick, trackBrandProductClick } from '@/lib/trackBrand';
 
@@ -14,29 +15,37 @@ const MODALITY_ICONS: Record<string, string> = {
   ambos: 'ri-global-line',
 };
 
+// Etiqueta de modalidad de servicio (código+etiqueta, se traduce).
+const MODALITY_LABEL_KEYS: Record<string, string> = {
+  online: 'dash_bs_mod_online',
+  presencial: 'dash_bs_mod_presencial',
+  ambos: 'dash_bs_mod_ambos',
+};
+
 const TYPE_CONFIG = {
   product: {
     headerBg: 'bg-gradient-to-br from-[#0B0B0B] to-[#1A1A1A]',
-    badge: { label: 'Producto', icon: 'ri-shopping-bag-line', cls: 'bg-white/10 text-white/70 border-white/15' },
+    badge: { labelKey: 'br_type_product', icon: 'ri-shopping-bag-line', cls: 'bg-white/10 text-white/70 border-white/15' },
     ctaColor: 'bg-[#E10600] hover:bg-red-700',
-    ctaLabel: 'Ir a la web',
+    ctaLabelKey: 'br_cta_website',
   },
   service: {
     headerBg: 'bg-gradient-to-br from-[#1A1200] to-[#2A1F00]',
-    badge: { label: 'Servicio', icon: 'ri-service-line', cls: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
+    badge: { labelKey: 'br_type_service', icon: 'ri-service-line', cls: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
     ctaColor: 'bg-amber-500 hover:bg-amber-600',
-    ctaLabel: 'Contactar',
+    ctaLabelKey: 'br_cta_contact',
   },
   both: {
     headerBg: 'bg-gradient-to-br from-[#001A0D] to-[#002A18]',
-    badge: { label: 'Prod. & Serv.', icon: 'ri-store-3-line', cls: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
+    badge: { labelKey: 'br_type_both', icon: 'ri-store-3-line', cls: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
     ctaColor: 'bg-emerald-600 hover:bg-emerald-700',
-    ctaLabel: 'Ver marca',
+    ctaLabelKey: 'br_cta_brand',
   },
 };
 
 export default function BrandDirectoryCard({ brand, rating }: Props) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const initials = brand.name
     .split(' ')
     .map((w) => w[0])
@@ -95,7 +104,7 @@ export default function BrandDirectoryCard({ brand, rating }: Props) {
         {/* Type badge */}
         <div className={`flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold font-inter border ${cfg.badge.cls}`}>
           <i className={cfg.badge.icon}></i>
-          {cfg.badge.label}
+          {t(cfg.badge.labelKey)}
         </div>
       </div>
 
@@ -111,7 +120,7 @@ export default function BrandDirectoryCard({ brand, rating }: Props) {
         <div className="px-5 pb-3">
           <p className="text-xs font-semibold text-white font-inter mb-2 flex items-center gap-1.5">
             <i className="ri-shopping-bag-line text-[#E10600]"></i>
-            Productos
+            {t('br_products')}
             {hasProducts && <span className="text-gray-400 font-normal">({brand.products.length})</span>}
           </p>
           {hasProducts ? (
@@ -153,13 +162,13 @@ export default function BrandDirectoryCard({ brand, rating }: Props) {
                 })}
               </div>
               {brand.products.length > featuredProducts.length && (
-                <p className="text-xs text-gray-400 font-inter mt-1.5">+{brand.products.length - featuredProducts.length} más</p>
+                <p className="text-xs text-gray-400 font-inter mt-1.5">+{brand.products.length - featuredProducts.length} {t('br_more_suffix')}</p>
               )}
             </>
           ) : (
             <div className="bg-white/[0.04] rounded-xl px-3 py-2.5 flex items-center gap-2">
               <i className="ri-shopping-bag-line text-gray-300 text-sm"></i>
-              <span className="text-xs text-gray-400 font-inter">Sin productos publicados aún</span>
+              <span className="text-xs text-gray-400 font-inter">{t('br_no_products')}</span>
             </div>
           )}
         </div>
@@ -171,7 +180,7 @@ export default function BrandDirectoryCard({ brand, rating }: Props) {
           {type === 'both' && <div className="border-t border-white/[0.08] mb-3"></div>}
           <p className="text-xs font-semibold text-white font-inter mb-2 flex items-center gap-1.5">
             <i className="ri-service-line text-amber-500"></i>
-            Servicios
+            {t('br_services')}
             {hasServices && <span className="text-gray-400 font-normal">({brand.services.length})</span>}
           </p>
           {hasServices ? (
@@ -194,7 +203,7 @@ export default function BrandDirectoryCard({ brand, rating }: Props) {
                       {service.modality && (
                         <span className="text-[10px] text-gray-400 flex items-center gap-0.5">
                           <i className={`${MODALITY_ICONS[service.modality] || 'ri-global-line'} text-[10px]`}></i>
-                          {service.modality}
+                          {MODALITY_LABEL_KEYS[service.modality] ? t(MODALITY_LABEL_KEYS[service.modality]) : service.modality}
                         </span>
                       )}
                       {service.price && <span className="text-[10px] text-amber-600 font-bold">{service.price}</span>}
@@ -203,13 +212,13 @@ export default function BrandDirectoryCard({ brand, rating }: Props) {
                 </div>
               ))}
               {brand.services.length > featuredServices.length && (
-                <p className="text-xs text-gray-400 font-inter">+{brand.services.length - featuredServices.length} más</p>
+                <p className="text-xs text-gray-400 font-inter">+{brand.services.length - featuredServices.length} {t('br_more_suffix')}</p>
               )}
             </div>
           ) : (
             <div className="bg-white/[0.04] rounded-xl px-3 py-2.5 flex items-center gap-2">
               <i className="ri-service-line text-gray-300 text-sm"></i>
-              <span className="text-xs text-gray-400 font-inter">Sin servicios publicados aún</span>
+              <span className="text-xs text-gray-400 font-inter">{t('br_no_services')}</span>
             </div>
           )}
         </div>
@@ -222,12 +231,12 @@ export default function BrandDirectoryCard({ brand, rating }: Props) {
             <>
               {hasProducts && (
                 <span className="text-[10px] text-gray-400 font-inter flex items-center gap-0.5">
-                  <i className="ri-shopping-bag-line"></i>{brand.products.length} prod.
+                  <i className="ri-shopping-bag-line"></i>{brand.products.length} {t('br_prod_short')}
                 </span>
               )}
               {hasServices && (
                 <span className="text-[10px] text-gray-400 font-inter flex items-center gap-0.5">
-                  <i className="ri-service-line"></i>{brand.services.length} serv.
+                  <i className="ri-service-line"></i>{brand.services.length} {t('br_serv_short')}
                 </span>
               )}
             </>
@@ -242,12 +251,12 @@ export default function BrandDirectoryCard({ brand, rating }: Props) {
             className={`flex items-center justify-center gap-1.5 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap font-inter ${cfg.ctaColor}`}
           >
             <i className="ri-external-link-line"></i>
-            {cfg.ctaLabel}
+            {t(cfg.ctaLabelKey)}
           </a>
         ) : (
           <div className="flex items-center justify-center gap-1.5 text-xs font-semibold px-4 py-2.5 rounded-xl font-inter bg-white/[0.05] text-gray-400">
             <i className="ri-store-2-line"></i>
-            Ver marca
+            {t('br_cta_brand')}
           </div>
         )}
       </div>
