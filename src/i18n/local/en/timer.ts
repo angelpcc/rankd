@@ -28,6 +28,8 @@ export default {
   tm_round_dur: 'Round length',
   tm_rest_dur: 'Rest',
   tm_warn: 'Last-seconds warning',
+  tm_sound_test: 'Sound',
+  tm_sound_test_btn: 'Test sound',
   tm_min: 'min',
   tm_sec: 'sec',
   tm_off: 'No warning',

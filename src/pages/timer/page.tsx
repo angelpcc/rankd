@@ -11,6 +11,7 @@ import {
   buildSchedule, type CustomCombo, type Discipline, type Preset, type RoundCombo, type TimerConfig,
 } from './lib/session';
 import { comboById } from './lib/combos';
+import { timerSounds, armTimerAudio } from './lib/sounds';
 
 // fighters.discipline puede traer valores fuera de nuestro conjunto (bjj,
 // wrestling...): solo prefiltramos cuando encaja con una disciplina con combos.
@@ -41,6 +42,11 @@ export default function TimerPage() {
   }, []);
 
   useEffect(() => { if (!authLoading && !user) navigate('/esquina'); }, [authLoading, user, navigate]);
+
+  // Desbloquea el audio con la PRIMERA interacción del usuario en la página.
+  // Los navegadores (sobre todo iOS Safari) bloquean el sonido hasta que hay un
+  // gesto; sin esto el temporizador arrancaría mudo. Ver lib/sounds.ts.
+  useEffect(() => armTimerAudio(), []);
 
   // Preajustes y combinaciones propias (local).
   useEffect(() => { setPresets(loadPresets()); setCustomCombos(loadCustomCombos()); }, []);
@@ -149,7 +155,7 @@ export default function TimerPage() {
         <TimerSetup
           config={config}
           onConfig={setConfig}
-          onStart={() => setPhase('run')}
+          onStart={() => { timerSounds.muted = muted; timerSounds.unlock(); setPhase('run'); }}
           onBack={() => navigate('/mi-esquina')}
           discipline={discipline}
           presets={presets}

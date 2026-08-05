@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { buildSchedule, type Segment, type SegmentType, type TimerConfig } from '../lib/session';
-import { TimerSounds } from '../lib/sounds';
+import { timerSounds } from '../lib/sounds';
 
 export type Status = 'idle' | 'running' | 'paused' | 'done';
 
@@ -28,7 +28,9 @@ export function useTimerEngine(config: TimerConfig, muted: boolean) {
   const [state, setState] = useState<EngineState>(IDLE);
   const [schedule, setSchedule] = useState<Segment[]>([]);
 
-  const soundsRef = useRef<TimerSounds>(new TimerSounds(muted));
+  // Instancia compartida: se desbloquea desde el gesto de "Empezar" (page.tsx),
+  // no aquí, para que el audio funcione en iOS/Safari (ver lib/sounds.ts).
+  const soundsRef = useRef(timerSounds);
   const scheduleRef = useRef<Segment[]>([]);
   const segIndexRef = useRef(0);
   const segEndAtRef = useRef(0);     // ms absolutos en que acaba la fase
@@ -36,6 +38,7 @@ export function useTimerEngine(config: TimerConfig, muted: boolean) {
   const statusRef = useRef<Status>('idle');
   const prevSecRef = useRef(-1);
   const inBurstRef = useRef(false);
+  const tenWarnedRef = useRef(false); // aviso de 10 s ya dado en este asalto
 
   useEffect(() => { soundsRef.current.muted = muted; }, [muted]);
 
@@ -46,6 +49,7 @@ export function useTimerEngine(config: TimerConfig, muted: boolean) {
     segEndAtRef.current = Date.now() + seg.durationSec * 1000;
     prevSecRef.current = seg.durationSec;
     inBurstRef.current = false;
+    tenWarnedRef.current = false;
     // Señal de entrada según la fase.
     const s = soundsRef.current;
     if (seg.type === 'round') s.bell(1);
@@ -109,9 +113,18 @@ export function useTimerEngine(config: TimerConfig, muted: boolean) {
       else if (!active && inBurstRef.current) s.easeOff();
       inBurstRef.current = active;
 
-      // Aviso de últimos segundos del asalto (tic corto), fuera de explosión.
       if (cur.type === 'round' && secLeft !== prevSecRef.current) {
-        if (!active && secLeft <= config.warnSec && secLeft >= 1) s.warn();
+        // Aviso propio de "faltan 10 segundos": clacker distinto, una sola vez
+        // por asalto e independiente del aviso configurable de cuenta atrás.
+        if (!tenWarnedRef.current && secLeft === 10 && cur.durationSec > 10) {
+          s.tenSeconds();
+          tenWarnedRef.current = true;
+        }
+        // Cuenta atrás final (tic corto), fuera de explosión y sin pisar el
+        // aviso de 10 s para que no se solapen.
+        else if (!active && secLeft <= config.warnSec && secLeft >= 1) {
+          s.warn();
+        }
       }
       prevSecRef.current = secLeft;
 

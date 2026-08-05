@@ -144,15 +144,23 @@ export default function TimerRunner({ config, muted, onToggleMute, onExit, onSav
             </div>
           )}
 
-          {/* Combinación del asalto */}
+          {/* Combinación del asalto: tamaño medio pero bien legible, junto al
+              contador sin estorbarlo. Se resalta durante el asalto en curso. */}
           {showCombo && !isBurst && (
-            <div className="mt-5 max-w-lg text-center px-2">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 mb-1.5">
-                {state.segType === 'round' ? t('tm_combo_this_round') : t('tm_next_up')}
-              </p>
-              <p className="text-white font-semibold leading-snug" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 'clamp(18px,5vw,26px)' }}>
-                {comboLabel}
-              </p>
+            <div className="mt-5 w-full max-w-xl px-2 anim-scale-in">
+              <div className="mx-auto max-w-lg rounded-2xl border px-4 py-3.5 text-center"
+                style={{
+                  borderColor: state.segType === 'round' ? 'rgba(225,6,0,0.35)' : 'rgba(255,255,255,0.12)',
+                  background: state.segType === 'round' ? 'rgba(225,6,0,0.08)' : 'rgba(255,255,255,0.03)',
+                }}>
+                <p className="text-[10px] font-bold uppercase tracking-[0.22em] mb-1.5"
+                  style={{ color: state.segType === 'round' ? '#ff6b66' : '#a1a1aa' }}>
+                  {state.segType === 'round' ? t('tm_combo_this_round') : t('tm_next_up')}
+                </p>
+                <p className="text-white font-bold leading-tight" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 'clamp(22px,6vw,36px)', letterSpacing: 0.3 }}>
+                  {comboLabel}
+                </p>
+              </div>
             </div>
           )}
         </div>

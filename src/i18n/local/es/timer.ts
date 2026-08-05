@@ -32,6 +32,8 @@ export default {
   tm_min: 'min',
   tm_sec: 'seg',
   tm_off: 'Sin aviso',
+  tm_sound_test: 'Sonido',
+  tm_sound_test_btn: 'Probar sonido',
   tm_summary_rounds: '{{n}} asaltos',
   tm_summary_total: 'Tiempo total',
   tm_summary_work: 'Trabajo',

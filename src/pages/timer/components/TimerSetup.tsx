@@ -5,6 +5,7 @@ import {
   buildSchedule, type CustomCombo, type Discipline, type Preset, type RoundCombo, type TimerConfig,
 } from '../lib/session';
 import { roundComboParts } from '../lib/combos';
+import { timerSounds } from '../lib/sounds';
 import SessionTimeline from './SessionTimeline';
 import CombosLibrary from './CombosLibrary';
 
@@ -197,6 +198,14 @@ export default function TimerSetup(props: Props) {
                   </button>
                 ))}
               </div>
+            </Row>
+            {/* Probar sonido: además de comprobar el volumen, desbloquea el audio
+                del navegador (necesario en móvil) al ser un gesto del usuario. */}
+            <Row label={t('tm_sound_test')}>
+              <button onClick={() => { timerSounds.unlock(); timerSounds.bell(1); }}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold bg-white/5 text-zinc-300 hover:text-white border border-white/10 hover:border-white/25 cursor-pointer transition-colors">
+                <i className="ri-volume-up-line"></i>{t('tm_sound_test_btn')}
+              </button>
             </Row>
           </div>
         </Section>
