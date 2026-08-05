@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { supabase, OrgEvent, Profile } from '@/lib/supabase';
 import { useSEO } from '@/hooks/useSEO';
 import Navbar from '@/pages/home/components/Navbar';
@@ -9,14 +10,16 @@ import Footer from '@/pages/home/components/Footer';
 import ExternalTickets from './components/ExternalTickets';
 import EventCard from './components/EventCard';
 
-function formatLongDate(d: string | null): string | null {
+function formatLongDate(d: string | null, locale: string): string | null {
   if (!d) return null;
-  return new Date(d + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  return new Date(d + 'T12:00:00').toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 export default function EventoPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
   const [event, setEvent] = useState<OrgEvent | null>(null);
   const [org, setOrg] = useState<Pick<Profile, 'id' | 'full_name' | 'avatar_url' | 'user_type' | 'verified' | 'location'> | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,7 +46,7 @@ export default function EventoPage() {
     load();
   }, [id]);
 
-  const longDate = formatLongDate(event?.event_date ?? null);
+  const longDate = formatLongDate(event?.event_date ?? null, locale);
   const isPast = event?.event_date ? new Date(event.event_date + 'T23:59:59') < new Date() : false;
 
   if (loading) {
@@ -65,9 +68,9 @@ export default function EventoPage() {
           <div className="w-16 h-16 flex items-center justify-center rounded-2xl bg-red-600/10 border border-red-500/25 mb-5">
             <i className="ri-calendar-close-line text-2xl text-red-400"></i>
           </div>
-          <h1 className="rk-h3 text-white">EVENTO NO ENCONTRADO</h1>
-          <p className="text-sm text-zinc-400 mt-2">Puede que se haya retirado o que el enlace no sea correcto.</p>
-          <button onClick={() => navigate('/eventos')} className="rk-btn rk-btn-primary mt-6" style={{ fontSize: '0.85rem' }}>VER TODOS LOS EVENTOS</button>
+          <h1 className="rk-h3 text-white">{t('ev_nf_title')}</h1>
+          <p className="text-sm text-zinc-400 mt-2">{t('ev_nf_desc')}</p>
+          <button onClick={() => navigate('/eventos')} className="rk-btn rk-btn-primary mt-6" style={{ fontSize: '0.85rem' }}>{t('ev_nf_cta')}</button>
         </div>
       </div>
     );
@@ -88,7 +91,7 @@ export default function EventoPage() {
         <div className="rk-topline" />
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 md:px-10 pt-6 pb-10">
           <button onClick={() => navigate('/eventos')} className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors cursor-pointer mb-6">
-            <i className="ri-arrow-left-line"></i> Todos los eventos
+            <i className="ri-arrow-left-line"></i> {t('ev_back_all')}
           </button>
           <div className="grid md:grid-cols-[300px_1fr] gap-6 md:gap-8 items-start">
             {/* Cartel */}
@@ -103,9 +106,9 @@ export default function EventoPage() {
             <div className="min-w-0">
               <div className="flex items-center gap-2 mb-3 flex-wrap">
                 {isPast ? (
-                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full border text-zinc-500 bg-white/[0.04] border-white/10">Finalizado</span>
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full border text-zinc-500 bg-white/[0.04] border-white/10">{t('ev_badge_past')}</span>
                 ) : (
-                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full border text-red-400 bg-red-500/12 border-red-500/30 uppercase tracking-wider">Próximo evento</span>
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full border text-red-400 bg-red-500/12 border-red-500/30 uppercase tracking-wider">{t('ev_badge_upcoming')}</span>
                 )}
               </div>
               <h1 className="rk-h1" style={{ color: '#fff', margin: 0, fontSize: 'clamp(2.2rem,6vw,4rem)' }}>{event.title}</h1>
@@ -129,8 +132,8 @@ export default function EventoPage() {
                       <div className="w-8 h-8 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center"><i className="ri-trophy-line text-xs text-zinc-500"></i></div>
                     )}
                     <div>
-                      <p className="text-[10px] text-zinc-500 uppercase tracking-wider">Organiza</p>
-                      <p className="text-sm text-white font-semibold leading-tight">{org.full_name || 'Promotora'}</p>
+                      <p className="text-[10px] text-zinc-500 uppercase tracking-wider">{t('ev_organizes')}</p>
+                      <p className="text-sm text-white font-semibold leading-tight">{org.full_name || t('ev_promoter')}</p>
                     </div>
                   </div>
                 )}
@@ -146,12 +149,12 @@ export default function EventoPage() {
         <div className="space-y-6 min-w-0">
           {event.description ? (
             <div className="rk-card" style={{ padding: '24px 26px' }}>
-              <h2 className="rk-h3 text-white mb-3" style={{ fontSize: '1.1rem' }}>SOBRE EL EVENTO</h2>
+              <h2 className="rk-h3 text-white mb-3" style={{ fontSize: '1.1rem' }}>{t('ev_about')}</h2>
               <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-line">{event.description}</p>
             </div>
           ) : (
             <div className="rk-card" style={{ padding: '24px 26px' }}>
-              <p className="text-sm text-zinc-400">La promotora aún no ha añadido una descripción para este evento.</p>
+              <p className="text-sm text-zinc-400">{t('ev_no_desc')}</p>
             </div>
           )}
 

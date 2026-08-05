@@ -76,6 +76,17 @@ export default {
   ev_finished_desc: 'Este evento ya se ha celebrado.',
   ev_label_ticket_url: 'Enlace de venta de entradas',
   ev_hint_ticket_url: 'La URL de tu web donde se compran. Si la dejas vacía, en la ficha se mostrará "entradas próximamente".',
+  // Ficha pública del evento (detalle)
+  ev_back_all: 'Todos los eventos',
+  ev_badge_upcoming: 'Próximo evento',
+  ev_badge_past: 'Finalizado',
+  ev_organizes: 'Organiza',
+  ev_promoter: 'Promotora',
+  ev_about: 'Sobre el evento',
+  ev_no_desc: 'La promotora aún no ha añadido una descripción para este evento.',
+  ev_nf_title: 'Evento no encontrado',
+  ev_nf_desc: 'Puede que se haya retirado o que el enlace no sea correcto.',
+  ev_nf_cta: 'VER TODOS LOS EVENTOS',
 
   // 404
   nf_title: 'Este combate no existe',

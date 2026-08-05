@@ -76,6 +76,17 @@ export default {
   ev_finished_desc: 'This event has already taken place.',
   ev_label_ticket_url: 'Ticket sales link',
   ev_hint_ticket_url: 'The URL on your site where tickets are bought. Leave it empty and the page will show "tickets coming soon".',
+  // Public event page (detail)
+  ev_back_all: 'All events',
+  ev_badge_upcoming: 'Upcoming event',
+  ev_badge_past: 'Finished',
+  ev_organizes: 'Organised by',
+  ev_promoter: 'Promoter',
+  ev_about: 'About the event',
+  ev_no_desc: "The promoter hasn't added a description for this event yet.",
+  ev_nf_title: 'Event not found',
+  ev_nf_desc: 'It may have been taken down or the link may be wrong.',
+  ev_nf_cta: 'SEE ALL EVENTS',
 
   // 404
   nf_title: "This fight doesn't exist",

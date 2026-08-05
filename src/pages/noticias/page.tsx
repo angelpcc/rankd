@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import Navbar from '@/pages/home/components/Navbar';
 import Footer from '@/pages/home/components/Footer';
 import { useSEO } from '@/hooks/useSEO';
@@ -24,18 +26,18 @@ function catStyle(cat: string) {
   return CATEGORY_STYLE[cat] || CATEGORY_STYLE.default;
 }
 
-function timeAgo(dateStr: string): string {
+function timeAgo(dateStr: string, t: TFunction, locale: string): string {
   const d = new Date(dateStr).getTime();
   if (!d) return '';
   const diff = Date.now() - d;
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'ahora mismo';
-  if (mins < 60) return `hace ${mins} min`;
+  if (mins < 1) return t('news_ago_now');
+  if (mins < 60) return t('news_ago_min', { n: mins });
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `hace ${hours} h`;
+  if (hours < 24) return t('news_ago_hour', { n: hours });
   const days = Math.floor(hours / 24);
-  if (days < 7) return `hace ${days} d`;
-  return new Date(dateStr).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+  if (days < 7) return t('news_ago_day', { n: days });
+  return new Date(dateStr).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 }
 
 // "Caliente" = publicado en las últimas 3 horas. Se marca en la tarjeta.
@@ -111,6 +113,8 @@ export default function NewsPage() {
   const [query, setQuery] = useState('');
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [refreshing, setRefreshing] = useState(false);
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
 
   useSEO({
     title: 'Noticias de Boxeo y MMA | RANKD',
@@ -167,10 +171,10 @@ export default function NewsPage() {
   const hasMore = filtered.length > 3 + visible;
 
   const FILTERS: { id: typeof cat; label: string; icon: string; n: number }[] = [
-    { id: 'all', label: 'Todo', icon: 'ri-flashlight-line', n: counts.all },
-    { id: 'Boxeo', label: 'Boxeo', icon: 'ri-boxing-line', n: counts.Boxeo },
+    { id: 'all', label: t('news_f_all'), icon: 'ri-flashlight-line', n: counts.all },
+    { id: 'Boxeo', label: t('news_f_boxing'), icon: 'ri-boxing-line', n: counts.Boxeo },
     { id: 'MMA', label: 'MMA', icon: 'ri-sword-line', n: counts.MMA },
-    { id: 'es', label: 'En español', icon: 'ri-translate-2', n: counts.es },
+    { id: 'es', label: t('news_f_spanish'), icon: 'ri-translate-2', n: counts.es },
   ].filter((f) => f.id === 'all' || f.n > 0) as { id: typeof cat; label: string; icon: string; n: number }[];
 
   return (
@@ -185,29 +189,29 @@ export default function NewsPage() {
         <div className="relative max-w-6xl mx-auto px-5">
           <div className="inline-flex items-center gap-2.5 mb-4 px-4 py-1.5 rounded-full border border-[#E10600]/40 bg-[#E10600]/[0.08]">
             <span className="w-1.5 h-1.5 rounded-full bg-[#E10600] animate-pulse"></span>
-            <span className="text-[#E10600] text-xs font-bold tracking-[0.25em] uppercase" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>En directo</span>
+            <span className="text-[#E10600] text-xs font-bold tracking-[0.25em] uppercase" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>{t('news_live')}</span>
           </div>
           <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(40px, 8vw, 78px)', lineHeight: 0.9, color: 'white', letterSpacing: 1 }}>
-            NOTICIAS DEL <span style={{ color: '#E10600', textShadow: '0 0 45px rgba(225,6,0,0.5)' }}>COMBATE</span>
+            {t('news_title_pre')} <span style={{ color: '#E10600', textShadow: '0 0 45px rgba(225,6,0,0.5)' }}>{t('news_title_hl')}</span>
           </h1>
           <p className="mt-3 text-base sm:text-lg max-w-xl" style={{ fontFamily: "'Barlow Condensed', sans-serif", color: 'rgba(255,255,255,0.65)' }}>
-            Boxeo, MMA y deportes de contacto. Los titulares de los mejores medios, reunidos en un solo sitio.
+            {t('news_sub')}
           </p>
 
           {/* Ficha técnica: qué estás viendo exactamente */}
           {!loading && !error && (
             <div className="flex items-center gap-x-5 gap-y-2 mt-5 flex-wrap text-xs" style={{ fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: 1 }}>
-              <span className="text-zinc-400"><span className="text-white font-bold">{items.length}</span> titulares</span>
+              <span className="text-zinc-400"><span className="text-white font-bold">{items.length}</span> {t('news_headlines')}</span>
               <span className="text-zinc-700">|</span>
-              <span className="text-zinc-400"><span className="text-white font-bold">{sources.length}</span> medios</span>
-              {updatedAt && <><span className="text-zinc-700">|</span><span className="text-zinc-400">Actualizado {timeAgo(updatedAt)}</span></>}
+              <span className="text-zinc-400"><span className="text-white font-bold">{sources.length}</span> {t('news_outlets')}</span>
+              {updatedAt && <><span className="text-zinc-700">|</span><span className="text-zinc-400">{t('news_updated', { time: timeAgo(updatedAt, t, locale) })}</span></>}
               <button
                 onClick={() => load(true)}
                 disabled={refreshing}
                 className="inline-flex items-center gap-1.5 text-zinc-400 hover:text-white transition-colors cursor-pointer disabled:opacity-50"
               >
                 <i className={`ri-refresh-line ${refreshing ? 'animate-spin' : ''}`}></i>
-                {refreshing ? 'Buscando...' : 'Actualizar'}
+                {refreshing ? t('news_refreshing') : t('news_refresh')}
               </button>
             </div>
           )}
@@ -239,12 +243,12 @@ export default function NewsPage() {
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Buscar..."
-                aria-label="Buscar noticias"
+                placeholder={t('news_search_ph')}
+                aria-label={t('news_search_aria')}
                 className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl pl-9 pr-8 py-2 focus:outline-none focus:border-red-500/60 transition-colors"
               />
               {query && (
-                <button onClick={() => setQuery('')} aria-label="Limpiar búsqueda"
+                <button onClick={() => setQuery('')} aria-label={t('news_clear_aria')}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white cursor-pointer">
                   <i className="ri-close-circle-fill text-sm"></i>
                 </button>
@@ -263,21 +267,21 @@ export default function NewsPage() {
             <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center rounded-2xl bg-zinc-900 border border-zinc-800">
               <i className="ri-wifi-off-line text-3xl text-zinc-600"></i>
             </div>
-            <p className="text-zinc-300 font-medium">No hemos podido cargar las noticias</p>
-            <p className="text-zinc-600 text-sm mt-1 max-w-sm mx-auto">Los medios que consultamos pueden estar caídos o tardando de más. Suele resolverse solo en unos minutos.</p>
+            <p className="text-zinc-300 font-medium">{t('news_err_title')}</p>
+            <p className="text-zinc-600 text-sm mt-1 max-w-sm mx-auto">{t('news_err_desc')}</p>
             <button onClick={() => load(true)} disabled={refreshing}
               className="mt-6 inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-6 py-3 rounded-xl cursor-pointer transition-colors disabled:opacity-60">
-              <i className={`ri-refresh-line ${refreshing ? 'animate-spin' : ''}`}></i> Reintentar
+              <i className={`ri-refresh-line ${refreshing ? 'animate-spin' : ''}`}></i> {t('news_retry')}
             </button>
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-20 rk-card">
             <i className="ri-search-eye-line text-4xl text-zinc-700"></i>
-            <p className="text-zinc-300 font-medium mt-3">Sin resultados para «{query}»</p>
-            <p className="text-zinc-600 text-sm mt-1">Prueba con otra palabra o quita el filtro.</p>
+            <p className="text-zinc-300 font-medium mt-3">{t('news_empty_title', { q: query })}</p>
+            <p className="text-zinc-600 text-sm mt-1">{t('news_empty_desc')}</p>
             <button onClick={() => { setQuery(''); setCat('all'); }}
               className="mt-5 text-sm font-bold text-red-400 hover:text-red-300 cursor-pointer">
-              Ver todas las noticias
+              {t('news_empty_all')}
             </button>
           </div>
         ) : (
@@ -293,7 +297,7 @@ export default function NewsPage() {
                     <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(5,5,5,0.75) 0%, transparent 55%)' }} />
                     <div className="absolute top-4 left-4 flex items-center gap-2">
                       <span className="text-[11px] font-black tracking-wider uppercase text-white bg-red-600 px-3 py-1 rounded-full shadow-lg shadow-red-600/40">
-                        Destacada
+                        {t('news_featured')}
                       </span>
                       <span className="text-[11px] font-bold text-white/90 bg-black/55 backdrop-blur px-2.5 py-1 rounded-full">{featured.category}</span>
                       {featured.lang === 'es' && <span className="text-[11px] font-bold text-white/90 bg-black/55 backdrop-blur px-2.5 py-1 rounded-full">ES</span>}
@@ -303,10 +307,10 @@ export default function NewsPage() {
                     <div className="flex items-center gap-2 text-xs text-zinc-500 mb-3">
                       <span className="font-bold text-zinc-400 uppercase tracking-wider">{featured.source}</span>
                       <span>·</span>
-                      <span>{timeAgo(featured.pubDate)}</span>
+                      <span>{timeAgo(featured.pubDate, t, locale)}</span>
                       {isHot(featured.pubDate) && (
                         <span className="ml-1 inline-flex items-center gap-1 text-[10px] font-black text-red-400 bg-red-600/12 border border-red-500/30 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                          <i className="ri-fire-fill"></i> Reciente
+                          <i className="ri-fire-fill"></i> {t('news_recent')}
                         </span>
                       )}
                     </div>
@@ -315,7 +319,7 @@ export default function NewsPage() {
                     </h2>
                     {featured.description && <p className="text-sm text-zinc-400 mt-3.5 leading-relaxed line-clamp-4">{featured.description}</p>}
                     <span className="inline-flex items-center gap-1.5 text-sm font-bold text-red-400 mt-5 group-hover:gap-3 transition-all">
-                      Leer en {featured.source} <i className="ri-arrow-right-line"></i>
+                      {t('news_read_in', { source: featured.source })} <i className="ri-arrow-right-line"></i>
                     </span>
                   </div>
                 </div>
@@ -334,14 +338,14 @@ export default function NewsPage() {
                       <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to right, transparent 55%, rgba(5,5,5,0.35))' }} />
                       {isHot(item.pubDate) && (
                         <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 text-[10px] font-black text-white bg-red-600 px-2 py-0.5 rounded-full shadow-lg shadow-red-600/40 uppercase tracking-wider">
-                          <i className="ri-fire-fill"></i> Reciente
+                          <i className="ri-fire-fill"></i> {t('news_recent')}
                         </span>
                       )}
                     </div>
                     <div className="flex-1 min-w-0 p-4 sm:p-5 flex flex-col justify-center">
                       <div className="flex items-center gap-1.5 text-[11px] text-zinc-500 mb-1.5">
                         <span className="font-bold text-zinc-400 uppercase tracking-wide truncate">{item.source}</span>
-                        <span>·</span><span className="whitespace-nowrap">{timeAgo(item.pubDate)}</span>
+                        <span>·</span><span className="whitespace-nowrap">{timeAgo(item.pubDate, t, locale)}</span>
                         <span className="text-zinc-700">·</span><span className="text-zinc-500 truncate">{item.category}</span>
                       </div>
                       <h3 className="font-bold text-white leading-snug group-hover:text-red-400 transition-colors line-clamp-3" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 19 }}>
@@ -364,7 +368,7 @@ export default function NewsPage() {
                     <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(5,5,5,0.55) 0%, transparent 60%)' }} />
                     <span className="absolute top-3 left-3 text-[10px] font-bold text-white bg-black/60 backdrop-blur px-2 py-0.5 rounded-full">{item.category}</span>
                     {isHot(item.pubDate) && (
-                      <span className="absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded-full bg-red-600 shadow-lg shadow-red-600/40" title="Publicada hace menos de 3 horas">
+                      <span className="absolute top-3 right-3 w-6 h-6 flex items-center justify-center rounded-full bg-red-600 shadow-lg shadow-red-600/40" title={t('news_hot_title')}>
                         <i className="ri-fire-fill text-white text-xs"></i>
                       </span>
                     )}
@@ -372,13 +376,13 @@ export default function NewsPage() {
                   <div className="p-4 flex flex-col flex-1">
                     <div className="flex items-center gap-1.5 text-[11px] text-zinc-500 mb-2">
                       <span className="font-bold text-zinc-400 uppercase tracking-wide truncate">{item.source}</span>
-                      <span>·</span><span className="whitespace-nowrap">{timeAgo(item.pubDate)}</span>
+                      <span>·</span><span className="whitespace-nowrap">{timeAgo(item.pubDate, t, locale)}</span>
                     </div>
                     <h3 className="font-bold text-white leading-snug group-hover:text-red-400 transition-colors flex-1 line-clamp-3" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16 }}>
                       {item.title}
                     </h3>
                     <span className="inline-flex items-center gap-1 text-xs font-bold text-red-400 mt-3 group-hover:gap-2 transition-all">
-                      Leer <i className="ri-arrow-right-line"></i>
+                      {t('news_read')} <i className="ri-arrow-right-line"></i>
                     </span>
                   </div>
                 </a>
@@ -389,7 +393,7 @@ export default function NewsPage() {
               <div className="flex justify-center mt-8">
                 <button onClick={() => setVisible((v) => v + PAGE_SIZE)}
                   className="inline-flex items-center gap-2 bg-white/[0.04] border border-white/12 hover:border-red-500/45 hover:text-white text-zinc-300 text-sm font-bold px-7 py-3.5 rounded-xl cursor-pointer transition-all">
-                  Ver más noticias <i className="ri-arrow-down-line"></i>
+                  {t('news_more')} <i className="ri-arrow-down-line"></i>
                 </button>
               </div>
             )}
@@ -398,7 +402,7 @@ export default function NewsPage() {
             {sources.length > 0 && (
               <div className="mt-12 pt-8 border-t border-white/[0.06]">
                 <p className="text-[11px] font-bold tracking-[0.25em] uppercase text-zinc-600 mb-3" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-                  Medios consultados
+                  {t('news_sources_title')}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {sources.map((s) => (
@@ -409,7 +413,7 @@ export default function NewsPage() {
                   ))}
                 </div>
                 <p className="text-xs text-zinc-600 mt-5 leading-relaxed max-w-2xl">
-                  RANKD reúne titulares públicos de estos medios y enlaza siempre al original. No alojamos ni reescribimos su contenido: al hacer clic accedes directamente a la web del medio.
+                  {t('news_sources_note')}
                 </p>
               </div>
             )}
