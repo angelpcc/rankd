@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Opportunity, Profile } from '@/lib/supabase';
 
 // Tipos que son exclusivamente deportivos (solo fighters pueden postularse)
@@ -8,23 +9,14 @@ const SPONSORSHIP_TYPES = ['patrocinio'];
 export const isSponsorshipType = (type: string) => SPONSORSHIP_TYPES.includes(type);
 export const isFighterType = (type: string) => FIGHTER_ONLY_TYPES.includes(type);
 
-const typeConfig: Record<string, { label: string; textColor: string; bgColor: string; borderColor: string; icon: string; accentFrom: string; accentTo: string }> = {
-  combate:       { label: 'Combate',       textColor: 'text-red-400',     bgColor: 'bg-red-500/12',     borderColor: 'border-red-200',     icon: 'ri-boxing-line',        accentFrom: 'from-red-500',     accentTo: 'to-red-700' },
-  contrato:      { label: 'Contrato',      textColor: 'text-zinc-200',    bgColor: 'bg-white/[0.03]',   borderColor: 'border-white/10',    icon: 'ri-file-text-line',     accentFrom: 'from-zinc-600',    accentTo: 'to-zinc-800' },
-  patrocinio:    { label: 'Patrocinio',    textColor: 'text-yellow-400',  bgColor: 'bg-yellow-500/12',  borderColor: 'border-yellow-200',  icon: 'ri-hand-coin-line',     accentFrom: 'from-yellow-500',  accentTo: 'to-orange-500' },
-  sparring:      { label: 'Sparring',      textColor: 'text-orange-400',  bgColor: 'bg-orange-500/12',  borderColor: 'border-orange-200',  icon: 'ri-user-shared-line',   accentFrom: 'from-orange-500',  accentTo: 'to-orange-700' },
-  campamento:    { label: 'Campamento',    textColor: 'text-emerald-400', bgColor: 'bg-emerald-500/12', borderColor: 'border-emerald-200', icon: 'ri-tent-line',          accentFrom: 'from-emerald-500', accentTo: 'to-emerald-700' },
-  entrenamiento: { label: 'Entrenamiento', textColor: 'text-sky-400',     bgColor: 'bg-sky-500/12',     borderColor: 'border-sky-200',     icon: 'ri-run-line',           accentFrom: 'from-sky-500',     accentTo: 'to-sky-700' },
-  scouting:      { label: 'Scouting',      textColor: 'text-violet-700',  bgColor: 'bg-violet-50',  borderColor: 'border-violet-200',  icon: 'ri-eye-line',           accentFrom: 'from-violet-500',  accentTo: 'to-violet-700' },
-};
-
-const disciplineLabels: Record<string, string> = {
-  boxing: 'Boxeo', mma: 'MMA', kickboxing: 'Kickboxing',
-  muay_thai: 'Muay Thai', wrestling: 'Wrestling', bjj: 'BJJ', other: 'Otro',
-};
-
-const expLabels: Record<string, string> = {
-  amateur: 'Amateur', semi_pro: 'Semi-Pro', professional: 'Profesional',
+const typeConfig: Record<string, { labelKey: string; textColor: string; bgColor: string; borderColor: string; icon: string; accentFrom: string; accentTo: string }> = {
+  combate:       { labelKey: 'opp_type_combate',       textColor: 'text-red-400',     bgColor: 'bg-red-500/12',     borderColor: 'border-red-200',     icon: 'ri-boxing-line',        accentFrom: 'from-red-500',     accentTo: 'to-red-700' },
+  contrato:      { labelKey: 'opp_type_contrato',      textColor: 'text-zinc-200',    bgColor: 'bg-white/[0.03]',   borderColor: 'border-white/10',    icon: 'ri-file-text-line',     accentFrom: 'from-zinc-600',    accentTo: 'to-zinc-800' },
+  patrocinio:    { labelKey: 'opp_type_patrocinio',    textColor: 'text-yellow-400',  bgColor: 'bg-yellow-500/12',  borderColor: 'border-yellow-200',  icon: 'ri-hand-coin-line',     accentFrom: 'from-yellow-500',  accentTo: 'to-orange-500' },
+  sparring:      { labelKey: 'opp_type_sparring',      textColor: 'text-orange-400',  bgColor: 'bg-orange-500/12',  borderColor: 'border-orange-200',  icon: 'ri-user-shared-line',   accentFrom: 'from-orange-500',  accentTo: 'to-orange-700' },
+  campamento:    { labelKey: 'opp_type_campamento',    textColor: 'text-emerald-400', bgColor: 'bg-emerald-500/12', borderColor: 'border-emerald-200', icon: 'ri-tent-line',          accentFrom: 'from-emerald-500', accentTo: 'to-emerald-700' },
+  entrenamiento: { labelKey: 'opp_type_entrenamiento', textColor: 'text-sky-400',     bgColor: 'bg-sky-500/12',     borderColor: 'border-sky-200',     icon: 'ri-run-line',           accentFrom: 'from-sky-500',     accentTo: 'to-sky-700' },
+  scouting:      { labelKey: 'opp_type_scouting',      textColor: 'text-violet-700',  bgColor: 'bg-violet-50',  borderColor: 'border-violet-200',  icon: 'ri-eye-line',           accentFrom: 'from-violet-500',  accentTo: 'to-violet-700' },
 };
 
 interface Props {
@@ -37,20 +29,30 @@ interface Props {
 }
 
 export default function OpportunityCard({ opportunity: opp, publisher, isApplied, canApply, userType, onApply }: Props) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
   const isSponsorship = isSponsorshipType(opp.type);
   const cfg = typeConfig[opp.type] || typeConfig.combate;
   const initials = (publisher?.full_name || 'E').split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
+
+  const disciplineLabels: Record<string, string> = {
+    boxing: t('disc_boxing'), mma: t('disc_mma'), kickboxing: t('disc_kickboxing'),
+    muay_thai: t('disc_muay_thai'), wrestling: t('disc_wrestling'), bjj: t('disc_bjj'), other: t('disc_other'),
+  };
+  const expLabels: Record<string, string> = {
+    amateur: t('exp_amateur'), semi_pro: t('exp_semipro'), professional: t('exp_professional'),
+  };
 
   const formatDate = (d: string | null) => {
     if (!d) return null;
     const date = new Date(d);
     const now = new Date();
     const diffDays = Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    if (diffDays < 0) return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
-    if (diffDays === 0) return 'Hoy';
-    if (diffDays === 1) return 'Mañana';
-    if (diffDays <= 7) return `En ${diffDays} días`;
-    return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+    if (diffDays < 0) return date.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+    if (diffDays === 0) return t('op_date_today');
+    if (diffDays === 1) return t('op_date_tomorrow');
+    if (diffDays <= 7) return t('op_date_in_days', { n: diffDays });
+    return date.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
   const isUrgent = opp.event_date
@@ -68,18 +70,18 @@ export default function OpportunityCard({ opportunity: opp, publisher, isApplied
         <div className="flex items-center justify-between mb-4">
           <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border ${cfg.bgColor} ${cfg.textColor} ${cfg.borderColor}`}>
             <i className={cfg.icon}></i>
-            {cfg.label}
+            {t(cfg.labelKey)}
           </span>
           <div className="flex items-center gap-2">
             {isUrgent && opp.event_date && (
               <span className="flex items-center gap-1 text-xs font-bold text-red-400 bg-red-500/12 border border-red-200 px-2 py-1 rounded-full animate-pulse">
                 <i className="ri-alarm-line"></i>
-                Urgente
+                {t('op_urgent')}
               </span>
             )}
             <span className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full ${opp.status === 'open' ? 'bg-green-500/12 text-green-400 border border-green-200' : 'bg-white/[0.03] text-zinc-500 border border-white/10'}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${opp.status === 'open' ? 'bg-green-500' : 'bg-zinc-400'}`}></span>
-              {opp.status === 'open' ? 'Activa' : 'Cerrada'}
+              {opp.status === 'open' ? t('op_active') : t('op_closed')}
             </span>
           </div>
         </div>
@@ -98,7 +100,7 @@ export default function OpportunityCard({ opportunity: opp, publisher, isApplied
             <div className="flex items-center gap-2 bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2">
               <i className="ri-boxing-line text-zinc-400 text-xs flex-shrink-0"></i>
               <div className="min-w-0">
-                <p className="text-xs text-zinc-400 leading-none">Disciplina</p>
+                <p className="text-xs text-zinc-400 leading-none">{t('fd_discipline')}</p>
                 <p className="text-xs font-semibold text-zinc-200 mt-0.5 truncate">{disciplineLabels[opp.discipline] || opp.discipline}</p>
               </div>
             </div>
@@ -107,7 +109,7 @@ export default function OpportunityCard({ opportunity: opp, publisher, isApplied
             <div className="flex items-center gap-2 bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2">
               <i className="ri-scales-line text-zinc-400 text-xs flex-shrink-0"></i>
               <div className="min-w-0">
-                <p className="text-xs text-zinc-400 leading-none">Categoría</p>
+                <p className="text-xs text-zinc-400 leading-none">{t('op_l_category')}</p>
                 <p className="text-xs font-semibold text-zinc-200 mt-0.5 truncate">{opp.weight_class}</p>
               </div>
             </div>
@@ -116,7 +118,7 @@ export default function OpportunityCard({ opportunity: opp, publisher, isApplied
             <div className="flex items-center gap-2 bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2">
               <i className="ri-bar-chart-line text-zinc-400 text-xs flex-shrink-0"></i>
               <div className="min-w-0">
-                <p className="text-xs text-zinc-400 leading-none">Nivel</p>
+                <p className="text-xs text-zinc-400 leading-none">{t('fd_level')}</p>
                 <p className="text-xs font-semibold text-zinc-200 mt-0.5 truncate">{expLabels[opp.experience_level] || opp.experience_level}</p>
               </div>
             </div>
@@ -125,7 +127,7 @@ export default function OpportunityCard({ opportunity: opp, publisher, isApplied
             <div className="flex items-center gap-2 bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2">
               <i className="ri-map-pin-line text-zinc-400 text-xs flex-shrink-0"></i>
               <div className="min-w-0">
-                <p className="text-xs text-zinc-400 leading-none">Ubicación</p>
+                <p className="text-xs text-zinc-400 leading-none">{t('op_l_location')}</p>
                 <p className="text-xs font-semibold text-zinc-200 mt-0.5 truncate">{opp.location}</p>
               </div>
             </div>
@@ -137,7 +139,7 @@ export default function OpportunityCard({ opportunity: opp, publisher, isApplied
           <div className={`flex items-center gap-2 text-xs mb-4 px-3 py-2 rounded-lg border ${isUrgent ? 'bg-red-500/12 border-red-200 text-red-400' : 'bg-white/[0.03] border-white/[0.08] text-zinc-500'}`}>
             <i className={`ri-calendar-event-line ${isUrgent ? 'text-red-500' : 'text-zinc-400'}`}></i>
             <span className="font-medium">{formatDate(opp.event_date)}</span>
-            {isUrgent && <span className="ml-auto font-bold text-red-400">¡Pronto!</span>}
+            {isUrgent && <span className="ml-auto font-bold text-red-400">{t('op_soon')}</span>}
           </div>
         )}
 
@@ -155,8 +157,8 @@ export default function OpportunityCard({ opportunity: opp, publisher, isApplied
               </div>
             )}
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-zinc-200 truncate">{publisher?.full_name || 'Organización'}</p>
-              <p className="text-xs text-zinc-400 capitalize">{publisher?.user_type || 'promotora'}</p>
+              <p className="text-xs font-semibold text-zinc-200 truncate">{publisher?.full_name || t('op_org_fallback')}</p>
+              <p className="text-xs text-zinc-400 capitalize">{publisher?.user_type || t('op_promoter_fallback')}</p>
             </div>
           </div>
 
@@ -166,16 +168,16 @@ export default function OpportunityCard({ opportunity: opp, publisher, isApplied
             <div className="flex flex-col items-end gap-1">
               <span className="flex items-center gap-1.5 text-xs font-bold text-yellow-400 bg-yellow-500/12 border border-yellow-200 px-3 py-2 rounded-xl whitespace-nowrap">
                 <i className="ri-hand-coin-line"></i>
-                Buscando sponsors
+                {t('op_seeking_sponsors')}
               </span>
               {userType === 'fighter' && (
-                <span className="text-xs text-zinc-400">Solo para marcas</span>
+                <span className="text-xs text-zinc-400">{t('op_brands_only')}</span>
               )}
             </div>
           ) : isApplied ? (
             <span className="flex items-center gap-1.5 text-xs font-bold text-green-400 bg-green-500/12 border border-green-200 px-3 py-2 rounded-xl whitespace-nowrap">
               <i className="ri-check-double-line"></i>
-              Postulado
+              {t('op_applied')}
             </span>
           ) : canApply ? (
             <button
@@ -183,7 +185,7 @@ export default function OpportunityCard({ opportunity: opp, publisher, isApplied
               className="flex items-center gap-1.5 text-sm font-bold bg-red-600 hover:bg-red-700 active:scale-95 text-white px-4 py-2.5 rounded-xl transition-all cursor-pointer whitespace-nowrap"
             >
               <i className="ri-send-plane-fill"></i>
-              Postularme
+              {t('op_apply')}
             </button>
           ) : (
             <button
@@ -191,7 +193,7 @@ export default function OpportunityCard({ opportunity: opp, publisher, isApplied
               className="flex items-center gap-1.5 text-xs font-semibold border border-red-200 text-red-400 hover:bg-red-500/12 px-3 py-2 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
             >
               <i className="ri-login-box-line"></i>
-              Ver más
+              {t('op_see_more')}
             </button>
           )}
         </div>

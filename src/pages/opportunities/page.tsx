@@ -79,17 +79,17 @@ export default function OpportunitiesPage() {
       message: message.trim() || null,
     });
     if (error) {
-      showToast('Error al postularse. Inténtalo de nuevo.', 'error');
+      showToast(t('opp_toast_error'), 'error');
     } else {
       setAppliedIds((prev) => new Set([...prev, selectedOpp.id]));
-      showToast('¡Postulación enviada correctamente!');
+      showToast(t('opp_toast_sent'));
     }
     setSelectedOpp(null);
   };
 
   const typeLabels: Record<string, string> = {
-    combate: 'Combate', contrato: 'Contrato', patrocinio: 'Patrocinio',
-    sparring: 'Sparring', campamento: 'Campamento', entrenamiento: 'Entrenamiento', scouting: 'Scouting',
+    combate: t('opp_type_combate'), contrato: t('opp_type_contrato'), patrocinio: t('opp_type_patrocinio'),
+    sparring: t('opp_type_sparring'), campamento: t('opp_type_campamento'), entrenamiento: t('opp_type_entrenamiento'), scouting: t('opp_type_scouting'),
   };
 
   // "Sin resultados" y "todavía no hay nada publicado" son cosas distintas
@@ -111,7 +111,7 @@ export default function OpportunitiesPage() {
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-8 h-[2px] bg-[#E10600]" />
-                <span className="text-[#E10600] text-xs font-bold tracking-[0.25em] uppercase">Oportunidades</span>
+                <span className="text-[#E10600] text-xs font-bold tracking-[0.25em] uppercase">{t('opp_eyebrow')}</span>
               </div>
               <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">{t('opp_page_title')}</h1>
               <p className="text-zinc-300 mt-2 sm:mt-3 text-sm sm:text-base max-w-xl leading-relaxed">{t('opp_page_desc')}</p>
@@ -215,22 +215,22 @@ export default function OpportunitiesPage() {
                   onClick={() => { setFilterType(''); setFilterDiscipline(''); setFilterWeight(''); setFilterLocation(''); setSearch(''); }}
                   className="mt-5 text-sm font-bold text-red-400 hover:text-red-300 cursor-pointer"
                 >
-                  Ver todas las oportunidades
+                  {t('opp_see_all')}
                 </button>
               </>
             ) : (
               <>
-                <p className="text-zinc-200 text-base font-semibold">Todavía no hay oportunidades abiertas</p>
+                <p className="text-zinc-200 text-base font-semibold">{t('opp_none_title')}</p>
                 <p className="text-zinc-500 text-sm mt-1.5 max-w-sm mx-auto leading-relaxed">
-                  Promotoras, gimnasios y marcas publican aquí combates, sparrings, campamentos y patrocinios.
+                  {t('opp_none_desc')}
                 </p>
                 {profile && profile.user_type !== 'fighter' ? (
                   <button onClick={() => navigate('/dashboard')} className="rk-btn rk-btn-primary mt-6" style={{ fontSize: '0.85rem', padding: '0.75rem 1.6rem' }}>
-                    PUBLICAR LA PRIMERA
+                    {t('opp_publish_first')}
                   </button>
                 ) : (
                   <button onClick={() => navigate('/fighters')} className="mt-5 text-sm font-bold text-red-400 hover:text-red-300 cursor-pointer">
-                    Explorar el directorio de peleadores
+                    {t('opp_explore_dir')}
                   </button>
                 )}
               </>
