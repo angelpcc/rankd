@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ProfileCompletion } from '@/hooks/useProfileCompletion';
 
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export default function ProfileCompletionBanner({ completion, onComplete, userType = 'fighter' }: Props) {
+  const { t } = useTranslation();
   const [dismissed, setDismissed] = useState(false);
 
   const isFighter = userType === 'fighter';
@@ -38,13 +40,13 @@ export default function ProfileCompletionBanner({ completion, onComplete, userTy
           {/* Text */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
-              <h3 className="text-sm font-bold text-white">¡Completa tu perfil para ser visible!</h3>
+              <h3 className="text-sm font-bold text-white">{t('pc_fighter_title')}</h3>
               <span className="text-xs font-bold px-2 py-0.5 rounded-full text-red-400 bg-red-600/20 border border-red-500/30">
-                {completion.percent}% completado
+                {t('pc_percent_done', { p: completion.percent })}
               </span>
             </div>
             <p className="text-xs text-zinc-300 leading-relaxed">
-              Los perfiles incompletos <strong className="text-red-400">no aparecen en búsquedas</strong> de promotoras y marcas. Completa al menos el 70% para ser descubierto.
+              {t('pc_desc_pre')} <strong className="text-red-400">{t('pc_desc_strong')}</strong> {t('pc_desc_post')}
             </p>
 
             {/* Progress bar */}
@@ -63,14 +65,14 @@ export default function ProfileCompletionBanner({ completion, onComplete, userTy
             {/* Missing fields chips */}
             {topMissing.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
-                <span className="text-xs text-zinc-500">Falta:</span>
+                <span className="text-xs text-zinc-500">{t('pc_missing')}</span>
                 {topMissing.map((f) => (
                   <span key={f.key} className="text-xs bg-zinc-800 border border-red-500/20 text-red-300 px-2 py-0.5 rounded-full">
-                    {f.label}
+                    {t(f.labelKey)}
                   </span>
                 ))}
                 {completion.missingCount > 3 && (
-                  <span className="text-xs text-zinc-600">+{completion.missingCount - 3} más</span>
+                  <span className="text-xs text-zinc-600">+{completion.missingCount - 3} {t('pc_more_suffix')}</span>
                 )}
               </div>
             )}
@@ -82,7 +84,7 @@ export default function ProfileCompletionBanner({ completion, onComplete, userTy
             className="flex-shrink-0 flex items-center gap-2 text-sm font-bold px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white transition-colors cursor-pointer whitespace-nowrap"
           >
             <i className="ri-edit-line"></i>
-            Completar perfil
+            {t('pc_complete_profile')}
           </button>
         </div>
       </div>
@@ -103,7 +105,7 @@ export default function ProfileCompletionBanner({ completion, onComplete, userTy
       {/* Text + bar */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <p className="text-xs font-medium text-zinc-300">Completa tu perfil para generar más confianza</p>
+          <p className="text-xs font-medium text-zinc-300">{t('pc_org_desc')}</p>
           <span className="text-xs text-zinc-500">{completion.percent}%</span>
         </div>
         <div className="h-1 bg-zinc-800 rounded-full overflow-hidden w-full max-w-xs">
@@ -120,12 +122,12 @@ export default function ProfileCompletionBanner({ completion, onComplete, userTy
           onClick={onComplete}
           className="text-xs font-medium text-zinc-300 hover:text-white border border-zinc-700 hover:border-zinc-500 px-3 py-1.5 rounded-lg transition-colors cursor-pointer whitespace-nowrap"
         >
-          Completar
+          {t('pc_complete')}
         </button>
         <button
           onClick={() => setDismissed(true)}
           className="w-6 h-6 flex items-center justify-center text-zinc-600 hover:text-zinc-400 cursor-pointer"
-          title="Cerrar"
+          title={t('pc_close')}
         >
           <i className="ri-close-line text-sm"></i>
         </button>

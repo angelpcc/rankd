@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 
 interface Props {
@@ -9,32 +10,32 @@ interface Props {
 
 const statusConfig = {
   unverified: {
-    label: 'No verificado',
+    labelKey: 'vp_status_unverified_label',
     icon: 'ri-shield-line',
     color: 'text-zinc-400',
     bg: 'bg-zinc-800 border-zinc-700',
-    desc: 'Tu perfil aún no ha sido verificado.',
+    descKey: 'vp_status_unverified_desc',
   },
   pending: {
-    label: 'En revisión',
+    labelKey: 'vp_status_pending_label',
     icon: 'ri-time-line',
     color: 'text-yellow-400',
     bg: 'bg-yellow-500/10 border-yellow-500/30',
-    desc: 'Tu solicitud está siendo revisada. Te notificaremos pronto.',
+    descKey: 'vp_status_pending_desc',
   },
   verified: {
-    label: 'Verificado',
+    labelKey: 'vp_status_verified_label',
     icon: 'ri-shield-check-fill',
     color: 'text-green-400',
     bg: 'bg-green-500/10 border-green-500/30',
-    desc: 'Tu perfil está verificado. El badge aparece en tu perfil público.',
+    descKey: 'vp_status_verified_desc',
   },
   rejected: {
-    label: 'Rechazado',
+    labelKey: 'vp_status_rejected_label',
     icon: 'ri-shield-cross-line',
     color: 'text-red-400',
     bg: 'bg-red-500/10 border-red-500/30',
-    desc: 'Tu solicitud fue rechazada. Puedes volver a solicitarla con más información.',
+    descKey: 'vp_status_rejected_desc',
   },
 };
 
@@ -42,6 +43,8 @@ const isFighter = (p: Profile) => p.user_type === 'fighter';
 const isBrand = (p: Profile) => p.user_type === 'brand';
 
 export default function VerificationPanel({ profile, showToast, onUpdate }: Props) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
   const status = (profile.verification_status || 'unverified') as keyof typeof statusConfig;
   const cfg = statusConfig[status] || statusConfig.unverified;
   const [submitting, setSubmitting] = useState(false);
@@ -51,9 +54,9 @@ export default function VerificationPanel({ profile, showToast, onUpdate }: Prop
   const badgeType = isBrand(profile) ? 'brand' : isFighter(profile) ? 'fighter' : 'org';
 
   const badgePreview = {
-    fighter: { icon: 'ri-shield-check-fill', label: 'Verificado', color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/30' },
-    org:     { icon: 'ri-verified-badge-fill', label: 'Verificado', color: 'text-red-400',   bg: 'bg-red-500/10 border-red-500/30' },
-    brand:   { icon: 'ri-vip-crown-fill',      label: 'Premium',    color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/30' },
+    fighter: { icon: 'ri-shield-check-fill', label: t('vp_verified'), color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/30' },
+    org:     { icon: 'ri-verified-badge-fill', label: t('vp_verified'), color: 'text-red-400',   bg: 'bg-red-500/10 border-red-500/30' },
+    brand:   { icon: 'ri-vip-crown-fill',      label: t('vp_premium'),    color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/30' },
   }[badgeType];
 
   const requestVerification = async () => {
@@ -67,9 +70,9 @@ export default function VerificationPanel({ profile, showToast, onUpdate }: Prop
       .eq('id', profile.id);
 
     if (error) {
-      showToast('Error al enviar la solicitud', 'error');
+      showToast(t('vp_toast_error'), 'error');
     } else {
-      showToast('Solicitud enviada — revisaremos tu perfil pronto');
+      showToast(t('vp_toast_sent'));
       setShowForm(false);
       onUpdate();
     }
@@ -78,39 +81,39 @@ export default function VerificationPanel({ profile, showToast, onUpdate }: Prop
 
   const benefits = isFighter(profile)
     ? [
-        { icon: 'ri-shield-check-line', text: 'Badge verde en tu perfil público' },
-        { icon: 'ri-star-line', text: 'Mayor visibilidad en el listado de peleadores' },
-        { icon: 'ri-trophy-line', text: 'Más confianza para promotoras y managers' },
-        { icon: 'ri-search-line', text: 'Apareces primero en búsquedas' },
+        { icon: 'ri-shield-check-line', text: t('vp_ben_fighter_1') },
+        { icon: 'ri-star-line', text: t('vp_ben_fighter_2') },
+        { icon: 'ri-trophy-line', text: t('vp_ben_fighter_3') },
+        { icon: 'ri-search-line', text: t('vp_ben_fighter_4') },
       ]
     : isBrand(profile)
     ? [
-        { icon: 'ri-vip-crown-line', text: 'Badge Premium dorado en tu perfil' },
-        { icon: 'ri-star-line', text: 'Destacado en búsquedas de peleadores' },
-        { icon: 'ri-hand-coin-line', text: 'Mayor credibilidad para patrocinios' },
-        { icon: 'ri-megaphone-line', text: 'Oportunidades destacadas en el feed' },
+        { icon: 'ri-vip-crown-line', text: t('vp_ben_brand_1') },
+        { icon: 'ri-star-line', text: t('vp_ben_brand_2') },
+        { icon: 'ri-hand-coin-line', text: t('vp_ben_brand_3') },
+        { icon: 'ri-megaphone-line', text: t('vp_ben_brand_4') },
       ]
     : [
-        { icon: 'ri-verified-badge-line', text: 'Badge rojo verificado en tu perfil' },
-        { icon: 'ri-trophy-line', text: 'Mayor confianza de los peleadores' },
-        { icon: 'ri-megaphone-line', text: 'Oportunidades destacadas' },
-        { icon: 'ri-star-line', text: 'Acceso a peleadores verificados' },
+        { icon: 'ri-verified-badge-line', text: t('vp_ben_org_1') },
+        { icon: 'ri-trophy-line', text: t('vp_ben_org_2') },
+        { icon: 'ri-megaphone-line', text: t('vp_ben_org_3') },
+        { icon: 'ri-star-line', text: t('vp_ben_org_4') },
       ];
 
   const requirements = isFighter(profile)
     ? [
-        'Foto de perfil clara y reciente',
-        'Récord deportivo completo y verificable',
-        'Nombre real (no apodo)',
-        'Documento de identidad o licencia federativa',
-        'Al menos 1 combate registrado',
+        t('vp_req_fighter_1'),
+        t('vp_req_fighter_2'),
+        t('vp_req_fighter_3'),
+        t('vp_req_fighter_4'),
+        t('vp_req_fighter_5'),
       ]
     : [
-        'Nombre oficial de la organización',
-        'Sitio web o redes sociales activas',
-        'Descripción completa de la actividad',
-        'Documentación de la empresa (CIF/NIF)',
-        'Al menos 1 oportunidad publicada',
+        t('vp_req_org_1'),
+        t('vp_req_org_2'),
+        t('vp_req_org_3'),
+        t('vp_req_org_4'),
+        t('vp_req_org_5'),
       ];
 
   return (
@@ -123,7 +126,7 @@ export default function VerificationPanel({ profile, showToast, onUpdate }: Prop
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className={`text-base font-bold ${cfg.color}`}>{cfg.label}</h3>
+              <h3 className={`text-base font-bold ${cfg.color}`}>{t(cfg.labelKey)}</h3>
               {profile.verified && (
                 <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border ${badgePreview.bg} ${badgePreview.color}`}>
                   <i className={`${badgePreview.icon} text-xs`}></i>
@@ -131,11 +134,11 @@ export default function VerificationPanel({ profile, showToast, onUpdate }: Prop
                 </span>
               )}
             </div>
-            <p className="text-sm text-zinc-400 mt-1">{cfg.desc}</p>
+            <p className="text-sm text-zinc-400 mt-1">{t(cfg.descKey)}</p>
             {profile.verification_requested_at && status === 'pending' && (
               <p className="text-xs text-zinc-500 mt-2 flex items-center gap-1">
                 <i className="ri-calendar-line"></i>
-                Solicitado el {new Date(profile.verification_requested_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
+                {t('vp_requested_on', { date: new Date(profile.verification_requested_at).toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' }) })}
               </p>
             )}
           </div>
@@ -144,15 +147,15 @@ export default function VerificationPanel({ profile, showToast, onUpdate }: Prop
 
       {/* Badge preview */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
-        <h4 className="text-sm font-semibold text-white mb-3">Vista previa del badge</h4>
+        <h4 className="text-sm font-semibold text-white mb-3">{t('vp_badge_preview')}</h4>
         <div className="flex items-center gap-4 flex-wrap">
           {/* In profile hero */}
           <div className="flex flex-col items-center gap-2">
             <div className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border ${profile.verified ? `${badgePreview.bg} ${badgePreview.color}` : 'bg-zinc-800 border-zinc-700 text-zinc-500'}`}>
               <i className={`${profile.verified ? badgePreview.icon : 'ri-shield-line'} text-sm`}></i>
-              {profile.verified ? badgePreview.label : 'Sin verificar'}
+              {profile.verified ? badgePreview.label : t('vp_unverified_short')}
             </div>
-            <span className="text-xs text-zinc-600">En perfil</span>
+            <span className="text-xs text-zinc-600">{t('vp_loc_profile')}</span>
           </div>
 
           {/* In card */}
@@ -160,16 +163,16 @@ export default function VerificationPanel({ profile, showToast, onUpdate }: Prop
             <div className={`w-5 h-5 flex items-center justify-center rounded-full ${profile.verified ? badgePreview.color : 'text-zinc-600'}`}>
               <i className={`${profile.verified ? badgePreview.icon : 'ri-shield-line'} text-base`}></i>
             </div>
-            <span className="text-xs text-zinc-600">En tarjeta</span>
+            <span className="text-xs text-zinc-600">{t('vp_loc_card')}</span>
           </div>
 
           {/* In candidates */}
           <div className="flex flex-col items-center gap-2">
             <div className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${profile.verified ? `${badgePreview.bg} ${badgePreview.color}` : 'bg-zinc-800 border-zinc-700 text-zinc-500'}`}>
               <i className={`${profile.verified ? badgePreview.icon : 'ri-shield-line'} text-xs`}></i>
-              {profile.verified ? badgePreview.label : 'Sin verificar'}
+              {profile.verified ? badgePreview.label : t('vp_unverified_short')}
             </div>
-            <span className="text-xs text-zinc-600">En candidatos</span>
+            <span className="text-xs text-zinc-600">{t('vp_loc_candidates')}</span>
           </div>
         </div>
       </div>
@@ -179,7 +182,7 @@ export default function VerificationPanel({ profile, showToast, onUpdate }: Prop
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
           <h4 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
             <i className={`${badgePreview.icon} ${badgePreview.color}`}></i>
-            Beneficios de la verificación
+            {t('vp_benefits_title')}
           </h4>
           <ul className="space-y-3">
             {benefits.map((b) => (
@@ -197,7 +200,7 @@ export default function VerificationPanel({ profile, showToast, onUpdate }: Prop
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
           <h4 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
             <i className="ri-file-list-3-line text-zinc-400"></i>
-            Requisitos
+            {t('vp_requirements_title')}
           </h4>
           <ul className="space-y-2.5">
             {requirements.map((r) => (
@@ -219,10 +222,10 @@ export default function VerificationPanel({ profile, showToast, onUpdate }: Prop
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div>
                 <p className="text-sm font-semibold text-white">
-                  {status === 'rejected' ? 'Volver a solicitar verificación' : 'Solicitar verificación'}
+                  {status === 'rejected' ? t('vp_reapply') : t('vp_request')}
                 </p>
                 <p className="text-xs text-zinc-500 mt-0.5">
-                  El proceso es manual y puede tardar 24-48h. Te contactaremos por email.
+                  {t('vp_request_desc')}
                 </p>
               </div>
               <button
@@ -234,15 +237,15 @@ export default function VerificationPanel({ profile, showToast, onUpdate }: Prop
                 }`}
               >
                 <i className="ri-send-plane-line"></i>
-                Solicitar verificación
+                {t('vp_request')}
               </button>
             </div>
           ) : (
             <div className="space-y-4">
-              <h4 className="text-sm font-semibold text-white">Solicitud de verificación</h4>
+              <h4 className="text-sm font-semibold text-white">{t('vp_request_title')}</h4>
               <div>
                 <label className="block text-xs text-zinc-400 mb-1.5">
-                  Información adicional <span className="text-zinc-600">(opcional)</span>
+                  {t('vp_extra_info')} <span className="text-zinc-600">{t('vp_optional')}</span>
                 </label>
                 <textarea
                   value={note}
@@ -250,14 +253,14 @@ export default function VerificationPanel({ profile, showToast, onUpdate }: Prop
                   rows={3}
                   maxLength={500}
                   className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 resize-none"
-                  placeholder="Cuéntanos más sobre ti: federación, historial, redes sociales, web oficial..."
+                  placeholder={t('vp_note_ph')}
                 />
                 <p className="text-xs text-zinc-600 mt-1 text-right">{note.length}/500</p>
               </div>
               <div className="bg-zinc-800 rounded-xl p-4">
                 <p className="text-xs text-zinc-400 leading-relaxed">
                   <i className="ri-information-line mr-1 text-zinc-500"></i>
-                  Al enviar esta solicitud, el equipo de Rankd revisará tu perfil manualmente. Asegúrate de tener tu perfil completo antes de solicitar la verificación.
+                  {t('vp_info_note')}
                 </p>
               </div>
               <div className="flex gap-3">
@@ -265,7 +268,7 @@ export default function VerificationPanel({ profile, showToast, onUpdate }: Prop
                   onClick={() => setShowForm(false)}
                   className="flex-1 py-2.5 rounded-xl border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500 text-sm transition-colors cursor-pointer whitespace-nowrap"
                 >
-                  Cancelar
+                  {t('vp_cancel')}
                 </button>
                 <button
                   onClick={requestVerification}
@@ -277,9 +280,9 @@ export default function VerificationPanel({ profile, showToast, onUpdate }: Prop
                   }`}
                 >
                   {submitting ? (
-                    <><div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div> Enviando...</>
+                    <><div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div> {t('vp_sending')}</>
                   ) : (
-                    <><i className="ri-send-plane-line"></i> Enviar solicitud</>
+                    <><i className="ri-send-plane-line"></i> {t('vp_send')}</>
                   )}
                 </button>
               </div>
@@ -292,8 +295,8 @@ export default function VerificationPanel({ profile, showToast, onUpdate }: Prop
             <i className="ri-time-line text-xl"></i>
           </div>
           <div>
-            <p className="text-sm font-semibold text-yellow-400">Solicitud en revisión</p>
-            <p className="text-xs text-zinc-400 mt-0.5">Estamos revisando tu perfil. El proceso tarda entre 24 y 48 horas. Te notificaremos por email.</p>
+            <p className="text-sm font-semibold text-yellow-400">{t('vp_pending_title')}</p>
+            <p className="text-xs text-zinc-400 mt-0.5">{t('vp_pending_desc')}</p>
           </div>
         </div>
       ) : (
@@ -302,8 +305,8 @@ export default function VerificationPanel({ profile, showToast, onUpdate }: Prop
             <i className="ri-shield-check-fill text-xl"></i>
           </div>
           <div>
-            <p className="text-sm font-semibold text-green-400">Perfil verificado</p>
-            <p className="text-xs text-zinc-400 mt-0.5">Tu badge de verificación es visible en tu perfil público, tarjetas y candidatos.</p>
+            <p className="text-sm font-semibold text-green-400">{t('vp_verified_title')}</p>
+            <p className="text-xs text-zinc-400 mt-0.5">{t('vp_verified_desc')}</p>
           </div>
         </div>
       )}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase, OrgGalleryImage, Profile } from '@/lib/supabase';
 import { useImageUpload } from '@/hooks/useImageUpload';
 
@@ -8,18 +9,20 @@ interface Props {
 }
 
 const GALLERY_CATEGORIES = [
-  { value: 'instalaciones', label: 'Instalaciones' },
-  { value: 'ring', label: 'Ring / Tatami' },
-  { value: 'entrenamiento', label: 'Entrenamiento' },
-  { value: 'ambiente', label: 'Ambiente' },
-  { value: 'equipo', label: 'Equipo' },
-  { value: 'general', label: 'General' },
+  { value: 'instalaciones', labelKey: 'gg_cat_instalaciones' },
+  { value: 'ring', labelKey: 'gg_cat_ring' },
+  { value: 'entrenamiento', labelKey: 'gg_cat_entrenamiento' },
+  { value: 'ambiente', labelKey: 'gg_cat_ambiente' },
+  { value: 'equipo', labelKey: 'gg_cat_equipo' },
+  { value: 'general', labelKey: 'gg_cat_general' },
 ];
+const CAT_LABEL_KEYS: Record<string, string> = Object.fromEntries(GALLERY_CATEGORIES.map((c) => [c.value, c.labelKey]));
 
 const MAX_MB = 5;
 const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
 
 export default function GymGallery({ profile, showToast }: Props) {
+  const { t } = useTranslation();
   const [images, setImages] = useState<OrgGalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -53,8 +56,8 @@ export default function GymGallery({ profile, showToast }: Props) {
   useEffect(() => { fetchImages(); }, [fetchImages]);
 
   const validateFile = (file: File): string | null => {
-    if (!ALLOWED.includes(file.type)) return 'Solo JPG, PNG o WEBP';
-    if (file.size > MAX_MB * 1024 * 1024) return `Máximo ${MAX_MB} MB`;
+    if (!ALLOWED.includes(file.type)) return t('gg_err_type');
+    if (file.size > MAX_MB * 1024 * 1024) return t('gg_err_size', { n: MAX_MB });
     return null;
   };
 
@@ -80,14 +83,14 @@ export default function GymGallery({ profile, showToast }: Props) {
   };
 
   const handleAdd = async () => {
-    if (!pendingFile) { showToast('Selecciona una imagen primero', 'error'); return; }
+    if (!pendingFile) { showToast(t('gg_toast_select'), 'error'); return; }
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { showToast('No autenticado', 'error'); return; }
+      if (!user) { showToast(t('gg_toast_noauth'), 'error'); return; }
 
       const url = await uploadImage(pendingFile);
-      if (!url) { showToast('Error al subir la imagen', 'error'); setSaving(false); return; }
+      if (!url) { showToast(t('gg_toast_upload_err'), 'error'); setSaving(false); return; }
 
       const { error } = await supabase.from('organization_gallery').insert({
         user_id: user.id,
@@ -98,7 +101,7 @@ export default function GymGallery({ profile, showToast }: Props) {
       });
       if (error) throw error;
 
-      showToast('Foto añadida a la galería');
+      showToast(t('gg_toast_added'));
       setPendingFile(null);
       setPreviewUrl(null);
       setCaption('');
@@ -106,7 +109,7 @@ export default function GymGallery({ profile, showToast }: Props) {
       setShowForm(false);
       fetchImages();
     } catch {
-      showToast('Error al añadir la foto', 'error');
+      showToast(t('gg_toast_add_err'), 'error');
     } finally {
       setSaving(false);
     }
@@ -117,9 +120,9 @@ export default function GymGallery({ profile, showToast }: Props) {
     await deleteImage(img.image_url);
     const { error } = await supabase.from('organization_gallery').delete().eq('id', img.id);
     if (error) {
-      showToast('Error al eliminar', 'error');
+      showToast(t('gg_toast_del_err'), 'error');
     } else {
-      showToast('Foto eliminada');
+      showToast(t('gg_toast_deleted'));
       setImages((prev) => prev.filter((i) => i.id !== img.id));
     }
     setDeletingId(null);
@@ -142,15 +145,15 @@ export default function GymGallery({ profile, showToast }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl font-bold text-white">Galería del Gimnasio</h2>
-          <p className="text-zinc-400 text-sm mt-1">Muestra tus instalaciones, ring, tatami y ambiente</p>
+          <h2 className="text-xl font-bold text-white">{t('gg_title')}</h2>
+          <p className="text-zinc-400 text-sm mt-1">{t('gg_subtitle')}</p>
         </div>
         <button
           onClick={() => setShowForm(true)}
           className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-900 text-sm font-bold px-4 py-2.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
         >
           <i className="ri-image-add-line"></i>
-          Añadir foto
+          {t('gg_add')}
         </button>
       </div>
 
@@ -160,7 +163,7 @@ export default function GymGallery({ profile, showToast }: Props) {
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
           <div className="relative bg-zinc-900 border border-zinc-700 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-              <h3 className="text-base font-bold text-white">Añadir foto a la galería</h3>
+              <h3 className="text-base font-bold text-white">{t('gg_modal_title')}</h3>
               <button onClick={closeForm} className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer transition-colors">
                 <i className="ri-close-line"></i>
               </button>
@@ -168,7 +171,7 @@ export default function GymGallery({ profile, showToast }: Props) {
             <div className="p-6 space-y-4">
               {/* Drop zone */}
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">Foto <span className="text-red-400">*</span></label>
+                <label className="block text-xs text-zinc-400 mb-1.5">{t('gg_photo')} <span className="text-red-400">*</span></label>
                 <div
                   className={`relative h-48 rounded-xl overflow-hidden border-2 border-dashed transition-all cursor-pointer
                     ${dragOver ? 'border-emerald-500/60 bg-emerald-500/10' : previewUrl ? 'border-zinc-700' : 'border-zinc-700 hover:border-zinc-500'}
@@ -185,7 +188,7 @@ export default function GymGallery({ profile, showToast }: Props) {
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center gap-2">
                           {uploading
                             ? <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            : <><div className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-sm"><i className="ri-camera-line text-white text-lg"></i></div><span className="text-white text-xs font-semibold">Cambiar foto</span></>
+                            : <><div className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-sm"><i className="ri-camera-line text-white text-lg"></i></div><span className="text-white text-xs font-semibold">{t('gg_change_photo')}</span></>
                           }
                         </div>
                       </div>
@@ -200,40 +203,40 @@ export default function GymGallery({ profile, showToast }: Props) {
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center gap-3">
                       {uploading
-                        ? <><div className="w-10 h-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div><span className="text-zinc-400 text-xs">Subiendo...</span></>
-                        : <><div className="w-12 h-12 flex items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400"><i className="ri-image-add-line text-2xl"></i></div><div className="text-center"><p className="text-sm font-semibold text-emerald-400">Subir foto</p><p className="text-zinc-600 text-xs mt-0.5">o arrastra aquí</p></div></>
+                        ? <><div className="w-10 h-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div><span className="text-zinc-400 text-xs">{t('gg_uploading')}</span></>
+                        : <><div className="w-12 h-12 flex items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400"><i className="ri-image-add-line text-2xl"></i></div><div className="text-center"><p className="text-sm font-semibold text-emerald-400">{t('gg_upload')}</p><p className="text-zinc-600 text-xs mt-0.5">{t('gg_drag')}</p></div></>
                       }
                     </div>
                   )}
                 </div>
                 {fileError && <p className="text-xs text-red-400 mt-1 flex items-center gap-1"><i className="ri-error-warning-line"></i>{fileError}</p>}
-                <p className="text-xs text-zinc-600 mt-1">JPG, PNG o WEBP · Máx. 5 MB</p>
+                <p className="text-xs text-zinc-600 mt-1">{t('gg_formats')}</p>
               </div>
 
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">Categoría</label>
+                <label className="block text-xs text-zinc-400 mb-1.5">{t('gg_category')}</label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-500 cursor-pointer"
                 >
-                  {GALLERY_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                  {GALLERY_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{t(c.labelKey)}</option>)}
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">Descripción (opcional)</label>
+                <label className="block text-xs text-zinc-400 mb-1.5">{t('gg_desc_optional')}</label>
                 <input
                   value={caption}
                   onChange={(e) => setCaption(e.target.value)}
                   className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-500"
-                  placeholder="Ej: Ring principal del gimnasio"
+                  placeholder={t('gg_desc_ph')}
                 />
               </div>
 
               <div className="flex gap-3 pt-2">
                 <button onClick={closeForm} disabled={isBusy} className="flex-1 py-3 rounded-xl border border-zinc-700 text-zinc-400 hover:text-white text-sm font-medium transition-colors cursor-pointer whitespace-nowrap disabled:opacity-50">
-                  Cancelar
+                  {t('gg_cancel')}
                 </button>
                 <button
                   onClick={handleAdd}
@@ -241,8 +244,8 @@ export default function GymGallery({ profile, showToast }: Props) {
                   className="flex-[2] bg-emerald-500 hover:bg-emerald-400 text-zinc-900 font-bold py-3 rounded-xl transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60 flex items-center justify-center gap-2"
                 >
                   {isBusy
-                    ? <><div className="w-4 h-4 border-2 border-zinc-900 border-t-transparent rounded-full animate-spin"></div>{uploading ? 'Subiendo...' : 'Guardando...'}</>
-                    : <><i className="ri-image-add-line"></i> Añadir foto</>
+                    ? <><div className="w-4 h-4 border-2 border-zinc-900 border-t-transparent rounded-full animate-spin"></div>{uploading ? t('gg_uploading') : t('gg_saving')}</>
+                    : <><i className="ri-image-add-line"></i> {t('gg_add')}</>
                   }
                 </button>
               </div>
@@ -269,11 +272,11 @@ export default function GymGallery({ profile, showToast }: Props) {
       {images.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-6">
           <button onClick={() => setActiveFilter('all')} className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap ${activeFilter === 'all' ? 'bg-emerald-500 text-zinc-900 border-emerald-500' : 'bg-transparent text-zinc-400 border-zinc-700 hover:border-zinc-500'}`}>
-            Todas ({images.length})
+            {t('gg_all')} ({images.length})
           </button>
           {GALLERY_CATEGORIES.filter((c) => images.some((img) => img.category === c.value)).map((c) => (
             <button key={c.value} onClick={() => setActiveFilter(c.value)} className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap ${activeFilter === c.value ? 'bg-emerald-500 text-zinc-900 border-emerald-500' : 'bg-transparent text-zinc-400 border-zinc-700 hover:border-zinc-500'}`}>
-              {c.label} ({images.filter((img) => img.category === c.value).length})
+              {t(c.labelKey)} ({images.filter((img) => img.category === c.value).length})
             </button>
           ))}
         </div>
@@ -289,13 +292,13 @@ export default function GymGallery({ profile, showToast }: Props) {
           <div className="w-16 h-16 flex items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20 mb-5">
             <i className="ri-image-2-line text-3xl text-emerald-400"></i>
           </div>
-          <h3 className="text-base font-bold text-white mb-2">Galería vacía</h3>
+          <h3 className="text-base font-bold text-white mb-2">{t('gg_empty_title')}</h3>
           <p className="text-zinc-500 text-sm leading-relaxed max-w-sm mb-6">
-            Añade fotos de tus instalaciones, ring, tatami y ambiente para atraer a más atletas.
+            {t('gg_empty_desc')}
           </p>
           <button onClick={() => setShowForm(true)} className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-zinc-900 text-sm font-bold px-5 py-2.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap">
             <i className="ri-image-add-line"></i>
-            Añadir primera foto
+            {t('gg_add_first')}
           </button>
         </div>
       ) : (
@@ -306,7 +309,7 @@ export default function GymGallery({ profile, showToast }: Props) {
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-end">
                 <div className="w-full p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-200">
                   {img.caption && <p className="text-white text-xs font-medium truncate">{img.caption}</p>}
-                  {img.category && <span className="text-xs text-emerald-400 capitalize">{img.category}</span>}
+                  {img.category && <span className="text-xs text-emerald-400 capitalize">{CAT_LABEL_KEYS[img.category] ? t(CAT_LABEL_KEYS[img.category]) : img.category}</span>}
                 </div>
               </div>
               <button

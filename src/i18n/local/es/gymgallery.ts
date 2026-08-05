@@ -1,0 +1,41 @@
+// Galería del gimnasio en el dashboard (R13-T5 bloque 15). Prefijo gg_.
+export default {
+  gg_cat_instalaciones: 'Instalaciones',
+  gg_cat_ring: 'Ring / Tatami',
+  gg_cat_entrenamiento: 'Entrenamiento',
+  gg_cat_ambiente: 'Ambiente',
+  gg_cat_equipo: 'Equipo',
+  gg_cat_general: 'General',
+
+  gg_err_type: 'Solo JPG, PNG o WEBP',
+  gg_err_size: 'Máximo {{n}} MB',
+  gg_toast_select: 'Selecciona una imagen primero',
+  gg_toast_noauth: 'No autenticado',
+  gg_toast_upload_err: 'Error al subir la imagen',
+  gg_toast_added: 'Foto añadida a la galería',
+  gg_toast_add_err: 'Error al añadir la foto',
+  gg_toast_del_err: 'Error al eliminar',
+  gg_toast_deleted: 'Foto eliminada',
+
+  gg_title: 'Galería del Gimnasio',
+  gg_subtitle: 'Muestra tus instalaciones, ring, tatami y ambiente',
+  gg_add: 'Añadir foto',
+
+  gg_modal_title: 'Añadir foto a la galería',
+  gg_photo: 'Foto',
+  gg_change_photo: 'Cambiar foto',
+  gg_uploading: 'Subiendo...',
+  gg_upload: 'Subir foto',
+  gg_drag: 'o arrastra aquí',
+  gg_formats: 'JPG, PNG o WEBP · Máx. 5 MB',
+  gg_category: 'Categoría',
+  gg_desc_optional: 'Descripción (opcional)',
+  gg_desc_ph: 'Ej: Ring principal del gimnasio',
+  gg_cancel: 'Cancelar',
+  gg_saving: 'Guardando...',
+
+  gg_all: 'Todas',
+  gg_empty_title: 'Galería vacía',
+  gg_empty_desc: 'Añade fotos de tus instalaciones, ring, tatami y ambiente para atraer a más atletas.',
+  gg_add_first: 'Añadir primera foto',
+};

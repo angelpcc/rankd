@@ -1,0 +1,41 @@
+// Gym gallery in the dashboard (R13-T5 block 15). Prefix gg_.
+export default {
+  gg_cat_instalaciones: 'Facilities',
+  gg_cat_ring: 'Ring / Tatami',
+  gg_cat_entrenamiento: 'Training',
+  gg_cat_ambiente: 'Atmosphere',
+  gg_cat_equipo: 'Equipment',
+  gg_cat_general: 'General',
+
+  gg_err_type: 'JPG, PNG or WEBP only',
+  gg_err_size: 'Maximum {{n}} MB',
+  gg_toast_select: 'Select an image first',
+  gg_toast_noauth: 'Not authenticated',
+  gg_toast_upload_err: 'Error uploading the image',
+  gg_toast_added: 'Photo added to the gallery',
+  gg_toast_add_err: 'Error adding the photo',
+  gg_toast_del_err: 'Error deleting',
+  gg_toast_deleted: 'Photo deleted',
+
+  gg_title: 'Gym Gallery',
+  gg_subtitle: 'Show off your facilities, ring, tatami and atmosphere',
+  gg_add: 'Add photo',
+
+  gg_modal_title: 'Add photo to the gallery',
+  gg_photo: 'Photo',
+  gg_change_photo: 'Change photo',
+  gg_uploading: 'Uploading...',
+  gg_upload: 'Upload photo',
+  gg_drag: 'or drag it here',
+  gg_formats: 'JPG, PNG or WEBP · Max. 5 MB',
+  gg_category: 'Category',
+  gg_desc_optional: 'Description (optional)',
+  gg_desc_ph: 'e.g. Main gym ring',
+  gg_cancel: 'Cancel',
+  gg_saving: 'Saving...',
+
+  gg_all: 'All',
+  gg_empty_title: 'Empty gallery',
+  gg_empty_desc: 'Add photos of your facilities, ring, tatami and atmosphere to attract more athletes.',
+  gg_add_first: 'Add first photo',
+};
