@@ -234,4 +234,4 @@ begin
   end loop;
   return jsonb_build_object('ok', true, 'count', n);
 end $$;
-grant execute on function public.rk_coach_assign_plan(uuid, uuid[], date, text, text, text) to authenticated;
+grant execute on function public.rk_coach_assign_plan(uuid, uuid[], date, text, text, text, text) to authenticated;
