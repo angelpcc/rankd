@@ -58,14 +58,14 @@ function RankdLogo() {
   );
 }
 
-// ── Las 3 puertas de entrada ──
+// ── Las 3 puertas de entrada ── (etiquetas por clave i18n, prefijo auth_)
 const MAIN_TYPES = [
   {
     key: 'fighter',
     userType: 'fighter' as UserType,
     icon: 'ri-boxing-line',
-    title: 'Peleador',
-    desc: 'Compitas o entrenes por afición, este es tu sitio',
+    titleKey: 'auth_at_fighter_title',
+    descKey: 'auth_at_fighter_desc',
     color: '#E10600',
     hasSubtypes: true,
   },
@@ -73,8 +73,8 @@ const MAIN_TYPES = [
     key: 'org',
     userType: null,
     icon: 'ri-trophy-line',
-    title: 'Organización',
-    desc: 'Promotoras, gimnasios, clubes y managers. Encuentra talento y publica oportunidades',
+    titleKey: 'auth_at_org_title',
+    descKey: 'auth_at_org_desc',
     color: '#C9A84C',
     hasSubtypes: true,
   },
@@ -82,26 +82,27 @@ const MAIN_TYPES = [
     key: 'brand',
     userType: 'brand' as UserType,
     icon: 'ri-store-2-line',
-    title: 'Marca',
-    desc: 'Patrocina peleadores y eventos. Muestra tus productos y servicios',
+    titleKey: 'auth_at_brand_title',
+    descKey: 'auth_at_brand_desc',
     color: '#ffffff',
     hasSubtypes: false,
   },
 ];
 
 const ORG_SUBTYPES = [
-  { userType: 'promoter' as UserType, icon: 'ri-trophy-line', label: 'Promotora', desc: 'Organizo eventos y combates' },
-  { userType: 'gym' as UserType, icon: 'ri-building-4-line', label: 'Gimnasio / Club', desc: 'Represento a un gimnasio o club' },
-  { userType: 'manager' as UserType, icon: 'ri-user-star-line', label: 'Manager', desc: 'Gestiono carreras de peleadores' },
+  { userType: 'promoter' as UserType, icon: 'ri-trophy-line', labelKey: 'auth_sub_promoter_label', descKey: 'auth_sub_promoter_desc' },
+  { userType: 'gym' as UserType, icon: 'ri-building-4-line', labelKey: 'auth_sub_gym_label', descKey: 'auth_sub_gym_desc' },
+  { userType: 'manager' as UserType, icon: 'ri-user-star-line', labelKey: 'auth_sub_manager_label', descKey: 'auth_sub_manager_desc' },
 ];
 
 const FIGHTER_MODES = [
-  { mode: 'competitor' as const, icon: 'ri-trophy-line', label: 'Compito', desc: 'Tengo récord y busco oportunidades' },
-  { mode: 'hobby' as const, icon: 'ri-heart-pulse-line', label: 'Entreno por afición', desc: 'Entreno sin competir: quiero Mi Esquina' },
+  { mode: 'competitor' as const, icon: 'ri-trophy-line', labelKey: 'auth_mode_competitor_label', descKey: 'auth_mode_competitor_desc' },
+  { mode: 'hobby' as const, icon: 'ri-heart-pulse-line', labelKey: 'auth_mode_hobby_label', descKey: 'auth_mode_hobby_desc' },
 ];
 
-const TYPE_LABELS: Record<string, string> = {
-  fighter: 'Peleador', promoter: 'Promotora', gym: 'Gimnasio / Club', manager: 'Manager', brand: 'Marca',
+// TYPE_LABELS reutiliza las claves de tipo ya definidas arriba.
+const TYPE_LABEL_KEYS: Record<string, string> = {
+  fighter: 'auth_at_fighter_title', promoter: 'auth_sub_promoter_label', gym: 'auth_sub_gym_label', manager: 'auth_sub_manager_label', brand: 'auth_at_brand_title',
 };
 
 export default function AuthPage() {
@@ -433,8 +434,8 @@ export default function AuthPage() {
                           <i className={tp.icon} style={{ color: tp.color, fontSize: 20 }}></i>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-white font-bold text-[15px] font-inter">{tp.title}</p>
-                          <p className="text-white/55 text-xs font-inter leading-relaxed mt-0.5">{tp.desc}</p>
+                          <p className="text-white font-bold text-[15px] font-inter">{t(tp.titleKey)}</p>
+                          <p className="text-white/55 text-xs font-inter leading-relaxed mt-0.5">{t(tp.descKey)}</p>
                         </div>
                         <i className={tp.hasSubtypes ? (isOpen ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line') : 'ri-arrow-right-line'} style={{ color: 'rgba(255,255,255,0.35)', fontSize: 18, flexShrink: 0 }}></i>
                       </button>
@@ -451,8 +452,8 @@ export default function AuthPage() {
                             >
                               <i className={fm.icon} style={{ color: '#E10600', fontSize: 16, flexShrink: 0 }}></i>
                               <div className="flex-1 min-w-0">
-                                <p className="text-white font-semibold text-sm font-inter">{fm.label}</p>
-                                <p className="text-white/50 text-xs font-inter">{fm.desc}</p>
+                                <p className="text-white font-semibold text-sm font-inter">{t(fm.labelKey)}</p>
+                                <p className="text-white/50 text-xs font-inter">{t(fm.descKey)}</p>
                               </div>
                               <i className="ri-arrow-right-line" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}></i>
                             </button>
@@ -472,8 +473,8 @@ export default function AuthPage() {
                             >
                               <i className={sub.icon} style={{ color: '#C9A84C', fontSize: 16, flexShrink: 0 }}></i>
                               <div className="flex-1 min-w-0">
-                                <p className="text-white font-semibold text-sm font-inter">{sub.label}</p>
-                                <p className="text-white/50 text-xs font-inter">{sub.desc}</p>
+                                <p className="text-white font-semibold text-sm font-inter">{t(sub.labelKey)}</p>
+                                <p className="text-white/50 text-xs font-inter">{t(sub.descKey)}</p>
                               </div>
                               <i className="ri-arrow-right-line" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}></i>
                             </button>
@@ -503,10 +504,10 @@ export default function AuthPage() {
                         <i className="ri-arrow-left-line text-sm"></i>
                       </button>
                       <div className="min-w-0">
-                        <h1 className="text-xl font-bold text-white font-unbounded">Crea tu cuenta</h1>
+                        <h1 className="text-xl font-bold text-white font-unbounded">{t('auth_register_step2_title')}</h1>
                         <button type="button" onClick={() => { setStep(1); setError(''); }} className="flex items-center gap-1.5 text-xs text-white/55 hover:text-white/85 font-inter cursor-pointer transition-colors mt-0.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#E10600]"></span>
-                          {userType === 'fighter' && athleteMode === 'hobby' ? 'Entreno por afición' : TYPE_LABELS[userType || ''] || ''} · cambiar
+                          {userType === 'fighter' && athleteMode === 'hobby' ? t('auth_mode_hobby_label') : (TYPE_LABEL_KEYS[userType || ''] ? t(TYPE_LABEL_KEYS[userType || '']) : '')} · {t('auth_change')}
                         </button>
                       </div>
                     </div>
