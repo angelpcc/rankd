@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { supabase, Profile, Fighter } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -13,9 +14,12 @@ interface Props {
   onOpenMessages?: () => void;
 }
 
-const disciplineLabels: Record<string, string> = {
-  boxing: 'Boxeo', mma: 'MMA', kickboxing: 'Kickboxing',
-  muay_thai: 'Muay Thai', wrestling: 'Wrestling', bjj: 'BJJ', other: 'Otro',
+const disciplineLabelKeys: Record<string, string> = {
+  boxing: 'disc_boxing', mma: 'disc_mma', kickboxing: 'disc_kickboxing',
+  muay_thai: 'disc_muay_thai', wrestling: 'disc_wrestling', bjj: 'disc_bjj', other: 'disc_other',
+};
+const expLabelKeys: Record<string, string> = {
+  amateur: 'exp_amateur', semi_pro: 'exp_semipro', professional: 'exp_professional',
 };
 const disciplineColors: Record<string, string> = {
   boxing: 'bg-red-500/10 text-red-400 border-red-500/20',
@@ -26,9 +30,6 @@ const disciplineColors: Record<string, string> = {
   bjj: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
   other: 'bg-zinc-700 text-zinc-300 border-zinc-600',
 };
-const expLabels: Record<string, string> = {
-  amateur: 'Amateur', semi_pro: 'Semi-Pro', professional: 'Profesional',
-};
 
 const weightClasses = [
   '', 'Minimosca', 'Mosca', 'Gallo', 'Pluma', 'Ligero', 'Superligero',
@@ -36,6 +37,7 @@ const weightClasses = [
 ];
 
 export default function OrgFighterSearch({ showToast, onOpenMessages }: Props) {
+  const { t } = useTranslation();
   const { profile: currentProfile } = useAuth();
   const navigate = useNavigate();
   const [data, setData] = useState<FighterWithProfile[]>([]);
@@ -123,23 +125,23 @@ export default function OrgFighterSearch({ showToast, onOpenMessages }: Props) {
           last_message: null,
           last_message_at: new Date().toISOString(),
         });
-        if (error) { showToast('No se pudo iniciar la conversación', 'error'); setContactingId(null); return; }
+        if (error) { showToast(t('os_toast_conv_err'), 'error'); setContactingId(null); return; }
       }
-      showToast('Conversación lista en Mensajes');
+      showToast(t('os_toast_conv_ok'));
       if (onOpenMessages) onOpenMessages();
     } catch {
-      showToast('No se pudo iniciar la conversación', 'error');
+      showToast(t('os_toast_conv_err'), 'error');
     }
     setContactingId(null);
   };
 
   const disciplines = [
-    { value: 'boxing', label: 'Boxeo' },
-    { value: 'mma', label: 'MMA' },
-    { value: 'kickboxing', label: 'Kickboxing' },
-    { value: 'muay_thai', label: 'Muay Thai' },
-    { value: 'wrestling', label: 'Wrestling' },
-    { value: 'bjj', label: 'BJJ' },
+    { value: 'boxing', labelKey: 'disc_boxing' },
+    { value: 'mma', labelKey: 'disc_mma' },
+    { value: 'kickboxing', labelKey: 'disc_kickboxing' },
+    { value: 'muay_thai', labelKey: 'disc_muay_thai' },
+    { value: 'wrestling', labelKey: 'disc_wrestling' },
+    { value: 'bjj', labelKey: 'disc_bjj' },
   ];
 
   return (
@@ -147,9 +149,9 @@ export default function OrgFighterSearch({ showToast, onOpenMessages }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-base font-semibold text-white">Buscar Peleadores</h2>
+          <h2 className="text-base font-semibold text-white">{t('os_title')}</h2>
           <p className="text-xs text-zinc-500 mt-0.5">
-            {loading ? '...' : `${filtered.length} de ${data.length} peleadores`}
+            {loading ? '...' : t('os_count', { n: filtered.length, total: data.length })}
           </p>
         </div>
         {hasFilters && (
@@ -158,7 +160,7 @@ export default function OrgFighterSearch({ showToast, onOpenMessages }: Props) {
             className="text-xs text-zinc-400 hover:text-white flex items-center gap-1.5 cursor-pointer whitespace-nowrap transition-colors"
           >
             <i className="ri-filter-off-line"></i>
-            Limpiar filtros
+            {t('os_clear')}
           </button>
         )}
       </div>
@@ -171,7 +173,7 @@ export default function OrgFighterSearch({ showToast, onOpenMessages }: Props) {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por nombre, apodo, gimnasio, país..."
+            placeholder={t('os_search_ph')}
             className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl pl-9 pr-4 py-2.5 focus:outline-none focus:border-red-500 placeholder-zinc-500"
           />
         </div>
@@ -183,8 +185,8 @@ export default function OrgFighterSearch({ showToast, onOpenMessages }: Props) {
             onChange={(e) => setFilterDiscipline(e.target.value)}
             className="bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-red-500 cursor-pointer"
           >
-            <option value="">Disciplina</option>
-            {disciplines.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
+            <option value="">{t('fd_discipline')}</option>
+            {disciplines.map((d) => <option key={d.value} value={d.value}>{t(d.labelKey)}</option>)}
           </select>
 
           <select
@@ -192,7 +194,7 @@ export default function OrgFighterSearch({ showToast, onOpenMessages }: Props) {
             onChange={(e) => setFilterWeight(e.target.value)}
             className="bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-red-500 cursor-pointer"
           >
-            <option value="">Categoría de peso</option>
+            <option value="">{t('fd_weight_class')}</option>
             {weightClasses.filter(Boolean).map((w) => <option key={w} value={w}>{w}</option>)}
           </select>
 
@@ -201,10 +203,10 @@ export default function OrgFighterSearch({ showToast, onOpenMessages }: Props) {
             onChange={(e) => setFilterLevel(e.target.value)}
             className="bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-red-500 cursor-pointer"
           >
-            <option value="">Nivel</option>
-            <option value="amateur">Amateur</option>
-            <option value="semi_pro">Semi-Pro</option>
-            <option value="professional">Profesional</option>
+            <option value="">{t('fd_level')}</option>
+            <option value="amateur">{t('exp_amateur')}</option>
+            <option value="semi_pro">{t('exp_semipro')}</option>
+            <option value="professional">{t('exp_professional')}</option>
           </select>
 
           <button
@@ -212,7 +214,7 @@ export default function OrgFighterSearch({ showToast, onOpenMessages }: Props) {
             className={`flex items-center justify-center gap-1.5 text-xs rounded-xl px-3 py-2 border transition-all cursor-pointer whitespace-nowrap ${filterAvailable ? 'bg-green-600/20 border-green-500/40 text-green-400' : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:border-zinc-500'}`}
           >
             <span className={`w-1.5 h-1.5 rounded-full ${filterAvailable ? 'bg-green-400' : 'bg-zinc-500'}`}></span>
-            Solo disponibles
+            {t('fd_only_available')}
           </button>
         </div>
       </div>
@@ -227,16 +229,16 @@ export default function OrgFighterSearch({ showToast, onOpenMessages }: Props) {
           <div className="w-14 h-14 flex items-center justify-center mx-auto mb-4 text-zinc-600">
             <i className="ri-user-search-line text-4xl"></i>
           </div>
-          <p className="text-zinc-400 text-sm">Aún no hay peleadores registrados en la plataforma.</p>
+          <p className="text-zinc-400 text-sm">{t('os_empty_none')}</p>
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 bg-zinc-900 border border-zinc-800 rounded-2xl">
           <div className="w-14 h-14 flex items-center justify-center mx-auto mb-4 text-zinc-600">
             <i className="ri-filter-off-line text-4xl"></i>
           </div>
-          <p className="text-zinc-400 text-sm">Sin resultados con estos filtros.</p>
+          <p className="text-zinc-400 text-sm">{t('os_empty_filters')}</p>
           <button onClick={clearFilters} className="mt-3 text-xs text-red-400 hover:text-red-300 cursor-pointer whitespace-nowrap">
-            Limpiar filtros
+            {t('os_clear')}
           </button>
         </div>
       ) : (
@@ -266,21 +268,21 @@ export default function OrgFighterSearch({ showToast, onOpenMessages }: Props) {
                   <div className="flex items-start gap-2 flex-wrap">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-semibold text-white">{profile.full_name || 'Peleador'}</p>
+                        <p className="text-sm font-semibold text-white">{profile.full_name || t('fd_fighter_fallback')}</p>
                         {fighter.nickname && <span className="text-xs text-red-400 italic">&ldquo;{fighter.nickname}&rdquo;</span>}
                         <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${fighter.is_available ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-zinc-800 border-zinc-700 text-zinc-500'}`}>
                           <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1 ${fighter.is_available ? 'bg-green-400' : 'bg-zinc-500'}`}></span>
-                          {fighter.is_available ? 'Disponible' : 'No disponible'}
+                          {fighter.is_available ? t('fc_available') : t('fc_unavailable')}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         {fighter.discipline && (
                           <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${discColor}`}>
-                            {disciplineLabels[fighter.discipline] || fighter.discipline}
+                            {disciplineLabelKeys[fighter.discipline] ? t(disciplineLabelKeys[fighter.discipline]) : fighter.discipline}
                           </span>
                         )}
                         {fighter.weight_class && <span className="text-xs text-zinc-400">{fighter.weight_class}</span>}
-                        {fighter.experience_level && <span className="text-xs text-zinc-500">· {expLabels[fighter.experience_level] || fighter.experience_level}</span>}
+                        {fighter.experience_level && <span className="text-xs text-zinc-500">· {expLabelKeys[fighter.experience_level] ? t(expLabelKeys[fighter.experience_level]) : fighter.experience_level}</span>}
                         {(fighter.nationality || profile.location) && (
                           <span className="text-xs text-zinc-500 flex items-center gap-1">
                             <i className="ri-map-pin-line"></i>
@@ -294,9 +296,9 @@ export default function OrgFighterSearch({ showToast, onOpenMessages }: Props) {
                   {/* Record */}
                   <div className="flex items-center gap-4 mt-2">
                     <div className="flex items-center gap-3">
-                      <span className="text-xs font-bold text-green-400">{fighter.wins}V</span>
-                      <span className="text-xs font-bold text-red-400">{fighter.losses}D</span>
-                      <span className="text-xs font-bold text-yellow-400">{fighter.draws}E</span>
+                      <span className="text-xs font-bold text-green-400">{fighter.wins}{t('os_rec_w')}</span>
+                      <span className="text-xs font-bold text-red-400">{fighter.losses}{t('os_rec_l')}</span>
+                      <span className="text-xs font-bold text-yellow-400">{fighter.draws}{t('os_rec_d')}</span>
                       <span className="text-xs font-bold text-orange-400">{fighter.kos} KO</span>
                     </div>
                     {fighter.gym && (
@@ -309,7 +311,7 @@ export default function OrgFighterSearch({ showToast, onOpenMessages }: Props) {
                   {/* Looking for */}
                   {fighter.looking_for && fighter.looking_for.length > 0 && (
                     <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                      <span className="text-xs text-zinc-600">Busca:</span>
+                      <span className="text-xs text-zinc-600">{t('os_looking')}</span>
                       {fighter.looking_for.slice(0, 3).map((item) => (
                         <span key={item} className="text-xs bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full border border-zinc-700">
                           {item}
@@ -326,7 +328,7 @@ export default function OrgFighterSearch({ showToast, onOpenMessages }: Props) {
                     className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-500 transition-colors cursor-pointer whitespace-nowrap"
                   >
                     <i className="ri-eye-line"></i>
-                    Ver perfil
+                    {t('fc_view_profile')}
                   </button>
                   <button
                     onClick={() => handleContact({ fighter, profile })}
@@ -334,7 +336,7 @@ export default function OrgFighterSearch({ showToast, onOpenMessages }: Props) {
                     className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60"
                   >
                     <i className="ri-message-3-line"></i>
-                    Enviar mensaje
+                    {t('os_message')}
                   </button>
                 </div>
               </div>

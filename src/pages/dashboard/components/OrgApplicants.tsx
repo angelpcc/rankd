@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { supabase, Opportunity, Profile, Fighter } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import VerifiedBadge from '@/components/base/VerifiedBadge';
@@ -22,21 +24,28 @@ interface Props {
 }
 
 const statusConfig = {
-  pending:  { label: 'Pendiente',  color: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30', dot: 'bg-yellow-400' },
-  accepted: { label: 'Aceptado',   color: 'bg-green-500/10 text-green-400 border-green-500/30',   dot: 'bg-green-400' },
-  rejected: { label: 'Rechazado',  color: 'bg-red-500/10 text-red-400 border-red-500/30',         dot: 'bg-red-400' },
+  pending:  { labelKey: 'ap_status_pending',  color: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30', dot: 'bg-yellow-400' },
+  accepted: { labelKey: 'ap_status_accepted', color: 'bg-green-500/10 text-green-400 border-green-500/30',   dot: 'bg-green-400' },
+  rejected: { labelKey: 'ap_status_rejected', color: 'bg-red-500/10 text-red-400 border-red-500/30',         dot: 'bg-red-400' },
 };
 
-const disciplineLabels: Record<string, string> = {
-  boxing: 'Boxeo', mma: 'MMA', kickboxing: 'Kickboxing',
-  muay_thai: 'Muay Thai', wrestling: 'Wrestling', bjj: 'BJJ', other: 'Otro',
+const disciplineLabelKeys: Record<string, string> = {
+  boxing: 'disc_boxing', mma: 'disc_mma', kickboxing: 'disc_kickboxing',
+  muay_thai: 'disc_muay_thai', wrestling: 'disc_wrestling', bjj: 'disc_bjj', other: 'disc_other',
 };
 
-const levelLabels: Record<string, string> = {
-  amateur: 'Amateur',
-  semi_pro: 'Semi-Pro',
-  professional: 'Profesional',
+const levelLabelKeys: Record<string, string> = {
+  amateur: 'exp_amateur',
+  semi_pro: 'exp_semipro',
+  professional: 'exp_professional',
 };
+
+// Tipo de oportunidad (código+etiqueta): reutiliza opp_type_* de opportunities.ts.
+const OPP_TYPE_KEYS: Record<string, string> = {
+  combate: 'opp_type_combate', sparring: 'opp_type_sparring', campamento: 'opp_type_campamento',
+  entrenamiento: 'opp_type_entrenamiento', contrato: 'opp_type_contrato', patrocinio: 'opp_type_patrocinio', scouting: 'opp_type_scouting',
+};
+const oppTypeLabel = (t: TFunction, type: string) => (OPP_TYPE_KEYS[type] ? t(OPP_TYPE_KEYS[type]) : type);
 
 const levelColors: Record<string, string> = {
   amateur: 'bg-zinc-700 text-zinc-300 border-zinc-600',
@@ -55,13 +64,14 @@ function ApplicantCard({
   onUpdateStatus: (id: string, status: 'accepted' | 'rejected') => void;
   onContact: (fighterProfileId: string) => void;
 }) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
   const p = app.fighter_profile;
   const f = app.fighter;
   const initials = (p?.full_name || 'F').split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
   const cfg = statusConfig[app.status];
   const level = f?.experience_level || '';
   const hasSocials = p?.instagram || p?.tiktok || p?.youtube || p?.twitter;
-  const record = f ? `${f.wins}V · ${f.losses}D · ${f.draws}E` : null;
 
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden hover:border-zinc-700 transition-colors">
@@ -97,7 +107,7 @@ function ApplicantCard({
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-sm font-bold text-white truncate">
-                    {p?.full_name || 'Peleador'}
+                    {p?.full_name || t('fd_fighter_fallback')}
                   </h3>
                   {p?.verified && (
                     <VerifiedBadge type="fighter" size="sm" showLabel={true} />
@@ -111,7 +121,7 @@ function ApplicantCard({
                 <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                   {f?.discipline && (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300 font-medium">
-                      {disciplineLabels[f.discipline] || f.discipline}
+                      {disciplineLabelKeys[f.discipline] ? t(disciplineLabelKeys[f.discipline]) : f.discipline}
                     </span>
                   )}
                   {f?.weight_class && (
@@ -121,7 +131,7 @@ function ApplicantCard({
                   )}
                   {level && (
                     <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${levelColors[level] || 'bg-zinc-700 text-zinc-300 border-zinc-600'}`}>
-                      {levelLabels[level] || level}
+                      {levelLabelKeys[level] ? t(levelLabelKeys[level]) : level}
                     </span>
                   )}
                   {p?.location && (
@@ -136,7 +146,7 @@ function ApplicantCard({
               {/* Status badge */}
               <span className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border font-medium flex-shrink-0 ${cfg.color}`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`}></span>
-                {cfg.label}
+                {t(cfg.labelKey)}
               </span>
             </div>
 
@@ -144,11 +154,11 @@ function ApplicantCard({
             {f && (
               <div className="flex items-center gap-3 mt-2.5 flex-wrap">
                 <div className="flex items-center gap-2 bg-zinc-800 rounded-lg px-3 py-1.5">
-                  <span className="text-xs font-bold text-green-400">{f.wins}V</span>
+                  <span className="text-xs font-bold text-green-400">{f.wins}{t('os_rec_w')}</span>
                   <span className="text-zinc-600 text-xs">·</span>
-                  <span className="text-xs font-bold text-red-400">{f.losses}D</span>
+                  <span className="text-xs font-bold text-red-400">{f.losses}{t('os_rec_l')}</span>
                   <span className="text-zinc-600 text-xs">·</span>
-                  <span className="text-xs font-bold text-yellow-400">{f.draws}E</span>
+                  <span className="text-xs font-bold text-yellow-400">{f.draws}{t('os_rec_d')}</span>
                   {f.kos > 0 && (
                     <>
                       <span className="text-zinc-600 text-xs">·</span>
@@ -171,7 +181,7 @@ function ApplicantCard({
             {/* Social presence */}
             {hasSocials && (
               <div className="flex items-center gap-2 mt-2.5 flex-wrap">
-                <span className="text-xs text-zinc-600">Redes:</span>
+                <span className="text-xs text-zinc-600">{t('ap_socials')}</span>
                 {p?.instagram && (
                   <a
                     href={`https://instagram.com/${p.instagram.replace('@', '')}`}
@@ -226,7 +236,7 @@ function ApplicantCard({
           <div className="mt-4 bg-zinc-800/60 border border-zinc-700/50 rounded-xl px-4 py-3">
             <p className="text-xs text-zinc-500 font-medium mb-1 flex items-center gap-1">
               <i className="ri-chat-quote-line"></i>
-              Mensaje del candidato
+              {t('ap_msg_from')}
             </p>
             <p className="text-xs text-zinc-300 leading-relaxed">&ldquo;{app.message}&rdquo;</p>
           </div>
@@ -242,7 +252,7 @@ function ApplicantCard({
             className="flex items-center gap-1.5 text-xs px-4 py-2 rounded-lg bg-white text-zinc-900 font-semibold hover:bg-zinc-100 transition-colors cursor-pointer whitespace-nowrap"
           >
             <i className="ri-user-line"></i>
-            Ver perfil completo
+            {t('ap_view_full')}
             <i className="ri-external-link-line text-zinc-500"></i>
           </Link>
 
@@ -252,7 +262,7 @@ function ApplicantCard({
             className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 hover:text-white hover:border-zinc-500 transition-colors cursor-pointer whitespace-nowrap"
           >
             <i className="ri-message-3-line"></i>
-            Enviar mensaje
+            {t('os_message')}
           </button>
 
           {/* Accept / Reject */}
@@ -268,7 +278,7 @@ function ApplicantCard({
                 ) : (
                   <i className="ri-check-line"></i>
                 )}
-                Aceptar
+                {t('ap_accept')}
               </button>
               <button
                 onClick={() => onUpdateStatus(app.id, 'rejected')}
@@ -276,7 +286,7 @@ function ApplicantCard({
                 className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-zinc-700 text-zinc-400 hover:text-red-400 hover:border-red-500/50 transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60"
               >
                 <i className="ri-close-line"></i>
-                Rechazar
+                {t('ap_reject')}
               </button>
             </>
           )}
@@ -289,14 +299,14 @@ function ApplicantCard({
               className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-lg border border-zinc-700 text-zinc-500 hover:text-zinc-300 hover:border-zinc-600 transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60 ml-auto"
             >
               <i className="ri-refresh-line"></i>
-              Cambiar estado
+              {t('ap_change_status')}
             </button>
           )}
 
           {/* Date */}
           <span className="text-xs text-zinc-600 ml-auto flex items-center gap-1">
             <i className="ri-calendar-line"></i>
-            {new Date(app.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+            {new Date(app.created_at).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' })}
           </span>
         </div>
       </div>
@@ -305,6 +315,7 @@ function ApplicantCard({
 }
 
 export default function OrgApplicants({ opportunities, showToast, onOpenMessages }: Props) {
+  const { t } = useTranslation();
   const { profile: currentProfile } = useAuth();
   const [selectedOppId, setSelectedOppId] = useState<string>(opportunities[0]?.id || '');
   const [applications, setApplications] = useState<Application[]>([]);
@@ -366,7 +377,7 @@ export default function OrgApplicants({ opportunities, showToast, onOpenMessages
     await supabase.from('conversations').insert({
       participant_1: currentProfile.id,
       participant_2: fighterProfileId,
-      last_message: '¡Candidatura aceptada! Puedes iniciar la conversación.',
+      last_message: t('ap_accept_msg'),
       last_message_at: new Date().toISOString(),
     });
   };
@@ -378,7 +389,7 @@ export default function OrgApplicants({ opportunities, showToast, onOpenMessages
       .update({ status })
       .eq('id', appId);
     if (error) {
-      showToast('Error al actualizar el estado', 'error');
+      showToast(t('ap_toast_update_err'), 'error');
     } else {
       setApplications((prev) =>
         prev.map((a) => (a.id === appId ? { ...a, status } : a))
@@ -388,9 +399,9 @@ export default function OrgApplicants({ opportunities, showToast, onOpenMessages
         if (app) {
           await createConversationOnAccept(app.fighter_profile_id);
         }
-        showToast('✓ Candidato aceptado — conversación iniciada en Mensajes');
+        showToast(t('ap_toast_accepted'));
       } else {
-        showToast('Candidato rechazado');
+        showToast(t('ap_toast_rejected'));
       }
     }
     setUpdatingId(null);
@@ -414,12 +425,12 @@ export default function OrgApplicants({ opportunities, showToast, onOpenMessages
           last_message: null,
           last_message_at: new Date().toISOString(),
         });
-        if (error) { showToast('No se pudo iniciar la conversación', 'error'); setContactingId(null); return; }
+        if (error) { showToast(t('os_toast_conv_err'), 'error'); setContactingId(null); return; }
       }
-      showToast('Conversación lista en Mensajes');
+      showToast(t('os_toast_conv_ok'));
       if (onOpenMessages) onOpenMessages();
     } catch {
-      showToast('No se pudo iniciar la conversación', 'error');
+      showToast(t('os_toast_conv_err'), 'error');
     }
     setContactingId(null);
   };
@@ -445,8 +456,8 @@ export default function OrgApplicants({ opportunities, showToast, onOpenMessages
         <div className="w-14 h-14 flex items-center justify-center mx-auto mb-4 text-zinc-600">
           <i className="ri-user-search-line text-4xl"></i>
         </div>
-        <p className="text-zinc-400 text-sm font-medium">No tienes oportunidades publicadas</p>
-        <p className="text-zinc-500 text-xs mt-1">Crea una oportunidad para empezar a recibir candidatos.</p>
+        <p className="text-zinc-400 text-sm font-medium">{t('ap_no_opps_title')}</p>
+        <p className="text-zinc-500 text-xs mt-1">{t('ap_no_opps_desc')}</p>
       </div>
     );
   }
@@ -458,11 +469,11 @@ export default function OrgApplicants({ opportunities, showToast, onOpenMessages
       <div className="flex flex-col lg:flex-row gap-5 min-h-[500px]">
         {/* Left: opportunity selector */}
         <div className="w-full lg:w-64 flex-shrink-0 space-y-2">
-          <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider px-1 mb-3">Tus oportunidades</p>
+          <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider px-1 mb-3">{t('ap_your_opps')}</p>
 
           {openOpps.length > 0 && (
             <div className="space-y-1.5">
-              <p className="text-xs text-zinc-600 px-1">Abiertas</p>
+              <p className="text-xs text-zinc-600 px-1">{t('ap_open')}</p>
               {openOpps.map((opp) => {
                 const appCount = applications.filter(() => selectedOppId === opp.id).length;
                 return (
@@ -473,9 +484,9 @@ export default function OrgApplicants({ opportunities, showToast, onOpenMessages
                   >
                     <p className="text-sm font-medium truncate">{opp.title}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-green-400">Abierta</span>
+                      <span className="text-xs text-green-400">{t('ap_open_one')}</span>
                       <span className="text-xs text-zinc-600">·</span>
-                      <span className="text-xs text-zinc-500 capitalize">{opp.type}</span>
+                      <span className="text-xs text-zinc-500">{oppTypeLabel(t, opp.type)}</span>
                     </div>
                   </button>
                 );
@@ -485,7 +496,7 @@ export default function OrgApplicants({ opportunities, showToast, onOpenMessages
 
           {closedOpps.length > 0 && (
             <div className="space-y-1.5 mt-3">
-              <p className="text-xs text-zinc-600 px-1">Cerradas</p>
+              <p className="text-xs text-zinc-600 px-1">{t('ap_closed')}</p>
               {closedOpps.map((opp) => (
                 <button
                   key={opp.id}
@@ -493,7 +504,7 @@ export default function OrgApplicants({ opportunities, showToast, onOpenMessages
                   className={`w-full text-left px-4 py-3 rounded-xl border transition-all cursor-pointer opacity-60 ${selectedOppId === opp.id ? 'bg-zinc-800 border-zinc-600 text-white opacity-100' : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:border-zinc-700'}`}
                 >
                   <p className="text-sm font-medium truncate">{opp.title}</p>
-                  <span className="text-xs text-zinc-500">Cerrada</span>
+                  <span className="text-xs text-zinc-500">{t('ap_closed_one')}</span>
                 </button>
               ))}
             </div>
@@ -506,9 +517,9 @@ export default function OrgApplicants({ opportunities, showToast, onOpenMessages
             <div className="mb-5 pb-4 border-b border-zinc-800">
               <h3 className="text-base font-semibold text-white">{selectedOpp.title}</h3>
               <div className="flex items-center gap-3 mt-1 flex-wrap">
-                <span className="text-xs text-zinc-500 capitalize">{selectedOpp.type}</span>
+                <span className="text-xs text-zinc-500">{oppTypeLabel(t, selectedOpp.type)}</span>
                 {selectedOpp.discipline && (
-                  <span className="text-xs text-zinc-500">{disciplineLabels[selectedOpp.discipline] || selectedOpp.discipline}</span>
+                  <span className="text-xs text-zinc-500">{disciplineLabelKeys[selectedOpp.discipline] ? t(disciplineLabelKeys[selectedOpp.discipline]) : selectedOpp.discipline}</span>
                 )}
                 {selectedOpp.location && (
                   <span className="text-xs text-zinc-500 flex items-center gap-1">
@@ -516,7 +527,7 @@ export default function OrgApplicants({ opportunities, showToast, onOpenMessages
                   </span>
                 )}
                 <span className={`text-xs px-2 py-0.5 rounded-full border ${selectedOpp.status === 'open' ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-zinc-800 border-zinc-700 text-zinc-500'}`}>
-                  {selectedOpp.status === 'open' ? 'Abierta' : 'Cerrada'}
+                  {selectedOpp.status === 'open' ? t('ap_open_one') : t('ap_closed_one')}
                 </span>
               </div>
             </div>
@@ -531,15 +542,15 @@ export default function OrgApplicants({ opportunities, showToast, onOpenMessages
               <div className="w-12 h-12 flex items-center justify-center mx-auto mb-3 text-zinc-600">
                 <i className="ri-inbox-line text-3xl"></i>
               </div>
-              <p className="text-zinc-400 text-sm">Sin candidatos aún</p>
-              <p className="text-zinc-500 text-xs mt-1">Los peleadores que se postulen aparecerán aquí.</p>
+              <p className="text-zinc-400 text-sm">{t('ap_no_applicants_title')}</p>
+              <p className="text-zinc-500 text-xs mt-1">{t('ap_no_applicants_desc')}</p>
             </div>
           ) : (
             <div className="space-y-4">
               {/* Filter tabs */}
               <div className="flex items-center gap-1 bg-zinc-900 border border-zinc-800 rounded-xl p-1 w-fit">
                 {(['all', 'pending', 'accepted', 'rejected'] as const).map((s) => {
-                  const labels = { all: 'Todos', pending: 'Pendientes', accepted: 'Aceptados', rejected: 'Rechazados' };
+                  const labels = { all: t('ap_f_all'), pending: t('ap_f_pending'), accepted: t('ap_f_accepted'), rejected: t('ap_f_rejected') };
                   const active = filterStatus === s;
                   return (
                     <button
@@ -560,7 +571,7 @@ export default function OrgApplicants({ opportunities, showToast, onOpenMessages
 
               {filteredApps.length === 0 ? (
                 <div className="text-center py-10 bg-zinc-900 border border-zinc-800 rounded-2xl">
-                  <p className="text-zinc-500 text-sm">No hay candidatos en este estado.</p>
+                  <p className="text-zinc-500 text-sm">{t('ap_none_in_status')}</p>
                 </div>
               ) : (
                 filteredApps.map((app) => (
