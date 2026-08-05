@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Message, Conversation } from '@/hooks/useMessages';
 
 interface Props {
@@ -10,24 +12,31 @@ interface Props {
   onSend: (content: string) => Promise<boolean>;
 }
 
-function formatMsgTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+function formatMsgTime(dateStr: string, locale: string): string {
+  return new Date(dateStr).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
 }
 
-function formatDateSeparator(dateStr: string): string {
+function formatDateSeparator(dateStr: string, t: TFunction, locale: string): string {
   const date = new Date(dateStr);
   const now = new Date();
   const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-  if (diffDays === 0) return 'Hoy';
-  if (diffDays === 1) return 'Ayer';
-  return date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+  if (diffDays === 0) return t('msg_today');
+  if (diffDays === 1) return t('msg_yesterday');
+  return date.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' });
 }
+
+const USER_TYPE_LABEL_KEYS: Record<string, string> = {
+  fighter: 'msg_type_fighter', brand: 'msg_type_brand', promoter: 'msg_type_promoter',
+  gym: 'msg_type_gym', manager: 'msg_type_manager',
+};
 
 function isSameDay(a: string, b: string): boolean {
   return new Date(a).toDateString() === new Date(b).toDateString();
 }
 
 export default function ChatWindow({ conversation, messages, loading, sending, currentUserId, onSend }: Props) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -67,9 +76,9 @@ export default function ChatWindow({ conversation, messages, loading, sending, c
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-white truncate">{other.full_name || 'Usuario'}</p>
+          <p className="text-sm font-bold text-white truncate">{other.full_name || t('msg_user_fallback')}</p>
           <p className="text-xs text-zinc-500">
-            {other.user_type === 'fighter' ? 'Peleador' : other.user_type === 'brand' ? 'Marca' : other.user_type === 'promoter' ? 'Promotora' : other.user_type === 'gym' ? 'Gimnasio / Club' : other.user_type === 'manager' ? 'Manager' : 'Usuario'}
+            {USER_TYPE_LABEL_KEYS[other.user_type] ? t(USER_TYPE_LABEL_KEYS[other.user_type]) : t('msg_user_fallback')}
           </p>
         </div>
       </div>
@@ -85,8 +94,8 @@ export default function ChatWindow({ conversation, messages, loading, sending, c
             <div className="w-14 h-14 flex items-center justify-center rounded-2xl bg-zinc-800 text-zinc-500 mb-3">
               <i className="ri-chat-smile-2-line text-3xl"></i>
             </div>
-            <p className="text-sm font-semibold text-zinc-300">Inicia la conversación</p>
-            <p className="text-xs text-zinc-500 mt-1">Envía el primer mensaje a {other.full_name?.split(' ')[0] || 'este usuario'}</p>
+            <p className="text-sm font-semibold text-zinc-300">{t('msg_chat_empty_title')}</p>
+            <p className="text-xs text-zinc-500 mt-1">{t('msg_chat_empty_desc', { name: other.full_name?.split(' ')[0] || t('msg_this_user') })}</p>
           </div>
         ) : (
           <>
@@ -101,7 +110,7 @@ export default function ChatWindow({ conversation, messages, loading, sending, c
                   {showDateSep && (
                     <div className="flex items-center gap-3 my-4">
                       <div className="flex-1 h-px bg-zinc-800"></div>
-                      <span className="text-xs text-zinc-500 font-medium px-2">{formatDateSeparator(msg.created_at)}</span>
+                      <span className="text-xs text-zinc-500 font-medium px-2">{formatDateSeparator(msg.created_at, t, locale)}</span>
                       <div className="flex-1 h-px bg-zinc-800"></div>
                     </div>
                   )}
@@ -117,7 +126,7 @@ export default function ChatWindow({ conversation, messages, loading, sending, c
                         {msg.content}
                       </div>
                       <div className={`flex items-center gap-1 mt-1 ${isMine ? 'flex-row-reverse' : 'flex-row'}`}>
-                        <span className="text-xs text-zinc-600">{formatMsgTime(msg.created_at)}</span>
+                        <span className="text-xs text-zinc-600">{formatMsgTime(msg.created_at, locale)}</span>
                         {isMine && (
                           <i className={`text-xs ${msg.read_at ? 'ri-check-double-line text-red-400' : 'ri-check-line text-zinc-600'}`}></i>
                         )}
@@ -140,7 +149,7 @@ export default function ChatWindow({ conversation, messages, loading, sending, c
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={`Mensaje a ${other.full_name?.split(' ')[0] || 'usuario'}...`}
+            placeholder={t('msg_input_ph', { name: other.full_name?.split(' ')[0] || t('msg_input_name_fallback') })}
             rows={1}
             className="flex-1 bg-transparent text-sm text-white placeholder-zinc-500 resize-none focus:outline-none max-h-32 leading-relaxed"
             style={{ minHeight: '24px' }}
@@ -161,7 +170,7 @@ export default function ChatWindow({ conversation, messages, loading, sending, c
             )}
           </button>
         </div>
-        <p className="text-xs text-zinc-600 mt-1.5 text-center">Enter para enviar · Shift+Enter para nueva línea</p>
+        <p className="text-xs text-zinc-600 mt-1.5 text-center">{t('msg_hint')}</p>
       </div>
     </div>
   );

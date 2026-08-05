@@ -1,11 +1,13 @@
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Conversation } from '@/hooks/useMessages';
 
-const userTypeLabels: Record<string, string> = {
-  fighter: 'Peleador',
-  promoter: 'Promotora',
-  gym: 'Gimnasio',
-  manager: 'Manager',
-  brand: 'Marca',
+const userTypeLabelKeys: Record<string, string> = {
+  fighter: 'msg_type_fighter',
+  promoter: 'msg_type_promoter',
+  gym: 'msg_type_gym',
+  manager: 'msg_type_manager',
+  brand: 'msg_type_brand',
 };
 
 const userTypeColors: Record<string, string> = {
@@ -16,20 +18,20 @@ const userTypeColors: Record<string, string> = {
   brand: 'bg-yellow-500/10 text-yellow-400',
 };
 
-function formatTime(dateStr: string): string {
+function formatTime(dateStr: string, t: TFunction, locale: string): string {
   const date = new Date(dateStr);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
   if (diffDays === 0) {
-    return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
   } else if (diffDays === 1) {
-    return 'Ayer';
+    return t('msg_yesterday');
   } else if (diffDays < 7) {
-    return date.toLocaleDateString('es-ES', { weekday: 'short' });
+    return date.toLocaleDateString(locale, { weekday: 'short' });
   }
-  return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+  return date.toLocaleDateString(locale, { day: '2-digit', month: 'short' });
 }
 
 interface Props {
@@ -41,6 +43,8 @@ interface Props {
 }
 
 export default function MessagesInbox({ conversations, activeConvoId, loading, onSelect, currentUserId }: Props) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
   if (loading) {
     return (
       <div className="flex items-center justify-center h-40">
@@ -55,9 +59,9 @@ export default function MessagesInbox({ conversations, activeConvoId, loading, o
         <div className="w-14 h-14 flex items-center justify-center rounded-2xl bg-zinc-800 text-zinc-500 mb-4">
           <i className="ri-message-3-line text-3xl"></i>
         </div>
-        <p className="text-sm font-semibold text-zinc-300">Sin conversaciones</p>
+        <p className="text-sm font-semibold text-zinc-300">{t('msg_empty_title')}</p>
         <p className="text-xs text-zinc-500 mt-1 leading-relaxed">
-          Las conversaciones aparecerán aquí cuando aceptes o seas aceptado en una oportunidad.
+          {t('msg_empty_desc')}
         </p>
       </div>
     );
@@ -70,7 +74,7 @@ export default function MessagesInbox({ conversations, activeConvoId, loading, o
         const initials = (other.full_name || 'U').split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
         const isActive = convo.id === activeConvoId;
         const typeColor = userTypeColors[other.user_type] || 'bg-zinc-700 text-zinc-300';
-        const typeLabel = userTypeLabels[other.user_type] || other.user_type;
+        const typeLabel = userTypeLabelKeys[other.user_type] ? t(userTypeLabelKeys[other.user_type]) : other.user_type;
 
         return (
           <button
@@ -96,14 +100,14 @@ export default function MessagesInbox({ conversations, activeConvoId, loading, o
             {/* Info */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-semibold text-white truncate">{other.full_name || 'Usuario'}</span>
+                <span className="text-sm font-semibold text-white truncate">{other.full_name || t('msg_user_fallback')}</span>
                 <span className="flex items-center gap-1.5 flex-shrink-0">
                   {convo.unread_count > 0 && (
                     <span className="min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-red-600 text-white text-[10px] font-bold rounded-full">
                       {convo.unread_count > 9 ? '9+' : convo.unread_count}
                     </span>
                   )}
-                  <span className="text-xs text-zinc-500">{formatTime(convo.last_message_at)}</span>
+                  <span className="text-xs text-zinc-500">{formatTime(convo.last_message_at, t, locale)}</span>
                 </span>
               </div>
               <div className="flex items-center gap-2 mt-0.5">

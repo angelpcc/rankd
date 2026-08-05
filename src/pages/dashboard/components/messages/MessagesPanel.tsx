@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useMessages } from '@/hooks/useMessages';
 import MessagesInbox from './MessagesInbox';
 import ChatWindow from './ChatWindow';
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export default function MessagesPanel({ currentUserId }: Props) {
+  const { t } = useTranslation();
   const {
     conversations,
     loadingConvos,
@@ -34,8 +36,8 @@ export default function MessagesPanel({ currentUserId }: Props) {
       <div className={`w-full lg:w-80 flex-shrink-0 border-r border-zinc-800 flex flex-col ${mobileView === 'chat' ? 'hidden lg:flex' : 'flex'}`}>
         {/* Inbox header */}
         <div className="px-5 py-4 border-b border-zinc-800 flex-shrink-0">
-          <h2 className="text-base font-bold text-white">Mensajes</h2>
-          <p className="text-xs text-zinc-500 mt-0.5">{conversations.length} conversación{conversations.length !== 1 ? 'es' : ''}</p>
+          <h2 className="text-base font-bold text-white">{t('msg_title')}</h2>
+          <p className="text-xs text-zinc-500 mt-0.5">{t('msg_conversations', { count: conversations.length })}</p>
         </div>
 
         {/* Conversation list */}
@@ -61,7 +63,7 @@ export default function MessagesPanel({ currentUserId }: Props) {
                 className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white cursor-pointer whitespace-nowrap transition-colors"
               >
                 <i className="ri-arrow-left-line"></i>
-                Volver
+                {t('msg_back')}
               </button>
             </div>
             <ChatWindow
@@ -78,9 +80,9 @@ export default function MessagesPanel({ currentUserId }: Props) {
             <div className="w-20 h-20 flex items-center justify-center rounded-3xl bg-zinc-800 text-zinc-600 mb-5">
               <i className="ri-message-3-line text-4xl"></i>
             </div>
-            <h3 className="text-base font-bold text-zinc-300 mb-2">Selecciona una conversación</h3>
+            <h3 className="text-base font-bold text-zinc-300 mb-2">{t('msg_select_title')}</h3>
             <p className="text-sm text-zinc-500 leading-relaxed max-w-xs">
-              Elige una conversación de la lista para empezar a chatear. Las conversaciones se crean automáticamente cuando aceptas o eres aceptado en una oportunidad.
+              {t('msg_select_desc')}
             </p>
           </div>
         )}
