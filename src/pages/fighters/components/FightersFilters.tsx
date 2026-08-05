@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 interface Filters {
   discipline: string;
   weightClass: string;
@@ -21,40 +23,43 @@ interface Props {
   onToggle: () => void;
 }
 
+// Etiquetas por clave i18n: disciplinas y niveles reutilizan el set compartido
+// (disc_*/exp_*); el resto usa el namespace del directorio (fd_*).
 const disciplines = [
-  { value: '', label: 'Todas las disciplinas' },
-  { value: 'boxing', label: 'Boxeo' },
-  { value: 'mma', label: 'MMA' },
-  { value: 'kickboxing', label: 'Kickboxing' },
-  { value: 'muay_thai', label: 'Muay Thai' },
-  { value: 'wrestling', label: 'Wrestling' },
-  { value: 'bjj', label: 'BJJ' },
-  { value: 'other', label: 'Otro' },
+  { value: '', labelKey: 'fd_all_disciplines' },
+  { value: 'boxing', labelKey: 'disc_boxing' },
+  { value: 'mma', labelKey: 'disc_mma' },
+  { value: 'kickboxing', labelKey: 'disc_kickboxing' },
+  { value: 'muay_thai', labelKey: 'disc_muay_thai' },
+  { value: 'wrestling', labelKey: 'disc_wrestling' },
+  { value: 'bjj', labelKey: 'disc_bjj' },
+  { value: 'other', labelKey: 'disc_other' },
 ];
 
+// Categorías de peso: valores canónicos almacenados → no se traducen.
 const weightClasses = [
   'Minimosca', 'Mosca', 'Gallo', 'Pluma', 'Ligero', 'Superligero',
   'Welter', 'Superwelter', 'Medio', 'Supermedio', 'Semipesado', 'Crucero', 'Pesado',
 ];
 
 const expLevels = [
-  { value: 'amateur', label: 'Amateur' },
-  { value: 'semi_pro', label: 'Semi-Pro' },
-  { value: 'professional', label: 'Profesional' },
+  { value: 'amateur', labelKey: 'exp_amateur' },
+  { value: 'semi_pro', labelKey: 'exp_semipro' },
+  { value: 'professional', labelKey: 'exp_professional' },
 ];
 
 const popularityOptions = [
-  { value: '', label: 'Cualquier popularidad' },
-  { value: 'high', label: 'Alta (3+ redes)' },
-  { value: 'medium', label: 'Media (1-2 redes)' },
-  { value: 'none', label: 'Sin redes sociales' },
+  { value: '', labelKey: 'fd_pop_any' },
+  { value: 'high', labelKey: 'fd_pop_high' },
+  { value: 'medium', labelKey: 'fd_pop_medium' },
+  { value: 'none', labelKey: 'fd_pop_none' },
 ];
 
 const sortOptions = [
-  { value: 'recent', label: 'Más recientes' },
-  { value: 'wins', label: 'Más victorias' },
-  { value: 'social', label: 'Mayor presencia digital' },
-  { value: 'available', label: 'Disponibles primero' },
+  { value: 'recent', labelKey: 'fd_sort_recent' },
+  { value: 'wins', labelKey: 'fd_most_wins' },
+  { value: 'social', labelKey: 'fd_most_social' },
+  { value: 'available', labelKey: 'fd_sort_available' },
 ];
 
 export type { Filters };
@@ -62,6 +67,7 @@ export type { Filters };
 export default function FightersFilters({
   filters, onChange, total, filtered, locations, sortBy, onSortChange, isOpen, onToggle,
 }: Props) {
+  const { t } = useTranslation();
   const set = (key: keyof Filters, value: string | boolean) => onChange({ ...filters, [key]: value });
 
   const activeCount = [
@@ -85,7 +91,7 @@ export default function FightersFilters({
       >
         <span className="flex items-center gap-2 text-sm font-semibold text-white">
           <i className="ri-filter-3-line text-[#C9A84C]"></i>
-          Filtros
+          {t('fd_filters')}
           {activeCount > 0 && (
             <span className="bg-red-600 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">{activeCount}</span>
           )}
@@ -98,14 +104,14 @@ export default function FightersFilters({
         <div className="hidden lg:flex items-center justify-between mb-1">
           <span className="text-sm font-bold text-white flex items-center gap-2">
             <i className="ri-filter-3-line text-[#C9A84C]"></i>
-            Filtros
+            {t('fd_filters')}
             {activeCount > 0 && (
               <span className="bg-red-600 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">{activeCount}</span>
             )}
           </span>
           {activeCount > 0 && (
             <button onClick={clearAll} className="text-xs text-red-400 hover:text-red-300 cursor-pointer whitespace-nowrap transition-colors">
-              Limpiar todo
+              {t('fd_clear_all')}
             </button>
           )}
         </div>
@@ -118,7 +124,7 @@ export default function FightersFilters({
               type="text"
               value={filters.search}
               onChange={(e) => set('search', e.target.value)}
-              placeholder="Nombre, apodo, gimnasio..."
+              placeholder={t('fd_search_ph')}
               className="w-full pl-9 pr-3 py-2 bg-white/[0.04] border border-white/10 text-white text-sm rounded-lg focus:outline-none focus:border-red-500 transition-colors"
             />
           </div>
@@ -126,13 +132,13 @@ export default function FightersFilters({
 
         {/* País — ARRIBA */}
         <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4">
-          <p className="text-xs font-bold text-[#C9A84C] uppercase tracking-[0.18em] mb-3">País</p>
+          <p className="text-xs font-bold text-[#C9A84C] uppercase tracking-[0.18em] mb-3">{t('fd_country')}</p>
           <select
             value={filters.location}
             onChange={(e) => set('location', e.target.value)}
             className="w-full bg-white/[0.04] border border-white/10 text-zinc-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-red-500 cursor-pointer"
           >
-            <option value="">Todos los países</option>
+            <option value="">{t('fd_all_countries')}</option>
             {locations.map((loc) => (
               <option key={loc} value={loc}>{loc}</option>
             ))}
@@ -141,7 +147,7 @@ export default function FightersFilters({
 
         {/* Sort */}
         <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4">
-          <p className="text-xs font-bold text-[#C9A84C] uppercase tracking-[0.18em] mb-3">Ordenar por</p>
+          <p className="text-xs font-bold text-[#C9A84C] uppercase tracking-[0.18em] mb-3">{t('fd_sort_by')}</p>
           <div className="space-y-1">
             {sortOptions.map((opt) => (
               <button
@@ -153,7 +159,7 @@ export default function FightersFilters({
                 {opt.value === 'wins' && <i className="ri-trophy-line mr-2 text-xs"></i>}
                 {opt.value === 'social' && <i className="ri-global-line mr-2 text-xs"></i>}
                 {opt.value === 'available' && <i className="ri-checkbox-circle-line mr-2 text-xs"></i>}
-                {opt.label}
+                {t(opt.labelKey)}
               </button>
             ))}
           </div>
@@ -161,7 +167,7 @@ export default function FightersFilters({
 
         {/* Discipline */}
         <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4">
-          <p className="text-xs font-bold text-[#C9A84C] uppercase tracking-[0.18em] mb-3">Disciplina</p>
+          <p className="text-xs font-bold text-[#C9A84C] uppercase tracking-[0.18em] mb-3">{t('fd_discipline')}</p>
           <div className="space-y-1">
             {disciplines.map((d) => (
               <button
@@ -169,7 +175,7 @@ export default function FightersFilters({
                 onClick={() => set('discipline', filters.discipline === d.value ? '' : d.value)}
                 className={`w-full text-left text-sm px-3 py-2 rounded-lg transition-colors cursor-pointer ${filters.discipline === d.value && d.value !== '' ? 'bg-red-600/15 text-red-400 font-semibold' : 'text-zinc-400 hover:bg-white/[0.05] hover:text-white'}`}
               >
-                {d.label}
+                {t(d.labelKey)}
               </button>
             ))}
           </div>
@@ -177,13 +183,13 @@ export default function FightersFilters({
 
         {/* Weight class */}
         <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4">
-          <p className="text-xs font-bold text-[#C9A84C] uppercase tracking-[0.18em] mb-3">Categoría de peso</p>
+          <p className="text-xs font-bold text-[#C9A84C] uppercase tracking-[0.18em] mb-3">{t('fd_weight_class')}</p>
           <select
             value={filters.weightClass}
             onChange={(e) => set('weightClass', e.target.value)}
             className="w-full bg-white/[0.04] border border-white/10 text-zinc-200 text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-red-500 cursor-pointer"
           >
-            <option value="">Todas las categorías</option>
+            <option value="">{t('fd_all_weights')}</option>
             {weightClasses.map((w) => (
               <option key={w} value={w}>{w}</option>
             ))}
@@ -192,7 +198,7 @@ export default function FightersFilters({
 
         {/* Experience level */}
         <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4">
-          <p className="text-xs font-bold text-[#C9A84C] uppercase tracking-[0.18em] mb-3">Nivel</p>
+          <p className="text-xs font-bold text-[#C9A84C] uppercase tracking-[0.18em] mb-3">{t('fd_level')}</p>
           <div className="space-y-1">
             {expLevels.map((e) => (
               <button
@@ -200,7 +206,7 @@ export default function FightersFilters({
                 onClick={() => set('expLevel', filters.expLevel === e.value ? '' : e.value)}
                 className={`w-full text-left text-sm px-3 py-2 rounded-lg transition-colors cursor-pointer flex items-center justify-between ${filters.expLevel === e.value ? 'bg-red-600/15 text-red-400 font-semibold' : 'text-zinc-400 hover:bg-white/[0.05] hover:text-white'}`}
               >
-                <span>{e.label}</span>
+                <span>{t(e.labelKey)}</span>
                 {filters.expLevel === e.value && <i className="ri-check-line text-xs"></i>}
               </button>
             ))}
@@ -209,7 +215,7 @@ export default function FightersFilters({
 
         {/* Popularity / Social */}
         <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4">
-          <p className="text-xs font-bold text-[#C9A84C] uppercase tracking-[0.18em] mb-3">Presencia digital</p>
+          <p className="text-xs font-bold text-[#C9A84C] uppercase tracking-[0.18em] mb-3">{t('fd_digital')}</p>
           <div className="space-y-1 mb-3">
             {popularityOptions.map((opt) => (
               <button
@@ -217,7 +223,7 @@ export default function FightersFilters({
                 onClick={() => set('popularity', filters.popularity === opt.value ? '' : opt.value)}
                 className={`w-full text-left text-sm px-3 py-2 rounded-lg transition-colors cursor-pointer flex items-center justify-between ${filters.popularity === opt.value && opt.value !== '' ? 'bg-red-600/15 text-red-400 font-semibold' : 'text-zinc-400 hover:bg-white/[0.05] hover:text-white'}`}
               >
-                <span>{opt.label}</span>
+                <span>{t(opt.labelKey)}</span>
                 {filters.popularity === opt.value && opt.value !== '' && <i className="ri-check-line text-xs"></i>}
               </button>
             ))}
@@ -230,13 +236,13 @@ export default function FightersFilters({
             >
               <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${filters.hasSocial ? 'left-4' : 'left-0.5'}`}></span>
             </button>
-            <span className="text-sm text-zinc-300">Con redes sociales</span>
+            <span className="text-sm text-zinc-300">{t('fd_with_social')}</span>
           </label>
         </div>
 
         {/* Availability */}
         <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4">
-          <p className="text-xs font-bold text-[#C9A84C] uppercase tracking-[0.18em] mb-3">Disponibilidad</p>
+          <p className="text-xs font-bold text-[#C9A84C] uppercase tracking-[0.18em] mb-3">{t('fd_availability')}</p>
           <label className="flex items-center gap-2.5 cursor-pointer px-3 py-2 rounded-lg hover:bg-white/[0.05] transition-colors">
             <button
               type="button"
@@ -245,16 +251,16 @@ export default function FightersFilters({
             >
               <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${filters.available ? 'left-4' : 'left-0.5'}`}></span>
             </button>
-            <span className="text-sm text-zinc-300">Solo disponibles</span>
+            <span className="text-sm text-zinc-300">{t('fd_only_available')}</span>
           </label>
         </div>
 
         {/* Results count */}
         <div className="bg-gradient-to-br from-red-600/10 to-transparent border border-red-500/20 rounded-xl px-4 py-3 text-center">
           <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 28, lineHeight: 1, color: '#fff' }}>{filtered}</p>
-          <p className="text-xs text-zinc-400 mt-1">{filtered === 1 ? 'peleador encontrado' : 'peleadores encontrados'}</p>
+          <p className="text-xs text-zinc-400 mt-1">{filtered === 1 ? t('fd_found_one') : t('fd_found_other')}</p>
           {filtered !== total && (
-            <p className="text-xs text-zinc-500 mt-0.5">de {total} en total</p>
+            <p className="text-xs text-zinc-500 mt-0.5">{t('fd_of_total', { n: total })}</p>
           )}
         </div>
 
@@ -264,7 +270,7 @@ export default function FightersFilters({
             onClick={clearAll}
             className="lg:hidden w-full text-sm text-red-400 hover:text-red-300 cursor-pointer py-2 transition-colors font-medium"
           >
-            Limpiar todos los filtros
+            {t('fd_clear_all_mobile')}
           </button>
         )}
       </div>

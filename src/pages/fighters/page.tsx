@@ -248,11 +248,11 @@ export default function FightersDirectoryPage() {
   }, [data, filters, sortBy, userCountry]);
 
   const disciplineLabels: Record<string, string> = {
-    boxing: 'Boxeo', mma: 'MMA', kickboxing: 'Kickboxing',
-    muay_thai: 'Muay Thai', wrestling: 'Wrestling', bjj: 'BJJ', other: 'Otro',
+    boxing: t('disc_boxing'), mma: t('disc_mma'), kickboxing: t('disc_kickboxing'),
+    muay_thai: t('disc_muay_thai'), wrestling: t('disc_wrestling'), bjj: t('disc_bjj'), other: t('disc_other'),
   };
   const expLabels: Record<string, string> = {
-    amateur: 'Amateur', semi_pro: 'Semi-Pro', professional: 'Profesional',
+    amateur: t('exp_amateur'), semi_pro: t('exp_semipro'), professional: t('exp_professional'),
   };
 
   const activeFilterCount = [
@@ -262,12 +262,12 @@ export default function FightersDirectoryPage() {
 
   // Explorar por disciplina: entradas visuales con recuento real
   const DISCIPLINE_TILES = [
-    { value: 'boxing', label: 'Boxeo', icon: 'ri-boxing-line' },
-    { value: 'mma', label: 'MMA', icon: 'ri-sword-line' },
-    { value: 'kickboxing', label: 'Kickboxing', icon: 'ri-run-line' },
-    { value: 'muay_thai', label: 'Muay Thai', icon: 'ri-boxing-fill' },
-    { value: 'bjj', label: 'BJJ', icon: 'ri-shirt-line' },
-    { value: 'wrestling', label: 'Wrestling', icon: 'ri-shake-hands-line' },
+    { value: 'boxing', label: t('disc_boxing'), icon: 'ri-boxing-line' },
+    { value: 'mma', label: t('disc_mma'), icon: 'ri-sword-line' },
+    { value: 'kickboxing', label: t('disc_kickboxing'), icon: 'ri-run-line' },
+    { value: 'muay_thai', label: t('disc_muay_thai'), icon: 'ri-boxing-fill' },
+    { value: 'bjj', label: t('disc_bjj'), icon: 'ri-shirt-line' },
+    { value: 'wrestling', label: t('disc_wrestling'), icon: 'ri-shake-hands-line' },
   ];
   const disciplineCounts = useMemo(() => {
     const m: Record<string, number> = {};
@@ -319,9 +319,9 @@ export default function FightersDirectoryPage() {
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 md:px-10 py-12 sm:py-16 md:py-24">
             <div className="max-w-2xl">
               <div className="flex items-center gap-3 mb-4">
-                <span className="rk-index">EL RÓSTER</span>
+                <span className="rk-index">{t('fd_roster')}</span>
                 <span style={{ flex: '0 0 34px', height: 1, background: 'rgba(255,255,255,0.16)' }} />
-                <span className="rk-eyebrow">Directorio</span>
+                <span className="rk-eyebrow">{t('fd_directory')}</span>
                 {data.length > 0 && (
                   <span className="text-xs text-zinc-400">· {data.length} {t('fighters_dir_registered')}</span>
                 )}
@@ -342,9 +342,9 @@ export default function FightersDirectoryPage() {
         {!loading && data.length > 0 && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 pt-7">
             <div className="flex items-center gap-3 mb-3">
-              <span className="rk-eyebrow">EXPLORA POR</span>
+              <span className="rk-eyebrow">{t('fd_explore_by')}</span>
               <span style={{ flex: '0 0 28px', height: 1, background: 'rgba(255,255,255,0.14)' }} />
-              <span className="text-xs text-zinc-500">Disciplina</span>
+              <span className="text-xs text-zinc-500">{t('fd_discipline')}</span>
             </div>
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
               {DISCIPLINE_TILES.map((d) => {
@@ -356,7 +356,7 @@ export default function FightersDirectoryPage() {
                     <div className="absolute -right-2 -top-3 opacity-[0.06] group-hover:opacity-10 transition-opacity" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 60, lineHeight: 1 }}>{count}</div>
                     <i className={`${d.icon} text-xl ${active ? 'text-red-400' : 'text-zinc-400 group-hover:text-white'} transition-colors`}></i>
                     <p className="text-sm font-bold text-white mt-2 leading-tight">{d.label}</p>
-                    <p className="text-[11px] text-zinc-500 mt-0.5">{count} {count === 1 ? 'peleador' : 'peleadores'}</p>
+                    <p className="text-[11px] text-zinc-500 mt-0.5">{count} {count === 1 ? t('fd_fighter_one') : t('fd_fighter_other')}</p>
                   </button>
                 );
               })}
@@ -365,20 +365,20 @@ export default function FightersDirectoryPage() {
             <div className="flex flex-wrap gap-2 mt-3">
               <button onClick={() => setFilters((f) => ({ ...f, available: !f.available }))}
                 className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors cursor-pointer ${filters.available ? 'bg-green-500/15 border-green-500/35 text-green-300' : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white hover:border-white/25'}`}>
-                <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>Disponibles ahora · {availableCount}
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>{t('fd_available_now')} · {availableCount}
               </button>
               <button onClick={() => setSortBy('wins')}
                 className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors cursor-pointer ${sortBy === 'wins' ? 'bg-red-600/15 border-red-500/35 text-red-300' : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white hover:border-white/25'}`}>
-                <i className="ri-trophy-line"></i>Más victorias
+                <i className="ri-trophy-line"></i>{t('fd_most_wins')}
               </button>
               <button onClick={() => setSortBy('social')}
                 className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors cursor-pointer ${sortBy === 'social' ? 'bg-[#C9A84C]/15 border-[#C9A84C]/35 text-[#C9A84C]' : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white hover:border-white/25'}`}>
-                <i className="ri-global-line"></i>Mayor presencia digital
+                <i className="ri-global-line"></i>{t('fd_most_social')}
               </button>
               {(filters.discipline || filters.available || sortBy !== 'recent') && (
                 <button onClick={() => { setFilters(defaultFilters); setSortBy('recent'); }}
                   className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border border-white/10 text-zinc-500 hover:text-red-400 transition-colors cursor-pointer">
-                  <i className="ri-close-line"></i>Limpiar
+                  <i className="ri-close-line"></i>{t('fd_clear')}
                 </button>
               )}
             </div>
@@ -535,7 +535,7 @@ export default function FightersDirectoryPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="text-sm font-bold text-white group-hover:text-red-400 transition-colors truncate">
-                              {profile.full_name || 'Peleador'}
+                              {profile.full_name || t('fd_fighter_fallback')}
                             </h3>
                             {fighter.nickname && (
                               <span className="text-xs text-red-400 italic hidden sm:inline">&ldquo;{fighter.nickname}&rdquo;</span>
