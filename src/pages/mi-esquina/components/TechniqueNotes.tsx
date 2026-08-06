@@ -19,24 +19,16 @@ interface Note {
   pinned: boolean;
 }
 
-const CATEGORIES = [
-  { value: 'correccion', key: 'mc_tn_cat_correction', icon: 'ri-error-warning-line', color: '#E10600' },
-  { value: 'tactica', key: 'mc_tn_cat_tactic', icon: 'ri-mind-map', color: '#38bdf8' },
-  { value: 'idea', key: 'mc_tn_cat_idea', icon: 'ri-lightbulb-line', color: '#C9A84C' },
-  { value: 'error', key: 'mc_tn_cat_error', icon: 'ri-repeat-line', color: '#fb923c' },
-];
-
-const catCfg = (v: string) => CATEGORIES.find((c) => c.value === v) || CATEGORIES[0];
-
 function todayISO(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 /**
- * Libreta de notas técnicas: las correcciones del entrenador se olvidan en dos
- * días. Guardarlas y poder buscarlas antes de entrenar es la diferencia entre
- * repetir el error y corregirlo.
+ * Libreta de notas técnicas: un espacio SIMPLE para apuntar lo que corrige el
+ * entrenador (se olvida en dos días). Título + nota + fecha, con buscador. Sin
+ * categorías ni etiquetas: es una libreta, no un gestor (R15-B7).
+ * Los campos category/source/tags de la tabla se guardan con un valor fijo.
  */
 export default function TechniqueNotes({ profile, showToast }: Props) {
   const { t, i18n } = useTranslation();
@@ -46,13 +38,9 @@ export default function TechniqueNotes({ profile, showToast }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState('');
-  const [catFilter, setCatFilter] = useState<string>('all');
 
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
-  const [category, setCategory] = useState('correccion');
-  const [source, setSource] = useState('coach');
-  const [tags, setTags] = useState('');
   const [noteDate, setNoteDate] = useState(todayISO());
 
   const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
@@ -62,7 +50,6 @@ export default function TechniqueNotes({ profile, showToast }: Props) {
     const { data, error } = await supabase
       .from('technique_notes').select('*')
       .eq('fighter_profile_id', profile.id)
-      .order('pinned', { ascending: false })
       .order('note_date', { ascending: false });
     if (isMissingTable(error)) { setUnavailable(true); setLoading(false); return; }
     setItems((data || []) as Note[]);
@@ -71,23 +58,20 @@ export default function TechniqueNotes({ profile, showToast }: Props) {
 
   useEffect(() => { load(); }, [load]);
 
-  const reset = () => {
-    setTitle(''); setBody(''); setCategory('correccion'); setSource('coach');
-    setTags(''); setNoteDate(todayISO());
-  };
+  const reset = () => { setTitle(''); setBody(''); setNoteDate(todayISO()); };
 
   const create = async () => {
     if (!title.trim()) { showToast(t('mc_tn_note_title'), 'error'); return; }
     setSaving(true);
-    const tagList = tags.split(',').map((s) => s.trim()).filter(Boolean);
+    // category/source se guardan con un valor fijo: la libreta ya no los usa.
     const { data, error } = await supabase.from('technique_notes').insert({
       fighter_profile_id: profile.id,
       note_date: noteDate,
       title: title.trim(),
       body: body.trim() || null,
-      category,
-      source,
-      tags: tagList.length ? tagList : null,
+      category: 'idea',
+      source: 'propia',
+      tags: null,
     }).select().maybeSingle();
     setSaving(false);
     if (error || !data) { showToast(t('error_save'), 'error'); return; }
@@ -95,14 +79,6 @@ export default function TechniqueNotes({ profile, showToast }: Props) {
     setShowForm(false);
     reset();
     showToast(t('mc_tn_saved'));
-  };
-
-  const togglePin = async (n: Note) => {
-    const next = !n.pinned;
-    setItems((prev) => [...prev.map((x) => x.id === n.id ? { ...x, pinned: next } : x)]
-      .sort((a, b) => (Number(b.pinned) - Number(a.pinned)) || b.note_date.localeCompare(a.note_date)));
-    const { error } = await supabase.from('technique_notes').update({ pinned: next }).eq('id', n.id);
-    if (error) { showToast(t('error_save'), 'error'); load(); }
   };
 
   const remove = async (id: string) => {
@@ -113,17 +89,9 @@ export default function TechniqueNotes({ profile, showToast }: Props) {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return items.filter((n) => {
-      if (catFilter !== 'all' && n.category !== catFilter) return false;
-      if (!q) return true;
-      return n.title.toLowerCase().includes(q)
-        || (n.body || '').toLowerCase().includes(q)
-        || (n.tags || []).some((tg) => tg.toLowerCase().includes(q));
-    });
-  }, [items, query, catFilter]);
-
-  const pinned = filtered.filter((n) => n.pinned);
-  const rest = filtered.filter((n) => !n.pinned);
+    if (!q) return items;
+    return items.filter((n) => n.title.toLowerCase().includes(q) || (n.body || '').toLowerCase().includes(q));
+  }, [items, query]);
 
   if (loading) {
     return <div className="flex items-center justify-center py-24"><div className="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div></div>;
@@ -141,127 +109,76 @@ export default function TechniqueNotes({ profile, showToast }: Props) {
     );
   }
 
-  const NoteCard = ({ n }: { n: Note }) => {
-    const cfg = catCfg(n.category);
-    return (
-      <div className="rk-card group" style={{ padding: '16px 18px' }}>
-        <div className="flex items-start gap-3.5">
-          <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl border"
-            style={{ background: `${cfg.color}14`, borderColor: `${cfg.color}40`, color: cfg.color }}>
-            <i className={cfg.icon}></i>
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-sm font-bold text-white leading-snug">{n.title}</p>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: `${cfg.color}18`, color: cfg.color }}>{t(cfg.key)}</span>
-              {n.source === 'coach' && (
-                <span className="text-[10px] text-zinc-400 bg-white/[0.05] border border-white/10 px-2 py-0.5 rounded-full">{t('mc_tn_source_coach')}</span>
-              )}
-            </div>
-            {n.body && <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed whitespace-pre-wrap">{n.body}</p>}
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <span className="text-[11px] text-zinc-600">
-                {new Date(n.note_date + 'T12:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })}
-              </span>
-              {(n.tags || []).map((tg) => (
-                <button key={tg} onClick={() => setQuery(tg)}
-                  className="text-[10px] text-zinc-400 bg-white/[0.04] border border-white/[0.08] hover:border-white/20 px-2 py-0.5 rounded-md cursor-pointer transition-colors">
-                  #{tg}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex flex-col gap-1 flex-shrink-0">
-            <button onClick={() => togglePin(n)} title={n.pinned ? t('mc_tn_unpin') : t('mc_tn_pin')}
-              className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors cursor-pointer ${n.pinned ? 'text-[#C9A84C]' : 'text-zinc-600 hover:text-zinc-300'}`}>
-              <i className={n.pinned ? 'ri-pushpin-fill' : 'ri-pushpin-line'}></i>
-            </button>
-            <button onClick={() => remove(n.id)} aria-label={t('mc_delete')}
-              className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-600 hover:text-red-400 transition-colors cursor-pointer opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
-              <i className="ri-delete-bin-line"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   return (
-    <div className="space-y-6 max-w-4xl">
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div>
-          <p className="rk-eyebrow">{t('mc_tn_source_coach')}</p>
-          <h2 className="rk-h2" style={{ fontSize: 'clamp(1.8rem,4vw,2.4rem)', color: '#fff', margin: '4px 0 0' }}>
-            {t('mc_tn_title')} <span className="rk-red-glow">{t('mc_tn_title_2')}</span>
-          </h2>
-          <p className="text-zinc-400 text-sm mt-1.5 max-w-md">{t('mc_tn_subtitle')}</p>
+    <div className="space-y-4 max-w-2xl">
+      {/* Cabecera ligera: la sección ya está dentro del hub Ring. */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="text-base font-bold text-white">{t('mc_tn_title')} {t('mc_tn_title_2')}</h3>
+          <p className="text-xs text-zinc-500 mt-0.5">{t('mc_tn_subtitle')}</p>
         </div>
-        <button onClick={() => { reset(); setShowForm(true); }} className="rk-btn rk-btn-primary flex items-center gap-2" style={{ fontSize: '0.85rem', padding: '0.7rem 1.4rem' }}>
+        <button onClick={() => { reset(); setShowForm(true); }}
+          className="flex-shrink-0 flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl cursor-pointer transition-colors whitespace-nowrap">
           <i className="ri-add-line"></i> {t('mc_tn_new')}
         </button>
       </div>
 
       {items.length === 0 ? (
-        <div className="rk-card text-center" style={{ padding: '48px 28px' }}>
-          <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center rounded-2xl bg-white/[0.04] border border-white/10">
-            <i className="ri-book-open-line text-3xl text-zinc-600"></i>
+        <div className="rk-card text-center" style={{ padding: '40px 24px' }}>
+          <div className="w-14 h-14 mx-auto mb-4 flex items-center justify-center rounded-2xl bg-white/[0.04] border border-white/10">
+            <i className="ri-book-open-line text-2xl text-zinc-600"></i>
           </div>
           <p className="text-white font-bold">{t('mc_tn_empty')}</p>
           <p className="text-sm text-zinc-400 mt-1.5 max-w-sm mx-auto leading-relaxed">{t('mc_tn_empty_desc')}</p>
-          <button onClick={() => { reset(); setShowForm(true); }} className="rk-btn rk-btn-primary mt-6" style={{ fontSize: '0.85rem', padding: '0.7rem 1.6rem' }}>
+          <button onClick={() => { reset(); setShowForm(true); }} className="rk-btn rk-btn-primary mt-5" style={{ fontSize: '0.85rem', padding: '0.7rem 1.6rem' }}>
             {t('mc_tn_new')}
           </button>
         </div>
       ) : (
         <>
-          {/* Buscador + filtro por tipo */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <i className="ri-search-line absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 text-sm"></i>
-              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('mc_tn_search')}
-                className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl pl-9 pr-8 py-2.5 focus:outline-none focus:border-red-500 transition-colors" />
-              {query && (
-                <button onClick={() => setQuery('')} aria-label={t('mc_close')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white cursor-pointer">
-                  <i className="ri-close-circle-fill text-sm"></i>
-                </button>
-              )}
-            </div>
-            <div className="flex gap-1.5 overflow-x-auto">
-              <button onClick={() => setCatFilter('all')}
-                className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap border transition-all cursor-pointer ${catFilter === 'all' ? 'bg-red-600 border-red-600 text-white' : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white'}`}>
-                {t('mc_tn_filter_all')}
+          {/* Buscador simple */}
+          <div className="relative">
+            <i className="ri-search-line absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 text-sm"></i>
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('mc_tn_search')}
+              className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl pl-9 pr-8 py-2.5 focus:outline-none focus:border-red-500 transition-colors" />
+            {query && (
+              <button onClick={() => setQuery('')} aria-label={t('mc_close')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white cursor-pointer">
+                <i className="ri-close-circle-fill text-sm"></i>
               </button>
-              {CATEGORIES.map((c) => (
-                <button key={c.value} onClick={() => setCatFilter(c.value)}
-                  className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap border transition-all cursor-pointer ${catFilter === c.value ? 'text-white' : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white'}`}
-                  style={catFilter === c.value ? { background: `${c.color}22`, borderColor: `${c.color}66` } : undefined}>
-                  {t(c.key)}
-                </button>
-              ))}
-            </div>
+            )}
           </div>
 
           {filtered.length === 0 ? (
-            <div className="rk-card text-center" style={{ padding: '40px 24px' }}>
+            <div className="rk-card text-center" style={{ padding: '32px 24px' }}>
               <i className="ri-search-eye-line text-3xl text-zinc-700"></i>
               <p className="text-sm text-zinc-400 mt-3">{t('mc_tn_no_results')}</p>
             </div>
           ) : (
-            <>
-              {pinned.length > 0 && (
-                <div>
-                  <p className="text-[11px] font-bold tracking-[0.22em] uppercase text-[#C9A84C] mb-2.5">{t('mc_tn_pinned')}</p>
-                  <div className="space-y-2.5">{pinned.map((n) => <NoteCard key={n.id} n={n} />)}</div>
+            <div className="space-y-2">
+              {filtered.map((n) => (
+                <div key={n.id} className="rk-card group" style={{ padding: '14px 16px' }}>
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-white leading-snug">{n.title}</p>
+                      {n.body && <p className="text-xs text-zinc-400 mt-1 leading-relaxed whitespace-pre-wrap">{n.body}</p>}
+                      <p className="text-[11px] text-zinc-600 mt-1.5">
+                        {new Date(n.note_date + 'T12:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </p>
+                    </div>
+                    <button onClick={() => remove(n.id)} aria-label={t('mc_delete')}
+                      className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg text-zinc-600 hover:text-red-400 transition-colors cursor-pointer opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+                      <i className="ri-delete-bin-line"></i>
+                    </button>
+                  </div>
                 </div>
-              )}
-              {rest.length > 0 && <div className="space-y-2.5">{rest.map((n) => <NoteCard key={n.id} n={n} />)}</div>}
-            </>
+              ))}
+            </div>
           )}
         </>
       )}
 
-      {/* Modal nueva nota */}
+      {/* Modal nueva nota: título + nota + fecha */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={(e) => { if (e.target === e.currentTarget) setShowForm(false); }}>
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
@@ -290,44 +207,9 @@ export default function TechniqueNotes({ profile, showToast }: Props) {
               </div>
 
               <div>
-                <label className="block text-xs text-zinc-400 mb-2">{t('mc_tn_category')}</label>
-                <div className="grid grid-cols-4 gap-2">
-                  {CATEGORIES.map((c) => (
-                    <button key={c.value} onClick={() => setCategory(c.value)}
-                      className={`flex flex-col items-center gap-1 py-2.5 rounded-xl border transition-all cursor-pointer ${category === c.value ? 'border-white/30' : 'border-white/10 hover:border-white/20'}`}
-                      style={{ background: category === c.value ? `${c.color}18` : 'rgba(255,255,255,0.02)' }}>
-                      <i className={c.icon} style={{ color: c.color, fontSize: 15 }}></i>
-                      <span className="text-[9px] font-semibold text-white text-center leading-tight">{t(c.key)}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-zinc-400 mb-2">{t('mc_tn_source')}</label>
-                  <div className="flex gap-2">
-                    {(['coach', 'propia'] as const).map((s) => (
-                      <button key={s} onClick={() => setSource(s)}
-                        className={`flex-1 py-2.5 rounded-xl border text-[11px] font-bold transition-all cursor-pointer ${source === s ? 'bg-red-600/20 border-red-500/60 text-white' : 'bg-white/[0.02] border-white/10 text-zinc-500'}`}>
-                        {s === 'coach' ? t('mc_tn_source_coach') : t('mc_tn_source_self')}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs text-zinc-400 mb-2">{t('mc_tn_date')}</label>
-                  <input type="date" value={noteDate} onChange={(e) => setNoteDate(e.target.value)}
-                    className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">
-                  {t('mc_tn_tags')} <span className="text-zinc-600">({t('mc_optional')})</span>
-                </label>
-                <input value={tags} onChange={(e) => setTags(e.target.value)} maxLength={120} placeholder={t('mc_tn_tags_ph')}
-                  className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" />
+                <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_tn_date')}</label>
+                <input type="date" value={noteDate} max={todayISO()} onChange={(e) => setNoteDate(e.target.value)}
+                  className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer" />
               </div>
 
               <button onClick={create} disabled={saving} className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60" style={{ fontSize: '0.95rem' }}>

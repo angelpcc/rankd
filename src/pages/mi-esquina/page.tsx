@@ -6,9 +6,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSEO } from '@/hooks/useSEO';
 import MessagesPanel from '@/pages/dashboard/components/messages/MessagesPanel';
 import NutritionTracker from '@/pages/mi-esquina/components/NutritionTracker';
-import GoalsPanel from '@/pages/mi-esquina/components/GoalsPanel';
 import ShareProgress from '@/pages/mi-esquina/components/ShareProgress';
-import DocumentsPanel, { DocumentExpiryAlert } from '@/pages/mi-esquina/components/DocumentsPanel';
+import { DocumentExpiryAlert } from '@/pages/mi-esquina/components/DocumentsPanel';
 import DailyCheckin from '@/pages/mi-esquina/components/DailyCheckin';
 import QuickRoutines from '@/pages/mi-esquina/components/QuickRoutines';
 import WeeklySummary from '@/pages/mi-esquina/components/WeeklySummary';
@@ -43,13 +42,13 @@ const EXTRA_SECTIONS: Section[] = ['compartir'];
 // ── Qué ve cada perfil ──
 // El que compite lo tiene TODO: el Ring (sparring, combates y libreta técnica)
 // es suyo, y la Agenda y el Peso van enfocados al combate.
+// R15-B7: menos categorías de primer nivel. Objetivos pasa a ser subsección de
+// Progreso y Documentos de Ring; así la barra es más corta y agrupada.
 const PRO_SECTIONS: SectionDef[] = [
   { id: 'resumen', labelKey: 'mc_nav_summary', icon: 'ri-dashboard-line' },
   { id: 'agenda', labelKey: 'mc_nav_agenda', icon: 'ri-calendar-todo-line' },
   { id: 'progreso', labelKey: 'mc_nav_progress_hub', icon: 'ri-line-chart-line' },
   { id: 'ring', labelKey: 'mc_nav_ring', icon: 'ri-boxing-line' },
-  { id: 'objetivos', labelKey: 'mc_nav_goals', icon: 'ri-flag-line' },
-  { id: 'documentos', labelKey: 'mc_nav_docs', icon: 'ri-folder-shield-2-line' },
   { id: 'coach', labelKey: 'mc_nav_coach', icon: 'ri-sparkling-2-line' },
   { id: 'material', labelKey: 'mc_nav_gear', icon: 'ri-t-shirt-line' },
   { id: 'nutricion', labelKey: 'mc_nav_nutrition', icon: 'ri-restaurant-line' },
@@ -58,12 +57,11 @@ const PRO_SECTIONS: SectionDef[] = [
 ];
 
 // El aficionado ve menos, pero todo lo que ve es suyo: nada de Ring ni
-// documentos de competición, que solo serían ruido.
+// documentos de competición, que solo serían ruido. Objetivos vive en Progreso.
 const HOBBY_SECTIONS: SectionDef[] = [
   { id: 'resumen', labelKey: 'mc_nav_summary', icon: 'ri-dashboard-line' },
   { id: 'agenda', labelKey: 'mc_nav_agenda', icon: 'ri-calendar-todo-line' },
   { id: 'progreso', labelKey: 'mc_nav_progress_hub', icon: 'ri-line-chart-line' },
-  { id: 'objetivos', labelKey: 'mc_nav_goals', icon: 'ri-flag-line' },
   { id: 'coach', labelKey: 'mc_nav_coach', icon: 'ri-sparkling-2-line' },
   { id: 'material', labelKey: 'mc_nav_gear', icon: 'ri-t-shirt-line' },
   { id: 'nutricion', labelKey: 'mc_nav_nutrition', icon: 'ri-restaurant-line' },
@@ -292,7 +290,7 @@ export default function MiEsquinaPage() {
 
               {/* PRO: si un papel caduca, que se entere ANTES de que le toque pelear */}
               {!isHobby && (
-                <DocumentExpiryAlert profile={profile} onOpen={() => setSection('documentos')} />
+                <DocumentExpiryAlert profile={profile} onOpen={() => go('ring', 'documentos')} />
               )}
 
               {/* Si toca renovar material, avisar desde el resumen */}
@@ -308,7 +306,7 @@ export default function MiEsquinaPage() {
 
               {/* Resumen automático de la semana + objetivos */}
               <Reveal delay={70}>
-                <WeeklySummary profile={profile} refreshKey={refreshKey} onOpenGoals={() => setSection('objetivos')} />
+                <WeeklySummary profile={profile} refreshKey={refreshKey} onOpenGoals={() => go('progreso', 'objetivos')} />
               </Reveal>
 
               {/* Registro de un toque */}
@@ -475,10 +473,6 @@ export default function MiEsquinaPage() {
           {activeSection === 'ring' && !isHobby && (
             <RingHub profile={profile} showToast={showToast} initialTab={pendingTab} />
           )}
-
-          {activeSection === 'objetivos' && <GoalsPanel profile={profile} showToast={showToast} />}
-
-          {activeSection === 'documentos' && !isHobby && <DocumentsPanel profile={profile} showToast={showToast} />}
 
           {activeSection === 'compartir' && <ShareProgress profile={profile} mode={mode} showToast={showToast} />}
 
