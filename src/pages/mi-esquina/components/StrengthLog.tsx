@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
-import { isMissingTable } from '@/lib/dbState';
-import { parseStrengthFromSpeech } from '@/lib/dictation';
+import { isMissingTable, isMissingColumn } from '@/lib/dbState';
+import { parseStrengthFromSpeech, parseStrengthSessionFromSpeech } from '@/lib/dictation';
+import { MUSCLE_GROUPS, exercisesByGroup, libraryLabels, type MuscleGroup } from '../lib/exercises';
 import VoiceButton from '@/components/feature/VoiceButton';
 import Reveal from '@/components/base/Reveal';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -19,36 +20,17 @@ interface StrengthSet {
   session_date: string;
   set_number: number;
   reps: number;
+  reps_max: number | null;
   weight_kg: number;
 }
 
-interface SetInput { reps: string; weight: string }
+// Una serie del formulario: `reps` (valor bajo/fijo) + `repsMax` opcional (tope
+// del rango, ej. "8 a 10"). Vacío el máximo = número fijo, sin ambigüedad.
+interface SetInput { reps: string; repsMax: string; weight: string }
 
-/** Biblioteca amplia de ejercicios habituales, para sugerir mientras se escribe.
- *  El campo sigue siendo libre: el usuario puede teclear el suyo y quedará
- *  disponible la próxima vez (se deriva de sus registros). */
-const EXERCISE_LIBRARY: Record<'es' | 'en', string[]> = {
-  es: [
-    'Press banca', 'Press inclinado', 'Press con mancuernas', 'Aperturas', 'Fondos',
-    'Sentadilla', 'Sentadilla frontal', 'Prensa de piernas', 'Zancadas', 'Hip thrust',
-    'Extensión de cuádriceps', 'Curl femoral', 'Gemelos',
-    'Peso muerto', 'Peso muerto rumano', 'Dominadas', 'Jalón al pecho',
-    'Remo con barra', 'Remo con mancuerna', 'Face pull', 'Encogimientos',
-    'Press militar', 'Press Arnold', 'Elevaciones laterales',
-    'Curl de bíceps', 'Curl martillo', 'Extensión de tríceps', 'Press francés',
-    'Plancha', 'Elevación de piernas',
-  ],
-  en: [
-    'Bench press', 'Incline press', 'Dumbbell press', 'Chest fly', 'Dips',
-    'Squat', 'Front squat', 'Leg press', 'Lunges', 'Hip thrust',
-    'Leg extension', 'Leg curl', 'Calf raise',
-    'Deadlift', 'Romanian deadlift', 'Pull-ups', 'Lat pulldown',
-    'Barbell row', 'Dumbbell row', 'Face pull', 'Shrugs',
-    'Overhead press', 'Arnold press', 'Lateral raise',
-    'Biceps curl', 'Hammer curl', 'Triceps extension', 'Skull crusher',
-    'Plank', 'Leg raise',
-  ],
-};
+// Fila del panel de revisión del dictado de una sesión completa (varios
+// ejercicios de corrido). Todo editable antes de confirmar el guardado.
+interface MultiRow { exercise: string; sets: string; reps: string; repsMax: string; weight: string }
 
 /** Epley: estimación de una repetición máxima. Orientativa, no oficial. */
 function epley(weight: number, reps: number): number {
@@ -61,6 +43,11 @@ function todayISO(): string {
 }
 
 const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+
+/** Muestra las repeticiones: "8" (fijas) o "8–10" (rango). */
+function fmtReps(reps: number, repsMax: number | null | undefined): string {
+  return repsMax && repsMax > reps ? `${reps}–${repsMax}` : String(reps);
+}
 
 /**
  * Registro de fuerza: series, repeticiones y peso, guardados en el tiempo.
@@ -84,10 +71,16 @@ export default function StrengthLog({ profile, showToast }: Props) {
 
   const [exercise, setExercise] = useState('');
   const [date, setDate] = useState(todayISO());
-  const [sets, setSets] = useState<SetInput[]>([{ reps: '8', weight: '' }]);
+  const [sets, setSets] = useState<SetInput[]>([{ reps: '8', repsMax: '', weight: '' }]);
   const [exOpen, setExOpen] = useState(false);
   const [interpreted, setInterpreted] = useState(false);
-  const library = EXERCISE_LIBRARY[i18n.language === 'en' ? 'en' : 'es'];
+  // Panel de revisión cuando el dictado trae VARIOS ejercicios de corrido.
+  const [multi, setMulti] = useState<MultiRow[] | null>(null);
+  const [savingMulti, setSavingMulti] = useState(false);
+  // Grupo muscular elegido en el buscador ('all' = todos, 'mine' = los míos).
+  const [group, setGroup] = useState<MuscleGroup | 'all' | 'mine'>('all');
+  const lang: 'es' | 'en' = i18n.language === 'en' ? 'en' : 'es';
+  const library = useMemo(() => libraryLabels(lang), [lang]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -174,32 +167,150 @@ export default function StrengthLog({ profile, showToast }: Props) {
       }));
   }, [rows]);
 
-  const resetForm = () => { setExercise(''); setDate(todayISO()); setSets([{ reps: '8', weight: '' }]); setInterpreted(false); setExOpen(false); };
+  // ── Tarea 4: qué hiciste la última vez + recomendación de carga ──
+  // Se calculan sobre el ejercicio que se está escribiendo en el formulario,
+  // a partir del historial REAL de ese ejercicio para este usuario.
+  const formExKey = normalize(exercise);
 
-  // Dictado de fuerza: "press banca, tres series de doce con cincuenta kilos".
-  // Interpreta y PRE-RELLENA; el usuario revisa y confirma con Guardar.
+  const agoLabel = useCallback((d: string) => {
+    const days = Math.floor((Date.now() - new Date(d + 'T12:00:00').getTime()) / 86400000);
+    if (days <= 0) return t('mc_str_today');
+    if (days === 1) return t('mc_str_yesterday');
+    return t('mc_str_days_ago', { n: days });
+  }, [t]);
+
+  const lastFor = useMemo(() => {
+    if (!formExKey) return null;
+    const mine = rows.filter((r) => r.exercise === formExKey);
+    if (!mine.length) return null;
+    const lastDate = mine.reduce((a, b) => (a > b.session_date ? a : b.session_date), '');
+    const dateSets = mine.filter((r) => r.session_date === lastDate).sort((a, b) => a.set_number - b.set_number);
+    return { date: lastDate, sets: dateSets };
+  }, [rows, formExKey]);
+
+  // Recomendación discreta y orientativa (nunca médica): solo con ≥3 sesiones.
+  const recommendation = useMemo(() => {
+    if (!formExKey) return null;
+    const mine = rows.filter((r) => r.exercise === formExKey);
+    if (!mine.length) return null;
+    const byDate = new Map<string, number>();
+    mine.forEach((r) => byDate.set(r.session_date, Math.max(byDate.get(r.session_date) ?? 0, Number(r.weight_kg))));
+    const sessions = [...byDate.entries()].sort((a, b) => a[0].localeCompare(b[0])); // ascendente
+    if (sessions.length < 3) return null;
+    const label = mine[0].exercise_label;
+    const n = sessions.length;
+    const lastW = sessions[n - 1][1];
+
+    // ¿Estancado? Sesiones finales consecutivas con el MISMO mejor peso.
+    let stalled = 1;
+    for (let i = n - 2; i >= 0; i--) { if (sessions[i][1] === lastW) stalled++; else break; }
+    if (stalled >= 3) {
+      const firstStalled = sessions[n - stalled][0];
+      const spanWeeks = Math.round((new Date(sessions[n - 1][0]).getTime() - new Date(firstStalled).getTime()) / (7 * 86400000));
+      const weeks = Math.max(stalled, spanWeeks || 0);
+      const step = lastW < 20 ? 1 : 2.5;
+      const next = +(lastW + step).toFixed(1);
+      return { kind: 'up' as const, ex: label, w: lastW, next, n: weeks };
+    }
+    // ¿Progresión rápida? Ha subido en las tres últimas sesiones seguidas.
+    if (sessions[n - 1][1] > sessions[n - 2][1] && sessions[n - 2][1] > sessions[n - 3][1]) {
+      return { kind: 'hold' as const, ex: label };
+    }
+    return null;
+  }, [rows, formExKey]);
+
+  const resetForm = () => { setExercise(''); setDate(todayISO()); setSets([{ reps: '8', repsMax: '', weight: '' }]); setInterpreted(false); setExOpen(false); setGroup('all'); };
+
+  // Dictado de fuerza. Puede ser un ejercicio suelto ("press banca, tres series
+  // de doce con cincuenta kilos") o una SESIÓN entera de corrido con varios
+  // ejercicios. Siempre PRE-RELLENA y el usuario confirma; nunca guarda solo.
   const applyStrengthDictation = (text: string) => {
-    const ownLabels = exercises.map(([, l]) => l);
-    const p = parseStrengthFromSpeech(text, [...ownLabels, ...library]);
+    const pool = [...exercises.map(([, l]) => l), ...library];
+    const list = parseStrengthSessionFromSpeech(text, pool);
+
+    // Varios ejercicios → panel de revisión con todos a la vez.
+    if (list.length > 1) {
+      setMulti(list.map((p) => ({
+        exercise: p.exercise || '',
+        sets: String(p.sets ?? 1),
+        reps: p.reps ? String(p.reps) : '',
+        repsMax: p.repsMax ? String(p.repsMax) : '',
+        weight: p.weight ? String(p.weight) : '',
+      })));
+      return;
+    }
+
+    // Uno solo → rellena el formulario normal.
+    const p = list[0] ?? parseStrengthFromSpeech(text, pool);
     if (p.exercise) setExercise(p.exercise);
-    if (p.sets || p.reps || p.weight) {
+    if (p.sets || p.reps || p.weight || p.repsMax) {
       const n = Math.max(1, p.sets ?? sets.length);
       const reps = p.reps ? String(p.reps) : (sets[0]?.reps || '8');
+      const repsMax = p.repsMax ? String(p.repsMax) : '';
       const weight = p.weight ? String(p.weight) : '';
-      setSets(Array.from({ length: n }, () => ({ reps, weight })));
+      setSets(Array.from({ length: n }, () => ({ reps, repsMax, weight })));
     }
     setInterpreted(true);
+  };
+
+  // Guarda TODOS los ejercicios revisados del dictado de sesión, cada uno con
+  // sus series replicadas. Mismo insert defensivo que el guardado normal.
+  const saveMulti = async () => {
+    if (!multi) return;
+    const today = date;
+    const payloads: { key: string; label: string; set_number: number; reps: number; reps_max: number | null; weight: number }[] = [];
+    multi.forEach((r) => {
+      const ex = r.exercise.trim();
+      if (!ex) return;
+      const reps = parseInt(r.reps, 10);
+      const max = parseInt(r.repsMax, 10);
+      const weight = parseFloat(r.weight.replace(',', '.'));
+      const nSets = Math.max(1, parseInt(r.sets, 10) || 1);
+      if (!(reps > 0) || !(weight > 0)) return;
+      const reps_max = Number.isFinite(max) && max > reps ? max : null;
+      const key = normalize(ex);
+      for (let i = 0; i < nSets; i++) payloads.push({ key, label: ex, set_number: i + 1, reps, reps_max, weight });
+    });
+    if (payloads.length === 0) { showToast(t('mc_str_need_sets'), 'error'); return; }
+
+    setSavingMulti(true);
+    const base = payloads.map((p) => ({
+      fighter_profile_id: profile.id, exercise: p.key, exercise_label: p.label,
+      session_date: today, set_number: p.set_number, reps: p.reps, weight_kg: p.weight,
+    }));
+    let { data, error } = await supabase.from('strength_sets')
+      .insert(base.map((r, i) => ({ ...r, reps_max: payloads[i].reps_max }))).select();
+    if (isMissingColumn(error)) {
+      ({ data, error } = await supabase.from('strength_sets').insert(base).select());
+    }
+    setSavingMulti(false);
+    if (error || !data) { showToast(t('error_save'), 'error'); return; }
+
+    const inserted = (data as StrengthSet[]).map((r) => ({ ...r, reps_max: r.reps_max ?? null }));
+    setRows((prev) => [...inserted, ...prev]);
+    const exCount = new Set(payloads.map((p) => p.key)).size;
+    setMulti(null);
+    setShowForm(false);
+    resetForm();
+    showToast(t('mc_str_voice_saved_n', { n: exCount }));
   };
 
   const save = async () => {
     const ex = exercise.trim();
     if (!ex) { showToast(t('mc_str_need_exercise'), 'error'); return; }
     const valid = sets
-      .map((s, i) => ({
-        reps: parseInt(s.reps, 10),
-        weight: parseFloat(s.weight.replace(',', '.')),
-        set_number: i + 1,
-      }))
+      .map((s, i) => {
+        const reps = parseInt(s.reps, 10);
+        const max = parseInt(s.repsMax, 10);
+        // Solo es rango si el máximo es válido y estrictamente mayor que el mínimo.
+        const reps_max = Number.isFinite(max) && max > reps ? max : null;
+        return {
+          reps,
+          reps_max,
+          weight: parseFloat(s.weight.replace(',', '.')),
+          set_number: i + 1,
+        };
+      })
       .filter((s) => s.reps > 0 && s.weight > 0);
     if (valid.length === 0) { showToast(t('mc_str_need_sets'), 'error'); return; }
 
@@ -209,21 +320,28 @@ export default function StrengthLog({ profile, showToast }: Props) {
     const newBest = Math.max(...valid.map((s) => s.weight));
 
     setSaving(true);
-    const { data, error } = await supabase.from('strength_sets').insert(
-      valid.map((s) => ({
-        fighter_profile_id: profile.id,
-        exercise: key,
-        exercise_label: ex,
-        session_date: date,
-        set_number: s.set_number,
-        reps: s.reps,
-        weight_kg: s.weight,
-      }))
-    ).select();
+    const base = valid.map((s) => ({
+      fighter_profile_id: profile.id,
+      exercise: key,
+      exercise_label: ex,
+      session_date: date,
+      set_number: s.set_number,
+      reps: s.reps,
+      weight_kg: s.weight,
+    }));
+    // Insert con reps_max; si la migración 0026 aún no está aplicada, se
+    // reintenta sin esa columna (el registro se guarda igual, como número fijo).
+    let { data, error } = await supabase.from('strength_sets')
+      .insert(base.map((r, i) => ({ ...r, reps_max: valid[i].reps_max }))).select();
+    if (isMissingColumn(error)) {
+      ({ data, error } = await supabase.from('strength_sets').insert(base).select());
+    }
     setSaving(false);
     if (error || !data) { showToast(t('error_save'), 'error'); return; }
 
-    setRows((prev) => [...(data as StrengthSet[]), ...prev]);
+    // Normaliza reps_max en memoria por si la columna aún no existe.
+    const inserted = (data as StrengthSet[]).map((r) => ({ ...r, reps_max: r.reps_max ?? null }));
+    setRows((prev) => [...inserted, ...prev]);
     setSelected(key);
     setShowForm(false);
     resetForm();
@@ -259,13 +377,25 @@ export default function StrengthLog({ profile, showToast }: Props) {
     );
   }
 
-  // Sugerencias del autocompletado: lo que el usuario ya ha usado + biblioteca.
-  const exPool = [...new Set([...exercises.map(([, l]) => l), ...library])];
+  // Sugerencias del buscador. Con un grupo elegido: solo ese grupo (y aún se
+  // puede escribir libre). En "Todos"/"Míos": lo del usuario + biblioteca.
+  const ownLabels = exercises.map(([, l]) => l);
+  const exPool = group === 'all'
+    ? [...new Set([...ownLabels, ...library])]
+    : group === 'mine'
+      ? ownLabels
+      : exercisesByGroup(group, lang);
   const exQuery = normalize(exercise);
   const exSuggestions = (exQuery
     ? exPool.filter((x) => normalize(x).includes(exQuery) && normalize(x) !== exQuery)
     : exPool
-  ).slice(0, 10);
+  ).slice(0, group === 'all' ? 10 : 40);
+
+  // Pestañas de grupo: Todos, Míos (si el usuario ya tiene ejercicios) y los
+  // grupos musculares.
+  const groupTabs: (MuscleGroup | 'all' | 'mine')[] = [
+    'all', ...(ownLabels.length ? ['mine' as const] : []), ...MUSCLE_GROUPS,
+  ];
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -418,7 +548,7 @@ export default function StrengthLog({ profile, showToast }: Props) {
                         <div className="flex flex-wrap gap-1.5 mt-2">
                           {h.sets.map((s) => (
                             <span key={s.id} className="text-[11px] font-semibold text-zinc-300 bg-white/[0.05] border border-white/10 px-2 py-1 rounded-lg">
-                              {s.reps} × {Number(s.weight_kg)} kg
+                              {fmtReps(s.reps, s.reps_max)} × {Number(s.weight_kg)} kg
                             </span>
                           ))}
                         </div>
@@ -471,15 +601,60 @@ export default function StrengthLog({ profile, showToast }: Props) {
                   autoFocus maxLength={50}
                   placeholder={t('mc_str_exercise_ph')}
                   className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-red-500" />
-                {/* Autocompletado: sugerencias mientras escribe, desplegables */}
+
+                {/* Tarea 1: filtro por grupo muscular para acotar la lista. */}
+                <div className="flex gap-1.5 overflow-x-auto rk-noscroll-x mt-2 pb-0.5">
+                  {groupTabs.map((g) => (
+                    <button key={g} onMouseDown={(e) => e.preventDefault()} onClick={() => { setGroup(g); setExOpen(true); }}
+                      className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all cursor-pointer ${group === g ? 'bg-red-600 border-red-600 text-white' : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white'}`}>
+                      {t(`mc_str_mg_${g}`)}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Lista de ejercicios del grupo / sugerencias del buscador. */}
                 {exOpen && exSuggestions.length > 0 && (
-                  <div className="mt-2 rounded-xl border border-white/10 bg-white/[0.02] p-1.5 max-h-40 overflow-y-auto rk-noscroll-x">
+                  <div className="mt-2 rounded-xl border border-white/10 bg-white/[0.02] p-1.5 max-h-52 overflow-y-auto rk-noscroll-x">
                     {exSuggestions.map((c) => (
                       <button key={c} onMouseDown={(e) => e.preventDefault()} onClick={() => { setExercise(c); setExOpen(false); }}
                         className="w-full text-left text-sm text-zinc-300 hover:text-white hover:bg-white/[0.05] px-3 py-2 rounded-lg cursor-pointer flex items-center gap-2">
                         <i className="ri-search-line text-xs text-zinc-600"></i>{c}
                       </button>
                     ))}
+                  </div>
+                )}
+                <p className="text-[10px] text-zinc-600 mt-1.5">{t('mc_str_custom_hint')}</p>
+
+                {/* Tarea 4: qué hiciste la última vez con este ejercicio. */}
+                {formExKey && lastFor && (
+                  <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t('mc_str_last_time')}</span>
+                      <span className="text-[10px] text-zinc-600">· {agoLabel(lastFor.date)}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      {lastFor.sets.map((s) => (
+                        <span key={s.id} className="text-[11px] font-semibold text-zinc-300 bg-white/[0.05] border border-white/10 px-2 py-0.5 rounded-lg">
+                          {fmtReps(s.reps, s.reps_max)} × {Number(s.weight_kg)} kg
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recomendación de carga, discreta y orientativa (no médica). */}
+                {formExKey && recommendation && (
+                  <div className="mt-2 rounded-xl border border-[#C9A84C]/25 bg-[#C9A84C]/[0.06] px-3.5 py-2.5 flex items-start gap-2.5">
+                    <i className="ri-lightbulb-flash-line text-[#C9A84C] text-sm mt-0.5 flex-shrink-0"></i>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#C9A84C]">{t('mc_str_rec_title')}</p>
+                      <p className="text-xs text-zinc-300 mt-0.5 leading-relaxed">
+                        {recommendation.kind === 'up'
+                          ? t('mc_str_rec_up', { n: recommendation.n, w: recommendation.w, ex: recommendation.ex, next: recommendation.next })
+                          : t('mc_str_rec_hold', { ex: recommendation.ex })}
+                      </p>
+                      <p className="text-[10px] text-zinc-600 mt-1">{t('mc_str_rec_note')}</p>
+                    </div>
                   </div>
                 )}
               </div>
@@ -490,20 +665,32 @@ export default function StrengthLog({ profile, showToast }: Props) {
                   className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 cursor-pointer" />
               </div>
 
-              {/* Series */}
+              {/* Series: reps (o rango "mín a máx") + peso con decimales. */}
               <div>
-                <label className="block text-xs text-zinc-400 mb-2">{t('mc_str_sets')}</label>
+                <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_str_sets')}</label>
+                {/* Cabecera de columnas */}
+                <div className="flex items-center gap-1.5 px-1 mb-1.5">
+                  <span className="w-6 flex-shrink-0" />
+                  <span className="flex-1 text-[10px] font-bold uppercase tracking-wider text-zinc-600 text-center">{t('mc_str_reps')}</span>
+                  <span className="flex-1 text-[10px] font-bold uppercase tracking-wider text-zinc-600 text-center">{t('mc_str_weight')}</span>
+                  {sets.length > 1 && <span className="w-9 flex-shrink-0" />}
+                </div>
                 <div className="space-y-2">
                   {sets.map((s, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <span className="w-7 flex-shrink-0 text-center text-[11px] font-bold text-zinc-500">{i + 1}</span>
-                      <div className="flex-1 relative">
-                        <input value={s.reps} inputMode="numeric"
+                    <div key={i} className="flex items-center gap-1.5">
+                      <span className="w-6 flex-shrink-0 text-center text-[11px] font-bold text-zinc-500">{i + 1}</span>
+                      {/* Reps: valor fijo o rango (máx opcional) */}
+                      <div className="flex-1 min-w-0 flex items-center gap-1">
+                        <input value={s.reps} inputMode="numeric" placeholder={t('mc_str_reps_min_ph')}
                           onChange={(e) => setSets((p) => p.map((x, j) => j === i ? { ...x, reps: e.target.value } : x))}
-                          className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl pl-3 pr-11 py-3 focus:outline-none focus:border-red-500" />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-zinc-500 uppercase">{t('mc_str_reps')}</span>
+                          className="w-full min-w-0 bg-white/[0.04] border border-white/10 text-white text-sm text-center rounded-xl px-2 py-3 focus:outline-none focus:border-red-500" />
+                        <span className="text-[11px] text-zinc-600 flex-shrink-0">{t('mc_str_reps_to')}</span>
+                        <input value={s.repsMax} inputMode="numeric" placeholder={t('mc_str_reps_max_ph')}
+                          onChange={(e) => setSets((p) => p.map((x, j) => j === i ? { ...x, repsMax: e.target.value } : x))}
+                          className="w-full min-w-0 bg-white/[0.04] border border-white/10 text-white text-sm text-center rounded-xl px-2 py-3 focus:outline-none focus:border-red-500 placeholder:text-zinc-600" />
                       </div>
-                      <div className="flex-1 relative">
+                      {/* Peso (admite decimales, coma o punto) */}
+                      <div className="flex-1 min-w-0 relative">
                         <input value={s.weight} inputMode="decimal" placeholder="0"
                           onChange={(e) => setSets((p) => p.map((x, j) => j === i ? { ...x, weight: e.target.value } : x))}
                           className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl pl-3 pr-9 py-3 focus:outline-none focus:border-red-500" />
@@ -520,7 +707,7 @@ export default function StrengthLog({ profile, showToast }: Props) {
                   ))}
                 </div>
                 <button
-                  onClick={() => setSets((p) => [...p, { reps: p[p.length - 1]?.reps || '8', weight: p[p.length - 1]?.weight || '' }])}
+                  onClick={() => setSets((p) => [...p, { reps: p[p.length - 1]?.reps || '8', repsMax: p[p.length - 1]?.repsMax || '', weight: p[p.length - 1]?.weight || '' }])}
                   className="w-full mt-2 flex items-center justify-center gap-2 text-xs font-bold text-zinc-300 bg-white/[0.03] border border-white/10 hover:border-white/25 rounded-xl py-3 cursor-pointer transition-colors">
                   <i className="ri-add-line"></i> {t('mc_str_add_set')}
                 </button>
@@ -531,6 +718,79 @@ export default function StrengthLog({ profile, showToast }: Props) {
                 {saving
                   ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {t('mc_saving')}</>
                   : <><i className="ri-hammer-line"></i> {t('mc_str_save')}</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Revisión del dictado de sesión completa (varios ejercicios) */}
+      {multi && (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={(e) => { if (e.target === e.currentTarget) setMulti(null); }}>
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
+          <div className="relative rk-card w-full sm:max-w-lg max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl"
+            style={{ padding: 24, transform: 'none', paddingBottom: 'calc(24px + env(safe-area-inset-bottom, 0px))' }}>
+            <div className="flex items-start justify-between mb-1">
+              <div>
+                <h3 className="rk-h3" style={{ fontSize: '1.15rem', color: '#fff' }}>{t('mc_str_voice_multi_title')}</h3>
+                <p className="text-xs text-zinc-400 mt-1 max-w-xs">{t('mc_str_voice_multi_sub')}</p>
+              </div>
+              <button onClick={() => setMulti(null)} aria-label={t('mc_close')}
+                className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full bg-white/[0.05] text-zinc-400 hover:text-white cursor-pointer transition-colors">
+                <i className="ri-close-line"></i>
+              </button>
+            </div>
+
+            <div className="space-y-3 mt-4">
+              {multi.map((r, i) => {
+                const upd = (patch: Partial<MultiRow>) => setMulti((m) => m!.map((x, j) => j === i ? { ...x, ...patch } : x));
+                return (
+                  <div key={i} className="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5">
+                    <div className="flex items-center gap-2 mb-2.5">
+                      <span className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-lg bg-red-600/12 border border-red-500/25 text-red-400 text-[11px] font-bold">{i + 1}</span>
+                      <input value={r.exercise} onChange={(e) => upd({ exercise: e.target.value })}
+                        placeholder={t('mc_str_exercise_ph')}
+                        className="flex-1 min-w-0 bg-white/[0.04] border border-white/10 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:border-red-500" />
+                      <button onClick={() => setMulti((m) => { const n = m!.filter((_, j) => j !== i); return n.length ? n : null; })}
+                        aria-label={t('mc_str_voice_discard')}
+                        className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg text-zinc-600 hover:text-red-400 cursor-pointer">
+                        <i className="ri-delete-bin-line"></i>
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="relative flex-1 min-w-0">
+                        <input value={r.sets} inputMode="numeric" onChange={(e) => upd({ sets: e.target.value })}
+                          className="w-full bg-white/[0.04] border border-white/10 text-white text-sm text-center rounded-lg px-2 py-2 focus:outline-none focus:border-red-500" />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-zinc-500 uppercase">{t('mc_str_sets')}</span>
+                      </div>
+                      <div className="flex-1 min-w-0 flex items-center gap-1">
+                        <input value={r.reps} inputMode="numeric" placeholder={t('mc_str_reps_min_ph')} onChange={(e) => upd({ reps: e.target.value })}
+                          className="w-full min-w-0 bg-white/[0.04] border border-white/10 text-white text-sm text-center rounded-lg px-1.5 py-2 focus:outline-none focus:border-red-500" />
+                        <span className="text-[11px] text-zinc-600 flex-shrink-0">{t('mc_str_reps_to')}</span>
+                        <input value={r.repsMax} inputMode="numeric" placeholder={t('mc_str_reps_max_ph')} onChange={(e) => upd({ repsMax: e.target.value })}
+                          className="w-full min-w-0 bg-white/[0.04] border border-white/10 text-white text-sm text-center rounded-lg px-1.5 py-2 focus:outline-none focus:border-red-500 placeholder:text-zinc-600" />
+                      </div>
+                      <div className="relative flex-1 min-w-0">
+                        <input value={r.weight} inputMode="decimal" placeholder="0" onChange={(e) => upd({ weight: e.target.value })}
+                          className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-lg pl-2.5 pr-7 py-2 focus:outline-none focus:border-red-500" />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-zinc-500">kg</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex gap-2.5 mt-5">
+              <button onClick={() => setMulti(null)}
+                className="flex-1 rk-btn rk-btn-ghost" style={{ fontSize: '0.85rem' }}>
+                {t('mc_str_voice_discard')}
+              </button>
+              <button onClick={saveMulti} disabled={savingMulti}
+                className="flex-[2] rk-btn rk-btn-primary flex items-center justify-center gap-2 disabled:opacity-60" style={{ fontSize: '0.9rem' }}>
+                {savingMulti
+                  ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {t('mc_saving')}</>
+                  : <><i className="ri-save-line"></i> {t('mc_str_voice_save_all')}</>}
               </button>
             </div>
           </div>

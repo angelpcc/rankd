@@ -87,6 +87,7 @@ export interface ParsedStrength {
   exercise?: string;
   sets?: number;
   reps?: number;
+  repsMax?: number;   // tope del rango ("8 a 10" → reps 8, repsMax 10)
   weight?: number;
   notes: string;
 }
@@ -140,6 +141,15 @@ export function parseStrengthFromSpeech(text: string, library: string[] = []): P
     out.reps = clampN(parseInt(pxr[2], 10), 1, 100);
   }
 
+  // Rango de repeticiones: "8 a 10", "de 8 a 10", "8 to 10", "8 hasta 10".
+  // Tiene prioridad sobre el número suelto para no perder el tope del rango.
+  const range = s.match(/(\d+)\s*(?:a|to|hasta)\s*(\d+)\s*(?:repe|reps?|repeticion|repeticiones)?\b/);
+  if (range) {
+    const lo = parseInt(range[1], 10);
+    const hi = parseInt(range[2], 10);
+    if (lo > 0 && hi > lo && hi <= 100) { out.reps = lo; out.repsMax = hi; }
+  }
+
   // "de 12" / "de 12 repeticiones" / "12 reps"
   if (out.reps === undefined) {
     const rm = s.match(/(?:de|por|of)\s*(\d+)\s*(?:repe|reps?|repeticion|repeticiones)?\b/) || s.match(/(\d+)\s*(?:repe|reps?|repeticion|repeticiones)\b/);
@@ -154,6 +164,62 @@ export function parseStrengthFromSpeech(text: string, library: string[] = []): P
   if (found) out.exercise = found.l;
 
   return out;
+}
+
+// ── Dictado de una SESIÓN completa de fuerza (R14-T3) ──
+// "press inclinado, tres series de ocho a diez con veinte kilos, luego pecho
+//  inferior en máquina, tres series de doce con quince kilos"
+//   → [ {exercise, sets:3, reps:8, repsMax:10, weight:20},
+//       {exercise, sets:3, reps:12, weight:15} ]
+// Separa por conectores ("luego", "después", "then"…) y, si no los hay, por los
+// propios nombres de ejercicio detectados. Cada tramo se parsea por separado.
+// NUNCA guarda: el resultado se muestra para revisar y confirmar.
+
+const CONNECTORS = /\s*(?:,?\s*(?:y\s+)?(?:luego|despues|a\s+continuacion|seguido)\b|,?\s*(?:and\s+)?(?:then|next|after\s+that)\b)\s*/g;
+
+function findExerciseHits(hay: string, library: string[]): { label: string; idx: number; len: number }[] {
+  const hits: { label: string; idx: number; len: number }[] = [];
+  library.forEach((l) => {
+    const n = norm(l);
+    if (!n) return;
+    let from = 0;
+    for (;;) {
+      const idx = hay.indexOf(n, from);
+      if (idx === -1) break;
+      hits.push({ label: l, idx, len: n.length });
+      from = idx + n.length;
+    }
+  });
+  // Ordena por posición; en solapes, gana el nombre más largo.
+  hits.sort((a, b) => a.idx - b.idx || b.len - a.len);
+  const chosen: typeof hits = [];
+  hits.forEach((h) => {
+    if (!chosen.some((c) => h.idx < c.idx + c.len && c.idx < h.idx + h.len)) chosen.push(h);
+  });
+  return chosen.sort((a, b) => a.idx - b.idx);
+}
+
+export function parseStrengthSessionFromSpeech(text: string, library: string[] = []): ParsedStrength[] {
+  const raw = norm(text);
+
+  // 1) Segmentar por conectores explícitos ("luego", "then"…).
+  let segments = raw.split(CONNECTORS).map((s) => s.trim()).filter(Boolean);
+
+  // 2) Si no hubo conectores pero SÍ hay varios ejercicios nombrados, cortar por
+  //    la posición de cada ejercicio detectado.
+  if (segments.length <= 1) {
+    const hits = findExerciseHits(raw, library);
+    if (hits.length > 1) {
+      segments = hits.map((h, i) => raw.slice(h.idx, i + 1 < hits.length ? hits[i + 1].idx : raw.length).trim()).filter(Boolean);
+    }
+  }
+
+  const parsed = segments
+    .map((seg) => parseStrengthFromSpeech(seg, library))
+    .filter((p) => p.exercise || p.reps || p.weight || p.sets);
+
+  // Un solo ejercicio (o ninguno): devolvemos como está para el flujo normal.
+  return parsed;
 }
 
 export function parseTrainingFromSpeech(text: string): ParsedTraining {
