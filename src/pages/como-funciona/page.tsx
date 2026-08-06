@@ -142,17 +142,17 @@ export default function ComoFuncionaPage() {
         </div>
       </section>
 
-      {/* ── PILARES ── */}
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 md:px-10 py-10">
-        <div className="grid sm:grid-cols-3 gap-4">
+      {/* ── PILARES ── (compactos en móvil: 3 en fila, sin descripción) ── */}
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 md:px-10 py-7 sm:py-10">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
           {PILLARS.map((p, i) => (
             <Reveal key={p.titleKey} delay={i * 80}>
-              <div className="rk-card h-full" style={{ padding: '20px 22px' }}>
-                <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-red-600/12 border border-red-500/25 text-red-400 mb-3">
-                  <i className={`${p.icon} text-lg`}></i>
+              <div className="rk-card h-full flex flex-col items-center text-center sm:items-start sm:text-left p-3 sm:!p-[22px]">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl bg-red-600/12 border border-red-500/25 text-red-400 mb-2 sm:mb-3">
+                  <i className={`${p.icon} text-base sm:text-lg`}></i>
                 </div>
-                <h3 className="text-sm font-bold text-white">{t(p.titleKey)}</h3>
-                <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed">{t(p.descKey)}</p>
+                <h3 className="text-xs sm:text-sm font-bold text-white leading-tight">{t(p.titleKey)}</h3>
+                <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed hidden sm:block">{t(p.descKey)}</p>
               </div>
             </Reveal>
           ))}
@@ -203,14 +203,14 @@ export default function ComoFuncionaPage() {
                     <span style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.09)' }} />
                   </div>
                 )}
-                <div className="grid sm:grid-cols-2 gap-3">
+                <div className="grid sm:grid-cols-2 gap-2 sm:gap-3">
                   {g.blocks.map((b) => (
-                    <div key={b.titleKey} className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4">
-                      <div className="flex items-center gap-2.5 mb-1.5">
-                        <i className={`${b.icon} text-base`} style={{ color: activeRole.accent }}></i>
-                        <h4 className="text-sm font-bold text-white">{t(b.titleKey)}</h4>
+                    <div key={b.titleKey} className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-3 sm:p-4">
+                      <div className="flex items-center gap-2.5 mb-1 sm:mb-1.5">
+                        <i className={`${b.icon} text-base flex-shrink-0`} style={{ color: activeRole.accent }}></i>
+                        <h4 className="text-sm font-bold text-white leading-tight">{t(b.titleKey)}</h4>
                       </div>
-                      <p className="text-xs text-zinc-400 leading-relaxed">{t(b.descKey)}</p>
+                      <p className="text-xs text-zinc-400 leading-relaxed line-clamp-2 sm:line-clamp-none pl-[26px] sm:pl-0">{t(b.descKey)}</p>
                     </div>
                   ))}
                 </div>
