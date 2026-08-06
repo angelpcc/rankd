@@ -268,8 +268,22 @@ export default function AdminPage() {
       )}
 
       <main className="max-w-6xl mx-auto px-5 pb-16" style={{ paddingTop: 'calc(5.5rem + env(safe-area-inset-top, 0px))' }}>
-        {/* Pestañas */}
-        <div className="flex gap-2 mb-8 overflow-x-auto">
+        {/* Pestañas: en móvil un desplegable (10 pestañas no caben bien en una
+            tira horizontal); en escritorio, la barra de siempre. */}
+        <div className="sm:hidden mb-6">
+          <div className="relative">
+            <select value={tab} onChange={(e) => setTab(e.target.value as AdminTab)}
+              className="w-full appearance-none bg-white/[0.04] border border-white/12 text-white text-sm font-semibold rounded-xl pl-4 pr-10 py-3 focus:outline-none focus:border-red-500 cursor-pointer">
+              {TABS.map((tb) => (
+                <option key={tb.id} value={tb.id} className="bg-zinc-900">
+                  {tb.label}{tb.badge !== undefined && tb.badge > 0 ? ` (${tb.badge})` : ''}
+                </option>
+              ))}
+            </select>
+            <i className="ri-arrow-down-s-line absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none"></i>
+          </div>
+        </div>
+        <div className="hidden sm:flex gap-2 mb-8 overflow-x-auto">
           {TABS.map((tb) => (
             <button key={tb.id} onClick={() => setTab(tb.id)}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all cursor-pointer border ${tab === tb.id ? 'bg-red-600 border-red-600 text-white shadow-lg shadow-red-600/25' : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white hover:border-white/25'}`}>
