@@ -92,9 +92,11 @@ export default function StrengthLog({ profile, showToast }: Props) {
     if (isMissingTable(error)) { setUnavailable(true); setLoading(false); return; }
     const list = (data || []) as StrengthSet[];
     setRows(list);
-    if (!selected && list.length) setSelected(list[0].exercise);
+    // Selección por defecto SIN depender de `selected`: así `load` no se recrea
+    // al cambiar de ejercicio y no se recarga toda la tabla en cada clic.
+    if (list.length) setSelected((cur) => cur || list[0].exercise);
     setLoading(false);
-  }, [profile.id, selected]);
+  }, [profile.id]);
 
   useEffect(() => { load(); }, [load]);
 
