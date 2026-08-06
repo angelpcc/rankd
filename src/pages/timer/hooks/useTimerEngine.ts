@@ -52,7 +52,7 @@ export function useTimerEngine(config: TimerConfig, muted: boolean) {
     tenWarnedRef.current = false;
     // Señal de entrada según la fase.
     const s = soundsRef.current;
-    if (seg.type === 'round') s.bell(1);
+    if (seg.type === 'round') s.roundStart();
     else if (seg.type === 'rest') s.restStart();
   }, []);
 
@@ -91,12 +91,16 @@ export function useTimerEngine(config: TimerConfig, muted: boolean) {
       // Cambio de fase
       if (remaining <= 0) {
         const nextIndex = segIndexRef.current + 1;
+        // Fin de la sesión: la campana triple final ya cierra el último asalto.
         if (nextIndex >= sch.length) {
           statusRef.current = 'done';
           soundsRef.current.finish();
           setState((st) => ({ ...st, status: 'done', segRemaining: 0, elapsedTotal: sch.reduce((a, s) => a + s.durationSec, 0), inBurst: false, burstRemaining: 0 }));
           return;
         }
+        // Un asalto acaba de terminar → "ding-ding" de fin de asalto. Después,
+        // enterSegment suena el inicio del descanso o del siguiente asalto.
+        if (seg.type === 'round') soundsRef.current.roundEnd();
         enterSegment(nextIndex);
         remaining = sch[nextIndex].durationSec;
       }

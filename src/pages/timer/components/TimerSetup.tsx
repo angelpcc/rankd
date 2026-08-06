@@ -202,7 +202,7 @@ export default function TimerSetup(props: Props) {
             {/* Probar sonido: además de comprobar el volumen, desbloquea el audio
                 del navegador (necesario en móvil) al ser un gesto del usuario. */}
             <Row label={t('tm_sound_test')}>
-              <button onClick={() => { timerSounds.unlock(); timerSounds.bell(1); }}
+              <button onClick={() => { timerSounds.unlock(); timerSounds.roundStart(); }}
                 className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold bg-white/5 text-zinc-300 hover:text-white border border-white/10 hover:border-white/25 cursor-pointer transition-colors">
                 <i className="ri-volume-up-line"></i>{t('tm_sound_test_btn')}
               </button>

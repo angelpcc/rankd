@@ -43,16 +43,16 @@ export class TimerSounds {
           || (window as unknown as { webkitAudioContext: Ctor }).webkitAudioContext;
         if (!C) return;
         this.ctx = new C();
-        // Cadena maestra: ganancia alta + compresor para sonar fuerte y claro
+        // Cadena maestra: ganancia ALTA + compresor para sonar fuerte y claro
         // por encima de la música del gimnasio, sin distorsionar en los picos.
         const master = this.ctx.createGain();
-        master.gain.value = 1.6;
+        master.gain.value = 2.2;
         const comp = this.ctx.createDynamicsCompressor();
-        comp.threshold.value = -10;
-        comp.knee.value = 12;
-        comp.ratio.value = 12;
+        comp.threshold.value = -14;
+        comp.knee.value = 10;
+        comp.ratio.value = 14;
         comp.attack.value = 0.002;
-        comp.release.value = 0.18;
+        comp.release.value = 0.16;
         master.connect(comp);
         comp.connect(this.ctx.destination);
         this.master = master;
@@ -117,47 +117,67 @@ export class TimerSounds {
     osc.stop(start + dur + 0.02);
   }
 
-  /** Campana de boxeo. `times` toques encadenados. */
-  bell(times = 1) {
+  /** Un golpe de campana metálica de boxeo (armónicos reales). */
+  private strike(at: number, gain = 1) {
+    // Armónicos de una campana de ring: fundamental brillante + parciales.
+    [880, 1320, 1760, 2400, 3300].forEach((f, idx) => {
+      this.tone(f, at, 1.35, (0.62 / (idx + 1)) * gain, 'sine');
+    });
+  }
+
+  /** INICIO DE ASALTO: una sola campana clara ("¡box!"). */
+  roundStart() {
     const ctx = this.ready();
     if (!ctx) return;
-    for (let i = 0; i < times; i++) {
-      const t = ctx.currentTime + i * 0.42;
-      // Armónicos de una campana metálica.
-      [880, 1320, 1760, 2400].forEach((f, idx) => {
-        this.tone(f, t, 1.3, 0.5 / (idx + 1), 'sine');
-      });
-    }
+    this.strike(ctx.currentTime);
   }
 
-  /** Fin de sesión: triple campana. */
+  /** FIN DE ASALTO (llegada a 0): "ding-ding" de boxeo real, dos toques
+   *  brillantes y seguidos. Es la señal más reconocible del ring. */
+  roundEnd() {
+    const ctx = this.ready();
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    this.strike(t);
+    this.strike(t + 0.26);
+  }
+
+  /** Fin de sesión: campana triple, más larga. */
   finish() {
-    this.bell(3);
+    const ctx = this.ready();
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    this.strike(t);
+    this.strike(t + 0.3);
+    this.strike(t + 0.6);
   }
 
-  /** Empieza el descanso: doble campana algo más suave. */
+  /** INICIO DEL DESCANSO: timbre cálido y descendente, claramente distinto de
+   *  la campana metálica ("cambio de fase, relaja"). Va un pelín después para
+   *  no pisar el ding-ding del fin de asalto. */
   restStart() {
     const ctx = this.ready();
     if (!ctx) return;
-    for (let i = 0; i < 2; i++) {
-      const t = ctx.currentTime + i * 0.34;
-      [660, 990, 1320].forEach((f, idx) => this.tone(f, t, 1.0, 0.4 / (idx + 1), 'sine'));
-    }
+    const base = ctx.currentTime + 0.5;
+    // Acorde suave que baja: dos notas seno graves, nada metálicas.
+    this.tone(587, base, 0.5, 0.5, 'sine');        // Re5
+    this.tone(440, base + 0.16, 0.6, 0.5, 'sine'); // La4
+    this.tone(330, base + 0.34, 0.7, 0.45, 'sine'); // Mi4
   }
 
-  /** Faltan 10 segundos: "clacker" de madera, doble golpe seco e inconfundible.
-   *  Es el aviso clásico de boxeo, distinto de la campana y del cambio de ritmo. */
+  /** AVISO DE 10 SEGUNDOS: alerta de atención en cuenta atrás (no un pitido
+   *  suelto). Tres tonos ascendentes cada vez más urgentes, tipo "¡atención,
+   *  se acaba!". Timbre cuadrado, distinto de la campana y del descanso. */
   tenSeconds() {
     const ctx = this.ready();
     if (!ctx) return;
     const base = ctx.currentTime;
-    // Dos golpes secos "tok-tok": onda triangular grave y muy corta, con un
-    // armónico agudo que le da el chasquido de la madera.
-    [0, 0.14].forEach((off) => {
-      const t = base + off;
-      this.tone(300, t, 0.09, 0.6, 'triangle');
-      this.tone(1400, t, 0.05, 0.32, 'square');
-    });
+    // di — di — DAAA: dos avisos cortos + uno más largo y agudo al final.
+    this.tone(740, base, 0.12, 0.5, 'square');
+    this.tone(880, base + 0.2, 0.12, 0.52, 'square');
+    this.tone(1046, base + 0.42, 0.34, 0.6, 'square');
+    // Ligera cola que "vibra" para reforzar la sensación de cuenta atrás.
+    this.sweep(1046, 1240, base + 0.42, 0.34, 0.3, 'square');
   }
 
   /** ¡ACELERA! Alarma ascendente rápida, tres blips agudos en subida. */
