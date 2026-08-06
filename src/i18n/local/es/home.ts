@@ -466,6 +466,13 @@ export default {
   dash_bs_save_error: 'Error al guardar el servicio',
   dash_bs_deleted: 'Servicio eliminado',
   dash_org_tab_overview: 'Resumen',
+  // Grupos de la barra lateral en acordeón (R15-B1)
+  dash_grp_activity: 'Actividad',
+  dash_grp_talent: 'Talento',
+  dash_grp_gym: 'Mi gimnasio',
+  dash_grp_account: 'Cuenta',
+  dash_grp_showcase: 'Escaparate',
+  dash_grp_discover: 'Descubrir',
   dash_org_tab_opportunities: 'Oportunidades',
   dash_org_tab_applicants: 'Candidatos',
   dash_org_tab_fighters: 'Buscar Peleadores',

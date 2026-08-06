@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile, Opportunity } from '@/lib/supabase';
 import DashboardNav from './DashboardNav';
+import DashSideNav, { type DashNavGroup } from './DashSideNav';
 import OrgOpportunities from './OrgOpportunities';
 import BrandTalentSearch from './BrandTalentSearch';
 import BrandEventSearch from './BrandEventSearch';
@@ -246,13 +247,18 @@ export default function BrandDashboard({ profile }: Props) {
   // R13-T3: la barra lateral se agrupa en las dos funciones de una marca para
   // que no se mezclen "esto es para vender" (Escaparate) y "esto es para
   // patrocinar" (Patrocinio). Cada grupo solo muestra las pestañas que existen.
+  // Barra lateral en acordeón (R15-B1): grupos plegables por función, para que
+  // no se mezclen "vender" (Escaparate) y "patrocinar" (Patrocinio).
   const tabById = new Map(tabs.map((tb) => [tb.id, tb]));
-  const navGroups: { labelKey?: string; ids: ActiveTab[] }[] = [
-    { ids: ['overview'] },
-    { labelKey: 'dash_brand_group_storefront', ids: ['products', 'services', 'metrics'] },
-    { labelKey: 'dash_brand_group_sponsor', ids: ['talent', 'events', 'sponsorships'] },
-    { labelKey: 'dash_brand_group_general', ids: ['messages', 'verification', 'profile'] },
-  ];
+  const resolve = (ids: ActiveTab[]) => ids
+    .map((id) => tabById.get(id))
+    .filter(Boolean)
+    .map((tb) => ({ id: tb!.id, label: tb!.label, icon: tb!.icon, badge: tb!.badge }));
+  const navGroups: DashNavGroup[] = [
+    { key: 'storefront', label: t('dash_brand_group_storefront'), icon: 'ri-store-3-line', items: resolve(['products', 'services', 'metrics']) },
+    { key: 'sponsor', label: t('dash_brand_group_sponsor'), icon: 'ri-hand-coin-line', items: resolve(['talent', 'events', 'sponsorships']) },
+    { key: 'general', label: t('dash_brand_group_general'), icon: 'ri-settings-3-line', items: resolve(['messages', 'verification', 'profile']) },
+  ].filter((g) => g.items.length > 0);
 
   return (
     <div className="min-h-screen bg-[#070707] text-white">
@@ -285,35 +291,14 @@ export default function BrandDashboard({ profile }: Props) {
             )}
           </div>
 
-          {/* Nav agrupada por función */}
-          <nav className="flex-1 p-3 space-y-3">
-            {navGroups.map((group, gi) => {
-              const items = group.ids.map((id) => tabById.get(id)).filter(Boolean) as typeof tabs;
-              if (items.length === 0) return null;
-              return (
-                <div key={gi} className="space-y-1">
-                  {group.labelKey && (
-                    <p className="px-3 pt-1 pb-0.5 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-600">{t(group.labelKey)}</p>
-                  )}
-                  {items.map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer text-left ${activeTab === tab.id ? 'bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/35' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
-                    >
-                      <i className={`${tab.icon} text-base flex-shrink-0`}></i>
-                      <span className="flex-1">{tab.label}</span>
-                      {tab.badge !== undefined && tab.badge > 0 && (
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${activeTab === tab.id ? 'bg-[#C9A84C]/30 text-[#dcc06a]' : 'bg-[#C9A84C]/20 text-[#C9A84C]'}`}>
-                          {tab.badge}
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              );
-            })}
-          </nav>
+          {/* Nav agrupada en acordeón (R15-B1) */}
+          <DashSideNav
+            accent="gold"
+            topItem={{ id: 'overview', label: t('dash_brand_tab_overview'), icon: 'ri-dashboard-line' }}
+            groups={navGroups}
+            activeId={activeTab}
+            onSelect={(id) => setActiveTab(id as ActiveTab)}
+          />
 
           {/* Quick action */}
           <div className="p-3 border-t border-zinc-800">

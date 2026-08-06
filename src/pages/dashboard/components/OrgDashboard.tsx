@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile, Organization, Opportunity } from '@/lib/supabase';
 import DashboardNav from './DashboardNav';
+import DashSideNav, { type DashNavGroup } from './DashSideNav';
 import OrgOpportunities from './OrgOpportunities';
 import OrgApplicants from './OrgApplicants';
 import OrgFighterSearch from './OrgFighterSearch';
@@ -265,6 +266,40 @@ export default function OrgDashboard({ profile }: Props) {
     { id: 'profile', label: t('dash_org_tab_profile'), icon: 'ri-building-line' },
   ];
 
+  // Barra lateral de escritorio agrupada en acordeón (R15-B1): Resumen suelto
+  // arriba y el resto por categorías relacionadas.
+  const navGroups: DashNavGroup[] = [
+    {
+      key: 'actividad', label: t('dash_grp_activity'), icon: 'ri-megaphone-line',
+      items: [
+        { id: 'opportunities', label: t('dash_org_tab_opportunities'), icon: 'ri-megaphone-line', badge: openOpps.length || undefined },
+        ...(isPromoter ? [{ id: 'events', label: t('dash_org_tab_events'), icon: 'ri-calendar-event-line' }] : []),
+      ],
+    },
+    {
+      key: 'talento', label: t('dash_grp_talent'), icon: 'ri-group-line',
+      items: [
+        { id: 'applicants', label: t('dash_org_tab_applicants'), icon: 'ri-user-received-line', badge: totalApplicants || undefined },
+        { id: 'fighters', label: t('dash_org_tab_fighters'), icon: 'ri-search-line' },
+      ],
+    },
+    ...(isGym ? [{
+      key: 'gimnasio', label: t('dash_grp_gym'), icon: 'ri-building-4-line',
+      items: [
+        { id: 'gallery', label: t('dash_org_tab_gallery'), icon: 'ri-image-2-line' },
+        { id: 'coaches', label: t('cl_coaches_tab'), icon: 'ri-whistle-line' },
+      ],
+    }] : []),
+    {
+      key: 'cuenta', label: t('dash_grp_account'), icon: 'ri-settings-3-line',
+      items: [
+        { id: 'messages', label: t('dash_org_tab_messages'), icon: 'ri-message-3-line', badge: unreadMessages || undefined },
+        { id: 'verification', label: t('dash_org_tab_verification'), icon: 'ri-verified-badge-line' },
+        { id: 'profile', label: t('dash_org_tab_profile'), icon: 'ri-building-line' },
+      ],
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-[#070707] text-white">
       <DashboardNav profile={profile} />
@@ -296,24 +331,13 @@ export default function OrgDashboard({ profile }: Props) {
             )}
           </div>
 
-          {/* Nav */}
-          <nav className="flex-1 p-3 space-y-1">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer text-left ${activeTab === tab.id ? 'bg-red-600 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
-              >
-                <i className={`${tab.icon} text-base flex-shrink-0`}></i>
-                <span className="flex-1">{tab.label}</span>
-                {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-red-600/20 text-red-400'}`}>
-                    {tab.badge}
-                  </span>
-                )}
-              </button>
-            ))}
-          </nav>
+          {/* Nav agrupada en acordeón (R15-B1) */}
+          <DashSideNav
+            topItem={{ id: 'overview', label: t('dash_org_tab_overview'), icon: 'ri-dashboard-line' }}
+            groups={navGroups}
+            activeId={activeTab}
+            onSelect={(id) => setActiveTab(id as ActiveTab)}
+          />
 
           {/* Quick action */}
           <div className="p-3 border-t border-zinc-800">

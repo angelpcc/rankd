@@ -466,6 +466,13 @@ export default {
   dash_bs_save_error: 'Error saving the service',
   dash_bs_deleted: 'Service deleted',
   dash_org_tab_overview: 'Overview',
+  // Accordion sidebar groups (R15-B1)
+  dash_grp_activity: 'Activity',
+  dash_grp_talent: 'Talent',
+  dash_grp_gym: 'My gym',
+  dash_grp_account: 'Account',
+  dash_grp_showcase: 'Showcase',
+  dash_grp_discover: 'Discover',
   dash_org_tab_opportunities: 'Opportunities',
   dash_org_tab_applicants: 'Applicants',
   dash_org_tab_fighters: 'Search Fighters',
