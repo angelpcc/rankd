@@ -56,6 +56,12 @@ export default function TimerRunner({ config, muted, onToggleMute, onExit, onSav
   const R = 130;
   const circ = 2 * Math.PI * R;
 
+  // Clave que cambia en cada cambio de fase → re-monta elementos para relanzar
+  // sus animaciones de entrada (flash a pantalla completa, título, reloj).
+  const phaseKey = `${state.status}-${state.segType}-${state.round}-${isBurst}`;
+  // Cuenta atrás final: el reloj late y se tiñe en los últimos segundos.
+  const finalCountdown = state.segType === 'round' && !isBurst && state.segRemaining <= 10 && state.segRemaining > 0;
+
   const totalBursts = useMemo(
     () => schedule.reduce((a, s) => a + s.bursts.length, 0),
     [schedule],
@@ -76,9 +82,15 @@ export default function TimerRunner({ config, muted, onToggleMute, onExit, onSav
         background: `radial-gradient(ellipse at 50% 30%, ${phase.tint} 0%, transparent 62%), #060606`,
         transition: 'background 0.4s ease',
       }}>
+      {/* Destello a pantalla completa en cada cambio de fase (premium). */}
+      {state.status !== 'done' && (
+        <div key={phaseKey} className="tm-flash absolute inset-0 pointer-events-none"
+          style={{ background: `radial-gradient(ellipse at 50% 42%, ${phase.color}55 0%, transparent 62%)` }} />
+      )}
+
       {/* Marco que parpadea en explosión */}
       {isBurst && (
-        <div className="absolute inset-0 pointer-events-none anim-pulse-glow" style={{ boxShadow: `inset 0 0 0 4px ${PHASE.burst.color}`, borderRadius: 2 }} />
+        <div className="absolute inset-0 pointer-events-none anim-pulse-glow" style={{ boxShadow: `inset 0 0 0 5px ${PHASE.burst.color}`, borderRadius: 2 }} />
       )}
 
       {/* Barra superior */}
@@ -110,23 +122,26 @@ export default function TimerRunner({ config, muted, onToggleMute, onExit, onSav
         />
       ) : (
         <div className="relative flex-1 flex flex-col items-center justify-center px-4 min-h-0">
-          {/* Fase */}
-          <div className="text-center mb-2">
-            <p className="font-bold uppercase" style={{ fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.28em', fontSize: 'clamp(15px,4vw,22px)', color: phase.color }}>
+          {/* Fase (re-entra con animación en cada cambio) */}
+          <div key={`lbl-${phaseKey}`} className="text-center mb-2 tm-phase-in">
+            <p className="font-bold uppercase" style={{ fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.28em', fontSize: 'clamp(15px,4vw,22px)', color: phase.color, textShadow: `0 0 24px ${phase.color}88` }}>
               {isBurst ? t('tm_phase_burst') : state.segType === 'round' ? `${t('tm_phase_round')} ${state.round}` : t(phase.key)}
             </p>
           </div>
 
           {/* Reloj */}
           <div className="relative flex items-center justify-center" style={{ width: 'min(78vw, 340px)', height: 'min(78vw, 340px)' }}>
-            <svg className="absolute inset-0 -rotate-90 w-full h-full" viewBox="0 0 300 300">
+            {/* Halo del reloj, del color de la fase; se intensifica en explosión. */}
+            <div className="absolute rounded-full pointer-events-none" style={{ inset: '6%', background: `radial-gradient(circle, ${phase.color}22 0%, transparent 70%)`, filter: 'blur(8px)', opacity: isBurst ? 0.9 : 0.5, transition: 'opacity 0.4s, background 0.4s' }} />
+            <svg className="absolute inset-0 -rotate-90 w-full h-full" viewBox="0 0 300 300" style={{ filter: `drop-shadow(0 0 10px ${phase.color}66)` }}>
               <circle cx="150" cy="150" r={R} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="12" />
               <circle cx="150" cy="150" r={R} fill="none" stroke={phase.color} strokeWidth="12" strokeLinecap="round"
                 strokeDasharray={circ} strokeDashoffset={circ - segProgress * circ}
                 style={{ transition: 'stroke-dashoffset 0.25s linear, stroke 0.3s' }} />
             </svg>
             <div className="text-center">
-              <p className="tabular-nums" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(72px,20vw,120px)', lineHeight: 1, color: '#fff', letterSpacing: 2 }}>
+              <p className={`tabular-nums ${finalCountdown ? 'tm-tick' : ''}`}
+                style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(72px,20vw,120px)', lineHeight: 1, color: finalCountdown ? phase.color : '#fff', letterSpacing: 2, transition: 'color 0.3s', textShadow: finalCountdown ? `0 0 40px ${phase.color}` : 'none' }}>
                 {fmt(state.segRemaining)}
               </p>
               <p className="text-zinc-500 text-sm" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
@@ -189,6 +204,21 @@ export default function TimerRunner({ config, muted, onToggleMute, onExit, onSav
           </div>
         </div>
       )}
+
+      <style>{`
+        /* Destello a pantalla completa al cambiar de fase */
+        @keyframes tm-flash { 0% { opacity: 0.85; transform: scale(1.06); } 100% { opacity: 0; transform: scale(1); } }
+        .tm-flash { animation: tm-flash 0.6s cubic-bezier(0.22,1,0.36,1) forwards; }
+        /* Entrada del título de fase */
+        @keyframes tm-phase-in { 0% { opacity: 0; transform: translateY(8px) scale(0.94); letter-spacing: 0.4em; } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+        .tm-phase-in { animation: tm-phase-in 0.5s cubic-bezier(0.22,1,0.36,1); }
+        /* Latido del reloj en los últimos 10 s */
+        @keyframes tm-tick { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+        .tm-tick { animation: tm-tick 1s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce) {
+          .tm-flash, .tm-phase-in, .tm-tick { animation: none !important; }
+        }
+      `}</style>
     </div>
   );
 }
