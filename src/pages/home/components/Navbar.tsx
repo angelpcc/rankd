@@ -35,10 +35,6 @@ export default function Navbar() {
   // revisando la experiencia de un peleador con un escudo de admin al lado.
   const isAdmin = isAdminEmail(user?.email) && !isViewingAs;
 
-  // Mi Esquina es la herramienta del peleador. Para el resto (y para visitantes)
-  // el enlace lleva a la vista pública con candado, no a un 404 ni a un redireccción.
-  const esquinaHref = isFighter ? '/mi-esquina' : '/esquina';
-
   // ── Navegación de ESCRITORIO: diferenciada por rol, minimalista ──
   // En escritorio el espacio manda: cada rol ve solo lo esencial.
   // El menú móvil (más abajo) sí es un mapa completo del sitio.
@@ -96,20 +92,34 @@ export default function Navbar() {
   };
   const navLinks = NAV_BY_ROLE[role];
 
-  // ── Navegación MÓVIL: mapa completo del sitio ──
-  // Todo lo importante, visible. Mi Esquina se muestra a todos (los visitantes
-  // caen en la vista con candado). El resto de secciones no se esconden.
-  const exploreLinks: MobileLink[] = [
-    { labelKey: 'nav_my_corner', href: esquinaHref, icon: 'ri-boxing-line' },
-    { labelKey: 'nav_directory', href: '/fighters', icon: 'ri-group-line' },
-    { labelKey: 'nav_opportunities', href: '/opportunities', icon: 'ri-megaphone-line' },
-    { labelKey: 'nav_events', href: '/eventos', icon: 'ri-calendar-event-line' },
-    { labelKey: 'nav_promoters', href: '/promotoras', icon: 'ri-trophy-line' },
-    { labelKey: 'nav_brands', href: '/brands', icon: 'ri-store-2-line' },
-    { labelKey: 'nav_news', href: '/noticias', icon: 'ri-newspaper-line' },
-    { labelKey: 'nav_store', href: '/tienda', icon: 'ri-shopping-bag-3-line' },
-    { labelKey: 'nav_how_it_works', href: '/como-funciona', icon: 'ri-compass-3-line' },
-  ];
+  // ── Navegación MÓVIL: MISMA lógica por rol que el escritorio ──
+  // Antes el móvil mostraba una lista fija para todos (con "Cómo funciona" y
+  // "Oportunidades" a cualquiera). Ahora deriva de NAV_BY_ROLE para que cada
+  // perfil vea solo lo suyo. Los mensajes viven en la sección "Tu cuenta".
+  const NAV_ICON: Record<string, string> = {
+    '/beta': 'ri-home-5-line',
+    '/mi-esquina': 'ri-boxing-line',
+    '/esquina': 'ri-boxing-line',
+    '/fighters': 'ri-group-line',
+    '/opportunities': 'ri-megaphone-line',
+    '/eventos': 'ri-calendar-event-line',
+    '/promotoras': 'ri-trophy-line',
+    '/brands': 'ri-store-2-line',
+    '/noticias': 'ri-newspaper-line',
+    '/tienda': 'ri-shopping-bag-3-line',
+    '/como-funciona': 'ri-compass-3-line',
+  };
+  const exploreLinks: MobileLink[] = navLinks
+    // El logo ya lleva al inicio y los mensajes están en "Tu cuenta": fuera de aquí.
+    .filter((l) => l.href !== '/beta' && l.href !== '/dashboard?tab=messages' && l.labelKey)
+    .map((l) => ({ labelKey: l.labelKey!, href: l.href, icon: NAV_ICON[l.href] || 'ri-arrow-right-line' }));
+  // Extras solo para visitantes: tienda pública y la guía de "Cómo funciona".
+  if (role === 'visitor') {
+    exploreLinks.push(
+      { labelKey: 'nav_store', href: '/tienda', icon: NAV_ICON['/tienda'] },
+      { labelKey: 'nav_how_it_works', href: '/como-funciona', icon: NAV_ICON['/como-funciona'] },
+    );
+  }
 
   const accountLinks: MobileLink[] = user && profile
     ? [
