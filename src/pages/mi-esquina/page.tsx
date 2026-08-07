@@ -21,6 +21,7 @@ import GymLink from '@/pages/mi-esquina/components/GymLink';
 import GearBrands from '@/pages/mi-esquina/components/GearBrands';
 import SectionCoach from '@/pages/mi-esquina/components/SectionCoach';
 import MealLog from '@/pages/mi-esquina/components/MealLog';
+import FoodPhotoAnalyzer from '@/pages/mi-esquina/components/FoodPhotoAnalyzer';
 import Reveal from '@/components/base/Reveal';
 import PageBreadcrumb from '@/components/base/PageBreadcrumb';
 import CountUp from '@/components/base/CountUp';
@@ -571,6 +572,10 @@ export default function MiEsquinaPage() {
                     {t('mc_ng_log_head')} <span className="rk-red-glow">{t('mc_ng_log_head_2')}</span>
                   </h2>
                   <p className="text-zinc-400 text-sm mt-1.5">{t('mc_ng_log_sub')}</p>
+                </div>
+                {/* Analizar comida con foto (IA, disponible pronto) */}
+                <div className="mb-4">
+                  <FoodPhotoAnalyzer showToast={showToast} />
                 </div>
                 <div className="grid lg:grid-cols-2 gap-4 items-start">
                   <MealLog profile={profile} showToast={showToast} />

@@ -252,6 +252,58 @@ function sanitize(messages) {
     .map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }));
 }
 
+// ── Análisis de foto de comida (PROMPT_1 · bloque 2) ──
+// Modo visión: recibe una foto de comida y devuelve una estimación de macros.
+// En pausa junto con el resto de la IA (sin ANTHROPIC_API_KEY el endpoint
+// responde 503 y la sonda GET marca available=false, así que el front enseña
+// "disponible pronto"). Reusa la cuota de IA (falla cerrado) para no gastar sin
+// control cuando se active.
+const FOOD_PHOTO_SYSTEM = `Eres un asistente nutricional especializado en deportes de combate. Analizas una foto de comida y das una estimación orientativa de sus macros.
+
+Reglas:
+- Estima cantidades y macros con criterio realista de raciones. La proteína y los carbohidratos aportan ~4 kcal/g y las grasas ~9 kcal/g: procura que las calorías sean coherentes con esos macros.
+- Si un alimento no se identifica con claridad, inclúyelo igualmente con tu mejor estimación y nombre "desconocido".
+- Si en la foto NO hay comida reconocible, devuelve la lista de alimentos vacía.
+- Responde SIEMPRE en el idioma del usuario (por defecto español).`;
+
+const FOOD_PHOTO_SCHEMA = {
+  type: 'object',
+  properties: {
+    alimentos: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          nombre: { type: 'string' },
+          gramos: { type: 'number' },
+          calorias: { type: 'number' },
+          proteina: { type: 'number' },
+          carbohidratos: { type: 'number' },
+          grasas: { type: 'number' },
+        },
+        required: ['nombre', 'gramos', 'calorias', 'proteina', 'carbohidratos', 'grasas'],
+        additionalProperties: false,
+      },
+    },
+    total: {
+      type: 'object',
+      properties: {
+        calorias: { type: 'number' },
+        proteina: { type: 'number' },
+        carbohidratos: { type: 'number' },
+        grasas: { type: 'number' },
+      },
+      required: ['calorias', 'proteina', 'carbohidratos', 'grasas'],
+      additionalProperties: false,
+    },
+    disclaimer: { type: 'string' },
+  },
+  required: ['alimentos', 'total', 'disclaimer'],
+  additionalProperties: false,
+};
+
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
 export default async function handler(req, res) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
@@ -269,7 +321,7 @@ export default async function handler(req, res) {
     return res.status(503).json({ error: 'not_configured', message: 'La IA aún no está configurada en el servidor.' });
   }
 
-  const { section, profile, messages, extract, timerCombos } = req.body || {};
+  const { section, profile, messages, extract, timerCombos, foodPhoto } = req.body || {};
   const buildSystem = SYSTEMS[section];
   if (!buildSystem) return res.status(400).json({ error: 'Sección de IA no válida' });
 
@@ -289,6 +341,48 @@ export default async function handler(req, res) {
   }
 
   const anthropic = new Anthropic({ apiKey });
+
+  // ── MODO FOTO DE COMIDA: imagen → estimación de macros ──
+  // Cuenta como un turno normal de la cuota. Devuelve JSON validado.
+  if (foodPhoto) {
+    const { imageBase64, mediaType } = foodPhoto || {};
+    if (!imageBase64 || !ALLOWED_IMAGE_TYPES.includes(mediaType)) {
+      return res.status(400).json({ error: 'bad_image', message: 'Formato de imagen no válido. Usa JPEG, PNG o WebP.' });
+    }
+    // Límite de tamaño (~5MB en base64 ≈ 6.8M caracteres). Defensa del servidor.
+    if (imageBase64.length > 7_000_000) {
+      return res.status(413).json({ error: 'image_too_large', message: 'La foto debe pesar menos de 5MB.' });
+    }
+    try {
+      const response = await anthropic.messages.create({
+        model: MODEL,
+        max_tokens: 1200,
+        system: FOOD_PHOTO_SYSTEM,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: mediaType, data: imageBase64 } },
+            { type: 'text', text: 'Analiza esta foto de comida y estima los macros.' },
+          ],
+        }],
+        output_config: { format: { type: 'json_schema', name: 'analisis_nutricional', schema: FOOD_PHOTO_SCHEMA } },
+      });
+      const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
+      let analysis;
+      try { analysis = JSON.parse(text); } catch { analysis = null; }
+      await recordUsage(gate.db, gate.user.id, 'nutrition', 'chat', response.usage);
+      if (!analysis || !Array.isArray(analysis.alimentos) || !analysis.total) {
+        return res.status(422).json({ error: 'no_food', message: 'No he podido identificar la comida. Prueba con una foto más clara.' });
+      }
+      if (!analysis.disclaimer) {
+        analysis.disclaimer = 'Esta es una estimación orientativa. Para precisión, usa una balanza de cocina.';
+      }
+      return res.status(200).json({ analysis, usage: response.usage });
+    } catch (err) {
+      const status = err?.status === 429 ? 429 : 500;
+      return res.status(status).json({ error: 'ia_error', message: status === 429 ? 'La IA está saturada, prueba en un momento.' : 'No se pudo analizar la foto.' });
+    }
+  }
 
   // ── MODO EXTRAER: convierte el plan en JSON para guardarlo ──
   if (extract) {
