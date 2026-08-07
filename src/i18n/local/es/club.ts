@@ -5,6 +5,7 @@ export default {
   cl_back_home: 'Inicio',
   cl_brand_space: 'ESPACIO',
   cl_brand_club: 'ENTRENADOR',
+  cl_here_root: 'Club',
   cl_nav_summary: 'Resumen',
   cl_nav_plan: 'Plan del club',
   cl_nav_roster: 'Boxeadores',

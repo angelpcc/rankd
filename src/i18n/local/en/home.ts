@@ -466,6 +466,10 @@ export default {
   dash_bs_save_error: 'Error saving the service',
   dash_bs_deleted: 'Service deleted',
   dash_org_tab_overview: 'Overview',
+  // Mobile navigation: "More" button and sections sheet (R16)
+  dash_more: 'More',
+  dash_more_title: 'Sections',
+  dash_here_root: 'Dashboard',
   // Accordion sidebar groups (R15-B1)
   dash_grp_activity: 'Activity',
   dash_grp_talent: 'Talent',

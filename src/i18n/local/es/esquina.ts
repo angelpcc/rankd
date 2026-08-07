@@ -2,6 +2,7 @@
 // Prefijo mc_ ("mi corner") para no chocar con otros namespaces.
 export default {
   // ── Navegación de secciones ──
+  mc_here_root: 'Mi Esquina',
   mc_nav_summary: 'Resumen',
   mc_nav_calendar: 'Calendario',
   mc_nav_diary: 'Diario de entrenos',

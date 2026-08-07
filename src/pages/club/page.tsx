@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { isViewingAs } from '@/lib/viewAs';
 import { useSEO } from '@/hooks/useSEO';
 import { isMissingTable } from '@/lib/dbState';
+import PageBreadcrumb from '@/components/base/PageBreadcrumb';
 import ClubPlan from './components/ClubPlan';
 import ClubRoster from './components/ClubRoster';
 
@@ -44,7 +46,7 @@ export default function ClubPage() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  useEffect(() => { if (!authLoading && !user) navigate('/esquina'); }, [authLoading, user, navigate]);
+  useEffect(() => { if (!authLoading && !user && !isViewingAs()) navigate('/esquina'); }, [authLoading, user, navigate]);
 
   // Resuelve a qué gimnasio pertenece: el dueño es su propio org; el coach lo
   // encuentra por su vínculo en gym_staff.
@@ -172,6 +174,14 @@ export default function ClubPage() {
 
         {/* Main */}
         <main key={section} className="rk-section-in flex-1 px-4 sm:px-6 lg:px-10 py-8 pt-24 lg:pt-8 pb-16 min-w-0">
+          {/* Migas de pan: dónde estoy dentro del club y cómo volver (bloque 4). */}
+          {section !== 'resumen' && (
+            <PageBreadcrumb
+              root={t('cl_here_root')}
+              section={t(SECTIONS.find((s) => s.id === section)?.labelKey || 'cl_nav_summary')}
+              onRoot={() => setSection('resumen')}
+            />
+          )}
           {section === 'resumen' && (
             <div className="space-y-6 max-w-3xl">
               <div>

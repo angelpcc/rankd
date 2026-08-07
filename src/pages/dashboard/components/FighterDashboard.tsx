@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile, Fighter, FighterVideo, FighterAchievement } from '@/lib/supabase';
 import DashboardNav from './DashboardNav';
+import DashMobileNav from './DashMobileNav';
+import PageBreadcrumb from '@/components/base/PageBreadcrumb';
 import AvatarUpload from './AvatarUpload';
 import FighterOpportunities from './FighterOpportunities';
 import MessagesPanel from './messages/MessagesPanel';
@@ -339,29 +341,24 @@ export default function FighterDashboard({ profile }: Props) {
           </div>
         </aside>
 
-        {/* ── MOBILE BOTTOM TABS ── */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-zinc-950/95 backdrop-blur border-t border-white/10 flex rk-safe-bottom">
-          {tabs.slice(0, 4).map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => tab.id === 'training' ? navigate('/mi-esquina') : setActiveTab(tab.id)}
-              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[10px] transition-colors cursor-pointer relative ${activeTab === tab.id ? 'text-red-400' : 'text-zinc-500'}`}
-            >
-              <i className={`${tab.icon} text-lg`}></i>
-              <span>{tab.label}</span>
-            </button>
-          ))}
-          <button
-            onClick={() => setActiveTab('settings')}
-            className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[10px] transition-colors cursor-pointer ${['settings', 'videos', 'achievements', 'verification'].includes(activeTab) ? 'text-red-400' : 'text-zinc-500'}`}
-          >
-            <i className="ri-more-line text-lg"></i>
-            <span>Más</span>
-          </button>
-        </div>
+        {/* ── MOBILE BOTTOM TABS ── (R16: barra con botón "Más" para no esconder secciones) */}
+        <DashMobileNav
+          tabs={tabs}
+          activeId={activeTab}
+          onSelect={(id) => (id === 'training' ? navigate('/mi-esquina') : setActiveTab(id as ActiveTab))}
+        />
 
         {/* ── MAIN ── */}
         <main className="flex-1 lg:ml-56 px-4 md:px-6 lg:px-8 py-6 sm:py-8 pb-24 lg:pb-8 max-w-full overflow-x-hidden">
+
+          {/* Migas de pan: en qué sección del panel estoy y cómo volver (bloque 4). */}
+          {activeTab !== 'overview' && (
+            <PageBreadcrumb
+              root={t('dash_here_root')}
+              section={tabs.find((tb) => tb.id === activeTab)?.label}
+              onRoot={() => setActiveTab('overview')}
+            />
+          )}
 
           {/* ══ OVERVIEW ══ */}
           {activeTab === 'overview' && (

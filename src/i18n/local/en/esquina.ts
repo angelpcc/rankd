@@ -2,6 +2,7 @@
 // mc_ prefix ("my corner") so it never clashes with other namespaces.
 export default {
   // ── Section navigation ──
+  mc_here_root: 'My Corner',
   mc_nav_summary: 'Overview',
   mc_nav_calendar: 'Calendar',
   mc_nav_diary: 'Training log',

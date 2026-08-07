@@ -5,6 +5,7 @@ export default {
   cl_back_home: 'Home',
   cl_brand_space: 'COACH',
   cl_brand_club: 'SPACE',
+  cl_here_root: 'Club',
   cl_nav_summary: 'Overview',
   cl_nav_plan: 'Club plan',
   cl_nav_roster: 'Boxers',

@@ -466,6 +466,10 @@ export default {
   dash_bs_save_error: 'Error al guardar el servicio',
   dash_bs_deleted: 'Servicio eliminado',
   dash_org_tab_overview: 'Resumen',
+  // Navegación móvil: botón "Más" y hoja de secciones (R16)
+  dash_more: 'Más',
+  dash_more_title: 'Secciones',
+  dash_here_root: 'Panel',
   // Grupos de la barra lateral en acordeón (R15-B1)
   dash_grp_activity: 'Actividad',
   dash_grp_talent: 'Talento',

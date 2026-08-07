@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { isViewingAs } from '@/lib/viewAs';
 import { useSEO } from '@/hooks/useSEO';
 import MessagesPanel from '@/pages/dashboard/components/messages/MessagesPanel';
 import NutritionTracker from '@/pages/mi-esquina/components/NutritionTracker';
@@ -21,6 +22,7 @@ import GearBrands from '@/pages/mi-esquina/components/GearBrands';
 import SectionCoach from '@/pages/mi-esquina/components/SectionCoach';
 import MealLog from '@/pages/mi-esquina/components/MealLog';
 import Reveal from '@/components/base/Reveal';
+import PageBreadcrumb from '@/components/base/PageBreadcrumb';
 import CountUp from '@/components/base/CountUp';
 import NotificationBell from '@/components/feature/NotificationBell';
 
@@ -96,7 +98,8 @@ export default function MiEsquinaPage() {
   };
 
   useEffect(() => {
-    if (!authLoading && !user) navigate('/esquina');
+    // No expulsar al admin en modo "Ver como" mientras su sesión rehidrata.
+    if (!authLoading && !user && !isViewingAs()) navigate('/esquina');
   }, [authLoading, user, navigate]);
 
   useEffect(() => {
@@ -277,6 +280,16 @@ export default function MiEsquinaPage() {
         {/* key = sección: React remonta el contenido y la animación de entrada
             se reproduce en cada cambio, dando sensación de navegación real */}
         <main key={activeSection} className="rk-section-in flex-1 px-4 sm:px-6 lg:px-10 py-8 pt-24 lg:pt-8 pb-16 min-w-0">
+
+          {/* Migas de pan: dónde estoy dentro de Mi Esquina y cómo volver al
+              resumen (bloque 4). En el propio resumen no hace falta. */}
+          {activeSection !== 'resumen' && (
+            <PageBreadcrumb
+              root={t('mc_here_root')}
+              section={t(SECTIONS.find((s) => s.id === activeSection)?.labelKey || (activeSection === 'compartir' ? 'mc_nav_share' : 'mc_nav_summary'))}
+              onRoot={() => go('resumen')}
+            />
+          )}
 
           {/* ══════════ RESUMEN ══════════ */}
           {activeSection === 'resumen' && (

@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { supabase, Profile, Opportunity } from '@/lib/supabase';
 import DashboardNav from './DashboardNav';
 import DashSideNav, { type DashNavGroup } from './DashSideNav';
+import DashMobileNav from './DashMobileNav';
+import PageBreadcrumb from '@/components/base/PageBreadcrumb';
 import OrgOpportunities from './OrgOpportunities';
 import BrandTalentSearch from './BrandTalentSearch';
 import BrandEventSearch from './BrandEventSearch';
@@ -312,26 +314,21 @@ export default function BrandDashboard({ profile }: Props) {
           </div>
         </aside>
 
-        {/* ── MOBILE BOTTOM NAV ── */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-zinc-950/95 backdrop-blur border-t border-white/10 flex rk-safe-bottom">
-          {tabs.slice(0, 5).map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-xs transition-colors cursor-pointer relative ${activeTab === tab.id ? 'text-[#C9A84C]' : 'text-zinc-500'}`}
-            >
-              <i className={`${tab.icon} text-lg`}></i>
-              {tab.badge !== undefined && tab.badge > 0 && (
-                <span className="absolute top-1.5 right-1/4 w-4 h-4 bg-[#C9A84C] text-zinc-950 text-xs rounded-full flex items-center justify-center font-bold">
-                  {tab.badge > 9 ? '9+' : tab.badge}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
+        {/* ── MOBILE BOTTOM NAV ── (R16: barra con botón "Más" para no esconder secciones) */}
+        <DashMobileNav tabs={tabs} activeId={activeTab} onSelect={(id) => setActiveTab(id as ActiveTab)} accent="gold" />
 
         {/* ── MAIN CONTENT ── */}
         <main className="flex-1 lg:ml-56 px-4 md:px-6 lg:px-8 py-8 pb-24 lg:pb-8 max-w-full overflow-x-hidden">
+
+          {/* Migas de pan: en qué sección del panel estoy y cómo volver (bloque 4). */}
+          {activeTab !== 'overview' && (
+            <PageBreadcrumb
+              root={t('dash_here_root')}
+              section={tabs.find((tb) => tb.id === activeTab)?.label}
+              onRoot={() => setActiveTab('overview')}
+              accent="gold"
+            />
+          )}
 
           {/* ── OVERVIEW ── */}
           {activeTab === 'overview' && (
