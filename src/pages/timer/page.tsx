@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { isViewingAs } from '@/lib/viewAs';
 import { useSEO } from '@/hooks/useSEO';
 import TimerSetup from './components/TimerSetup';
 import TimerRunner from './components/TimerRunner';
@@ -41,7 +42,7 @@ export default function TimerPage() {
     setTimeout(() => setToast(null), 3000);
   }, []);
 
-  useEffect(() => { if (!authLoading && !user) navigate('/esquina'); }, [authLoading, user, navigate]);
+  useEffect(() => { if (!authLoading && !user && !isViewingAs()) navigate('/esquina'); }, [authLoading, user, navigate]);
 
   // Desbloquea el audio con la PRIMERA interacción del usuario en la página.
   // Los navegadores (sobre todo iOS Safari) bloquean el sonido hasta que hay un

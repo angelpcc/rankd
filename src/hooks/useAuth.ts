@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase, Profile } from '@/lib/supabase';
 import { getViewAs, VIEW_AS_EVENT, type ViewAsState } from '@/lib/viewAs';
@@ -43,25 +43,32 @@ export function useAuth() {
   }, []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setState(prev => ({ ...prev, session, user: session?.user ?? null }));
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setState(prev => ({ ...prev, loading: false }));
-      }
-    });
+    let active = true;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Aplica una sesión (venga de getSession o de un cambio de estado). El
+    // fetch del perfil se DIFIERE con setTimeout(0) a propósito: llamar a otra
+    // función de supabase (supabase.from()) dentro del callback de
+    // onAuthStateChange puede bloquear el "lock" interno de la librería de auth
+    // y dejar la sesión sin resolver. Al diferirlo, el callback termina y libera
+    // el lock antes de tocar la base de datos.
+    const applySession = (session: Session | null) => {
+      if (!active) return;
       setState(prev => ({ ...prev, session, user: session?.user ?? null }));
       if (session?.user) {
-        fetchProfile(session.user.id);
+        const uid = session.user.id;
+        setTimeout(() => { if (active) fetchProfile(uid); }, 0);
       } else {
         setState(prev => ({ ...prev, profile: null, loading: false }));
       }
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) => applySession(session));
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      applySession(session);
     });
 
-    return () => subscription.unsubscribe();
+    return () => { active = false; subscription.unsubscribe(); };
   }, []);
 
   const fetchProfile = async (userId: string, retries = 3) => {
@@ -94,6 +101,15 @@ export function useAuth() {
   const realIsAdmin = isAdminEmail(state.user?.email);
   const viewingAs = !!view && realIsAdmin && !state.loading;
 
+  // Perfil sintético ESTABLE: solo se recalcula si cambia el modo vista o el
+  // perfil base. Si creáramos un objeto nuevo en cada render, cualquier efecto
+  // que dependa de `profile` (no de `profile.id`) se dispararía en bucle
+  // infinito — le pasaba al resolveOrg del espacio de club.
+  const synthetic = useMemo(
+    () => (view && view.userType !== null ? syntheticProfile(view, state.profile) : null),
+    [view, state.profile],
+  );
+
   if (viewingAs && view) {
     // Visitante sin cuenta: se devuelve sesión vacía para ver la plataforma
     // exactamente como la ve alguien que no se ha registrado.
@@ -113,7 +129,7 @@ export function useAuth() {
     }
     return {
       ...state,
-      profile: syntheticProfile(view, state.profile),
+      profile: synthetic,
       signOut,
       refetchProfile: () => {},
       isViewingAs: true,

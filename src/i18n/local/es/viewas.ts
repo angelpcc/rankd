@@ -36,6 +36,8 @@ export default {
   va_preset_promoter_desc: 'Panel de gestión: eventos, entradas, talento y candidaturas.',
   va_preset_gym: 'Gimnasio o club',
   va_preset_gym_desc: 'Panel con escaparate, galería y búsqueda de peleadores.',
+  va_preset_coach: 'Entrenador',
+  va_preset_coach_desc: 'Espacio de club: plan semanal, boxeadores y temporizador de asaltos.',
   va_preset_brand: 'Marca',
   va_preset_brand_desc: 'Panel de marca: productos, servicios y talento a patrocinar.',
   va_preset_visitor: 'Visitante sin cuenta',

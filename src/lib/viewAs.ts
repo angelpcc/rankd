@@ -102,17 +102,22 @@ export const VIEW_AS_PRESETS: {
   {
     id: 'promoter', userType: 'promoter', athleteMode: null,
     labelKey: 'va_preset_promoter', descKey: 'va_preset_promoter_desc',
-    icon: 'ri-trophy-line', color: '#fb923c', landing: '/dashboard',
+    icon: 'ri-trophy-line', color: '#fb923c', landing: '/dashboard/org',
   },
   {
     id: 'gym', userType: 'gym', athleteMode: null,
     labelKey: 'va_preset_gym', descKey: 'va_preset_gym_desc',
-    icon: 'ri-building-4-line', color: '#34d399', landing: '/dashboard',
+    icon: 'ri-building-4-line', color: '#34d399', landing: '/dashboard/org',
+  },
+  {
+    id: 'coach', userType: 'coach', athleteMode: null,
+    labelKey: 'va_preset_coach', descKey: 'va_preset_coach_desc',
+    icon: 'ri-whistle-line', color: '#f472b6', landing: '/club',
   },
   {
     id: 'brand', userType: 'brand', athleteMode: null,
     labelKey: 'va_preset_brand', descKey: 'va_preset_brand_desc',
-    icon: 'ri-store-2-line', color: '#C9A84C', landing: '/dashboard',
+    icon: 'ri-store-2-line', color: '#C9A84C', landing: '/dashboard/brand',
   },
   {
     id: 'visitor', userType: null, athleteMode: null,
@@ -122,8 +127,11 @@ export const VIEW_AS_PRESETS: {
 ];
 
 /** Ruta de aterrizaje según el tipo de perfil que se va a ver. */
-export function landingFor(userType: UserType | null, athleteMode: string | null): string {
+export function landingFor(userType: UserType | null, _athleteMode: string | null): string {
   if (!userType) return '/beta';
-  if (userType === 'fighter') return athleteMode === 'hobby' ? '/mi-esquina' : '/mi-esquina';
-  return '/dashboard';
+  if (userType === 'fighter') return '/mi-esquina';
+  if (userType === 'coach') return '/club';
+  if (userType === 'brand') return '/dashboard/brand';
+  // promoter, gym, manager, organizer → panel de organización
+  return '/dashboard/org';
 }

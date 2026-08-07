@@ -36,6 +36,8 @@ export default {
   va_preset_promoter_desc: 'Management dashboard: events, tickets, talent and applications.',
   va_preset_gym: 'Gym or club',
   va_preset_gym_desc: 'Dashboard with storefront, gallery and fighter search.',
+  va_preset_coach: 'Coach',
+  va_preset_coach_desc: 'Club space: weekly plan, boxers and round timer.',
   va_preset_brand: 'Brand',
   va_preset_brand_desc: 'Brand dashboard: products, services and talent to sponsor.',
   va_preset_visitor: 'Visitor without account',

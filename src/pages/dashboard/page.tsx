@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
+import { isViewingAs } from '@/lib/viewAs';
 import FighterDashboard from './components/FighterDashboard';
 import OrgDashboard from './components/OrgDashboard';
 import BrandDashboard from './components/BrandDashboard';
@@ -27,7 +28,9 @@ export default function DashboardPage() {
   const [profileTimeout, setProfileTimeout] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) {
+    // En modo "Ver como" el admin ya está autenticado; nunca lo mandamos a
+    // login aunque su sesión real tarde un instante en rehidratarse.
+    if (!loading && !user && !isViewingAs()) {
       navigate('/auth');
       return;
     }
