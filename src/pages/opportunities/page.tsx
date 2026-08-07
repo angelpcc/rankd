@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase, Opportunity, Profile } from '@/lib/supabase';
+import { isPastEvent } from '@/lib/opportunityDate';
 import { useAuth } from '@/hooks/useAuth';
 import { useSEO } from '@/hooks/useSEO';
 import Navbar from '@/pages/home/components/Navbar';
@@ -63,6 +64,8 @@ export default function OpportunitiesPage() {
   }, [user]);
 
   const filtered = opportunities.filter((o) => {
+    // Ocultar oportunidades cuyo evento ya pasó (bloque 3).
+    if (isPastEvent(o.event_date)) return false;
     if (filterType && o.type !== filterType) return false;
     if (filterDiscipline && o.discipline !== filterDiscipline) return false;
     if (filterWeight && o.weight_class !== filterWeight) return false;

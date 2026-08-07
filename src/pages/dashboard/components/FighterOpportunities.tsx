@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { supabase, Opportunity, OpportunityType, Profile, Fighter } from '@/lib/supabase';
+import { todayISO, isPastEvent, validateEventDate } from '@/lib/opportunityDate';
 import ApplyModal from '@/pages/opportunities/components/ApplyModal';
 import OpportunityCard from '@/pages/opportunities/components/OpportunityCard';
 
@@ -87,6 +89,7 @@ function isMatchingOpportunity(opp: Opportunity, fighter: Fighter | null): boole
 
 export default function FighterOpportunities({ profile, fighter, showToast }: Props) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [subTab, setSubTab] = useState<SubTab>('explore');
 
   // ── EXPLORE state ──
@@ -207,6 +210,11 @@ export default function FighterOpportunities({ profile, fighter, showToast }: Pr
       showToast('El título es obligatorio', 'error');
       return;
     }
+    const dateErr = validateEventDate(form.event_date);
+    if (dateErr) {
+      showToast(t(dateErr), 'error');
+      return;
+    }
     setSaving(true);
     const payload = {
       profile_id: profile.id,
@@ -253,11 +261,15 @@ export default function FighterOpportunities({ profile, fighter, showToast }: Pr
     showToast('Oportunidad eliminada');
   };
 
-  // Filtrar por tipo y por compatibilidad con el perfil del peleador
-  const matchingOpps = opportunities.filter((o) => isMatchingOpportunity(o, fighter));
-  const otherOpps = opportunities.filter((o) => !isMatchingOpportunity(o, fighter));
+  // Ocultar las oportunidades cuyo evento ya pasó (bloque 3): no aparecen al
+  // explorar, aunque sigan en la base de datos.
+  const activeOpps = opportunities.filter((o) => !isPastEvent(o.event_date));
 
-  const filteredExplore = (showAll ? opportunities : matchingOpps)
+  // Filtrar por tipo y por compatibilidad con el perfil del peleador
+  const matchingOpps = activeOpps.filter((o) => isMatchingOpportunity(o, fighter));
+  const otherOpps = activeOpps.filter((o) => !isMatchingOpportunity(o, fighter));
+
+  const filteredExplore = (showAll ? activeOpps : matchingOpps)
     .filter((o) => !filterType || o.type === filterType);
 
   const exploreTypeOptions = [{ value: '', label: 'Todos' }, ...typeOptions];
@@ -545,8 +557,9 @@ export default function FighterOpportunities({ profile, fighter, showToast }: Pr
                   <input value={form.location} onChange={(e) => setField('location', e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 placeholder-zinc-600" placeholder="Madrid, España" />
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1.5">Fecha del evento</label>
-                  <input type="date" value={form.event_date} onChange={(e) => setField('event_date', e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer" />
+                  <label className="block text-xs text-zinc-400 mb-1.5">{t('op_date_label')} <span className="text-red-500">*</span></label>
+                  <input type="date" value={form.event_date} min={todayISO()} onChange={(e) => setField('event_date', e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer" />
+                  <p className="text-xs text-zinc-500 mt-1">{t('op_date_help')}</p>
                 </div>
               </div>
 
@@ -596,6 +609,11 @@ export default function FighterOpportunities({ profile, fighter, showToast }: Pr
                         <span className={`text-xs px-2 py-0.5 rounded-full border ${opp.status === 'open' ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-zinc-800 border-zinc-700 text-zinc-500'}`}>
                           {opp.status === 'open' ? 'Abierta' : 'Cerrada'}
                         </span>
+                        {isPastEvent(opp.event_date) && (
+                          <span className="text-xs px-2 py-0.5 rounded-full border bg-zinc-800 border-zinc-700 text-zinc-500 flex items-center gap-1">
+                            <i className="ri-archive-line"></i>{t('op_expired')}
+                          </span>
+                        )}
                         {appCount > 0 && (
                           <span className="text-xs bg-red-600/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-full">
                             {appCount} respuesta{appCount !== 1 ? 's' : ''}

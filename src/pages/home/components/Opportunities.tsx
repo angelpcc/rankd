@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase, Opportunity } from '@/lib/supabase';
+import { isPastEvent } from '@/lib/opportunityDate';
 import { MOCK_OPPORTUNITIES } from '@/mocks/data';
 
 const typeConfig: Record<string, { accent: string; bg: string; border: string; bar: string; icon: string }> = {
@@ -33,7 +34,9 @@ export default function Opportunities() {
         const { data, error } = await supabase
           .from('opportunities').select('*').eq('status', 'open')
           .order('created_at', { ascending: false }).limit(12);
-        setOpportunities(error || !data || data.length === 0 ? MOCK_OPPORTUNITIES : data);
+        // Solo eventos futuros (bloque 3); si no hay reales, mock para el landing.
+        const future = (data || []).filter((o) => !isPastEvent(o.event_date));
+        setOpportunities(error || future.length === 0 ? MOCK_OPPORTUNITIES : future);
         setLoading(false);
       } catch {
         setOpportunities(MOCK_OPPORTUNITIES);

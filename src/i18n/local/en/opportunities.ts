@@ -24,6 +24,12 @@ export default {
   op_date_tomorrow: 'Tomorrow',
   op_date_in_days: 'In {{n}} days',
   op_soon: 'Soon!',
+  op_expired: 'Expired',
+  // Form: date required and in the future
+  op_date_label: 'Event date',
+  op_date_help: 'The event must be today or in the future.',
+  op_date_err_required: 'The event date is required',
+  op_date_err_past: 'The date cannot be earlier than today',
   op_org_fallback: 'Organisation',
   op_promoter_fallback: 'promoter',
   op_seeking_sponsors: 'Seeking sponsors',

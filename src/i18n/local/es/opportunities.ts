@@ -24,6 +24,12 @@ export default {
   op_date_tomorrow: 'Mañana',
   op_date_in_days: 'En {{n}} días',
   op_soon: '¡Pronto!',
+  op_expired: 'Vencida',
+  // Formulario: fecha obligatoria y futura
+  op_date_label: 'Fecha del evento',
+  op_date_help: 'El evento debe ser hoy o en el futuro.',
+  op_date_err_required: 'La fecha del evento es obligatoria',
+  op_date_err_past: 'La fecha no puede ser anterior a hoy',
   op_org_fallback: 'Organización',
   op_promoter_fallback: 'promotora',
   op_seeking_sponsors: 'Buscando sponsors',

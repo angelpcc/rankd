@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase, Opportunity, OpportunityType, Profile } from '@/lib/supabase';
+import { todayISO, isPastEvent, validateEventDate } from '@/lib/opportunityDate';
 
 const typeOptions: { value: OpportunityType; label: string }[] = [
   { value: 'combate', label: 'Combate' },
@@ -61,6 +63,7 @@ const emptyForm = {
 };
 
 export default function OrgOpportunities({ profile, showToast, onDataChange }: Props) {
+  const { t } = useTranslation();
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -126,6 +129,12 @@ export default function OrgOpportunities({ profile, showToast, onDataChange }: P
   const saveOpportunity = async () => {
     if (!form.title.trim()) {
       showToast('El título es obligatorio', 'error');
+      return;
+    }
+    // La fecha del evento es obligatoria y debe ser hoy o futura (bloque 3).
+    const dateErr = validateEventDate(form.event_date);
+    if (dateErr) {
+      showToast(t(dateErr), 'error');
       return;
     }
     setSaving(true);
@@ -311,15 +320,17 @@ export default function OrgOpportunities({ profile, showToast, onDataChange }: P
               />
             </div>
 
-            {/* Fecha */}
+            {/* Fecha (obligatoria y futura) */}
             <div>
-              <label className="block text-xs text-zinc-400 mb-1.5">Fecha del evento</label>
+              <label className="block text-xs text-zinc-400 mb-1.5">{t('op_date_label')} <span className="text-red-500">*</span></label>
               <input
                 type="date"
                 value={form.event_date}
+                min={todayISO()}
                 onChange={(e) => setField('event_date', e.target.value)}
                 className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer"
               />
+              <p className="text-xs text-zinc-500 mt-1">{t('op_date_help')}</p>
             </div>
           </div>
 
@@ -403,6 +414,11 @@ export default function OrgOpportunities({ profile, showToast, onDataChange }: P
                     <span className={`text-xs px-2 py-0.5 rounded-full border ${opp.status === 'open' ? 'bg-green-500/10 border-green-500/30 text-green-400' : 'bg-zinc-800 border-zinc-700 text-zinc-500'}`}>
                       {opp.status === 'open' ? 'Abierta' : 'Cerrada'}
                     </span>
+                    {isPastEvent(opp.event_date) && (
+                      <span className="text-xs px-2 py-0.5 rounded-full border bg-zinc-800 border-zinc-700 text-zinc-500 flex items-center gap-1">
+                        <i className="ri-archive-line"></i>{t('op_expired')}
+                      </span>
+                    )}
                     {appCount > 0 && (
                       <span className="text-xs bg-red-600/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded-full">
                         {appCount} postulación{appCount !== 1 ? 'es' : ''}
