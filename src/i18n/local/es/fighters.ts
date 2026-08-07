@@ -40,4 +40,5 @@ export default {
   fd_found_other: 'peleadores encontrados',
   fd_of_total: 'de {{n}} en total',
   fd_clear_all_mobile: 'Limpiar todos los filtros',
+  fd_apply: 'Ver {{n}} resultados',
 };

@@ -11,6 +11,7 @@ import ShareProgress from '@/pages/mi-esquina/components/ShareProgress';
 import { DocumentExpiryAlert } from '@/pages/mi-esquina/components/DocumentsPanel';
 import DailyCheckin from '@/pages/mi-esquina/components/DailyCheckin';
 import QuickRoutines from '@/pages/mi-esquina/components/QuickRoutines';
+import LastStrengthSession from '@/pages/mi-esquina/components/LastStrengthSession';
 import WeeklySummary from '@/pages/mi-esquina/components/WeeklySummary';
 import FightPrep from '@/pages/mi-esquina/components/FightPrep';
 import AgendaHub from '@/pages/mi-esquina/components/AgendaHub';
@@ -326,6 +327,11 @@ export default function MiEsquinaPage() {
               {/* Registro de un toque */}
               <Reveal delay={100}>
                 <QuickRoutines profile={profile} showToast={showToast} compact onLogged={() => setRefreshKey((k) => k + 1)} />
+              </Reveal>
+
+              {/* Última sesión de fuerza registrada (si hay alguna) */}
+              <Reveal delay={110}>
+                <LastStrengthSession profile={profile} onOpen={() => go('progreso', 'fuerza')} />
               </Reveal>
 
               {/* Hábito diario */}

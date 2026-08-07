@@ -4,6 +4,7 @@ import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable, isMissingColumn } from '@/lib/dbState';
 import { parseStrengthFromSpeech, parseStrengthSessionFromSpeech } from '@/lib/dictation';
 import { MUSCLE_GROUPS, exercisesByGroup, libraryLabels, type MuscleGroup } from '../lib/exercises';
+import { bestByExercise } from '../lib/strength';
 import VoiceButton from '@/components/feature/VoiceButton';
 import Reveal from '@/components/base/Reveal';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -74,6 +75,7 @@ export default function StrengthLog({ profile, showToast }: Props) {
   const [sets, setSets] = useState<SetInput[]>([{ reps: '8', repsMax: '', weight: '' }]);
   const [exOpen, setExOpen] = useState(false);
   const [interpreted, setInterpreted] = useState(false);
+  const [freeText, setFreeText] = useState('');
   // Panel de revisión cuando el dictado trae VARIOS ejercicios de corrido.
   const [multi, setMulti] = useState<MultiRow[] | null>(null);
   const [savingMulti, setSavingMulti] = useState(false);
@@ -101,21 +103,18 @@ export default function StrengthLog({ profile, showToast }: Props) {
   useEffect(() => { load(); }, [load]);
 
   // ── Marcas personales por ejercicio (derivadas) ──
+  // El peso máximo por ejercicio viene del helper compartido con el resumen
+  // semanal; aquí se añade además la 1RM estimada (Epley), que solo hace
+  // falta en esta vista.
   const records = useMemo(() => {
-    const map = new Map<string, { label: string; best: number; bestReps: number; est: number; date: string }>();
+    const bests = bestByExercise(rows);
+    const estByExercise = new Map<string, number>();
     rows.forEach((r) => {
-      const cur = map.get(r.exercise);
       const est = epley(Number(r.weight_kg), r.reps);
-      if (!cur || Number(r.weight_kg) > cur.best) {
-        map.set(r.exercise, {
-          label: r.exercise_label, best: Number(r.weight_kg), bestReps: r.reps,
-          est: Math.max(est, cur?.est ?? 0), date: r.session_date,
-        });
-      } else if (est > cur.est) {
-        map.set(r.exercise, { ...cur, est });
-      }
+      estByExercise.set(r.exercise, Math.max(est, estByExercise.get(r.exercise) ?? 0));
     });
-    return [...map.entries()].map(([ex, v]) => ({ exercise: ex, ...v }))
+    return [...bests.values()]
+      .map((v) => ({ exercise: v.exercise, label: v.label, best: v.best, bestReps: v.bestReps, date: v.date, est: estByExercise.get(v.exercise) ?? v.best }))
       .sort((a, b) => b.best - a.best);
   }, [rows]);
 
@@ -221,7 +220,23 @@ export default function StrengthLog({ profile, showToast }: Props) {
     return null;
   }, [rows, formExKey]);
 
-  const resetForm = () => { setExercise(''); setDate(todayISO()); setSets([{ reps: '8', repsMax: '', weight: '' }]); setInterpreted(false); setExOpen(false); setGroup('all'); };
+  const resetForm = () => { setExercise(''); setDate(todayISO()); setSets([{ reps: '8', repsMax: '', weight: '' }]); setInterpreted(false); setExOpen(false); setGroup('all'); setFreeText(''); };
+
+  // Para que la sesión de fuerza aparezca también en la Agenda, sin que el
+  // usuario tenga que registrarla dos veces. No hay grupo muscular en el
+  // enum de session_type (solo sparring/tecnica/fuerza/cardio/flexibilidad/
+  // recuperacion), así que va como 'fuerza' con los ejercicios en notas.
+  // Best-effort: si falla, la sesión de fuerza ya se guardó igualmente.
+  const logToAgenda = async (sessionDate: string, exerciseLabels: string[]) => {
+    await supabase.from('training_sessions').insert({
+      fighter_profile_id: profile.id,
+      session_date: sessionDate,
+      session_type: 'fuerza',
+      duration_min: null,
+      intensity: 3,
+      notes: exerciseLabels.join(', ').slice(0, 280),
+    });
+  };
 
   // Dictado de fuerza. Puede ser un ejercicio suelto ("press banca, tres series
   // de doce con cincuenta kilos") o una SESIÓN entera de corrido con varios
@@ -290,11 +305,12 @@ export default function StrengthLog({ profile, showToast }: Props) {
 
     const inserted = (data as StrengthSet[]).map((r) => ({ ...r, reps_max: r.reps_max ?? null }));
     setRows((prev) => [...inserted, ...prev]);
-    const exCount = new Set(payloads.map((p) => p.key)).size;
+    const exLabels = [...new Set(payloads.map((p) => p.label))];
     setMulti(null);
     setShowForm(false);
     resetForm();
-    showToast(t('mc_str_voice_saved_n', { n: exCount }));
+    showToast(t('mc_str_voice_saved_n', { n: exLabels.length }));
+    void logToAgenda(today, exLabels);
   };
 
   const save = async () => {
@@ -348,6 +364,7 @@ export default function StrengthLog({ profile, showToast }: Props) {
     setShowForm(false);
     resetForm();
     showToast(t('mc_str_saved'));
+    void logToAgenda(date, [ex]);
 
     // Celebración solo si de verdad ha superado su mejor peso anterior
     if (prevBest > 0 && newBest > prevBest) {
@@ -586,6 +603,23 @@ export default function StrengthLog({ profile, showToast }: Props) {
                 <button onClick={() => setShowForm(false)} aria-label={t('mc_close')}
                   className="w-9 h-9 flex items-center justify-center rounded-full bg-white/[0.05] text-zinc-400 hover:text-white cursor-pointer transition-colors">
                   <i className="ri-close-line"></i>
+                </button>
+              </div>
+            </div>
+
+            {/* Texto libre: mismo intérprete que la voz (applyStrengthDictation),
+                así el que prefiere escribir no depende del micrófono. */}
+            <div className="mb-4">
+              <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_str_freetext_label')}</label>
+              <div className="flex gap-2">
+                <input value={freeText} onChange={(e) => setFreeText(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && freeText.trim()) { e.preventDefault(); applyStrengthDictation(freeText.trim()); setFreeText(''); } }}
+                  placeholder={t('mc_str_freetext_ph')} style={{ fontSize: 16, minHeight: 44 }}
+                  className="flex-1 min-w-0 bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" />
+                <button type="button" onClick={() => { if (freeText.trim()) { applyStrengthDictation(freeText.trim()); setFreeText(''); } }}
+                  disabled={!freeText.trim()} style={{ minHeight: 44 }}
+                  className="flex-shrink-0 flex items-center gap-1.5 px-3.5 rounded-xl bg-red-600/15 border border-red-500/30 text-red-300 text-xs font-bold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-red-600/25 transition-colors">
+                  <i className="ri-magic-line"></i> {t('mc_str_freetext_apply')}
                 </button>
               </div>
             </div>

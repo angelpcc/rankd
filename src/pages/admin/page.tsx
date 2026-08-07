@@ -403,6 +403,16 @@ export default function AdminPage() {
                         </p>
                       </button>
                     ))}
+                    <a href="/creator-studio" className="rk-card p-5 text-left cursor-pointer group block">
+                      <div className="w-11 h-11 flex items-center justify-center rounded-xl border mb-3" style={{ background: '#E1060014', borderColor: '#E1060040', color: '#E10600' }}>
+                        <i className="ri-magic-line text-xl"></i>
+                      </div>
+                      <p className="text-sm font-bold text-white">Creator Studio</p>
+                      <p className="text-xs text-zinc-400 mt-1 leading-relaxed">Genera vídeos, publicaciones y mensajes con IA</p>
+                      <p className="text-xs font-bold mt-3 flex items-center gap-1 group-hover:gap-2 transition-all" style={{ color: '#E10600' }}>
+                        Abrir <i className="ri-arrow-right-line"></i>
+                      </p>
+                    </a>
                   </div>
                 </div>
               </>

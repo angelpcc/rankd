@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable } from '@/lib/dbState';
+import BottomSheet from '@/components/base/BottomSheet';
 
 interface Props {
   profile: Profile;
@@ -52,6 +53,7 @@ export default function QuickRoutines({ profile, showToast, compact, onLogged }:
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [logging, setLogging] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   const [name, setName] = useState('');
   const [type, setType] = useState('tecnica');
@@ -200,7 +202,7 @@ export default function QuickRoutines({ profile, showToast, compact, onLogged }:
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 gap-3">
-          {items.map((tpl) => {
+          {(showAll ? items : items.slice(0, 3)).map((tpl) => {
             const cfg = typeCfg(tpl.session_type);
             return (
               <div key={tpl.id} className="rk-card group flex flex-col" style={{ padding: '18px 20px' }}>
@@ -243,76 +245,78 @@ export default function QuickRoutines({ profile, showToast, compact, onLogged }:
         </div>
       )}
 
+      {items.length > 3 && (
+        <button onClick={() => setShowAll((v) => !v)}
+          className="w-full text-center text-sm font-semibold text-zinc-400 hover:text-white transition-colors cursor-pointer py-2">
+          {showAll ? t('mc_rt_view_less') : t('mc_rt_view_all', { n: items.length })}
+        </button>
+      )}
+
       {/* Modal nueva rutina */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={(e) => { if (e.target === e.currentTarget) setShowForm(false); }}>
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
-          <div className="relative rk-card w-full sm:max-w-md max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl" style={{ padding: 24, transform: 'none' }}>
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="rk-h3" style={{ fontSize: '1.15rem', color: '#fff' }}>{t('mc_rt_new')}</h3>
-              <button onClick={() => setShowForm(false)} aria-label={t('mc_close')}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/[0.05] text-zinc-400 hover:text-white cursor-pointer transition-colors">
-                <i className="ri-close-line"></i>
-              </button>
-            </div>
+      <BottomSheet
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        title={t('mc_rt_new')}
+        footer={
+          <button onClick={create} disabled={saving} className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60" style={{ fontSize: '0.95rem', minHeight: 44 }}>
+            {saving
+              ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {t('mc_saving')}</>
+              : <><i className="ri-add-line"></i> {t('mc_rt_create')}</>}
+          </button>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm text-zinc-400 mb-1.5">{t('mc_rt_name')}</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} autoFocus maxLength={60} placeholder={t('mc_rt_name_ph')}
+              style={{ fontSize: 16, minHeight: 44 }}
+              className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" />
+          </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_rt_name')}</label>
-                <input value={name} onChange={(e) => setName(e.target.value)} autoFocus maxLength={60} placeholder={t('mc_rt_name_ph')}
-                  className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" />
-              </div>
-
-              <div>
-                <label className="block text-xs text-zinc-400 mb-2">{t('mc_rt_type')}</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {TYPES.map((tp) => (
-                    <button key={tp.value} onClick={() => setType(tp.value)}
-                      className={`flex flex-col items-center gap-1 py-2.5 rounded-xl border transition-all cursor-pointer ${type === tp.value ? 'border-white/30' : 'border-white/10 hover:border-white/20'}`}
-                      style={{ background: type === tp.value ? `${tp.color}18` : 'rgba(255,255,255,0.02)' }}>
-                      <i className={tp.icon} style={{ color: tp.color, fontSize: 15 }}></i>
-                      <span className="text-[10px] font-semibold text-white text-center leading-tight">{t(tp.key)}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_rt_duration')}</label>
-                  <input value={duration} onChange={(e) => setDuration(e.target.value)} inputMode="numeric"
-                    className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" />
-                </div>
-                <div>
-                  <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_rt_intensity')}</label>
-                  <div className="flex gap-1">
-                    {[1, 2, 3, 4, 5].map((v) => (
-                      <button key={v} onClick={() => setIntensity(v)}
-                        className={`flex-1 py-2.5 rounded-lg border text-xs transition-all cursor-pointer ${intensity >= v ? 'bg-red-600/20 border-red-500/50 text-red-300' : 'bg-white/[0.02] border-white/10 text-zinc-600'}`}>
-                        🔥
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">
-                  {t('mc_rt_notes')} <span className="text-zinc-600">({t('mc_optional')})</span>
-                </label>
-                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} maxLength={300} placeholder={t('mc_rt_notes_ph')}
-                  className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 resize-y" />
-              </div>
-
-              <button onClick={create} disabled={saving} className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60" style={{ fontSize: '0.95rem' }}>
-                {saving
-                  ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {t('mc_saving')}</>
-                  : <><i className="ri-add-line"></i> {t('mc_rt_create')}</>}
-              </button>
+          <div>
+            <label className="block text-sm text-zinc-400 mb-2">{t('mc_rt_type')}</label>
+            <div className="grid grid-cols-3 gap-2">
+              {TYPES.map((tp) => (
+                <button key={tp.value} onClick={() => setType(tp.value)}
+                  className={`flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl border transition-all cursor-pointer ${type === tp.value ? 'border-white/30' : 'border-white/10 hover:border-white/20'}`}
+                  style={{ background: type === tp.value ? `${tp.color}18` : 'rgba(255,255,255,0.02)', minHeight: 44 }}>
+                  <i className={tp.icon} style={{ color: tp.color, fontSize: 15 }}></i>
+                  <span className="text-[11px] font-semibold text-white text-center leading-tight">{t(tp.key)}</span>
+                </button>
+              ))}
             </div>
           </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm text-zinc-400 mb-1.5">{t('mc_rt_duration')}</label>
+              <input value={duration} onChange={(e) => setDuration(e.target.value)} inputMode="numeric" type="number"
+                style={{ fontSize: 16, minHeight: 44 }}
+                className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" />
+            </div>
+            <div>
+              <label className="block text-sm text-zinc-400 mb-1.5">{t('mc_rt_intensity')}</label>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((v) => (
+                  <button key={v} onClick={() => setIntensity(v)} style={{ minHeight: 44 }}
+                    className={`flex-1 py-2.5 rounded-lg border text-xs transition-all cursor-pointer ${intensity >= v ? 'bg-red-600/20 border-red-500/50 text-red-300' : 'bg-white/[0.02] border-white/10 text-zinc-600'}`}>
+                    🔥
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm text-zinc-400 mb-1.5">
+              {t('mc_rt_notes')} <span className="text-zinc-600">({t('mc_optional')})</span>
+            </label>
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} maxLength={300} placeholder={t('mc_rt_notes_ph')}
+              style={{ fontSize: 16 }}
+              className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 resize-y" />
+          </div>
         </div>
-      )}
+      </BottomSheet>
     </div>
   );
 }

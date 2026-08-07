@@ -304,6 +304,131 @@ const FOOD_PHOTO_SCHEMA = {
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
+// ── Creator Studio: fábrica de contenido (solo admin) ──
+// Mismo modelo/cuota que el resto de la IA, pero con dos guardas extra:
+//   1. Solo el email de Ángel puede generar (comprobado ANTES de llamar al
+//      modelo, para no gastar ni un token si alguien más encuentra el modo).
+//   2. Los guiones de vídeo tienen tope de 5/día (las publicaciones y los
+//      mensajes son ilimitados, como pide el encargo).
+// El contexto de marca vive inline aquí (no se importa de src/) siguiendo el
+// mismo criterio que la guía de marcas del asesor de Material: todo lo que
+// alimenta un system prompt de la IA queda autocontenido en este archivo.
+const ADMIN_EMAIL = 'angelpc2005@gmail.com';
+const DAILY_VIDEO_LIMIT = 5;
+
+function creatorStudioBrandContext() {
+  return `Eres el redactor de contenido de marca de RANKD: la plataforma de peleadores, promotoras y marcas de deportes de combate para España y Latinoamérica.
+Misión: dar a cada peleador (amateur o profesional) las mismas herramientas que un gimnasio grande — entrenamiento, nutrición, seguimiento y visibilidad ante promotoras y marcas. Disciplinas: Boxeo, MMA, Kickboxing, Muay Thai.
+
+Identidad visual (referencia, no la describas salvo que se pida): negro (#030303/#0B0B0B), rojo (#E10600), oro (#C9A84C); titulares en Bebas Neue, cuerpo en Barlow Condensed.
+
+Secciones del producto y su valor:
+- Mi Esquina: el entrenador personal 24/7 (diario, peso, fuerza, nutrición, Coach IA).
+- Oportunidades: combates, castings y colaboraciones publicados por organizaciones y marcas.
+- Directorio de peleadores: perfiles verificados con récord real.
+- Temporizador de asaltos: cronómetro de boxeo con combos por IA.
+- Club/Gimnasios: vincula gimnasio y alumnos en un mismo panel.
+
+Tono según destinatario: Peleador → directo y motivador, de tú a tú. Organización/Promotora → profesional y eficiente, habla de talento verificado. Marca → orientado a resultados y alcance de audiencia nicho. Gimnasio → cercano y práctico. Entrenador → técnico pero accesible.
+
+Tono general: español de España por defecto salvo que se indique otro idioma; directo, sin relleno corporativo, cercano al mundo de los deportes de combate; nunca "hype" vacío — las afirmaciones se respaldan con lo que la plataforma realmente hace.`;
+}
+
+const VIDEO_SCRIPT_SCHEMA = {
+  type: 'object',
+  properties: {
+    title: { type: 'string' },
+    scenes: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          startTime: { type: 'number' },
+          endTime: { type: 'number' },
+          action: { type: 'string', description: 'Qué ocurre en pantalla' },
+          ui: { type: 'string', description: 'Qué pantalla/elemento de la app se ve' },
+          text: { type: 'string', description: 'Texto en pantalla, corto e impactante' },
+          transition: { type: 'string' },
+          notes: { type: 'string' },
+        },
+        required: ['startTime', 'endTime', 'action', 'ui', 'text', 'transition', 'notes'],
+        additionalProperties: false,
+      },
+    },
+    caption: { type: 'string' },
+    hashtags: { type: 'array', items: { type: 'string' } },
+    musicSuggestion: { type: 'string' },
+    cta: { type: 'string' },
+  },
+  required: ['title', 'scenes', 'caption', 'hashtags', 'musicSuggestion', 'cta'],
+  additionalProperties: false,
+};
+
+const PUBLICATION_SCHEMA = {
+  type: 'object',
+  properties: {
+    headline: { type: 'string' },
+    body: { type: 'string' },
+    cta: { type: 'string' },
+    hashtags: { type: 'array', items: { type: 'string' } },
+    emoji: { type: 'string' },
+  },
+  required: ['headline', 'body', 'cta', 'hashtags', 'emoji'],
+  additionalProperties: false,
+};
+
+const MESSAGE_SCHEMA = {
+  type: 'object',
+  properties: {
+    subject: { type: ['string', 'null'], description: 'Solo si el canal es email; si no, null' },
+    body: { type: 'string' },
+    cta: { type: 'string' },
+    tone: { type: 'string' },
+    alternatives: { type: 'array', items: { type: 'string' }, description: '2-3 variantes alternativas del mensaje' },
+  },
+  required: ['subject', 'body', 'cta', 'tone', 'alternatives'],
+  additionalProperties: false,
+};
+
+function creatorStudioSystem(kind, input) {
+  const base = creatorStudioBrandContext();
+  if (kind === 'videoScript') {
+    return `${base}
+
+Generas GUIONES DE VÍDEO corto (Reels/TikTok/Shorts) para promocionar RANKD. Devuelve un array de escenas con tiempos que sumen la duración pedida (${input.duration}s), texto en pantalla corto e impactante, y una sugerencia de música. CTA clara al final.
+Plataforma: ${input.platform}. Incluir texto en pantalla: ${input.includeText}. Subtítulos: ${input.includeSubtitles}. Música: ${input.includeMusic}. CTA: ${input.includeCta}.`;
+  }
+  if (kind === 'publication') {
+    return `${base}
+
+Generas el COPY de una publicación para redes sociales (no el diseño visual, solo el texto). Formato: ${input.format}. Plataformas: ${(input.platforms || []).join(', ') || 'genérico'}. Tono pedido: ${input.tone}.
+Incluir hashtags: ${input.includeHashtags}. Incluir emoji: ${input.includeEmoji}. Incluir CTA: ${input.includeCta}. Incluir menciones: ${input.includeMentions}.
+Si no se piden hashtags, devuelve un array vacío. Si no se pide emoji, deja el campo emoji vacío.`;
+  }
+  if (kind === 'message') {
+    return `${base}
+
+Generas un MENSAJE para contactar o responder a alguien en nombre de Ángel (fundador de RANKD). Destinatario: ${input.recipientType}. Canal: ${input.channel} (ajusta la longitud: SMS/WhatsApp cortos, email más desarrollado). Tono: ${input.tone}.
+${input.receivedMessage ? `El destinatario ha escrito esto y hay que RESPONDER: "${input.receivedMessage}"` : `Objetivo del mensaje: ${input.goal}`}
+${input.context ? `Contexto adicional: ${input.context}` : ''}
+Da 2-3 alternativas breves en "alternatives" además del mensaje principal en "body". "subject" solo si el canal es email.`;
+  }
+  // variation
+  return `${base}
+
+Genera una VARIANTE distinta del contenido "${input.type}" que se te da en JSON, manteniendo su intención pero cambiando el enfoque, ejemplos o estructura. Tipo de variación pedida: ${input.variationType}. Contenido original: ${JSON.stringify(input.original)}. Devuelve el mismo esquema de campos que el original.`;
+}
+
+function creatorStudioSchema(kind, input) {
+  if (kind === 'videoScript') return { name: 'guion_video', schema: VIDEO_SCRIPT_SCHEMA };
+  if (kind === 'publication') return { name: 'copy_publicacion', schema: PUBLICATION_SCHEMA };
+  if (kind === 'message') return { name: 'mensaje', schema: MESSAGE_SCHEMA };
+  // variation: mismo esquema que el tipo original
+  if (input.type === 'video') return { name: 'guion_video', schema: VIDEO_SCRIPT_SCHEMA };
+  if (input.type === 'publication') return { name: 'copy_publicacion', schema: PUBLICATION_SCHEMA };
+  return { name: 'mensaje', schema: MESSAGE_SCHEMA };
+}
+
 export default async function handler(req, res) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
@@ -321,7 +446,55 @@ export default async function handler(req, res) {
     return res.status(503).json({ error: 'not_configured', message: 'La IA aún no está configurada en el servidor.' });
   }
 
-  const { section, profile, messages, extract, timerCombos, foodPhoto } = req.body || {};
+  const { section, profile, messages, extract, timerCombos, foodPhoto, creatorStudio } = req.body || {};
+
+  // ── CREATOR STUDIO: solo admin, gasto contabilizado aparte de las cuotas
+  //    de Mi Esquina (section:'creator-studio' en ai_usage) ──
+  if (creatorStudio) {
+    const gate = await checkQuota(req);
+    if (!gate.ok) {
+      return res.status(gate.status).json({ error: gate.code, message: gate.message });
+    }
+    if ((gate.user.email || '').toLowerCase() !== ADMIN_EMAIL) {
+      return res.status(403).json({ error: 'forbidden', message: 'Creator Studio es solo para administradores.' });
+    }
+    const { kind } = creatorStudio;
+    if (!['videoScript', 'publication', 'message', 'variation'].includes(kind)) {
+      return res.status(400).json({ error: 'bad_kind', message: 'Tipo de generación no válido.' });
+    }
+    if (kind === 'videoScript') {
+      const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+      const { count, error: countErr } = await gate.db.from('content_generated')
+        .select('id', { count: 'exact', head: true })
+        .eq('creator_id', gate.user.id).eq('type', 'video').gte('created_at', todayStart.toISOString());
+      if (countErr) {
+        return res.status(503).json({ error: 'limits_not_configured', message: 'No se pudo comprobar el límite diario de vídeos. Aplica la migración 0028.' });
+      }
+      if ((count || 0) >= DAILY_VIDEO_LIMIT) {
+        return res.status(429).json({ error: 'daily_limit', message: `Has llegado al límite de ${DAILY_VIDEO_LIMIT} guiones de vídeo por hoy. Vuelve mañana.` });
+      }
+    }
+    const anthropic = new Anthropic({ apiKey });
+    try {
+      const { name, schema } = creatorStudioSchema(kind, creatorStudio);
+      const response = await anthropic.messages.create({
+        model: MODEL,
+        max_tokens: kind === 'videoScript' ? 2500 : 1200,
+        system: creatorStudioSystem(kind, creatorStudio),
+        messages: [{ role: 'user', content: creatorStudio.prompt || creatorStudio.goal || 'Genera el contenido pedido.' }],
+        output_config: { format: { type: 'json_schema', name, schema } },
+      });
+      const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
+      let content;
+      try { content = JSON.parse(text); } catch { content = null; }
+      await recordUsage(gate.db, gate.user.id, 'creator-studio', 'chat', response.usage);
+      if (!content) return res.status(422).json({ error: 'no_content', message: 'No se pudo generar el contenido. Prueba de nuevo.' });
+      return res.status(200).json({ content, usage: response.usage });
+    } catch (err) {
+      const status = err?.status === 429 ? 429 : 500;
+      return res.status(status).json({ error: 'ia_error', message: status === 429 ? 'La IA está saturada, prueba en un momento.' : 'No se pudo generar el contenido.' });
+    }
+  }
   const buildSystem = SYSTEMS[section];
   if (!buildSystem) return res.status(400).json({ error: 'Sección de IA no válida' });
 

@@ -27,9 +27,11 @@ const RANGES = [
   { days: 3650, label: '∞' },
 ];
 
-function todayISO(): string {
-  const d = new Date();
+function iso(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function todayISO(): string {
+  return iso(new Date());
 }
 
 export default function WeightTracker({ profile, showToast, mode = 'pro' }: Props) {
@@ -92,8 +94,19 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
       if (error || !data) { showToast(t('error_save'), 'error'); setSavingWeight(false); return; }
       setWeights((prev) => [data, ...prev]);
     }
+    // Feedback inmediato con comparación, para que se note el progreso sin
+    // tener que abrir el gráfico (prioriza ayer; si no hay, compara con hace
+    // una semana).
+    const yesterdayEntry = weights.find((w) => w.entry_date === iso(new Date(Date.now() - 86400000)));
+    const weekAgoEntry = weights.find((w) => w.entry_date === iso(new Date(Date.now() - 7 * 86400000)));
+    const ref = yesterdayEntry ? { entry: yesterdayEntry, labelKey: 'mc_w_vs_yesterday' } : weekAgoEntry ? { entry: weekAgoEntry, labelKey: 'mc_w_vs_week' } : null;
+    let msg = t('mc_w_registered_n', { n: val });
+    if (ref) {
+      const d = +(val - ref.entry.weight_kg).toFixed(1);
+      if (d !== 0) msg += ` · ${d > 0 ? '↑ +' : '↓ '}${d}kg ${t(ref.labelKey)}`;
+    }
+    showToast(msg);
     setWeightInput('');
-    showToast(t('mc_ci_saved'));
     setSavingWeight(false);
   };
 
@@ -137,6 +150,16 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
   const prevWeight = weights[1]?.weight_kg ?? null;
   const weightTrend = currentWeight !== null && prevWeight !== null ? +(currentWeight - prevWeight).toFixed(1) : null;
   const toTarget = currentWeight !== null && targetWeight !== null ? +(currentWeight - targetWeight).toFixed(1) : null;
+
+  // Progreso visual hacia el objetivo: usa el primer peso registrado como
+  // punto de partida (no hay start_weight guardado aparte).
+  const goalPct = useMemo(() => {
+    if (currentWeight === null || targetWeight === null || weights.length < 2) return null;
+    const start = weights[weights.length - 1].weight_kg;
+    const total = targetWeight - start;
+    if (Math.abs(total) < 0.01) return 100;
+    return Math.max(0, Math.min(100, Math.round(((currentWeight - start) / total) * 100)));
+  }, [currentWeight, targetWeight, weights]);
 
   const daysToWeighIn = useMemo(() => {
     if (!weighInDate) return null;
@@ -231,6 +254,11 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
                 {Math.abs(toTarget) < 0.1 ? t('mc_w_on_weight') : toTarget > 0 ? t('mc_w_over', { n: toTarget }) : t('mc_w_under', { n: Math.abs(toTarget) })}
               </p>
             )}
+          {goalPct !== null && (
+            <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden mt-2">
+              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${goalPct}%`, background: goalPct >= 50 ? '#4ade80' : '#fb923c' }} />
+            </div>
+          )}
         </div>
 
         <div className="rk-card" style={{ padding: '18px 16px' }}>

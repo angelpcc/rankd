@@ -358,6 +358,14 @@ export default {
   mc_rt_empty_desc: 'Crea una plantilla con tu entreno de siempre y regístralo con un toque, sin rellenar el formulario cada vez.',
   mc_rt_quick_title: 'Registro rápido',
   mc_rt_quick_desc: 'Un toque y queda en tu diario',
+  mc_rt_view_all: 'Ver todo ({{n}})',
+  mc_rt_view_less: 'Ver menos',
+
+  // ── Última sesión de fuerza (resumen) ──
+  mc_last_session_title: 'Última sesión',
+  mc_last_session_today: 'Hoy a las {{time}}',
+  mc_last_session_yesterday: 'Ayer a las {{time}}',
+  mc_last_session_volume: 'Volumen total: {{n}} kg',
 
   // ── Resumen semanal ──
   mc_ws_title: 'TU SEMANA',
@@ -372,6 +380,7 @@ export default {
   mc_ws_same: 'igual que',
   mc_ws_empty: 'Todavía no hay actividad esta semana',
   mc_ws_empty_desc: 'Registra tu primer entreno y aquí verás tu resumen.',
+  mc_ws_best_progress: '🏆 Mejor progreso: {{ex}} +{{gain}}kg (nueva marca: {{w}}kg)',
   mc_ws_goals_title: 'Tus objetivos activos',
   mc_ws_no_goals: 'No tienes objetivos activos. Ponte uno y verás aquí el progreso.',
   mc_ws_deadline_days: 'quedan {{n}} días',
@@ -541,6 +550,9 @@ export default {
   mc_w_over: '+{{n}} kg por bajar',
   mc_w_under: '{{n}} kg por debajo',
   mc_w_on_weight: 'En tu peso',
+  mc_w_registered_n: '✓ Registrado: {{n}}kg',
+  mc_w_vs_yesterday: 'vs. ayer',
+  mc_w_vs_week: 'vs. hace una semana',
   mc_w_pace_title: 'Ritmo necesario',
   mc_w_pace_week: '{{n}} kg por semana',
   mc_w_pace_ok: 'Ritmo sostenible. Vas bien.',
@@ -755,6 +767,9 @@ export default {
   mc_str_title_2: 'PROGRESIÓN',
   mc_str_sub: 'Apunta series, repeticiones y peso. Con el tiempo verás si de verdad estás progresando o llevas meses en el mismo sitio.',
   mc_str_new: 'REGISTRAR',
+  mc_str_freetext_label: 'Escribe tu entreno (o dicta con el micro)',
+  mc_str_freetext_ph: 'Ej: Jalón al pecho 5x8 a 55kg, Remo en máquina 4x10 a 70kg',
+  mc_str_freetext_apply: 'Interpretar',
   mc_str_exercise: 'Ejercicio',
   mc_str_exercise_ph: 'Ej: Press banca',
   mc_str_date: 'Fecha',

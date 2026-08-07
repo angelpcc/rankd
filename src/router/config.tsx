@@ -30,6 +30,7 @@ const TimerPage = lazy(() => import('../pages/timer/page'));
 const StorePage = lazy(() => import('../pages/tienda/page'));
 const NewsPage = lazy(() => import('../pages/noticias/page'));
 const AdminPage = lazy(() => import('../pages/admin/page'));
+const CreatorStudioPage = lazy(() => import('../pages/creator-studio/page'));
 const ClubPage = lazy(() => import('../pages/club/page'));
 const ClubInvitePage = lazy(() => import('../pages/club/invite/page'));
 const PromotoraPublicPage = lazy(() => import('../pages/promotora/page'));
@@ -250,6 +251,14 @@ const routes: RouteObject[] = [
     element: (
       <Suspense fallback={<LoadingSpinner />}>
         <AdminPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/creator-studio',
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <CreatorStudioPage />
       </Suspense>
     ),
   },

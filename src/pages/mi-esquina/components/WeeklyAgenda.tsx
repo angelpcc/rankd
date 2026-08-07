@@ -4,6 +4,7 @@ import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable, isMissingColumn } from '@/lib/dbState';
 import { parseTrainingFromSpeech } from '@/lib/dictation';
 import VoiceButton from '@/components/feature/VoiceButton';
+import BottomSheet from '@/components/base/BottomSheet';
 
 interface Props {
   profile: Profile;
@@ -420,6 +421,8 @@ interface DayDetailProps {
 function DayDetail({ date, locale, mode, availableKinds, planned, sessions, extraCols, onBack, onToggleDone, onRemovePlan, onRemoveSession, onAddPlan, onAddSession }: DayDetailProps) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<'plan' | 'log' | null>(null);
+  const [savingPlan, setSavingPlan] = useState(false);
+  const [savingLog, setSavingLog] = useState(false);
   const isToday = date === todayISO();
   const isPast = date < todayISO();
   const dObj = new Date(date + 'T12:00:00');
@@ -456,9 +459,33 @@ function DayDetail({ date, locale, mode, availableKinds, planned, sessions, extr
         </button>
       </div>
 
-      {/* Formularios */}
-      {tab === 'plan' && <PlanForm date={date} mode={mode} availableKinds={availableKinds} onSubmit={onAddPlan} onDone={() => setTab(null)} />}
-      {tab === 'log' && <LogForm extraCols={extraCols} onSubmit={onAddSession} date={date} onDone={() => setTab(null)} />}
+      {/* Formularios: bottom sheet con botón de guardar fijo al pie */}
+      <BottomSheet
+        open={tab === 'plan'}
+        onClose={() => setTab(null)}
+        title={t('mc_ag_add_plan')}
+        footer={
+          <button type="submit" form="rk-agenda-plan-form" disabled={savingPlan}
+            className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60" style={{ fontSize: '0.9rem', minHeight: 44 }}>
+            {savingPlan ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <><i className="ri-add-line"></i> {t('mc_cal_add')}</>}
+          </button>
+        }
+      >
+        <PlanForm date={date} mode={mode} availableKinds={availableKinds} onSubmit={onAddPlan} onDone={() => setTab(null)} onSavingChange={setSavingPlan} />
+      </BottomSheet>
+      <BottomSheet
+        open={tab === 'log'}
+        onClose={() => setTab(null)}
+        title={t('mc_ag_add_session')}
+        footer={
+          <button type="submit" form="rk-agenda-log-form" disabled={savingLog}
+            className="rk-btn w-full flex items-center justify-center gap-2 disabled:opacity-60" style={{ fontSize: '0.9rem', background: '#16a34a', color: '#fff', minHeight: 44 }}>
+            {savingLog ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <><i className="ri-check-line"></i> {t('mc_ag_save_session')}</>}
+          </button>
+        }
+      >
+        <LogForm extraCols={extraCols} onSubmit={onAddSession} date={date} onDone={() => setTab(null)} onSavingChange={setSavingLog} />
+      </BottomSheet>
 
       <div className="grid lg:grid-cols-2 gap-5 items-start">
         {/* Planificado */}
@@ -555,9 +582,10 @@ function DayDetail({ date, locale, mode, availableKinds, planned, sessions, extr
 }
 
 // ────────────────────────────────────────────────────────────────────────
-function PlanForm({ date, mode, availableKinds, onSubmit, onDone }: {
+function PlanForm({ date, mode, availableKinds, onSubmit, onDone, onSavingChange }: {
   date: string; mode: 'pro' | 'hobby'; availableKinds: PlannedEvent['kind'][];
   onSubmit: (p: Omit<PlannedEvent, 'id' | 'done'>) => Promise<void>; onDone: () => void;
+  onSavingChange: (saving: boolean) => void;
 }) {
   const { t } = useTranslation();
   const [kind, setKind] = useState<PlannedEvent['kind']>('training');
@@ -565,11 +593,11 @@ function PlanForm({ date, mode, availableKinds, onSubmit, onDone }: {
   const [title, setTitle] = useState('');
   const [time, setTime] = useState('18:00');
   const [notes, setNotes] = useState('');
-  const [saving, setSaving] = useState(false);
   void mode;
 
-  const submit = async () => {
-    setSaving(true);
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    onSavingChange(true);
     const cfg = KIND_CFG[kind];
     const stKey = SESSION_TYPES.find((x) => x.value === sessionType)?.key;
     const finalTitle = title.trim() || (kind === 'training' && stKey ? t(stKey) : t(cfg.key));
@@ -580,45 +608,50 @@ function PlanForm({ date, mode, availableKinds, onSubmit, onDone }: {
       time: kind === 'training' && time ? time : null,
       notes: notes.trim() || null,
     });
-    setSaving(false);
+    onSavingChange(false);
     onDone();
   };
 
   return (
-    <div className="rk-card space-y-3" style={{ padding: 18 }}>
+    <form id="rk-agenda-plan-form" onSubmit={submit} className="space-y-3.5">
       <p className="text-[11px] font-bold tracking-widest uppercase text-zinc-500">{t('mc_ag_plan_form_title')}</p>
-      <div className="grid grid-cols-5 gap-1.5">
+      {/* Fila de chips horizontal-scroll: con grid a 5 columnas la etiqueta quedaba
+          en 9px, ilegible en móvil. Aquí cada chip mide lo que necesita su texto. */}
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-0.5 px-0.5">
         {availableKinds.map((k) => {
           const cfg = KIND_CFG[k];
           return (
-            <button key={k} onClick={() => setKind(k)} className={`flex flex-col items-center gap-1 py-2 rounded-xl border transition-all cursor-pointer ${kind === k ? 'border-white/30' : 'border-white/10 hover:border-white/20'}`} style={{ background: kind === k ? `${cfg.color}18` : 'rgba(255,255,255,0.02)' }}>
+            <button key={k} type="button" onClick={() => setKind(k)}
+              className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 rounded-xl border transition-all cursor-pointer ${kind === k ? 'border-white/30' : 'border-white/10 hover:border-white/20'}`}
+              style={{ background: kind === k ? `${cfg.color}18` : 'rgba(255,255,255,0.02)', minHeight: 44 }}>
               <i className={cfg.icon} style={{ color: cfg.color, fontSize: 15 }}></i>
-              <span className="text-[9px] font-semibold text-white leading-none text-center">{t(cfg.key)}</span>
+              <span className="text-xs font-semibold text-white whitespace-nowrap">{t(cfg.key)}</span>
             </button>
           );
         })}
       </div>
       {kind === 'training' && (
         <div className="grid grid-cols-2 gap-2">
-          <select value={sessionType} onChange={(e) => setSessionType(e.target.value)} className="bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer">
+          <select value={sessionType} onChange={(e) => setSessionType(e.target.value)} style={{ fontSize: 16, minHeight: 44 }} className="bg-white/[0.04] border border-white/10 text-white rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer">
             {SESSION_TYPES.map((s) => <option key={s.value} value={s.value}>{t(s.key)}</option>)}
           </select>
-          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer" />
+          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} style={{ fontSize: 16, minHeight: 44 }} className="bg-white/[0.04] border border-white/10 text-white rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer" />
         </div>
       )}
-      <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-500" placeholder={kind === 'fight' ? t('mc_cal_ph_fight') : kind === 'weigh_in' ? t('mc_cal_ph_weigh') : t('mc_cal_ph_other')} />
-      <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} maxLength={280} className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-500 resize-none" placeholder={t('mc_rt_notes_ph')} />
-      <button onClick={submit} disabled={saving} className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60" style={{ fontSize: '0.9rem' }}>
-        {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <><i className="ri-add-line"></i> {t('mc_cal_add')}</>}
-      </button>
-    </div>
+      <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} style={{ fontSize: 16, minHeight: 44 }} className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-500" placeholder={kind === 'fight' ? t('mc_cal_ph_fight') : kind === 'weigh_in' ? t('mc_cal_ph_weigh') : t('mc_cal_ph_other')} />
+      <div>
+        <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_rt_notes')} <span className="text-zinc-600">({t('mc_optional')})</span></label>
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} maxLength={280} style={{ fontSize: 16 }} className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-500 resize-none" placeholder={t('mc_rt_notes_ph')} />
+      </div>
+    </form>
   );
 }
 
 // ────────────────────────────────────────────────────────────────────────
-function LogForm({ date, extraCols, onSubmit, onDone }: {
+function LogForm({ date, extraCols, onSubmit, onDone, onSavingChange }: {
   date: string; extraCols: boolean;
   onSubmit: (s: Omit<TrainingSession, 'id'>) => Promise<void>; onDone: () => void;
+  onSavingChange: (saving: boolean) => void;
 }) {
   const { t } = useTranslation();
   const [type, setType] = useState('sparring');
@@ -627,7 +660,6 @@ function LogForm({ date, extraCols, onSubmit, onDone }: {
   const [feeling, setFeeling] = useState(0);
   const [part, setPart] = useState<string>('');
   const [notes, setNotes] = useState('');
-  const [saving, setSaving] = useState(false);
   const [interpreted, setInterpreted] = useState(false);
 
   // Dictado: interpreta el lenguaje natural y PRE-RELLENA. No guarda: el
@@ -643,8 +675,9 @@ function LogForm({ date, extraCols, onSubmit, onDone }: {
     setInterpreted(true);
   };
 
-  const submit = async () => {
-    setSaving(true);
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    onSavingChange(true);
     await onSubmit({
       session_date: date,
       session_type: type,
@@ -654,12 +687,12 @@ function LogForm({ date, extraCols, onSubmit, onDone }: {
       part_of_day: part || null,
       notes: notes.trim() || null,
     });
-    setSaving(false);
+    onSavingChange(false);
     onDone();
   };
 
   return (
-    <div className="rk-card space-y-3.5" style={{ padding: 18 }}>
+    <form id="rk-agenda-log-form" onSubmit={submit} className="space-y-3.5">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <p className="text-[11px] font-bold tracking-widest uppercase text-zinc-500">{t('mc_ag_log_form_title')}</p>
         <VoiceButton onResult={applyDictation} />
@@ -669,10 +702,10 @@ function LogForm({ date, extraCols, onSubmit, onDone }: {
       )}
       <div>
         <label className="block text-xs text-zinc-400 mb-2">{t('mc_rt_type')}</label>
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {SESSION_TYPES.map((s) => (
-            <button key={s.value} onClick={() => setType(s.value)} className={`flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl border text-[11px] font-medium transition-all cursor-pointer ${type === s.value ? 'text-white' : 'bg-white/[0.03] border-white/10 text-zinc-500 hover:border-white/25'}`}
-              style={type === s.value ? { background: `${s.hex}1f`, borderColor: `${s.hex}66`, color: s.hex } : undefined}>
+            <button key={s.value} type="button" onClick={() => setType(s.value)} className={`flex flex-col items-center justify-center gap-1 py-2.5 px-1 rounded-xl border text-[11px] font-medium transition-all cursor-pointer ${type === s.value ? 'text-white' : 'bg-white/[0.03] border-white/10 text-zinc-500 hover:border-white/25'}`}
+              style={type === s.value ? { background: `${s.hex}1f`, borderColor: `${s.hex}66`, color: s.hex, minHeight: 44 } : { minHeight: 44 }}>
               <i className={`${s.icon} text-base`}></i>{t(s.key)}
             </button>
           ))}
@@ -681,14 +714,14 @@ function LogForm({ date, extraCols, onSubmit, onDone }: {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_rt_duration')}</label>
-          <input type="number" min="5" max="600" step="5" value={duration} onChange={(e) => setDuration(e.target.value)} className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder="60" />
+          <input type="number" min="5" max="600" step="5" inputMode="numeric" value={duration} onChange={(e) => setDuration(e.target.value)} style={{ fontSize: 16, minHeight: 44 }} className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder="60" />
         </div>
         <div>
           <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_ag_part')}</label>
           <div className="grid grid-cols-3 gap-1">
             {PARTS.map((p) => (
-              <button key={p.value} onClick={() => setPart(part === p.value ? '' : p.value)} title={t(p.key)}
-                className={`py-2.5 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${part === p.value ? 'bg-red-600/20 border-red-500/40 text-red-400' : 'bg-white/[0.03] border-white/10 text-zinc-500 hover:border-white/25'}`}>
+              <button key={p.value} type="button" onClick={() => setPart(part === p.value ? '' : p.value)} title={t(p.key)} style={{ minHeight: 44 }}
+                className={`rounded-lg border flex items-center justify-center transition-all cursor-pointer ${part === p.value ? 'bg-red-600/20 border-red-500/40 text-red-400' : 'bg-white/[0.03] border-white/10 text-zinc-500 hover:border-white/25'}`}>
                 <i className={p.icon}></i>
               </button>
             ))}
@@ -699,7 +732,7 @@ function LogForm({ date, extraCols, onSubmit, onDone }: {
         <label className="block text-xs text-zinc-400 mb-2">{t('mc_rt_intensity')}</label>
         <div className="flex gap-2">
           {[1, 2, 3, 4, 5].map((n) => (
-            <button key={n} onClick={() => setIntensity(n)} className={`flex-1 py-2 rounded-lg border text-sm font-bold transition-all cursor-pointer ${intensity >= n ? 'bg-red-600/20 border-red-500/40 text-red-400' : 'bg-white/[0.03] border-white/10 text-zinc-600 hover:border-white/25'}`}>
+            <button key={n} type="button" onClick={() => setIntensity(n)} style={{ minHeight: 44 }} className={`flex-1 rounded-lg border text-sm font-bold transition-all cursor-pointer ${intensity >= n ? 'bg-red-600/20 border-red-500/40 text-red-400' : 'bg-white/[0.03] border-white/10 text-zinc-600 hover:border-white/25'}`}>
               <i className="ri-fire-fill"></i>
             </button>
           ))}
@@ -711,9 +744,9 @@ function LogForm({ date, extraCols, onSubmit, onDone }: {
           <label className="block text-xs text-zinc-400 mb-2">{t('mc_ag_feeling')}</label>
           <div className="flex gap-2">
             {FEELINGS.map((f) => (
-              <button key={f.n} onClick={() => setFeeling(feeling === f.n ? 0 : f.n)} title={t(f.key)}
-                className={`flex-1 py-2.5 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${feeling === f.n ? '' : 'bg-white/[0.03] border-white/10 text-zinc-600 hover:border-white/25'}`}
-                style={feeling === f.n ? { background: `${f.hex}22`, borderColor: `${f.hex}66`, color: f.hex } : undefined}>
+              <button key={f.n} type="button" onClick={() => setFeeling(feeling === f.n ? 0 : f.n)} title={t(f.key)}
+                className={`flex-1 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${feeling === f.n ? '' : 'bg-white/[0.03] border-white/10 text-zinc-600 hover:border-white/25'}`}
+                style={feeling === f.n ? { background: `${f.hex}22`, borderColor: `${f.hex}66`, color: f.hex, minHeight: 44 } : { minHeight: 44 }}>
                 <i className={`${f.icon} text-lg`}></i>
               </button>
             ))}
@@ -723,11 +756,8 @@ function LogForm({ date, extraCols, onSubmit, onDone }: {
       )}
       <div>
         <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_rt_notes')}</label>
-        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} maxLength={400} className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 resize-none" placeholder={t('mc_rt_notes_ph')} />
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} maxLength={400} style={{ fontSize: 16 }} className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 resize-none" placeholder={t('mc_rt_notes_ph')} />
       </div>
-      <button onClick={submit} disabled={saving} className="rk-btn w-full flex items-center justify-center gap-2 disabled:opacity-60" style={{ fontSize: '0.9rem', background: '#16a34a', color: '#fff' }}>
-        {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <><i className="ri-check-line"></i> {t('mc_ag_save_session')}</>}
-      </button>
-    </div>
+    </form>
   );
 }

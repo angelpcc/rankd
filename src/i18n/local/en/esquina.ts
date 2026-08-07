@@ -358,6 +358,14 @@ export default {
   mc_rt_empty_desc: 'Create a template for the session you always do and log it with one tap, without filling the form every time.',
   mc_rt_quick_title: 'Quick log',
   mc_rt_quick_desc: 'One tap and it lands in your log',
+  mc_rt_view_all: 'View all ({{n}})',
+  mc_rt_view_less: 'View less',
+
+  // ── Last strength session (summary) ──
+  mc_last_session_title: 'Last session',
+  mc_last_session_today: 'Today at {{time}}',
+  mc_last_session_yesterday: 'Yesterday at {{time}}',
+  mc_last_session_volume: 'Total volume: {{n}} kg',
 
   // ── Weekly summary ──
   mc_ws_title: 'YOUR WEEK',
@@ -372,6 +380,7 @@ export default {
   mc_ws_same: 'same as',
   mc_ws_empty: 'No activity this week yet',
   mc_ws_empty_desc: 'Log your first session and your summary will show up here.',
+  mc_ws_best_progress: '🏆 Best progress: {{ex}} +{{gain}}kg (new mark: {{w}}kg)',
   mc_ws_goals_title: 'Your active goals',
   mc_ws_no_goals: 'You have no active goals. Set one and you will see the progress here.',
   mc_ws_deadline_days: '{{n}} days left',
@@ -541,6 +550,9 @@ export default {
   mc_w_over: '+{{n}} kg to lose',
   mc_w_under: '{{n}} kg under',
   mc_w_on_weight: 'On weight',
+  mc_w_registered_n: '✓ Logged: {{n}}kg',
+  mc_w_vs_yesterday: 'vs. yesterday',
+  mc_w_vs_week: 'vs. a week ago',
   mc_w_pace_title: 'Required pace',
   mc_w_pace_week: '{{n}} kg per week',
   mc_w_pace_ok: 'Sustainable pace. You are on track.',
@@ -755,6 +767,9 @@ export default {
   mc_str_title_2: 'PROGRESSION',
   mc_str_sub: 'Log sets, reps and weight. Over time you will see whether you are actually progressing or you have been stuck for months.',
   mc_str_new: 'LOG SESSION',
+  mc_str_freetext_label: 'Type your workout (or dictate with the mic)',
+  mc_str_freetext_ph: 'E.g: Lat pulldown 5x8 at 55kg, Machine row 4x10 at 70kg',
+  mc_str_freetext_apply: 'Interpret',
   mc_str_exercise: 'Exercise',
   mc_str_exercise_ph: 'E.g. Bench press',
   mc_str_date: 'Date',

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
+import { bestWeeklyProgress, type WeeklyProgress } from '../lib/strength';
 
 interface Props {
   profile: Profile;
@@ -51,13 +52,14 @@ export default function WeeklySummary({ profile, refreshKey, onOpenGoals }: Prop
   const [hasActivity, setHasActivity] = useState(false);
   const [goals, setGoals] = useState<ActiveGoal[]>([]);
   const [currentWeight, setCurrentWeight] = useState<number | null>(null);
+  const [progress, setProgress] = useState<WeeklyProgress | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     const thisStart = startOfWeek(0);
     const lastStart = startOfWeek(-1);
 
-    const [sessRes, checkRes, goalRes, weightRes] = await Promise.all([
+    const [sessRes, checkRes, goalRes, weightRes, strengthRes] = await Promise.all([
       supabase.from('training_sessions').select('session_date, duration_min')
         .eq('fighter_profile_id', profile.id).gte('session_date', iso(lastStart)),
       supabase.from('daily_checkins').select('entry_date')
@@ -66,6 +68,8 @@ export default function WeeklySummary({ profile, refreshKey, onOpenGoals }: Prop
         .eq('fighter_profile_id', profile.id).eq('status', 'active').limit(4),
       supabase.from('weight_entries').select('weight_kg')
         .eq('fighter_profile_id', profile.id).order('entry_date', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('strength_sets').select('exercise, exercise_label, weight_kg, reps, session_date')
+        .eq('fighter_profile_id', profile.id).limit(1500),
     ]);
 
     const sessions = (sessRes.data || []) as { session_date: string; duration_min: number | null }[];
@@ -88,6 +92,7 @@ export default function WeeklySummary({ profile, refreshKey, onOpenGoals }: Prop
     setHasActivity(inThis.length > 0 || checkThis > 0);
     setGoals((goalRes.data || []) as ActiveGoal[]);
     setCurrentWeight((weightRes.data as { weight_kg?: number } | null)?.weight_kg ?? null);
+    setProgress(bestWeeklyProgress((strengthRes.data || []) as { exercise: string; exercise_label: string; weight_kg: number; reps: number; session_date: string }[], iso(thisStart)));
     setLoading(false);
   }, [profile.id]);
 
@@ -164,6 +169,16 @@ export default function WeeklySummary({ profile, refreshKey, onOpenGoals }: Prop
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Mejor progreso de fuerza de la semana, si lo hay */}
+      {progress && (
+        <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-[#C9A84C]/25 bg-[#C9A84C]/[0.06] px-3.5 py-2.5">
+          <i className="ri-trophy-line text-[#C9A84C] flex-shrink-0"></i>
+          <p className="text-xs text-zinc-300">
+            {t('mc_ws_best_progress', { ex: progress.label, gain: progress.gain, w: progress.now })}
+          </p>
         </div>
       )}
 

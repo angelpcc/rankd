@@ -143,7 +143,9 @@ export function parseStrengthFromSpeech(text: string, library: string[] = []): P
 
   // Rango de repeticiones: "8 a 10", "de 8 a 10", "8 to 10", "8 hasta 10".
   // Tiene prioridad sobre el número suelto para no perder el tope del rango.
-  const range = s.match(/(\d+)\s*(?:a|to|hasta)\s*(\d+)\s*(?:repe|reps?|repeticion|repeticiones)?\b/);
+  // El lookahead niega "8 a 55kg"/"8 a 55 kilos": eso es peso ("a" = "con"),
+  // no un rango de reps hasta 55, y ya lo captura el peso arriba.
+  const range = s.match(/(\d+)\s*(?:a|to|hasta)\s*(\d+)\s*(?:repe|reps?|repeticion|repeticiones)?\b(?!\s*(?:kilos?|kgs?|kg)\b)/);
   if (range) {
     const lo = parseInt(range[1], 10);
     const hi = parseInt(range[2], 10);

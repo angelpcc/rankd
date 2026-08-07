@@ -40,4 +40,5 @@ export default {
   fd_found_other: 'fighters found',
   fd_of_total: 'of {{n}} total',
   fd_clear_all_mobile: 'Clear all filters',
+  fd_apply: 'See {{n}} results',
 };
