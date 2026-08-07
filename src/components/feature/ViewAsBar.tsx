@@ -58,7 +58,13 @@ export default function ViewAsBar() {
         style={{
           position: 'fixed', top: 0, left: 0, right: 0,
           zIndex: 10050,
-          height: 'var(--rk-viewas-h)',
+          boxSizing: 'border-box',
+          // La barra reserva el hueco del notch/barra de estado: su contenido
+          // (38px) se centra POR DEBAJO del safe-area, no encima. Sin esto, en
+          // móviles con notch la barra quedaba metida bajo la barra de estado y
+          // todo el contenido se solapaba hacia arriba.
+          height: 'calc(var(--rk-viewas-h) + env(safe-area-inset-top, 0px))',
+          paddingTop: 'env(safe-area-inset-top, 0px)',
           background: blocked
             ? 'linear-gradient(90deg, #7f1d1d 0%, #991b1b 100%)'
             : 'linear-gradient(90deg, #C9A84C 0%, #a8894a 100%)',
@@ -122,18 +128,25 @@ export default function ViewAsBar() {
 
       <style>{`
         :root { --rk-viewas-h: 38px; }
+        /* Altura total ocupada por la barra = su contenido + el notch. */
+        :root { --rk-viewas-total: calc(var(--rk-viewas-h) + env(safe-area-inset-top, 0px)); }
 
         /* Empuja el contenido normal y baja las barras fijas de cada pantalla,
            que están pegadas a top:0 (algunas con estilo en línea: por eso el
-           !important, que sí gana a un estilo en línea sin !important). */
-        body.rk-viewas-on { padding-top: var(--rk-viewas-h); }
+           !important, que sí gana a un estilo en línea sin !important).
+           La barra de modo vista YA cubre el notch, así que las barras que
+           empujamos no deben volver a reservar el safe-area (padding-top:0),
+           o el hueco se contaría dos veces. */
+        body.rk-viewas-on { padding-top: var(--rk-viewas-total); }
         body.rk-viewas-on nav,
         body.rk-viewas-on .rk-safe-top,
         body.rk-viewas-on .sticky.top-\\[60px\\] {
-          top: var(--rk-viewas-h) !important;
+          top: var(--rk-viewas-total) !important;
+          padding-top: 0 !important;
         }
-        /* La franja de la barra de estado del móvil también baja */
-        body.rk-viewas-on::before { top: var(--rk-viewas-h); }
+        /* La franja negra tras la barra de estado ya la tapa la barra de modo
+           vista (que va por encima); la ocultamos para no duplicarla. */
+        body.rk-viewas-on::before { display: none; }
 
         .va-only-sm { display: none; }
         @media (max-width: 640px) {
