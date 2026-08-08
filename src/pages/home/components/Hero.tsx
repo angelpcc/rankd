@@ -70,36 +70,46 @@ export default function Hero() {
       </div>
 
       {/* ══ CONTENIDO ══ */}
+      {/* Padding vertical contenido: si es demasiado grande, un titular
+          traducido a una lengua más larga (p.ej. "EL ECOSISTEMA DEL BOXEO
+          Y EL COMBATE") empuja los CTAs fuera del viewport. Los tamaños
+          se calculan para que en 1440×900 y 375×812 el botón principal
+          siga siendo visible sin scroll aun con el titular largo. */}
       <div
         className="hero-grid"
-        style={{ position: 'relative', zIndex: 5, width: '100%', maxWidth: 1320, margin: '0 auto', padding: 'clamp(96px,13vw,180px) 24px clamp(96px,10vw,140px)', display: 'grid', gridTemplateColumns: '1fr 370px', gap: 56, alignItems: 'center' }}
+        style={{ position: 'relative', zIndex: 5, width: '100%', maxWidth: 1320, margin: '0 auto', padding: 'clamp(72px,9vw,120px) 24px clamp(80px,8vw,110px)', display: 'grid', gridTemplateColumns: '1fr 370px', gap: 56, alignItems: 'center' }}
       >
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 26, opacity: loaded ? 1 : 0, transform: loaded ? 'none' : 'translateY(14px)', transition: 'all 0.9s var(--ease-out) 0.15s' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 22, opacity: loaded ? 1 : 0, transform: loaded ? 'none' : 'translateY(14px)', transition: 'all 0.9s var(--ease-out) 0.15s' }}>
             <span className="rk-index">ES · 2026</span>
             <span style={{ flex: '0 0 42px', height: 1, background: 'rgba(255,255,255,0.16)' }} />
             <span className="rk-eyebrow">{t('hero_eyebrow')}</span>
           </div>
 
-          <h1 style={{ margin: '0 0 26px' }}>
-            <span className="rk-display" style={{ display: 'block', color: '#fff', opacity: loaded ? 1 : 0, transform: loaded ? 'none' : 'translateY(30px)', transition: 'all 1s var(--ease-out) 0.2s' }}>
+          {/* h1 con font-size/line-height reducidos vs .rk-display por defecto,
+              para que titulares largos hagan wrap sin desbordar el viewport.
+              Fórmula: min 2rem (móvil apretado) → 6.5vw (desktop medio) → 4.6rem
+              tope. Line-height 0.92 da aire suficiente sin exagerar la altura
+              cuando el titular ocupa 2 líneas físicas. */}
+          <h1 className="hero-h1" style={{ margin: '0 0 22px' }}>
+            <span className="rk-display" style={{ display: 'block', color: '#fff', fontSize: 'clamp(2rem, 6.5vw, 4.6rem)', lineHeight: 0.92, opacity: loaded ? 1 : 0, transform: loaded ? 'none' : 'translateY(30px)', transition: 'all 1s var(--ease-out) 0.2s' }}>
               {t('hero_headline_1')}
             </span>
-            <span className="rk-display rk-red-glow" style={{ display: 'block', opacity: loaded ? 1 : 0, transform: loaded ? 'none' : 'translateY(30px)', transition: 'all 1s var(--ease-out) 0.31s' }}>
+            <span className="rk-display rk-red-glow" style={{ display: 'block', fontSize: 'clamp(2rem, 6.5vw, 4.6rem)', lineHeight: 0.92, opacity: loaded ? 1 : 0, transform: loaded ? 'none' : 'translateY(30px)', transition: 'all 1s var(--ease-out) 0.31s' }}>
               {t('hero_headline_2')}
             </span>
-            <span className="rk-display rk-outline" style={{ display: 'block', fontSize: 'clamp(2.1rem, 6.5vw, 4.6rem)', fontStyle: 'italic', opacity: loaded ? 1 : 0, transform: loaded ? 'none' : 'translateY(30px)', transition: 'all 1s var(--ease-out) 0.42s' }}>
+            <span className="rk-display rk-outline" style={{ display: 'block', fontSize: 'clamp(1.7rem, 5vw, 3.4rem)', lineHeight: 0.95, fontStyle: 'italic', opacity: loaded ? 1 : 0, transform: loaded ? 'none' : 'translateY(30px)', transition: 'all 1s var(--ease-out) 0.42s' }}>
               {t('hero_headline_3')}
             </span>
           </h1>
 
-          <div className="rk-rule" style={{ width: 92, marginBottom: 26, opacity: loaded ? 1 : 0, transition: 'opacity 1s var(--ease-out) 0.6s' }} />
+          <div className="rk-rule" style={{ width: 92, marginBottom: 20, opacity: loaded ? 1 : 0, transition: 'opacity 1s var(--ease-out) 0.6s' }} />
 
-          <p className="rk-body" style={{ fontSize: 'clamp(1.05rem, 1.6vw, 1.32rem)', maxWidth: 540, marginBottom: 38, opacity: loaded ? 1 : 0, transform: loaded ? 'none' : 'translateY(18px)', transition: 'all 1s var(--ease-out) 0.62s' }}>
+          <p className="rk-body" style={{ fontSize: 'clamp(0.98rem, 1.4vw, 1.18rem)', maxWidth: 540, marginBottom: 28, opacity: loaded ? 1 : 0, transform: loaded ? 'none' : 'translateY(18px)', transition: 'all 1s var(--ease-out) 0.62s' }}>
             {t('hero_subtext')}
           </p>
 
-          <div style={{ display: 'flex', gap: 13, flexWrap: 'wrap', marginBottom: 44, opacity: loaded ? 1 : 0, transform: loaded ? 'none' : 'translateY(18px)', transition: 'all 1s var(--ease-out) 0.74s' }}>
+          <div style={{ display: 'flex', gap: 13, flexWrap: 'wrap', marginBottom: 30, opacity: loaded ? 1 : 0, transform: loaded ? 'none' : 'translateY(18px)', transition: 'all 1s var(--ease-out) 0.74s' }}>
             <button className="rk-btn rk-btn-primary" onClick={() => navigate('/auth')}>
               {t('btn_create_free')} →
             </button>
@@ -108,7 +118,7 @@ export default function Hero() {
             </button>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 22, paddingTop: 24, borderTop: '1px solid rgba(255,255,255,0.09)', flexWrap: 'wrap', opacity: loaded ? 1 : 0, transition: 'opacity 1.1s var(--ease-out) 0.9s' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 22, paddingTop: 18, borderTop: '1px solid rgba(255,255,255,0.09)', flexWrap: 'wrap', opacity: loaded ? 1 : 0, transition: 'opacity 1.1s var(--ease-out) 0.9s' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
               <span className="rk-breathe" style={{ width: 7, height: 7, background: '#22c55e', borderRadius: '50%', boxShadow: '0 0 12px #22c55e' }} />
               <span className="rk-body" style={{ fontSize: '0.88rem', letterSpacing: '0.06em' }}>{t('hero_indicator_active')}</span>
@@ -179,9 +189,16 @@ export default function Hero() {
 
       <style>{`
         @media (max-width: 900px) {
-          .hero-grid { grid-template-columns: 1fr !important; gap: 0 !important; padding: 104px 20px 96px !important; }
+          .hero-grid { grid-template-columns: 1fr !important; gap: 0 !important; padding: 88px 20px 84px !important; }
           .hero-right { display: none !important; }
           .hero-watermark { display: none !important; }
+        }
+        /* En pantallas móviles cortas (iPhone SE, 375×667…), reducir aún
+           más el titular para que el CTA quede visible sin scroll incluso
+           si la traducción del headline es larga. */
+        @media (max-width: 480px) {
+          .hero-h1 span.rk-display { font-size: clamp(1.75rem, 8.4vw, 2.4rem) !important; line-height: 0.95 !important; }
+          .hero-h1 span.rk-outline { font-size: clamp(1.35rem, 6.4vw, 1.9rem) !important; }
         }
       `}</style>
     </section>
