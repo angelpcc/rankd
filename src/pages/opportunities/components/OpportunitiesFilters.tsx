@@ -40,7 +40,8 @@ export default function OpportunitiesFilters({ filterType, setFilterType, filter
       <select
         value={filterType}
         onChange={(e) => setFilterType(e.target.value)}
-        className="bg-white border border-zinc-200 text-zinc-700 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-400 cursor-pointer"
+        className="bg-white/[0.04] border border-white/10 text-white rounded-xl px-3 focus:outline-none focus:border-red-500 cursor-pointer transition-colors"
+        style={{ fontSize: 16, minHeight: 44 }}
       >
         {opportunityTypes.map((opt) => <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>)}
       </select>
@@ -48,7 +49,8 @@ export default function OpportunitiesFilters({ filterType, setFilterType, filter
       <select
         value={filterDiscipline}
         onChange={(e) => setFilterDiscipline(e.target.value)}
-        className="bg-white border border-zinc-200 text-zinc-700 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-400 cursor-pointer"
+        className="bg-white/[0.04] border border-white/10 text-white rounded-xl px-3 focus:outline-none focus:border-red-500 cursor-pointer transition-colors"
+        style={{ fontSize: 16, minHeight: 44 }}
       >
         {disciplines.map((d) => <option key={d.value} value={d.value}>{t(d.labelKey)}</option>)}
       </select>
@@ -56,7 +58,8 @@ export default function OpportunitiesFilters({ filterType, setFilterType, filter
       <select
         value={filterWeight}
         onChange={(e) => setFilterWeight(e.target.value)}
-        className="bg-white border border-zinc-200 text-zinc-700 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-400 cursor-pointer"
+        className="bg-white/[0.04] border border-white/10 text-white rounded-xl px-3 focus:outline-none focus:border-red-500 cursor-pointer transition-colors"
+        style={{ fontSize: 16, minHeight: 44 }}
       >
         <option value="">{t('fd_all_weights')}</option>
         {weightClasses.filter(Boolean).map((w) => <option key={w} value={w}>{w}</option>)}
@@ -66,7 +69,8 @@ export default function OpportunitiesFilters({ filterType, setFilterType, filter
         value={filterLocation}
         onChange={(e) => setFilterLocation(e.target.value)}
         placeholder={t('op_location_ph')}
-        className="bg-white border border-zinc-200 text-zinc-700 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-red-400"
+        className="bg-white/[0.04] border border-white/10 text-white rounded-xl px-3 focus:outline-none focus:border-red-500 transition-colors placeholder:text-zinc-500"
+        style={{ fontSize: 16, minHeight: 44 }}
       />
     </div>
   );

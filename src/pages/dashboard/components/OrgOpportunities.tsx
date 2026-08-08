@@ -36,13 +36,13 @@ const expLevels = [
 ];
 
 const typeConfig: Record<string, { color: string; icon: string }> = {
-  combate:       { color: 'bg-red-50 text-red-600 border-red-200',            icon: 'ri-boxing-line' },
-  contrato:      { color: 'bg-zinc-100 text-zinc-700 border-zinc-200',         icon: 'ri-file-text-line' },
-  patrocinio:    { color: 'bg-yellow-50 text-yellow-700 border-yellow-200',    icon: 'ri-hand-coin-line' },
-  sparring:      { color: 'bg-orange-50 text-orange-600 border-orange-200',    icon: 'ri-user-shared-line' },
-  campamento:    { color: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: 'ri-tent-line' },
-  entrenamiento: { color: 'bg-sky-50 text-sky-700 border-sky-200',             icon: 'ri-run-line' },
-  scouting:      { color: 'bg-violet-50 text-violet-700 border-violet-200',    icon: 'ri-eye-line' },
+  combate:       { color: 'bg-red-500/12 text-red-400 border-red-500/30',         icon: 'ri-boxing-line' },
+  contrato:      { color: 'bg-white/[0.05] text-zinc-300 border-white/10',        icon: 'ri-file-text-line' },
+  patrocinio:    { color: 'bg-yellow-500/12 text-yellow-400 border-yellow-500/30', icon: 'ri-hand-coin-line' },
+  sparring:      { color: 'bg-orange-500/12 text-orange-400 border-orange-500/30', icon: 'ri-user-shared-line' },
+  campamento:    { color: 'bg-emerald-500/12 text-emerald-400 border-emerald-500/30', icon: 'ri-tent-line' },
+  entrenamiento: { color: 'bg-sky-500/12 text-sky-400 border-sky-500/30',         icon: 'ri-run-line' },
+  scouting:      { color: 'bg-violet-500/12 text-violet-400 border-violet-500/30', icon: 'ri-eye-line' },
 };
 
 interface Props {

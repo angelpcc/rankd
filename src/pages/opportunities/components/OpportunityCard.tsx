@@ -10,13 +10,13 @@ export const isSponsorshipType = (type: string) => SPONSORSHIP_TYPES.includes(ty
 export const isFighterType = (type: string) => FIGHTER_ONLY_TYPES.includes(type);
 
 const typeConfig: Record<string, { labelKey: string; textColor: string; bgColor: string; borderColor: string; icon: string; accentFrom: string; accentTo: string }> = {
-  combate:       { labelKey: 'opp_type_combate',       textColor: 'text-red-400',     bgColor: 'bg-red-500/12',     borderColor: 'border-red-200',     icon: 'ri-boxing-line',        accentFrom: 'from-red-500',     accentTo: 'to-red-700' },
+  combate:       { labelKey: 'opp_type_combate',       textColor: 'text-red-400',     bgColor: 'bg-red-500/12',     borderColor: 'border-red-500/30',     icon: 'ri-boxing-line',        accentFrom: 'from-red-500',     accentTo: 'to-red-700' },
   contrato:      { labelKey: 'opp_type_contrato',      textColor: 'text-zinc-200',    bgColor: 'bg-white/[0.03]',   borderColor: 'border-white/10',    icon: 'ri-file-text-line',     accentFrom: 'from-zinc-600',    accentTo: 'to-zinc-800' },
-  patrocinio:    { labelKey: 'opp_type_patrocinio',    textColor: 'text-yellow-400',  bgColor: 'bg-yellow-500/12',  borderColor: 'border-yellow-200',  icon: 'ri-hand-coin-line',     accentFrom: 'from-yellow-500',  accentTo: 'to-orange-500' },
-  sparring:      { labelKey: 'opp_type_sparring',      textColor: 'text-orange-400',  bgColor: 'bg-orange-500/12',  borderColor: 'border-orange-200',  icon: 'ri-user-shared-line',   accentFrom: 'from-orange-500',  accentTo: 'to-orange-700' },
-  campamento:    { labelKey: 'opp_type_campamento',    textColor: 'text-emerald-400', bgColor: 'bg-emerald-500/12', borderColor: 'border-emerald-200', icon: 'ri-tent-line',          accentFrom: 'from-emerald-500', accentTo: 'to-emerald-700' },
-  entrenamiento: { labelKey: 'opp_type_entrenamiento', textColor: 'text-sky-400',     bgColor: 'bg-sky-500/12',     borderColor: 'border-sky-200',     icon: 'ri-run-line',           accentFrom: 'from-sky-500',     accentTo: 'to-sky-700' },
-  scouting:      { labelKey: 'opp_type_scouting',      textColor: 'text-violet-700',  bgColor: 'bg-violet-50',  borderColor: 'border-violet-200',  icon: 'ri-eye-line',           accentFrom: 'from-violet-500',  accentTo: 'to-violet-700' },
+  patrocinio:    { labelKey: 'opp_type_patrocinio',    textColor: 'text-yellow-400',  bgColor: 'bg-yellow-500/12',  borderColor: 'border-yellow-500/30',  icon: 'ri-hand-coin-line',     accentFrom: 'from-yellow-500',  accentTo: 'to-orange-500' },
+  sparring:      { labelKey: 'opp_type_sparring',      textColor: 'text-orange-400',  bgColor: 'bg-orange-500/12',  borderColor: 'border-orange-500/30',  icon: 'ri-user-shared-line',   accentFrom: 'from-orange-500',  accentTo: 'to-orange-700' },
+  campamento:    { labelKey: 'opp_type_campamento',    textColor: 'text-emerald-400', bgColor: 'bg-emerald-500/12', borderColor: 'border-emerald-500/30', icon: 'ri-tent-line',          accentFrom: 'from-emerald-500', accentTo: 'to-emerald-700' },
+  entrenamiento: { labelKey: 'opp_type_entrenamiento', textColor: 'text-sky-400',     bgColor: 'bg-sky-500/12',     borderColor: 'border-sky-500/30',     icon: 'ri-run-line',           accentFrom: 'from-sky-500',     accentTo: 'to-sky-700' },
+  scouting:      { labelKey: 'opp_type_scouting',      textColor: 'text-violet-400',  bgColor: 'bg-violet-500/12',  borderColor: 'border-violet-500/30',  icon: 'ri-eye-line',           accentFrom: 'from-violet-500',  accentTo: 'to-violet-700' },
 };
 
 interface Props {
@@ -81,12 +81,12 @@ export default function OpportunityCard({ opportunity: opp, publisher, isApplied
           </span>
           <div className="flex items-center gap-2">
             {isUrgent && opp.event_date && (
-              <span className="flex items-center gap-1 text-xs font-bold text-red-400 bg-red-500/12 border border-red-200 px-2 py-1 rounded-full animate-pulse">
+              <span className="flex items-center gap-1 text-xs font-bold text-red-400 bg-red-500/12 border border-red-500/30 px-2 py-1 rounded-full animate-pulse">
                 <i className="ri-alarm-line"></i>
                 {t('op_urgent')}
               </span>
             )}
-            <span className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full ${opp.status === 'open' ? 'bg-green-500/12 text-green-400 border border-green-200' : 'bg-white/[0.03] text-zinc-500 border border-white/10'}`}>
+            <span className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full ${opp.status === 'open' ? 'bg-green-500/12 text-green-400 border border-green-500/30' : 'bg-white/[0.03] text-zinc-500 border border-white/10'}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${opp.status === 'open' ? 'bg-green-500' : 'bg-zinc-400'}`}></span>
               {opp.status === 'open' ? t('op_active') : t('op_closed')}
             </span>
@@ -143,7 +143,7 @@ export default function OpportunityCard({ opportunity: opp, publisher, isApplied
 
         {/* Date */}
         {opp.event_date && (
-          <div className={`flex items-center gap-2 mb-4 px-3 py-2.5 rounded-lg border ${isUrgent ? 'bg-red-500/12 border-red-200' : 'bg-white/[0.03] border-white/[0.08]'}`}>
+          <div className={`flex items-center gap-2 mb-4 px-3 py-2.5 rounded-lg border ${isUrgent ? 'bg-red-500/12 border-red-500/30' : 'bg-white/[0.03] border-white/[0.08]'}`}>
             <i className={`ri-calendar-event-line ${isUrgent ? 'text-red-500' : 'text-zinc-400'}`}></i>
             <span className={isUrgent ? 'text-sm font-bold text-red-400' : 'text-xs font-medium text-zinc-500'}>{formatDate(opp.event_date)}</span>
             {countdown && (
@@ -177,7 +177,7 @@ export default function OpportunityCard({ opportunity: opp, publisher, isApplied
           {isSponsorship ? (
             // Oportunidad de PATROCINIO — no aplican fighters
             <div className="flex flex-col items-end gap-1">
-              <span className="flex items-center gap-1.5 text-xs font-bold text-yellow-400 bg-yellow-500/12 border border-yellow-200 px-3 py-2 rounded-xl whitespace-nowrap">
+              <span className="flex items-center gap-1.5 text-xs font-bold text-yellow-400 bg-yellow-500/12 border border-yellow-500/30 px-3 py-2 rounded-xl whitespace-nowrap">
                 <i className="ri-hand-coin-line"></i>
                 {t('op_seeking_sponsors')}
               </span>
@@ -186,7 +186,7 @@ export default function OpportunityCard({ opportunity: opp, publisher, isApplied
               )}
             </div>
           ) : isApplied ? (
-            <span className="flex items-center gap-1.5 text-xs font-bold text-green-400 bg-green-500/12 border border-green-200 px-3 py-2 rounded-xl whitespace-nowrap">
+            <span className="flex items-center gap-1.5 text-xs font-bold text-green-400 bg-green-500/12 border border-green-500/30 px-3 py-2 rounded-xl whitespace-nowrap">
               <i className="ri-check-double-line"></i>
               {t('op_applied')}
             </span>
@@ -201,7 +201,7 @@ export default function OpportunityCard({ opportunity: opp, publisher, isApplied
           ) : (
             <button
               onClick={onApply}
-              className="flex items-center gap-1.5 text-xs font-semibold border border-red-200 text-red-400 hover:bg-red-500/12 px-3 py-2 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
+              className="flex items-center gap-1.5 text-xs font-semibold border border-red-500/30 text-red-400 hover:bg-red-500/12 px-3 py-2 rounded-xl transition-colors cursor-pointer whitespace-nowrap"
             >
               <i className="ri-login-box-line"></i>
               {t('op_see_more')}

@@ -170,7 +170,7 @@ export default function FighterContactModal({ profile, fighter, onClose }: Props
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-100 text-red-600 text-xs font-inter px-4 py-3 rounded-lg flex items-center gap-2">
+              <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs px-4 py-3 rounded-lg flex items-center gap-2">
                 <i className="ri-error-warning-line"></i>
                 {error}
               </div>

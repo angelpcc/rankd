@@ -192,7 +192,7 @@ export default function BrandDirectoryCard({ brand, rating }: Props) {
                       <img src={service.image_url} alt={service.title} className="w-full h-full object-cover object-top" />
                     </div>
                   ) : (
-                    <div className="w-9 h-9 flex-shrink-0 rounded-lg bg-amber-50 border border-amber-100 flex items-center justify-center">
+                    <div className="w-9 h-9 flex-shrink-0 rounded-lg bg-amber-500/12 border border-amber-500/30 flex items-center justify-center">
                       <i className="ri-service-line text-amber-400 text-sm"></i>
                     </div>
                   )}
