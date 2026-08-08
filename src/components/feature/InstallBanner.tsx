@@ -131,13 +131,17 @@ export default function InstallBanner() {
         <span style={{ position: 'absolute', top: 0, left: 18, width: 54, height: 3, background: '#E10600', borderRadius: '0 0 3px 3px' }} />
 
         {/* Fila 1: logo + texto + cerrar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        {/* gap: 14 para que el texto no se pegue al icono ni al botón cerrar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          {/* overflow:hidden y showWordmark=false: sin la marca al lado, el
+              icono es lo único que va dentro del cuadro y no invade el texto. */}
           <div style={{
             width: 40, height: 40, flexShrink: 0, borderRadius: 11,
             background: 'rgba(225,6,0,0.1)', border: '1px solid rgba(225,6,0,0.28)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
+            overflow: 'hidden',
           }}>
-            <RankdLogo size={20} />
+            <RankdLogo size={22} showWordmark={false} />
           </div>
 
           <div style={{ flex: 1, minWidth: 0 }}>

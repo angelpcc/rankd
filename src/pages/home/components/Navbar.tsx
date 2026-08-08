@@ -8,7 +8,10 @@ import NotificationBell from '@/components/feature/NotificationBell';
 import RankdLogo from '@/components/base/RankdLogo';
 
 type NavLink = { label?: string; labelKey?: string; href: string; isAnchor: boolean };
-type MobileLink = { labelKey: string; href: string; icon: string };
+// authRequired: si es true y no hay sesión, se atenúa y al tocar lleva a /auth
+// en vez de a la ruta destino. Se usa para dejar entradas como "Mi Esquina"
+// visibles en el mapa del menú incluso para visitantes.
+type MobileLink = { labelKey: string; href: string; icon: string; authRequired?: boolean };
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -113,6 +116,19 @@ export default function Navbar() {
     // El logo ya lleva al inicio y los mensajes están en "Tu cuenta": fuera de aquí.
     .filter((l) => l.href !== '/beta' && l.href !== '/dashboard?tab=messages' && l.labelKey)
     .map((l) => ({ labelKey: l.labelKey!, href: l.href, icon: NAV_ICON[l.href] || 'ri-arrow-right-line' }));
+  // Mi Esquina siempre visible en el mapa del sitio: los peleadores ya la
+  // tienen entre sus navLinks; para el resto de roles (org, brand) y para
+  // visitantes se inyecta aquí. Sin sesión se marca authRequired para que
+  // al tocar lleve a /auth con opacidad reducida (no rompe la pista visual
+  // de que la sección existe pero pide login).
+  if (!exploreLinks.some((l) => l.href === '/mi-esquina')) {
+    exploreLinks.push({
+      labelKey: 'nav_my_corner',
+      href: '/mi-esquina',
+      icon: NAV_ICON['/mi-esquina'],
+      authRequired: !user,
+    });
+  }
   // Extras solo para visitantes: tienda pública y la guía de "Cómo funciona".
   if (role === 'visitor') {
     exploreLinks.push(
@@ -240,15 +256,26 @@ export default function Navbar() {
             <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,255,255,0.32)', margin: '4px 0 8px 8px' }}>
               {t('nav_section_explore')}
             </p>
-            {exploreLinks.map((link) => (
-              <a key={link.href} href={link.href} onClick={(e) => { e.preventDefault(); handleNav(link.href); }}
-                style={{ display: 'flex', alignItems: 'center', gap: 14, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 600, letterSpacing: 1.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.82)', textDecoration: 'none', padding: '13px 8px', borderRadius: 12 }}
-                onTouchStart={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.05)'; }}
-                onTouchEnd={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; }}>
-                <i className={link.icon} style={{ fontSize: 19, color: '#E10600', width: 22, textAlign: 'center', flexShrink: 0 }} />
-                {t(link.labelKey)}
-              </a>
-            ))}
+            {exploreLinks.map((link) => {
+              // Enlaces marcados como authRequired sin sesión: opacidad
+              // reducida (indica "necesita login" sin necesidad de un tooltip)
+              // y al tocar se navega a /auth en vez de a la ruta original.
+              const gatedByAuth = link.authRequired === true;
+              const targetHref = gatedByAuth ? '/auth' : link.href;
+              return (
+                <a key={link.href} href={targetHref} onClick={(e) => { e.preventDefault(); handleNav(targetHref); }}
+                  aria-label={gatedByAuth ? `${t(link.labelKey)} — ${t('nav_sign_in')}` : undefined}
+                  style={{ display: 'flex', alignItems: 'center', gap: 14, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 600, letterSpacing: 1.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.82)', textDecoration: 'none', padding: '13px 8px', borderRadius: 12, opacity: gatedByAuth ? 0.55 : 1 }}
+                  onTouchStart={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.05)'; }}
+                  onTouchEnd={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; }}>
+                  <i className={link.icon} style={{ fontSize: 19, color: '#E10600', width: 22, textAlign: 'center', flexShrink: 0 }} />
+                  <span style={{ flex: 1 }}>{t(link.labelKey)}</span>
+                  {gatedByAuth && (
+                    <i className="ri-lock-2-line" style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', flexShrink: 0 }} aria-hidden />
+                  )}
+                </a>
+              );
+            })}
 
             {/* Tu cuenta */}
             {accountLinks.length > 0 && (
