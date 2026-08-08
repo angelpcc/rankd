@@ -71,27 +71,9 @@ export default function FightPrep({ profile, onOpenCalendar }: Props) {
 
   if (loading || unavailable) return null;
 
-  // ── Sin combate marcado ──
-  if (!fight) {
-    return (
-      <div className="rk-card" style={{ padding: '18px 20px', transform: 'none' }}>
-        <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
-          <div className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-2xl bg-white/[0.05] border border-white/10 text-zinc-400">
-            <i className="ri-sword-line text-xl"></i>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-white">{t('mc_fp_no_fight_title')}</p>
-            <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">{t('mc_fp_no_fight_desc')}</p>
-          </div>
-          {onOpenCalendar && (
-            <button onClick={onOpenCalendar} className="rk-btn rk-btn-ghost flex-shrink-0 w-full sm:w-auto" style={{ fontSize: '0.78rem', padding: '0.6rem 1.2rem' }}>
-              {t('mc_fp_set_fight')}
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
+  // ── Sin combate marcado: no aporta valor, no se muestra nada (el espacio
+  //    lo ganan las demás cards del resumen). ──
+  if (!fight) return null;
 
   const days = Math.round((new Date(fight.event_date + 'T12:00:00').getTime() - new Date().setHours(0, 0, 0, 0)) / 86400000);
   const phase = phaseFor(days);

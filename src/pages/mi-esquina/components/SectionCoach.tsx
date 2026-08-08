@@ -465,9 +465,9 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
       {/* Conversación */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center px-2">
-            <div className={`w-12 h-12 flex items-center justify-center rounded-2xl ${a.bg} border ${a.border} ${a.text} mb-3`}>
-              <i className="ri-chat-smile-3-line text-xl"></i>
+          <div className="h-full flex flex-col items-center justify-center text-center px-2 anim-scale-in">
+            <div className={`w-14 h-14 flex items-center justify-center rounded-2xl ${a.bg} border ${a.border} ${a.text} mb-3 anim-float`}>
+              <i className="ri-chat-smile-3-line text-2xl"></i>
             </div>
             <p className="text-sm text-zinc-300 font-medium max-w-xs">{intro}</p>
             <div className="flex flex-wrap gap-2 justify-center mt-4">

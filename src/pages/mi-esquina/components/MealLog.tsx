@@ -13,13 +13,14 @@ interface Meal {
   entry_date: string;
   meal_type: string;
   description: string;
+  created_at?: string;
 }
 
 const MEAL_TYPES = [
-  { value: 'desayuno', labelKey: 'mc_meal_breakfast', icon: 'ri-sun-line' },
-  { value: 'comida', labelKey: 'mc_meal_lunch', icon: 'ri-restaurant-2-line' },
-  { value: 'cena', labelKey: 'mc_meal_dinner', icon: 'ri-moon-line' },
-  { value: 'snack', labelKey: 'mc_meal_snack', icon: 'ri-cake-3-line' },
+  { value: 'desayuno', labelKey: 'mc_meal_breakfast', icon: 'ri-sun-line', color: '#eab308' },
+  { value: 'comida', labelKey: 'mc_meal_lunch', icon: 'ri-restaurant-2-line', color: '#4ade80' },
+  { value: 'cena', labelKey: 'mc_meal_dinner', icon: 'ri-moon-line', color: '#818cf8' },
+  { value: 'snack', labelKey: 'mc_meal_snack', icon: 'ri-cake-3-line', color: '#f472b6' },
 ];
 const typeCfg = (v: string) => MEAL_TYPES.find((t) => t.value === v) || MEAL_TYPES[1];
 
@@ -47,7 +48,7 @@ export default function MealLog({ profile, showToast }: Props) {
   const load = useCallback(async () => {
     const { data, error } = await supabase
       .from('meal_entries')
-      .select('id, entry_date, meal_type, description')
+      .select('id, entry_date, meal_type, description, created_at')
       .eq('fighter_profile_id', profile.id)
       .order('entry_date', { ascending: false })
       .order('created_at', { ascending: false })
@@ -64,7 +65,7 @@ export default function MealLog({ profile, showToast }: Props) {
     setSaving(true);
     const { data, error } = await supabase.from('meal_entries')
       .insert({ fighter_profile_id: profile.id, entry_date: todayISO(), meal_type: type, description: desc.trim() })
-      .select('id, entry_date, meal_type, description').maybeSingle();
+      .select('id, entry_date, meal_type, description, created_at').maybeSingle();
     if (error || !data) { showToast(t('error_save'), 'error'); setSaving(false); return; }
     setMeals((prev) => [data as Meal, ...prev]);
     setDesc('');
@@ -128,25 +129,37 @@ export default function MealLog({ profile, showToast }: Props) {
         </button>
       </div>
 
-      {/* Histórico agrupado por día */}
+      {/* Histórico agrupado por día, en timeline vertical */}
       {grouped.length === 0 ? (
         <p className="text-xs text-zinc-500 mt-4 text-center py-4">{t('mc_meal_empty')}</p>
       ) : (
-        <div className="mt-4 space-y-4">
+        <div className="mt-4 space-y-5">
           {grouped.slice(0, 6).map(([date, dayMeals]) => (
             <div key={date}>
-              <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 capitalize">{label(date)}</p>
-              <div className="space-y-1.5">
+              <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-2 capitalize">{label(date)}</p>
+              <div className="relative pl-4 space-y-2.5">
+                <div className="absolute left-[3px] top-1.5 bottom-1.5 w-px bg-white/[0.08]" />
                 {dayMeals.map((m) => {
                   const cfg = typeCfg(m.meal_type);
+                  const time = m.created_at ? new Date(m.created_at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }) : null;
                   return (
-                    <div key={m.id} className="flex items-center gap-2.5 rounded-xl border border-white/[0.07] bg-white/[0.02] px-3 py-2 group">
-                      <i className={`${cfg.icon} text-green-400 flex-shrink-0`}></i>
-                      <span className="text-[11px] text-zinc-500 w-16 flex-shrink-0 capitalize">{t(cfg.labelKey)}</span>
-                      <span className="text-sm text-zinc-200 flex-1 min-w-0 truncate">{m.description}</span>
-                      <button onClick={() => remove(m.id)} className="w-6 h-6 flex items-center justify-center text-zinc-600 hover:text-red-400 cursor-pointer opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0">
-                        <i className="ri-close-line text-sm"></i>
-                      </button>
+                    <div key={m.id} className="relative group">
+                      <span className="absolute -left-4 top-2 w-2 h-2 rounded-full ring-4 ring-[#0B0B0B]" style={{ background: cfg.color }} />
+                      <div className="flex items-center gap-2.5 rounded-xl border border-white/[0.07] bg-white/[0.02] px-3 py-2.5">
+                        <div className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg" style={{ background: `${cfg.color}1f`, color: cfg.color }}>
+                          <i className={`${cfg.icon} text-sm`}></i>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold uppercase tracking-wide capitalize" style={{ color: cfg.color }}>{t(cfg.labelKey)}</span>
+                            {time && <span className="text-[10px] text-zinc-600">· {time}</span>}
+                          </div>
+                          <p className="text-sm text-zinc-200 truncate">{m.description}</p>
+                        </div>
+                        <button onClick={() => remove(m.id)} className="w-6 h-6 flex-shrink-0 flex items-center justify-center text-zinc-600 hover:text-red-400 cursor-pointer opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                          <i className="ri-close-line text-sm"></i>
+                        </button>
+                      </div>
                     </div>
                   );
                 })}

@@ -4,6 +4,9 @@ import HubTabs, { HubTab } from '@/pages/mi-esquina/components/HubTabs';
 import WeeklyAgenda from '@/pages/mi-esquina/components/WeeklyAgenda';
 import FighterTraining from '@/pages/dashboard/components/FighterTraining';
 import QuickRoutines from '@/pages/mi-esquina/components/QuickRoutines';
+import AgendaWeekStrip from '@/pages/mi-esquina/components/AgendaWeekStrip';
+import FightPrep from '@/pages/mi-esquina/components/FightPrep';
+import Reveal from '@/components/base/Reveal';
 
 interface Props {
   profile: Profile;
@@ -30,7 +33,15 @@ export default function AgendaHub({ profile, showToast, mode, onLogged, initialT
   useEffect(() => { if (initialTab) setTab(initialTab); }, [initialTab]);
 
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-4xl space-y-5">
+      {tab === 'plan' && (
+        <>
+          {mode === 'pro' && (
+            <Reveal><FightPrep profile={profile} /></Reveal>
+          )}
+          <Reveal delay={30}><AgendaWeekStrip profile={profile} /></Reveal>
+        </>
+      )}
       <HubTabs tabs={TABS} active={tab} onChange={setTab} />
       {tab === 'plan' && <WeeklyAgenda profile={profile} showToast={showToast} mode={mode} />}
       {tab === 'diario' && <FighterTraining profile={profile} showToast={showToast} />}

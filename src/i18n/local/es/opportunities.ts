@@ -24,6 +24,7 @@ export default {
   op_date_tomorrow: 'Mañana',
   op_date_in_days: 'En {{n}} días',
   op_soon: '¡Pronto!',
+  op_days_left: '{{n}} días',
   op_expired: 'Vencida',
   // Formulario: fecha obligatoria y futura
   op_date_label: 'Fecha del evento',

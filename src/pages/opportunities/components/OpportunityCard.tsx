@@ -55,9 +55,16 @@ export default function OpportunityCard({ opportunity: opp, publisher, isApplied
     return date.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
-  const isUrgent = opp.event_date
-    ? Math.ceil((new Date(opp.event_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) <= 7
-    : false;
+  const daysLeft = opp.event_date
+    ? Math.ceil((new Date(opp.event_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null;
+  const isUrgent = daysLeft !== null && daysLeft >= 0 && daysLeft <= 7;
+  // Contador de días: rojo si queda menos de un día, naranja si queda menos
+  // de una semana. Nada si ya pasó (no debería llegar aquí, pero por si
+  // acaso) o si aún queda tiempo de sobra.
+  const countdown = daysLeft === null || daysLeft < 0 || daysLeft > 7 ? null
+    : daysLeft <= 1 ? { text: daysLeft <= 0 ? t('op_date_today') : t('op_date_tomorrow'), color: '#E10600' }
+    : { text: t('op_days_left', { n: daysLeft }), color: '#fb923c' };
 
   return (
     <article className="bg-white/[0.03] border border-white/[0.08] rounded-2xl overflow-hidden hover:border-white/10 hover:-translate-y-1 hover:shadow-sm transition-all duration-200 flex flex-col group">
@@ -136,10 +143,14 @@ export default function OpportunityCard({ opportunity: opp, publisher, isApplied
 
         {/* Date */}
         {opp.event_date && (
-          <div className={`flex items-center gap-2 text-xs mb-4 px-3 py-2 rounded-lg border ${isUrgent ? 'bg-red-500/12 border-red-200 text-red-400' : 'bg-white/[0.03] border-white/[0.08] text-zinc-500'}`}>
+          <div className={`flex items-center gap-2 mb-4 px-3 py-2.5 rounded-lg border ${isUrgent ? 'bg-red-500/12 border-red-200' : 'bg-white/[0.03] border-white/[0.08]'}`}>
             <i className={`ri-calendar-event-line ${isUrgent ? 'text-red-500' : 'text-zinc-400'}`}></i>
-            <span className="font-medium">{formatDate(opp.event_date)}</span>
-            {isUrgent && <span className="ml-auto font-bold text-red-400">{t('op_soon')}</span>}
+            <span className={isUrgent ? 'text-sm font-bold text-red-400' : 'text-xs font-medium text-zinc-500'}>{formatDate(opp.event_date)}</span>
+            {countdown && (
+              <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style={{ color: countdown.color, background: `${countdown.color}1a`, border: `1px solid ${countdown.color}44` }}>
+                {countdown.text}
+              </span>
+            )}
           </div>
         )}
 

@@ -24,6 +24,7 @@ export default {
   op_date_tomorrow: 'Tomorrow',
   op_date_in_days: 'In {{n}} days',
   op_soon: 'Soon!',
+  op_days_left: '{{n}} days',
   op_expired: 'Expired',
   // Form: date required and in the future
   op_date_label: 'Event date',

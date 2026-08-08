@@ -4,7 +4,7 @@ import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable, isMissingColumn } from '@/lib/dbState';
 import { parseStrengthFromSpeech, parseStrengthSessionFromSpeech } from '@/lib/dictation';
 import { MUSCLE_GROUPS, exercisesByGroup, libraryLabels, type MuscleGroup } from '../lib/exercises';
-import { bestByExercise } from '../lib/strength';
+import { bestByExercise, weeklyProgressList, startOfWeekISO } from '../lib/strength';
 import VoiceButton from '@/components/feature/VoiceButton';
 import Reveal from '@/components/base/Reveal';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -48,6 +48,35 @@ const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
 /** Muestra las repeticiones: "8" (fijas) o "8–10" (rango). */
 function fmtReps(reps: number, repsMax: number | null | undefined): string {
   return repsMax && repsMax > reps ? `${reps}–${repsMax}` : String(reps);
+}
+
+interface ExSession { date: string; sets: StrengthSet[] }
+
+/** Sugerencia de carga a partir de sesiones ya agrupadas (más reciente primero). */
+function suggestionFor(sessionsDesc: ExSession[]): { kind: 'up' | 'hold'; next?: number } | null {
+  if (sessionsDesc.length < 3) return null;
+  const asc = [...sessionsDesc].reverse().map((s) => Math.max(...s.sets.map((x) => Number(x.weight_kg))));
+  const n = asc.length;
+  const lastW = asc[n - 1];
+  let stalled = 1;
+  for (let i = n - 2; i >= 0; i--) { if (asc[i] === lastW) stalled++; else break; }
+  if (stalled >= 3) return { kind: 'up', next: +(lastW + (lastW < 20 ? 1 : 2.5)).toFixed(1) };
+  if (asc[n - 1] > asc[n - 2] && asc[n - 2] > asc[n - 3]) return { kind: 'hold' };
+  return null;
+}
+
+/** Mini gráfico de tendencia sin ejes, solo para dar sensación de subida/bajada. */
+function Sparkline({ values, color }: { values: number[]; color: string }) {
+  if (values.length < 2) return null;
+  const w = 64; const h = 22;
+  const min = Math.min(...values); const max = Math.max(...values);
+  const range = max - min || 1;
+  const pts = values.map((v, i) => `${(i / (values.length - 1)) * w},${h - ((v - min) / range) * h}`).join(' ');
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="flex-shrink-0">
+      <polyline points={pts} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
 }
 
 /**
@@ -144,11 +173,59 @@ export default function StrengthLog({ profile, showToast }: Props) {
     ? +(progression[progression.length - 1].kg - progression[0].kg).toFixed(1)
     : null;
 
-  const totals = useMemo(() => ({
-    volume: Math.round(rows.reduce((a, r) => a + Number(r.weight_kg) * r.reps, 0)),
-    sessions: new Set(rows.map((r) => `${r.exercise}|${r.session_date}`)).size,
-    exercises: exercises.length,
-  }), [rows, exercises]);
+  // ── Sesiones por ejercicio (más reciente primero): base de las cards
+  //    rediseñadas — última sesión, sesión anterior para comparar, e
+  //    historial compacto de las últimas 3. ──
+  const sessionsByExercise = useMemo(() => {
+    const byKey = new Map<string, StrengthSet[]>();
+    rows.forEach((r) => {
+      const k = `${r.exercise}|${r.session_date}`;
+      const l = byKey.get(k) || []; l.push(r); byKey.set(k, l);
+    });
+    const map = new Map<string, ExSession[]>();
+    byKey.forEach((sets, k) => {
+      const [ex, date] = k.split('|');
+      const l = map.get(ex) || [];
+      l.push({ date, sets: [...sets].sort((a, b) => a.set_number - b.set_number) });
+      map.set(ex, l);
+    });
+    map.forEach((list) => list.sort((a, b) => b.date.localeCompare(a.date)));
+    return map;
+  }, [rows]);
+
+  // ── Semana: sesiones, PRs y volumen medio — lo que de verdad importa de
+  //    un vistazo, no el volumen acumulado de toda la vida. ──
+  const weekStats = useMemo(() => {
+    const weekStart = startOfWeekISO(0);
+    const sessionsThisWeek = new Set(rows.filter((r) => r.session_date >= weekStart).map((r) => r.session_date)).size;
+    const movers = weeklyProgressList(rows, weekStart);
+    const distinctDates = new Set(rows.map((r) => r.session_date));
+    const totalVolume = rows.reduce((a, r) => a + Number(r.weight_kg) * r.reps, 0);
+    const avgVolume = distinctDates.size ? Math.round(totalVolume / distinctDates.size) : 0;
+    const volByDate = new Map<string, number>();
+    rows.forEach((r) => volByDate.set(r.session_date, (volByDate.get(r.session_date) || 0) + Number(r.weight_kg) * r.reps));
+    const sparkline = [...volByDate.entries()].sort((a, b) => a[0].localeCompare(b[0])).slice(-8).map(([, v]) => Math.round(v));
+    return { sessionsThisWeek, movers, avgVolume, sparkline };
+  }, [rows]);
+
+  // ── Análisis semanal: 2-3 líneas cortas, derivadas de los datos reales
+  //    (sin IA — determinista, así funciona igual con la IA en pausa). ──
+  const analysisLines = useMemo(() => {
+    const lines: { text: string; color: string }[] = [];
+    if (weekStats.movers.length > 0) {
+      const avgGain = weekStats.movers.reduce((a, m) => a + m.gain, 0) / weekStats.movers.length;
+      lines.push({ text: t('mc_str_an_progress', { n: avgGain.toFixed(1) }), color: '#22c55e' });
+    }
+    if (weekStats.sessionsThisWeek === 0 && rows.length > 0) {
+      lines.push({ text: t('mc_str_an_none'), color: '#fb923c' });
+    } else if (weekStats.sessionsThisWeek >= 4) {
+      lines.push({ text: t('mc_str_an_consistent'), color: '#22c55e' });
+    }
+    if (weekStats.movers[0]) {
+      lines.push({ text: t('mc_str_an_next_goal', { ex: weekStats.movers[0].label, w: weekStats.movers[0].now }), color: '#C9A84C' });
+    }
+    return lines.slice(0, 3);
+  }, [weekStats, rows.length, t]);
 
   // ── Sesiones agrupadas para el historial ──
   const history = useMemo(() => {
@@ -458,48 +535,129 @@ export default function StrengthLog({ profile, showToast }: Props) {
         </div>
       ) : (
         <>
-          {/* Cifras */}
+          {/* Estadísticas de la semana: lo que importa de un vistazo, no el
+              acumulado histórico. */}
           <div className="grid grid-cols-3 gap-3">
-            {[
-              { v: totals.volume.toLocaleString(locale), l: t('mc_str_total_volume'), c: '#fb923c', suf: 'kg' },
-              { v: String(totals.sessions), l: t('mc_str_sessions'), c: '#ffffff', suf: '' },
-              { v: String(totals.exercises), l: t('mc_str_exercises'), c: '#38bdf8', suf: '' },
-            ].map((s) => (
-              <div key={s.l} className="rk-card" style={{ padding: '18px 12px', textAlign: 'center' }}>
-                <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(24px,5vw,34px)', lineHeight: 1, color: s.c, margin: 0 }}>
-                  {s.v}<span className="text-xs text-zinc-500 ml-1">{s.suf}</span>
-                </p>
-                <p className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1.5 leading-tight">{s.l}</p>
-              </div>
-            ))}
+            <div className="rk-card" style={{ padding: '18px 12px', textAlign: 'center' }}>
+              <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(24px,5vw,34px)', lineHeight: 1, color: weekStats.sessionsThisWeek >= 4 ? '#22c55e' : '#fff', margin: 0 }}>
+                {weekStats.sessionsThisWeek}
+              </p>
+              <p className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1.5 leading-tight">{t('mc_str_week_sessions')}</p>
+            </div>
+            <div className="rk-card" style={{ padding: '18px 12px', textAlign: 'center' }}>
+              <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(24px,5vw,34px)', lineHeight: 1, color: weekStats.movers.length > 0 ? '#E10600' : '#fff', margin: 0 }}>
+                {weekStats.movers.length > 0 ? '🏆 ' : ''}{weekStats.movers.length}
+              </p>
+              <p className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1.5 leading-tight">{t('mc_str_week_prs')}</p>
+            </div>
+            <div className="rk-card flex flex-col items-center" style={{ padding: '18px 12px', textAlign: 'center' }}>
+              <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(24px,5vw,34px)', lineHeight: 1, color: '#C9A84C', margin: 0 }}>
+                {weekStats.avgVolume.toLocaleString(locale)}<span className="text-xs text-zinc-500 ml-1">kg</span>
+              </p>
+              <p className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1.5 leading-tight">{t('mc_str_avg_volume')}</p>
+              {weekStats.sparkline.length >= 2 && <div className="mt-1.5"><Sparkline values={weekStats.sparkline} color="#C9A84C" /></div>}
+            </div>
           </div>
 
-          {/* Marcas personales */}
+          {/* Análisis semanal: 2-3 líneas, derivadas de los datos reales */}
+          {analysisLines.length > 0 && (
+            <div className="rk-card space-y-1.5" style={{ padding: '14px 18px', transform: 'none' }}>
+              {analysisLines.map((l) => (
+                <p key={l.text} className="text-xs font-semibold flex items-center gap-2" style={{ color: l.color }}>
+                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: l.color }} />{l.text}
+                </p>
+              ))}
+            </div>
+          )}
+
+          {/* Tus mejores esta semana (top 3 con más subida) */}
+          {weekStats.movers.length > 0 && (
+            <div>
+              <h3 className="rk-h3 mb-3" style={{ fontSize: '1rem', color: '#fff' }}>{t('mc_str_best_this_week')}</h3>
+              <div className="grid sm:grid-cols-3 gap-2.5">
+                {weekStats.movers.slice(0, 3).map((m, i) => (
+                  <Reveal key={m.exercise} delay={i * 50}>
+                    <button onClick={() => setSelected(m.exercise)} className="w-full text-left rk-card cursor-pointer" style={{ padding: '14px 16px' }}>
+                      <p className="text-sm font-bold text-white truncate">{m.label}</p>
+                      <p className="text-xs text-zinc-400 mt-1">{m.before}kg → <span className="text-white font-bold">{m.now}kg</span></p>
+                      <span className="inline-block mt-1.5 text-[11px] font-bold text-green-400 bg-green-500/10 border border-green-500/25 px-2 py-0.5 rounded-full">↑ +{m.gain}kg</span>
+                    </button>
+                  </Reveal>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Tus ejercicios: card por ejercicio con última sesión, progreso vs
+              la anterior, mini tendencia, historial compacto y sugerencia. */}
           <div>
             <div className="flex items-center gap-2 mb-3">
               <i className="ri-trophy-line text-[#C9A84C]"></i>
-              <h3 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>{t('mc_str_pr_title')}</h3>
+              <h3 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>{t('mc_str_all_exercises')}</h3>
             </div>
-            <div className="grid sm:grid-cols-2 gap-2.5">
-              {records.slice(0, 6).map((r, i) => (
-                <Reveal key={r.exercise} delay={Math.min(i, 5) * 50}>
-                  <div className="rk-card flex items-center gap-3.5" style={{ padding: '14px 16px' }}>
-                    <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl bg-[#C9A84C]/12 border border-[#C9A84C]/30 text-[#C9A84C]">
-                      <i className="ri-medal-line"></i>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-white truncate">{r.label}</p>
-                      <p className="text-[11px] text-zinc-500">
-                        {t('mc_str_pr_est')} {r.est} kg · {new Date(r.date + 'T12:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
-                      </p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 26, lineHeight: 1, color: '#C9A84C' }}>{r.best}</p>
-                      <p className="text-[9px] text-zinc-600 uppercase tracking-wider">kg × {r.bestReps}</p>
-                    </div>
-                  </div>
-                </Reveal>
-              ))}
+            <div className="space-y-2.5">
+              {exercises.slice(0, 12).map(([ex, label], i) => {
+                const sessions = sessionsByExercise.get(ex) || [];
+                const latest = sessions[0];
+                if (!latest) return null;
+                const latestBest = Math.max(...latest.sets.map((s) => Number(s.weight_kg)));
+                const prevBest = sessions[1] ? Math.max(...sessions[1].sets.map((s) => Number(s.weight_kg))) : null;
+                const delta = prevBest !== null ? +(latestBest - prevBest).toFixed(1) : null;
+                const isMover = weekStats.movers.some((m) => m.exercise === ex);
+                const suggestion = suggestionFor(sessions);
+                const sparkValues = sessions.slice(0, 4).map((s) => Math.max(...s.sets.map((x) => Number(x.weight_kg)))).reverse();
+                return (
+                  <Reveal key={ex} delay={Math.min(i, 6) * 40}>
+                    <button onClick={() => setSelected(ex)} className="w-full text-left rk-card cursor-pointer" style={{ padding: '16px 18px' }}>
+                      <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm font-bold text-white truncate">{label}</p>
+                            {isMover && <span className="text-[9px] font-bold uppercase tracking-wide text-[#C9A84C] bg-[#C9A84C]/12 border border-[#C9A84C]/30 px-1.5 py-0.5 rounded-full flex-shrink-0">PR</span>}
+                          </div>
+                          <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, color: '#fff' }} className="mt-0.5">
+                            {latest.sets.length}×{fmtReps(latest.sets[0].reps, latest.sets[0].reps_max)} <span className="text-zinc-500">@</span> {latestBest}kg
+                          </p>
+                          <p className="text-[11px] text-zinc-500 mt-0.5">{agoLabel(latest.date)}</p>
+                        </div>
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          {sparkValues.length >= 2 && <Sparkline values={sparkValues} color={delta && delta > 0 ? '#22c55e' : delta && delta < 0 ? '#fb923c' : '#71717a'} />}
+                          {delta !== null && delta !== 0 && (
+                            <span className={`text-xs font-bold px-2 py-1 rounded-full flex-shrink-0 ${delta > 0 ? 'text-green-400 bg-green-500/10' : 'text-orange-400 bg-orange-500/10'}`}>
+                              {delta > 0 ? '↑ +' : '↓ '}{Math.abs(delta)}kg
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {sessions.length > 1 && (
+                        <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-white/[0.06] flex-wrap">
+                          <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-600 mr-1">{t('mc_str_last_3')}</span>
+                          {sessions.slice(0, 3).map((s, j) => {
+                            const w = Math.max(...s.sets.map((x) => Number(x.weight_kg)));
+                            const prevW = sessions[j + 1] ? Math.max(...sessions[j + 1].sets.map((x) => Number(x.weight_kg))) : null;
+                            const arrow = prevW === null ? '' : w > prevW ? '↑' : w < prevW ? '↓' : '↔';
+                            const arrowColor = prevW === null ? '#a1a1aa' : w > prevW ? '#4ade80' : w < prevW ? '#fb923c' : '#a1a1aa';
+                            return (
+                              <span key={s.date} title={new Date(s.date + 'T12:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
+                                className="text-[10px] font-semibold text-zinc-400 bg-white/[0.03] border border-white/10 px-2 py-1 rounded-lg">
+                                {w}kg <span style={{ color: arrowColor }}>{arrow}</span>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {suggestion && (
+                        <p className="text-[11px] mt-2.5 flex items-center gap-1.5" style={{ color: suggestion.kind === 'up' ? '#E10600' : '#eab308' }}>
+                          <i className="ri-lightbulb-flash-line"></i>
+                          {suggestion.kind === 'up' ? t('mc_str_suggestion_up', { w: suggestion.next }) : t('mc_str_suggestion_hold')}
+                        </p>
+                      )}
+                    </button>
+                  </Reveal>
+                );
+              })}
             </div>
           </div>
 

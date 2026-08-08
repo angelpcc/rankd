@@ -12,6 +12,7 @@ import { DocumentExpiryAlert } from '@/pages/mi-esquina/components/DocumentsPane
 import DailyCheckin from '@/pages/mi-esquina/components/DailyCheckin';
 import QuickRoutines from '@/pages/mi-esquina/components/QuickRoutines';
 import LastStrengthSession from '@/pages/mi-esquina/components/LastStrengthSession';
+import QuickStatsRow from '@/pages/mi-esquina/components/QuickStatsRow';
 import WeeklySummary from '@/pages/mi-esquina/components/WeeklySummary';
 import FightPrep from '@/pages/mi-esquina/components/FightPrep';
 import AgendaHub from '@/pages/mi-esquina/components/AgendaHub';
@@ -317,6 +318,12 @@ export default function MiEsquinaPage() {
               {/* Check-in del día */}
               <Reveal delay={40}>
                 <DailyCheckin profile={profile} showToast={showToast} />
+              </Reveal>
+
+              {/* Estado de un vistazo: semana, última sesión, objetivo de peso */}
+              <Reveal delay={55}>
+                <QuickStatsRow profile={profile} weekSessions={stats.week}
+                  onOpenAgenda={() => go('agenda', 'diario')} onOpenStrength={() => go('progreso', 'fuerza')} />
               </Reveal>
 
               {/* Resumen automático de la semana + objetivos */}

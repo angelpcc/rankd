@@ -89,14 +89,15 @@ export default function FoodPhotoAnalyzer({ showToast, onSave }: Props) {
   const soon = available === false;
 
   return (
-    <div className="rk-card" style={{ padding: 20, transform: 'none' }}>
-      <div className="flex items-start gap-3">
-        <div className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-2xl bg-red-600/12 border border-red-500/25 text-red-400">
-          <i className="ri-camera-lens-line text-xl" />
+    <div className="rk-card relative overflow-hidden" style={{ padding: 20, transform: 'none', borderColor: 'rgba(225,6,0,0.25)' }}>
+      <div className="rk-glow-red" style={{ width: 180, height: 180, top: -80, right: -50, borderRadius: '50%' }} />
+      <div className="relative flex items-start gap-3">
+        <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl bg-red-600/12 border border-red-500/25 text-red-400">
+          <i className="ri-camera-lens-line text-2xl" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="rk-h3" style={{ fontSize: '1.05rem', color: '#fff' }}>{t('mc_food_photo_title')}</h3>
+            <h3 className="rk-h3" style={{ fontSize: '1.1rem', color: '#fff' }}>{t('mc_food_photo_title')}</h3>
             {soon && (
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#C9A84C] bg-[#C9A84C]/10 border border-[#C9A84C]/30 px-2 py-0.5 rounded-full">
                 {t('mc_food_photo_soon_badge')}

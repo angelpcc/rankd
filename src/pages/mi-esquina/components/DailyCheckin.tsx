@@ -31,6 +31,23 @@ function scaleColor(v: number, higherIsBetter: boolean): string {
   return good[Math.max(0, Math.min(4, idx))];
 }
 
+/** Icono grande que resume el estado de un vistazo. */
+function energyEmoji(v: number): string {
+  if (v >= 5) return '💪';
+  if (v >= 4) return '⚡';
+  if (v === 3) return '🙂';
+  if (v === 2) return '😐';
+  return '😴';
+}
+
+/** Mensaje corto y motivador según energía/cansancio. Nunca genérico. */
+function motivationalKey(energy: number, soreness: number): string {
+  if (energy <= 2) return 'mc_ci_motiv_low';
+  if (soreness >= 4) return 'mc_ci_motiv_sore';
+  if (energy >= 4 && soreness <= 2) return 'mc_ci_motiv_great';
+  return 'mc_ci_motiv_ok';
+}
+
 /**
  * Check-in diario: energía, cansancio y sueño en treinta segundos.
  * Es la pieza que da motivo para entrar aunque ese día no toque entrenar, y
@@ -108,14 +125,14 @@ export default function DailyCheckin({ profile, showToast }: Props) {
     const sleepTxt = today.sleep_hours !== null ? t('mc_ci_sleep_suffix', { h: today.sleep_hours }) : '';
 
     return (
-      <div className="rk-card" style={{ padding: '16px 20px', transform: 'none' }}>
+      <div className="rk-card anim-scale-in" style={{ padding: '16px 20px', transform: 'none' }}>
         <div className="flex items-center gap-4 flex-wrap">
-          <div className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-2xl border"
-            style={{ background: `${scaleColor(today.energy, true)}1a`, borderColor: `${scaleColor(today.energy, true)}44`, color: scaleColor(today.energy, true) }}>
-            <i className="ri-heart-pulse-line text-xl"></i>
+          <div className="w-14 h-14 flex-shrink-0 flex items-center justify-center rounded-2xl border text-3xl"
+            style={{ background: `${scaleColor(today.energy, true)}1a`, borderColor: `${scaleColor(today.energy, true)}44` }}>
+            {energyEmoji(today.energy)}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-white">{t('mc_ci_done_title')}</p>
+            <p className="text-sm font-bold text-white">{t(motivationalKey(today.energy, today.soreness))}</p>
             <p className="text-xs text-zinc-400 mt-0.5">
               {t('mc_ci_done_desc', {
                 energy: t(`mc_ci_energy_${today.energy}`),
@@ -144,14 +161,15 @@ export default function DailyCheckin({ profile, showToast }: Props) {
 
   // ── Formulario ──
   return (
-    <div className="rk-card" style={{ padding: '20px', transform: 'none', borderColor: 'rgba(56,189,248,0.22)' }}>
+    <div className="rk-card anim-scale-in" style={{ padding: '20px', transform: 'none', borderColor: 'rgba(56,189,248,0.22)' }}>
       <div className="flex items-start gap-3 mb-4">
-        <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl bg-sky-500/12 border border-sky-500/30 text-sky-400">
-          <i className="ri-heart-pulse-line text-lg"></i>
+        <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl border text-2xl transition-all duration-300"
+          style={{ background: `${scaleColor(energy, true)}1a`, borderColor: `${scaleColor(energy, true)}44` }}>
+          {energyEmoji(energy)}
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>{t('mc_ci_title')}</h3>
-          <p className="text-xs text-zinc-400 mt-0.5">{t('mc_ci_subtitle')}</p>
+          <p className="text-xs mt-0.5 font-semibold transition-colors duration-300" style={{ color: scaleColor(energy, true) }}>{t(motivationalKey(energy, soreness))}</p>
         </div>
         {editing && (
           <button onClick={() => setEditing(false)} aria-label={t('mc_cancel')}

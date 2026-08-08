@@ -255,9 +255,19 @@ export default function AdminPage() {
             <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 19, letterSpacing: 3 }}>PANEL</span>
             <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 19, letterSpacing: 3 }} className="text-[#E10600]">ADMIN</span>
           </div>
-          <button onClick={refresh} title="Actualizar" className="w-9 h-9 flex items-center justify-center rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-400 hover:text-white cursor-pointer transition-colors">
-            <i className="ri-refresh-line"></i>
-          </button>
+          <div className="flex items-center gap-2">
+            <a href="/creator-studio" title="Creator Studio"
+              className="hidden sm:flex items-center gap-1.5 h-9 px-3 rounded-lg bg-red-600/12 border border-red-500/30 text-red-400 hover:bg-red-600/20 cursor-pointer transition-colors text-xs font-bold">
+              <i className="ri-magic-line"></i> Creator Studio
+            </a>
+            <a href="/creator-studio" title="Creator Studio"
+              className="sm:hidden w-9 h-9 flex items-center justify-center rounded-lg bg-red-600/12 border border-red-500/30 text-red-400 hover:bg-red-600/20 cursor-pointer transition-colors">
+              <i className="ri-magic-line"></i>
+            </a>
+            <button onClick={refresh} title="Actualizar" className="w-9 h-9 flex items-center justify-center rounded-lg bg-zinc-900 border border-zinc-700 text-zinc-400 hover:text-white cursor-pointer transition-colors">
+              <i className="ri-refresh-line"></i>
+            </button>
+          </div>
         </div>
       </div>
 
