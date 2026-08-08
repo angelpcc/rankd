@@ -278,7 +278,7 @@ export default function FighterDashboard({ profile }: Props) {
   const tabs = allTabs.filter((tab) => !isHobby || !['opportunities', 'verification', 'videos', 'achievements'].includes(tab.id));
 
   return (
-    <div className="min-h-screen bg-[#070707] text-white">
+    <div className="min-h-screen text-white rk-screen-bg">
       <DashboardNav profile={profile} />
       {toast && (
         <div className={`fixed bottom-20 lg:bottom-6 right-6 z-50 text-white text-sm px-5 py-3 rounded-xl flex items-center gap-2 ${toast.type === 'error' ? 'bg-red-600' : 'bg-green-600'}`}>
@@ -365,8 +365,9 @@ export default function FighterDashboard({ profile }: Props) {
             <div className="space-y-6 max-w-4xl">
               {/* Hero: lo primero que se ve al entrar. Foto grande, nombre y los
                   datos de un vistazo (disciplina, categoría, récord) sobre un
-                  fondo cinematográfico con brillo rojo. */}
-              <div className="rk-card relative overflow-hidden anim-fade-up" style={{ padding: 0, transform: 'none' }}>
+                  fondo cinematográfico con brillo rojo. Card primaria: 1 por
+                  pantalla; el resto del overview queda como .rk-card. */}
+              <div className="card-primary relative overflow-hidden anim-fade-up" style={{ padding: 0 }}>
                 <div className="rk-glow-red" style={{ width: 340, height: 340, top: -160, right: -80, borderRadius: '50%' }} />
                 <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(115deg, rgba(225,6,0,0.10) 0%, transparent 42%)' }} />
                 <div className="relative flex items-center gap-4 sm:gap-5 p-5 sm:p-7">

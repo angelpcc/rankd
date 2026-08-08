@@ -65,6 +65,8 @@ export default function StrengthLog({ profile, showToast }: Props) {
   const [openDay, setOpenDay] = useState<string | null>(null);
   const [openEx, setOpenEx] = useState<string | null>(null);
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
+  // Signature moment: destello full-screen cuando se bate marca personal.
+  const [showPRFlash, setShowPRFlash] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -180,6 +182,19 @@ export default function StrengthLog({ profile, showToast }: Props) {
     );
     if (base.length === 0) return;
 
+    // ── Detección de récord personal antes de insertar ──
+    // Se compara cada peso nuevo con el máximo histórico del mismo ejercicio.
+    // Solo se marca PR si el histórico ya existía (evita "PR" en la 1ª sesión).
+    const bestByExercise = new Map<string, number>();
+    rows.forEach((r) => {
+      const cur = bestByExercise.get(r.exercise) ?? 0;
+      if (Number(r.weight_kg) > cur) bestByExercise.set(r.exercise, Number(r.weight_kg));
+    });
+    const isPR = base.some((s) => {
+      const prev = bestByExercise.get(s.exercise);
+      return prev !== undefined && prev > 0 && s.weight_kg > prev;
+    });
+
     setSaving(true);
     // Insert con muscle_group; si la migración 0029 aún no está, se reintenta
     // sin esa columna (la sesión se guarda igual; el grupo se deriva del nombre).
@@ -201,6 +216,12 @@ export default function StrengthLog({ profile, showToast }: Props) {
     const exCount = session.blocks.reduce((a, b) => a + b.exercises.length, 0);
     showToast(t('mc_str_session_saved', { groups: groupNames, n: exCount }));
     void logToAgenda(session.date, session.blocks.flatMap((b) => b.exercises.map((e) => e.label)));
+
+    // Marca personal: destello único de 600 ms sin loop.
+    if (isPR) {
+      setShowPRFlash(true);
+      setTimeout(() => setShowPRFlash(false), 650);
+    }
   };
 
   const deleteSession = async (date: string) => {
@@ -358,8 +379,8 @@ export default function StrengthLog({ profile, showToast }: Props) {
             </div>
           </div>
 
-          {/* ── PROGRESIÓN ── */}
-          <div className="rk-card" style={{ padding: '20px', transform: 'none' }}>
+          {/* ── PROGRESIÓN ── (card primaria: 1 por pantalla) */}
+          <div className="card-primary" style={{ padding: '22px' }}>
             <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
               <h3 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>{t('mc_str_progress')}</h3>
               {gain !== null && (
@@ -369,11 +390,12 @@ export default function StrengthLog({ profile, showToast }: Props) {
               )}
             </div>
 
-            {/* Selector de ejercicio */}
+            {/* Selector de ejercicio · pill (rk-nav-btn) para diferenciar de CTAs */}
             <div className="flex gap-1.5 overflow-x-auto pb-1 mb-3 rk-noscroll-x">
               {exerciseList.map(([ex, label]) => (
                 <button key={ex} onClick={() => setSelected(ex)}
-                  className={`px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap border transition-all cursor-pointer ${selected === ex ? 'bg-red-600 border-red-600 text-white' : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white'}`}>
+                  className={`rk-nav-btn text-xs font-bold whitespace-nowrap ${selected === ex ? 'is-active' : ''}`}
+                  style={{ padding: '0.4rem 0.9rem' }}>
                   {label}
                 </button>
               ))}
@@ -419,6 +441,10 @@ export default function StrengthLog({ profile, showToast }: Props) {
         ownExercises={ownExercises}
         showToast={showToast}
       />
+
+      {/* Signature moment: destello full-screen al batir marca. Se desmonta
+          solo tras 650 ms (setShowPRFlash), por lo que no hay loop posible. */}
+      {showPRFlash && <div className="rk-pr-flash" aria-hidden />}
 
       <style>{`
         .rk-noscroll-x::-webkit-scrollbar { display: none; }

@@ -207,7 +207,7 @@ export default function MiEsquinaPage() {
       ];
 
   return (
-    <div className="min-h-screen bg-[#070707] text-white">
+    <div className="min-h-screen text-white rk-screen-bg">
       {/* Top bar propia */}
       <div className="fixed top-0 left-0 w-full z-40 bg-zinc-950/95 backdrop-blur-sm border-b border-zinc-800 rk-safe-top">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
@@ -361,15 +361,15 @@ export default function MiEsquinaPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="rk-card relative overflow-hidden" style={{ padding: '18px 20px', borderColor: 'rgba(225,6,0,0.28)' }}>
+                  <div className="card-primary relative overflow-hidden" style={{ padding: '20px 22px' }}>
                     <div className="rk-glow-red" style={{ width: 180, height: 180, top: -80, right: -50, borderRadius: '50%' }} />
                     <div className="relative flex items-center gap-4 flex-wrap sm:flex-nowrap">
                       <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl bg-red-600/12 border border-red-500/30 text-red-400 anim-pulse-glow"><i className="ri-fire-line text-2xl"></i></div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-white">{t('mc_today_pending')}</p>
-                        <p className="text-xs text-zinc-400 mt-0.5">{stats.streak > 0 ? t('mc_today_streak_risk', { n: stats.streak }) : t('mc_today_streak_start')}</p>
+                        <p className="rk-title-card">{t('mc_today_pending')}</p>
+                        <p className="rk-meta mt-1">{stats.streak > 0 ? t('mc_today_streak_risk', { n: stats.streak }) : t('mc_today_streak_start')}</p>
                       </div>
-                      <button onClick={() => go('agenda', 'diario')} className="rk-btn rk-btn-primary flex-shrink-0 w-full sm:w-auto" style={{ fontSize: '0.8rem', padding: '0.6rem 1.2rem' }}>
+                      <button onClick={() => go('agenda', 'diario')} className="rk-cta flex-shrink-0 w-full sm:w-auto text-sm">
                         {t('mc_today_cta')}
                       </button>
                     </div>

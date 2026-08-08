@@ -474,3 +474,150 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .rk-saved, .rk-pr-hit, .rk-section-in, .rk-bar-fill { animation: none !important; }
 }
+
+/* ══════════════════════════════════════════════════════════
+   SISTEMA VISUAL v3 · Profundidad, jerarquía y signature moments
+   Complementa el sistema v2 sin duplicar tokens.
+   ══════════════════════════════════════════════════════════ */
+
+/* ── FONDO DE PANTALLA CINEMATOGRÁFICO ──
+   Se aplica UNA sola vez, al contenedor raíz de cada página de la app
+   (Mi Esquina, Dashboard, Timer, Fuerza…). No usar dentro de cards. */
+.rk-screen-bg {
+  background:
+    radial-gradient(ellipse 900px 500px at 50% -10%, rgba(225, 6, 0, 0.08), transparent 60%),
+    linear-gradient(180deg, #0d0d0d 0%, #050505 40%, #030303 100%);
+}
+
+/* ── CARD PRIMARIA ──
+   Máximo UNA por pantalla, para el elemento más importante (última sesión,
+   objetivo de peso, próximo combate). Borde degradado rojo→oro con glow rojo. */
+.card-primary {
+  position: relative;
+  background: #0f0f0f;
+  border-radius: 16px;
+  box-shadow:
+    0 0 24px rgba(225, 6, 0, 0.15),
+    0 8px 24px rgba(0, 0, 0, 0.4);
+}
+.card-primary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, #E10600, #C9A84C);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+/* Para que el contenido interior quede por encima del pseudo-elemento */
+.card-primary > * { position: relative; z-index: 2; }
+
+/* ── TIPOGRAFÍA — utilidades de contraste ──
+   Escala explícita para forzar jerarquía cuando rk-h1/h2 quedan demasiado
+   contenidos. Complementa, no reemplaza. */
+.rk-title-screen {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2rem;         /* 32px */
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: #ffffff;
+}
+.rk-title-card {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.125rem;     /* 18px */
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #ffffff;
+}
+/* Número destacado en dato clave (peso, volumen, contador de días). Oro Rankd. */
+.rk-num-hero {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(1.9rem, 5vw, 2.5rem);
+  line-height: 1;
+  color: var(--rk-gold);
+  letter-spacing: 0.01em;
+}
+/* Body Barlow · 14px con contraste 75% */
+.rk-body-14 {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.75);
+}
+/* Metadata (fechas, "hace 2 h"). Barlow · 12px al 45% */
+.rk-meta {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* ── BOTONES v3 ──
+   Diferenciación funcional por radio: CTA (6px, cuadrado, glow) vs
+   Navegación/tabs/cancelar (20px, pill, sin glow). No sustituye a
+   .rk-btn-primary/ghost (v2, decorativos con letter-spacing amplio); están
+   pensados para acciones dentro de formularios y controles funcionales. */
+.rk-cta {
+  border-radius: 6px;
+  background: linear-gradient(135deg, #E10600 0%, #b30500 100%);
+  box-shadow: 0 0 20px rgba(225, 6, 0, 0.35);
+  color: #fff;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s var(--ease-out), box-shadow 0.2s ease;
+}
+.rk-cta:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 0 28px rgba(225, 6, 0, 0.5);
+}
+.rk-cta:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.rk-nav-btn {
+  border-radius: 20px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.7);
+  font-family: 'Barlow Condensed', sans-serif;
+  padding: 0.5rem 1.25rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+.rk-nav-btn:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.04);
+}
+.rk-nav-btn.is-active {
+  color: #fff;
+  background: rgba(225, 6, 0, 0.14);
+  border-color: rgba(225, 6, 0, 0.5);
+}
+
+/* ── SIGNATURE MOMENT · Flash de Personal Record ──
+   Un único destello (150 ms) que rompe la monotonía cuando algo merece la
+   pena. Sin loop. Se monta condicionalmente y se retira al terminar. */
+@keyframes rk-pr-flash {
+  0%   { opacity: 0; }
+  40%  { opacity: 0.32; }
+  100% { opacity: 0; }
+}
+.rk-pr-flash {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+  background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, rgba(225,6,0,0.2) 100%);
+  animation: rk-pr-flash 0.6s ease-out forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rk-pr-flash { animation: none !important; opacity: 0 !important; }
+}

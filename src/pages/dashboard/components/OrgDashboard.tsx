@@ -303,7 +303,7 @@ export default function OrgDashboard({ profile }: Props) {
   ];
 
   return (
-    <div className="min-h-screen bg-[#070707] text-white">
+    <div className="min-h-screen text-white rk-screen-bg">
       <DashboardNav profile={profile} />
 
       {/* Toast */}
