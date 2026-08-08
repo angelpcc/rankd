@@ -181,7 +181,7 @@ export default function StrengthLog({ profile, showToast }: Props) {
     if (base.length === 0) return;
 
     setSaving(true);
-    // Insert con muscle_group; si la migración 0028 aún no está, se reintenta
+    // Insert con muscle_group; si la migración 0029 aún no está, se reintenta
     // sin esa columna (la sesión se guarda igual; el grupo se deriva del nombre).
     let { data, error } = await supabase.from('strength_sets').insert(base).select();
     if (isMissingColumn(error)) {
