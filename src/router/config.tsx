@@ -8,7 +8,6 @@ const LoadingSpinner = () => (
   </div>
 );
 
-const ComingSoonPage = lazy(() => import('../pages/coming-soon/page'));
 const Home = lazy(() => import('../pages/home/page'));
 const AuthPage = lazy(() => import('../pages/auth/page'));
 const RegistroPage = lazy(() => import('../pages/registro/page'));
@@ -42,10 +41,12 @@ const routes: RouteObject[] = [
     path: '/',
     element: (
       <Suspense fallback={<LoadingSpinner />}>
-        <ComingSoonPage />
+        <Home />
       </Suspense>
     ),
   },
+  // /beta mantiene el mismo componente que / mientras existan enlaces
+  // internos apuntando ahí (top bar de Mi Esquina, botones "volver a home").
   {
     path: '/beta',
     element: (
