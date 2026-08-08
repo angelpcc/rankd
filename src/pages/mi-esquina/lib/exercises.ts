@@ -123,3 +123,22 @@ export function libraryLabels(lang: Lang): string[] {
 export function exercisesByGroup(group: MuscleGroup, lang: Lang): string[] {
   return EXERCISE_LIBRARY.filter((e) => e.group === group).map((e) => exLabel(e, lang));
 }
+
+// Normaliza sin acentos para casar nombres escritos con o sin tilde
+// ("Jalón" ↔ "jalon") con la biblioteca, en cualquiera de los dos idiomas.
+const normNoAccent = (s: string) =>
+  s.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ');
+
+const GROUP_BY_NAME: Map<string, MuscleGroup> = (() => {
+  const m = new Map<string, MuscleGroup>();
+  EXERCISE_LIBRARY.forEach((e) => { m.set(normNoAccent(e.es), e.group); m.set(normNoAccent(e.en), e.group); });
+  return m;
+})();
+
+/**
+ * Grupo muscular de un ejercicio a partir de su nombre (etiqueta o clave).
+ * Devuelve null si el ejercicio es libre y no está en la biblioteca.
+ */
+export function muscleGroupOf(nameOrKey: string): MuscleGroup | null {
+  return GROUP_BY_NAME.get(normNoAccent(nameOrKey)) ?? null;
+}

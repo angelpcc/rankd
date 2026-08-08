@@ -9,7 +9,6 @@ import MessagesPanel from '@/pages/dashboard/components/messages/MessagesPanel';
 import NutritionTracker from '@/pages/mi-esquina/components/NutritionTracker';
 import ShareProgress from '@/pages/mi-esquina/components/ShareProgress';
 import { DocumentExpiryAlert } from '@/pages/mi-esquina/components/DocumentsPanel';
-import DailyCheckin from '@/pages/mi-esquina/components/DailyCheckin';
 import QuickRoutines from '@/pages/mi-esquina/components/QuickRoutines';
 import LastStrengthSession from '@/pages/mi-esquina/components/LastStrengthSession';
 import QuickStatsRow from '@/pages/mi-esquina/components/QuickStatsRow';
@@ -315,13 +314,12 @@ export default function MiEsquinaPage() {
               {/* Tu gimnasio en RANKD: consentimiento para compartir actividad */}
               <GymLink profile={profile} showToast={showToast} />
 
-              {/* Check-in del día */}
+              {/* Estado de un vistazo: semana, última sesión, objetivo de peso.
+                  El check-in "¿Cómo estás hoy?" (energía/cansancio/sueño) se
+                  quitó por completo del resumen a petición del usuario. El
+                  componente DailyCheckin.tsx se conserva por si se reincorpora,
+                  pero ya no se monta en ninguna parte. */}
               <Reveal delay={40}>
-                <DailyCheckin profile={profile} showToast={showToast} />
-              </Reveal>
-
-              {/* Estado de un vistazo: semana, última sesión, objetivo de peso */}
-              <Reveal delay={55}>
                 <QuickStatsRow profile={profile} weekSessions={stats.week}
                   onOpenAgenda={() => go('agenda', 'diario')} onOpenStrength={() => go('progreso', 'fuerza')} />
               </Reveal>

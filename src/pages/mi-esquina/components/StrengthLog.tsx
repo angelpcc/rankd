@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable, isMissingColumn } from '@/lib/dbState';
 import { parseStrengthFromSpeech, parseStrengthSessionFromSpeech } from '@/lib/dictation';
-import { MUSCLE_GROUPS, exercisesByGroup, libraryLabels, type MuscleGroup } from '../lib/exercises';
+import { MUSCLE_GROUPS, exercisesByGroup, libraryLabels, muscleGroupOf, type MuscleGroup } from '../lib/exercises';
 import { bestByExercise, weeklyProgressList, startOfWeekISO } from '../lib/strength';
 import VoiceButton from '@/components/feature/VoiceButton';
 import Reveal from '@/components/base/Reveal';
@@ -96,6 +96,8 @@ export default function StrengthLog({ profile, showToast }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState<string>('');
+  // Filtro por grupo muscular de la lista "Tus ejercicios" ('all' = todos).
+  const [groupFilter, setGroupFilter] = useState<MuscleGroup | 'other' | 'all'>('all');
   /** Ejercicio cuya marca se acaba de batir: dispara la celebración */
   const [prHit, setPrHit] = useState<{ exercise: string; weight: number } | null>(null);
 
@@ -151,6 +153,34 @@ export default function StrengthLog({ profile, showToast }: Props) {
     const m = new Map<string, string>();
     rows.forEach((r) => m.set(r.exercise, r.exercise_label));
     return [...m.entries()];
+  }, [rows]);
+
+  // Cada ejercicio con su grupo muscular (de la biblioteca; 'other' si es libre
+  // y no está en ella). Base del selector y del agrupado de "Tus ejercicios".
+  const exercisesWithGroup = useMemo(
+    () => exercises.map(([key, label]) => ({ key, label, group: (muscleGroupOf(label) || 'other') as MuscleGroup | 'other' })),
+    [exercises],
+  );
+
+  // Grupos que el usuario tiene de verdad (para no pintar chips vacíos), en el
+  // orden canónico de MUSCLE_GROUPS y con 'other' al final.
+  const groupsPresent = useMemo(() => {
+    const set = new Set(exercisesWithGroup.map((e) => e.group));
+    const ordered: (MuscleGroup | 'other')[] = [...MUSCLE_GROUPS.filter((g) => set.has(g))];
+    if (set.has('other')) ordered.push('other');
+    return ordered;
+  }, [exercisesWithGroup]);
+
+  // Grupos musculares de la ÚLTIMA sesión (mismo día más reciente), para la
+  // cabecera "Hoy entrenaste: Espalda + Tríceps".
+  const lastSessionGroups = useMemo(() => {
+    if (rows.length === 0) return [];
+    const lastDate = rows.reduce((a, r) => (r.session_date > a ? r.session_date : a), rows[0].session_date);
+    const groups = new Set<MuscleGroup | 'other'>();
+    rows.filter((r) => r.session_date === lastDate).forEach((r) => groups.add(muscleGroupOf(r.exercise_label) || 'other'));
+    const ordered: (MuscleGroup | 'other')[] = [...MUSCLE_GROUPS.filter((g) => groups.has(g))];
+    if (groups.has('other')) ordered.push('other');
+    return ordered;
   }, [rows]);
 
   // ── Progresión del ejercicio elegido: mejor peso por sesión ──
@@ -226,6 +256,72 @@ export default function StrengthLog({ profile, showToast }: Props) {
     }
     return lines.slice(0, 3);
   }, [weekStats, rows.length, t]);
+
+  // Card de un ejercicio (última sesión, progreso, tendencia, historial y
+  // sugerencia). Extraída para reutilizarla tanto en la vista agrupada por
+  // grupo muscular como en la filtrada por un solo grupo.
+  const renderExerciseCard = (ex: string, label: string, i: number) => {
+    const sessions = sessionsByExercise.get(ex) || [];
+    const latest = sessions[0];
+    if (!latest) return null;
+    const latestBest = Math.max(...latest.sets.map((s) => Number(s.weight_kg)));
+    const prevBest = sessions[1] ? Math.max(...sessions[1].sets.map((s) => Number(s.weight_kg))) : null;
+    const delta = prevBest !== null ? +(latestBest - prevBest).toFixed(1) : null;
+    const isMover = weekStats.movers.some((m) => m.exercise === ex);
+    const suggestion = suggestionFor(sessions);
+    const sparkValues = sessions.slice(0, 4).map((s) => Math.max(...s.sets.map((x) => Number(x.weight_kg)))).reverse();
+    return (
+      <Reveal key={ex} delay={Math.min(i, 6) * 40}>
+        <button onClick={() => setSelected(ex)} className="w-full text-left rk-card cursor-pointer" style={{ padding: '16px 18px' }}>
+          <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-sm font-bold text-white truncate">{label}</p>
+                {isMover && <span className="text-[9px] font-bold uppercase tracking-wide text-[#C9A84C] bg-[#C9A84C]/12 border border-[#C9A84C]/30 px-1.5 py-0.5 rounded-full flex-shrink-0">PR</span>}
+              </div>
+              <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, color: '#fff' }} className="mt-0.5">
+                {latest.sets.length}×{fmtReps(latest.sets[0].reps, latest.sets[0].reps_max)} <span className="text-zinc-500">@</span> {latestBest}kg
+              </p>
+              <p className="text-[11px] text-zinc-500 mt-0.5">{agoLabel(latest.date)}</p>
+            </div>
+            <div className="flex items-center gap-3 flex-shrink-0">
+              {sparkValues.length >= 2 && <Sparkline values={sparkValues} color={delta && delta > 0 ? '#22c55e' : delta && delta < 0 ? '#fb923c' : '#71717a'} />}
+              {delta !== null && delta !== 0 && (
+                <span className={`text-xs font-bold px-2 py-1 rounded-full flex-shrink-0 ${delta > 0 ? 'text-green-400 bg-green-500/10' : 'text-orange-400 bg-orange-500/10'}`}>
+                  {delta > 0 ? '↑ +' : '↓ '}{Math.abs(delta)}kg
+                </span>
+              )}
+            </div>
+          </div>
+
+          {sessions.length > 1 && (
+            <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-white/[0.06] flex-wrap">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-600 mr-1">{t('mc_str_last_3')}</span>
+              {sessions.slice(0, 3).map((s, j) => {
+                const w = Math.max(...s.sets.map((x) => Number(x.weight_kg)));
+                const prevW = sessions[j + 1] ? Math.max(...sessions[j + 1].sets.map((x) => Number(x.weight_kg))) : null;
+                const arrow = prevW === null ? '' : w > prevW ? '↑' : w < prevW ? '↓' : '↔';
+                const arrowColor = prevW === null ? '#a1a1aa' : w > prevW ? '#4ade80' : w < prevW ? '#fb923c' : '#a1a1aa';
+                return (
+                  <span key={s.date} title={new Date(s.date + 'T12:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
+                    className="text-[10px] font-semibold text-zinc-400 bg-white/[0.03] border border-white/10 px-2 py-1 rounded-lg">
+                    {w}kg <span style={{ color: arrowColor }}>{arrow}</span>
+                  </span>
+                );
+              })}
+            </div>
+          )}
+
+          {suggestion && (
+            <p className="text-[11px] mt-2.5 flex items-center gap-1.5" style={{ color: suggestion.kind === 'up' ? '#E10600' : '#eab308' }}>
+              <i className="ri-lightbulb-flash-line"></i>
+              {suggestion.kind === 'up' ? t('mc_str_suggestion_up', { w: suggestion.next }) : t('mc_str_suggestion_hold')}
+            </p>
+          )}
+        </button>
+      </Reveal>
+    );
+  };
 
   // ── Sesiones agrupadas para el historial ──
   const history = useMemo(() => {
@@ -588,77 +684,58 @@ export default function StrengthLog({ profile, showToast }: Props) {
             </div>
           )}
 
-          {/* Tus ejercicios: card por ejercicio con última sesión, progreso vs
-              la anterior, mini tendencia, historial compacto y sugerencia. */}
+          {/* Tus ejercicios: agrupados por grupo muscular, con cabecera de la
+              última sesión y filtro por grupo. Cada card: última sesión,
+              progreso vs la anterior, mini tendencia, historial y sugerencia. */}
           <div>
+            {/* Hoy entrenaste: Espalda + Tríceps */}
+            {lastSessionGroups.length > 0 && (
+              <p className="text-sm mb-3">
+                <span className="text-zinc-500">{t('mc_str_today_trained')}: </span>
+                <span className="font-bold text-white">{lastSessionGroups.map((g) => t(`mc_str_mg_${g}`)).join(' + ')}</span>
+              </p>
+            )}
+
             <div className="flex items-center gap-2 mb-3">
               <i className="ri-trophy-line text-[#C9A84C]"></i>
               <h3 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>{t('mc_str_all_exercises')}</h3>
             </div>
-            <div className="space-y-2.5">
-              {exercises.slice(0, 12).map(([ex, label], i) => {
-                const sessions = sessionsByExercise.get(ex) || [];
-                const latest = sessions[0];
-                if (!latest) return null;
-                const latestBest = Math.max(...latest.sets.map((s) => Number(s.weight_kg)));
-                const prevBest = sessions[1] ? Math.max(...sessions[1].sets.map((s) => Number(s.weight_kg))) : null;
-                const delta = prevBest !== null ? +(latestBest - prevBest).toFixed(1) : null;
-                const isMover = weekStats.movers.some((m) => m.exercise === ex);
-                const suggestion = suggestionFor(sessions);
-                const sparkValues = sessions.slice(0, 4).map((s) => Math.max(...s.sets.map((x) => Number(x.weight_kg)))).reverse();
-                return (
-                  <Reveal key={ex} delay={Math.min(i, 6) * 40}>
-                    <button onClick={() => setSelected(ex)} className="w-full text-left rk-card cursor-pointer" style={{ padding: '16px 18px' }}>
-                      <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-sm font-bold text-white truncate">{label}</p>
-                            {isMover && <span className="text-[9px] font-bold uppercase tracking-wide text-[#C9A84C] bg-[#C9A84C]/12 border border-[#C9A84C]/30 px-1.5 py-0.5 rounded-full flex-shrink-0">PR</span>}
-                          </div>
-                          <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, color: '#fff' }} className="mt-0.5">
-                            {latest.sets.length}×{fmtReps(latest.sets[0].reps, latest.sets[0].reps_max)} <span className="text-zinc-500">@</span> {latestBest}kg
-                          </p>
-                          <p className="text-[11px] text-zinc-500 mt-0.5">{agoLabel(latest.date)}</p>
-                        </div>
-                        <div className="flex items-center gap-3 flex-shrink-0">
-                          {sparkValues.length >= 2 && <Sparkline values={sparkValues} color={delta && delta > 0 ? '#22c55e' : delta && delta < 0 ? '#fb923c' : '#71717a'} />}
-                          {delta !== null && delta !== 0 && (
-                            <span className={`text-xs font-bold px-2 py-1 rounded-full flex-shrink-0 ${delta > 0 ? 'text-green-400 bg-green-500/10' : 'text-orange-400 bg-orange-500/10'}`}>
-                              {delta > 0 ? '↑ +' : '↓ '}{Math.abs(delta)}kg
-                            </span>
-                          )}
-                        </div>
+
+            {/* Filtro por grupo muscular (solo si hay más de un grupo) */}
+            {groupsPresent.length > 1 && (
+              <div className="flex gap-1.5 overflow-x-auto rk-noscroll-x pb-1 mb-3">
+                {(['all', ...groupsPresent] as (MuscleGroup | 'other' | 'all')[]).map((g) => (
+                  <button key={g} onClick={() => setGroupFilter(g)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all cursor-pointer ${groupFilter === g ? 'bg-red-600 border-red-600 text-white' : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white'}`}>
+                    {t(`mc_str_mg_${g}`)}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {groupFilter === 'all' ? (
+              <div className="space-y-5">
+                {groupsPresent.map((g) => {
+                  const inGroup = exercisesWithGroup.filter((e) => e.group === g);
+                  if (inGroup.length === 0) return null;
+                  return (
+                    <div key={g}>
+                      {/* Solo mostramos la cabecera de grupo si hay más de uno */}
+                      {groupsPresent.length > 1 && (
+                        <p className="text-[11px] font-bold tracking-[0.18em] uppercase text-zinc-500 mb-2">{t(`mc_str_mg_${g}`)}</p>
+                      )}
+                      <div className="space-y-2.5">
+                        {inGroup.map((e, i) => renderExerciseCard(e.key, e.label, i))}
                       </div>
-
-                      {sessions.length > 1 && (
-                        <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-white/[0.06] flex-wrap">
-                          <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-600 mr-1">{t('mc_str_last_3')}</span>
-                          {sessions.slice(0, 3).map((s, j) => {
-                            const w = Math.max(...s.sets.map((x) => Number(x.weight_kg)));
-                            const prevW = sessions[j + 1] ? Math.max(...sessions[j + 1].sets.map((x) => Number(x.weight_kg))) : null;
-                            const arrow = prevW === null ? '' : w > prevW ? '↑' : w < prevW ? '↓' : '↔';
-                            const arrowColor = prevW === null ? '#a1a1aa' : w > prevW ? '#4ade80' : w < prevW ? '#fb923c' : '#a1a1aa';
-                            return (
-                              <span key={s.date} title={new Date(s.date + 'T12:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
-                                className="text-[10px] font-semibold text-zinc-400 bg-white/[0.03] border border-white/10 px-2 py-1 rounded-lg">
-                                {w}kg <span style={{ color: arrowColor }}>{arrow}</span>
-                              </span>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {suggestion && (
-                        <p className="text-[11px] mt-2.5 flex items-center gap-1.5" style={{ color: suggestion.kind === 'up' ? '#E10600' : '#eab308' }}>
-                          <i className="ri-lightbulb-flash-line"></i>
-                          {suggestion.kind === 'up' ? t('mc_str_suggestion_up', { w: suggestion.next }) : t('mc_str_suggestion_hold')}
-                        </p>
-                      )}
-                    </button>
-                  </Reveal>
-                );
-              })}
-            </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {exercisesWithGroup.filter((e) => e.group === groupFilter).map((e, i) => renderExerciseCard(e.key, e.label, i))}
+              </div>
+            )}
           </div>
 
           {/* Progresión */}
