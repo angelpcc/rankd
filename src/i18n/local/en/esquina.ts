@@ -848,6 +848,8 @@ export default {
   mc_str_mg_other: 'Other',
   mc_str_today_trained: 'Today you trained',
   mc_str_group_filter: 'Filter by group',
+  mc_str_quick_entry: 'Quick entry',
+  mc_str_or_manual: 'or add it manually',
   mc_str_custom_hint: 'Type above to use your own; it will be saved for next time.',
   mc_str_reps_fixed: 'Fixed',
   mc_str_reps_range: 'Range',

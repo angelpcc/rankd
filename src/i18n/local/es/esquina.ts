@@ -848,6 +848,8 @@ export default {
   mc_str_mg_other: 'Otros',
   mc_str_today_trained: 'Hoy entrenaste',
   mc_str_group_filter: 'Filtrar por grupo',
+  mc_str_quick_entry: 'Entrada rápida',
+  mc_str_or_manual: 'o añádelo a mano',
   mc_str_custom_hint: 'Escribe arriba para usar uno propio; se guardará para la próxima vez.',
   mc_str_reps_fixed: 'Fijas',
   mc_str_reps_range: 'Rango',

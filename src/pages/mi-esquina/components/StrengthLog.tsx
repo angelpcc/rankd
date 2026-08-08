@@ -7,6 +7,7 @@ import { MUSCLE_GROUPS, exercisesByGroup, libraryLabels, muscleGroupOf, type Mus
 import { bestByExercise, weeklyProgressList, startOfWeekISO } from '../lib/strength';
 import VoiceButton from '@/components/feature/VoiceButton';
 import Reveal from '@/components/base/Reveal';
+import BottomSheet from '@/components/base/BottomSheet';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 interface Props {
@@ -825,175 +826,176 @@ export default function StrengthLog({ profile, showToast }: Props) {
         </>
       )}
 
-      {/* Modal de registro */}
-      {showForm && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={(e) => { if (e.target === e.currentTarget) setShowForm(false); }}>
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
-          <div className="relative rk-card w-full sm:max-w-md max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl"
-            style={{ padding: 24, transform: 'none', paddingBottom: 'calc(24px + env(safe-area-inset-bottom, 0px))' }}>
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="rk-h3" style={{ fontSize: '1.15rem', color: '#fff' }}>{t('mc_str_new')}</h3>
-              <div className="flex items-center gap-2">
-                <VoiceButton onResult={applyStrengthDictation} />
-                <button onClick={() => setShowForm(false)} aria-label={t('mc_close')}
-                  className="w-9 h-9 flex items-center justify-center rounded-full bg-white/[0.05] text-zinc-400 hover:text-white cursor-pointer transition-colors">
-                  <i className="ri-close-line"></i>
-                </button>
-              </div>
-            </div>
-
-            {/* Texto libre: mismo intérprete que la voz (applyStrengthDictation),
-                así el que prefiere escribir no depende del micrófono. */}
-            <div className="mb-4">
-              <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_str_freetext_label')}</label>
-              <div className="flex gap-2">
-                <input value={freeText} onChange={(e) => setFreeText(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && freeText.trim()) { e.preventDefault(); applyStrengthDictation(freeText.trim()); setFreeText(''); } }}
-                  placeholder={t('mc_str_freetext_ph')} style={{ fontSize: 16, minHeight: 44 }}
-                  className="flex-1 min-w-0 bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" />
-                <button type="button" onClick={() => { if (freeText.trim()) { applyStrengthDictation(freeText.trim()); setFreeText(''); } }}
-                  disabled={!freeText.trim()} style={{ minHeight: 44 }}
-                  className="flex-shrink-0 flex items-center gap-1.5 px-3.5 rounded-xl bg-red-600/15 border border-red-500/30 text-red-300 text-xs font-bold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-red-600/25 transition-colors">
-                  <i className="ri-magic-line"></i> {t('mc_str_freetext_apply')}
-                </button>
-              </div>
-            </div>
-
-            {interpreted && (
-              <p className="text-[11px] text-red-400 flex items-center gap-1.5 mb-3"><i className="ri-sparkling-line"></i>{t('mc_vo_interpreted')}</p>
-            )}
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_str_exercise')}</label>
-                <input value={exercise}
-                  onChange={(e) => { setExercise(e.target.value); setExOpen(true); }}
-                  onFocus={() => setExOpen(true)}
-                  autoFocus maxLength={50}
-                  placeholder={t('mc_str_exercise_ph')}
-                  className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-red-500" />
-
-                {/* Tarea 1: filtro por grupo muscular para acotar la lista. */}
-                <div className="flex gap-1.5 overflow-x-auto rk-noscroll-x mt-2 pb-0.5">
-                  {groupTabs.map((g) => (
-                    <button key={g} onMouseDown={(e) => e.preventDefault()} onClick={() => { setGroup(g); setExOpen(true); }}
-                      className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all cursor-pointer ${group === g ? 'bg-red-600 border-red-600 text-white' : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white'}`}>
-                      {t(`mc_str_mg_${g}`)}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Lista de ejercicios del grupo / sugerencias del buscador. */}
-                {exOpen && exSuggestions.length > 0 && (
-                  <div className="mt-2 rounded-xl border border-white/10 bg-white/[0.02] p-1.5 max-h-52 overflow-y-auto rk-noscroll-x">
-                    {exSuggestions.map((c) => (
-                      <button key={c} onMouseDown={(e) => e.preventDefault()} onClick={() => { setExercise(c); setExOpen(false); }}
-                        className="w-full text-left text-sm text-zinc-300 hover:text-white hover:bg-white/[0.05] px-3 py-2 rounded-lg cursor-pointer flex items-center gap-2">
-                        <i className="ri-search-line text-xs text-zinc-600"></i>{c}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                <p className="text-[10px] text-zinc-600 mt-1.5">{t('mc_str_custom_hint')}</p>
-
-                {/* Tarea 4: qué hiciste la última vez con este ejercicio. */}
-                {formExKey && lastFor && (
-                  <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t('mc_str_last_time')}</span>
-                      <span className="text-[10px] text-zinc-600">· {agoLabel(lastFor.date)}</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5 mt-1.5">
-                      {lastFor.sets.map((s) => (
-                        <span key={s.id} className="text-[11px] font-semibold text-zinc-300 bg-white/[0.05] border border-white/10 px-2 py-0.5 rounded-lg">
-                          {fmtReps(s.reps, s.reps_max)} × {Number(s.weight_kg)} kg
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Recomendación de carga, discreta y orientativa (no médica). */}
-                {formExKey && recommendation && (
-                  <div className="mt-2 rounded-xl border border-[#C9A84C]/25 bg-[#C9A84C]/[0.06] px-3.5 py-2.5 flex items-start gap-2.5">
-                    <i className="ri-lightbulb-flash-line text-[#C9A84C] text-sm mt-0.5 flex-shrink-0"></i>
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-[#C9A84C]">{t('mc_str_rec_title')}</p>
-                      <p className="text-xs text-zinc-300 mt-0.5 leading-relaxed">
-                        {recommendation.kind === 'up'
-                          ? t('mc_str_rec_up', { n: recommendation.n, w: recommendation.w, ex: recommendation.ex, next: recommendation.next })
-                          : t('mc_str_rec_hold', { ex: recommendation.ex })}
-                      </p>
-                      <p className="text-[10px] text-zinc-600 mt-1">{t('mc_str_rec_note')}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_str_date')}</label>
-                <input type="date" value={date} max={todayISO()} onChange={(e) => setDate(e.target.value)}
-                  className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 cursor-pointer" />
-              </div>
-
-              {/* Series: reps (o rango "mín a máx") + peso con decimales. */}
-              <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_str_sets')}</label>
-                {/* Cabecera de columnas */}
-                <div className="flex items-center gap-1.5 px-1 mb-1.5">
-                  <span className="w-6 flex-shrink-0" />
-                  <span className="flex-1 text-[10px] font-bold uppercase tracking-wider text-zinc-600 text-center">{t('mc_str_reps')}</span>
-                  <span className="flex-1 text-[10px] font-bold uppercase tracking-wider text-zinc-600 text-center">{t('mc_str_weight')}</span>
-                  {sets.length > 1 && <span className="w-9 flex-shrink-0" />}
-                </div>
-                <div className="space-y-2">
-                  {sets.map((s, i) => (
-                    <div key={i} className="flex items-center gap-1.5">
-                      <span className="w-6 flex-shrink-0 text-center text-[11px] font-bold text-zinc-500">{i + 1}</span>
-                      {/* Reps: valor fijo o rango (máx opcional) */}
-                      <div className="flex-1 min-w-0 flex items-center gap-1">
-                        <input value={s.reps} inputMode="numeric" placeholder={t('mc_str_reps_min_ph')}
-                          onChange={(e) => setSets((p) => p.map((x, j) => j === i ? { ...x, reps: e.target.value } : x))}
-                          className="w-full min-w-0 bg-white/[0.04] border border-white/10 text-white text-sm text-center rounded-xl px-2 py-3 focus:outline-none focus:border-red-500" />
-                        <span className="text-[11px] text-zinc-600 flex-shrink-0">{t('mc_str_reps_to')}</span>
-                        <input value={s.repsMax} inputMode="numeric" placeholder={t('mc_str_reps_max_ph')}
-                          onChange={(e) => setSets((p) => p.map((x, j) => j === i ? { ...x, repsMax: e.target.value } : x))}
-                          className="w-full min-w-0 bg-white/[0.04] border border-white/10 text-white text-sm text-center rounded-xl px-2 py-3 focus:outline-none focus:border-red-500 placeholder:text-zinc-600" />
-                      </div>
-                      {/* Peso (admite decimales, coma o punto) */}
-                      <div className="flex-1 min-w-0 relative">
-                        <input value={s.weight} inputMode="decimal" placeholder="0"
-                          onChange={(e) => setSets((p) => p.map((x, j) => j === i ? { ...x, weight: e.target.value } : x))}
-                          className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl pl-3 pr-9 py-3 focus:outline-none focus:border-red-500" />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-zinc-500">kg</span>
-                      </div>
-                      {sets.length > 1 && (
-                        <button onClick={() => setSets((p) => p.filter((_, j) => j !== i))}
-                          aria-label={t('mc_str_remove_set')}
-                          className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg text-zinc-600 hover:text-red-400 cursor-pointer">
-                          <i className="ri-close-line"></i>
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <button
-                  onClick={() => setSets((p) => [...p, { reps: p[p.length - 1]?.reps || '8', repsMax: p[p.length - 1]?.repsMax || '', weight: p[p.length - 1]?.weight || '' }])}
-                  className="w-full mt-2 flex items-center justify-center gap-2 text-xs font-bold text-zinc-300 bg-white/[0.03] border border-white/10 hover:border-white/25 rounded-xl py-3 cursor-pointer transition-colors">
-                  <i className="ri-add-line"></i> {t('mc_str_add_set')}
-                </button>
-              </div>
-
-              <button onClick={save} disabled={saving}
-                className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60" style={{ fontSize: '0.95rem' }}>
-                {saving
-                  ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {t('mc_saving')}</>
-                  : <><i className="ri-hammer-line"></i> {t('mc_str_save')}</>}
-              </button>
-            </div>
+      {/* Modal de registro (bottom sheet con botón Guardar fijo al pie) */}
+      <BottomSheet
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        title={t('mc_str_new')}
+        footer={
+          <button onClick={save} disabled={saving} style={{ minHeight: 48 }}
+            className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60" >
+            {saving
+              ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {t('mc_saving')}</>
+              : <><i className="ri-hammer-line"></i> {t('mc_str_save')}</>}
+          </button>
+        }
+      >
+        {/* ── Entrada rápida: escribir o dictar una sesión entera ── */}
+        <div className="rounded-2xl border border-red-500/25 bg-red-600/[0.06] p-4 mb-4">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-red-300 flex items-center gap-1.5">
+              <i className="ri-flashlight-line"></i>{t('mc_str_quick_entry')}
+            </p>
+            <VoiceButton onResult={applyStrengthDictation} />
+          </div>
+          <div className="flex gap-2">
+            <input value={freeText} onChange={(e) => setFreeText(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && freeText.trim()) { e.preventDefault(); applyStrengthDictation(freeText.trim()); setFreeText(''); } }}
+              placeholder={t('mc_str_freetext_ph')} style={{ fontSize: 16, minHeight: 44 }}
+              className="flex-1 min-w-0 bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" />
+            <button type="button" onClick={() => { if (freeText.trim()) { applyStrengthDictation(freeText.trim()); setFreeText(''); } }}
+              disabled={!freeText.trim()} style={{ minHeight: 44 }}
+              className="flex-shrink-0 flex items-center gap-1.5 px-3.5 rounded-xl bg-red-600 text-white text-xs font-bold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-red-700 transition-colors">
+              <i className="ri-magic-line"></i> {t('mc_str_freetext_apply')}
+            </button>
           </div>
         </div>
-      )}
+
+        {interpreted && (
+          <p className="text-[11px] text-red-400 flex items-center gap-1.5 mb-3"><i className="ri-sparkling-line"></i>{t('mc_vo_interpreted')}</p>
+        )}
+
+        {/* Separador: o rellena el formulario a mano */}
+        <div className="flex items-center gap-3 mb-4">
+          <span className="flex-1 h-px bg-white/[0.08]" />
+          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-600">{t('mc_str_or_manual')}</span>
+          <span className="flex-1 h-px bg-white/[0.08]" />
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_str_exercise')}</label>
+            <input value={exercise}
+              onChange={(e) => { setExercise(e.target.value); setExOpen(true); }}
+              onFocus={() => setExOpen(true)}
+              maxLength={50} style={{ fontSize: 16, minHeight: 44 }}
+              placeholder={t('mc_str_exercise_ph')}
+              className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-red-500" />
+
+            {/* Filtro por grupo muscular para acotar la lista. */}
+            <div className="flex gap-1.5 overflow-x-auto rk-noscroll-x mt-2 pb-0.5">
+              {groupTabs.map((g) => (
+                <button key={g} onMouseDown={(e) => e.preventDefault()} onClick={() => { setGroup(g); setExOpen(true); }}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap border transition-all cursor-pointer ${group === g ? 'bg-red-600 border-red-600 text-white' : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:text-white'}`}>
+                  {t(`mc_str_mg_${g}`)}
+                </button>
+              ))}
+            </div>
+
+            {/* Lista de ejercicios del grupo / sugerencias del buscador. */}
+            {exOpen && exSuggestions.length > 0 && (
+              <div className="mt-2 rounded-xl border border-white/10 bg-white/[0.02] p-1.5 max-h-44 overflow-y-auto rk-noscroll-x">
+                {exSuggestions.map((c) => (
+                  <button key={c} onMouseDown={(e) => e.preventDefault()} onClick={() => { setExercise(c); setExOpen(false); }}
+                    className="w-full text-left text-sm text-zinc-300 hover:text-white hover:bg-white/[0.05] px-3 py-2 rounded-lg cursor-pointer flex items-center gap-2">
+                    <i className="ri-search-line text-xs text-zinc-600"></i>{c}
+                  </button>
+                ))}
+              </div>
+            )}
+            <p className="text-[10px] text-zinc-600 mt-1.5">{t('mc_str_custom_hint')}</p>
+
+            {/* Qué hiciste la última vez con este ejercicio. */}
+            {formExKey && lastFor && (
+              <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t('mc_str_last_time')}</span>
+                  <span className="text-[10px] text-zinc-600">· {agoLabel(lastFor.date)}</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                  {lastFor.sets.map((s) => (
+                    <span key={s.id} className="text-[11px] font-semibold text-zinc-300 bg-white/[0.05] border border-white/10 px-2 py-0.5 rounded-lg">
+                      {fmtReps(s.reps, s.reps_max)} × {Number(s.weight_kg)} kg
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Recomendación de carga, discreta y orientativa (no médica). */}
+            {formExKey && recommendation && (
+              <div className="mt-2 rounded-xl border border-[#C9A84C]/25 bg-[#C9A84C]/[0.06] px-3.5 py-2.5 flex items-start gap-2.5">
+                <i className="ri-lightbulb-flash-line text-[#C9A84C] text-sm mt-0.5 flex-shrink-0"></i>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#C9A84C]">{t('mc_str_rec_title')}</p>
+                  <p className="text-xs text-zinc-300 mt-0.5 leading-relaxed">
+                    {recommendation.kind === 'up'
+                      ? t('mc_str_rec_up', { n: recommendation.n, w: recommendation.w, ex: recommendation.ex, next: recommendation.next })
+                      : t('mc_str_rec_hold', { ex: recommendation.ex })}
+                  </p>
+                  <p className="text-[10px] text-zinc-600 mt-1">{t('mc_str_rec_note')}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_str_date')}</label>
+            <input type="date" value={date} max={todayISO()} onChange={(e) => setDate(e.target.value)}
+              style={{ fontSize: 16, minHeight: 44 }}
+              className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 cursor-pointer" />
+          </div>
+
+          {/* Series: reps (o rango "mín a máx") + peso con decimales. */}
+          <div>
+            <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_str_sets')}</label>
+            {/* Cabecera de columnas */}
+            <div className="flex items-center gap-1.5 px-1 mb-1.5">
+              <span className="w-6 flex-shrink-0" />
+              <span className="flex-1 text-[10px] font-bold uppercase tracking-wider text-zinc-600 text-center">{t('mc_str_reps')}</span>
+              <span className="flex-1 text-[10px] font-bold uppercase tracking-wider text-zinc-600 text-center">{t('mc_str_weight')}</span>
+              {sets.length > 1 && <span className="w-9 flex-shrink-0" />}
+            </div>
+            <div className="space-y-2">
+              {sets.map((s, i) => (
+                <div key={i} className="flex items-center gap-1.5">
+                  <span className="w-6 flex-shrink-0 text-center text-[11px] font-bold text-zinc-500">{i + 1}</span>
+                  {/* Reps: valor fijo o rango (máx opcional) */}
+                  <div className="flex-1 min-w-0 flex items-center gap-1">
+                    <input value={s.reps} inputMode="numeric" placeholder={t('mc_str_reps_min_ph')} style={{ fontSize: 16 }}
+                      onChange={(e) => setSets((p) => p.map((x, j) => j === i ? { ...x, reps: e.target.value } : x))}
+                      className="w-full min-w-0 bg-white/[0.04] border border-white/10 text-white text-center rounded-xl px-2 py-3 focus:outline-none focus:border-red-500" />
+                    <span className="text-[11px] text-zinc-600 flex-shrink-0">{t('mc_str_reps_to')}</span>
+                    <input value={s.repsMax} inputMode="numeric" placeholder={t('mc_str_reps_max_ph')} style={{ fontSize: 16 }}
+                      onChange={(e) => setSets((p) => p.map((x, j) => j === i ? { ...x, repsMax: e.target.value } : x))}
+                      className="w-full min-w-0 bg-white/[0.04] border border-white/10 text-white text-center rounded-xl px-2 py-3 focus:outline-none focus:border-red-500 placeholder:text-zinc-600" />
+                  </div>
+                  {/* Peso (admite decimales, coma o punto) */}
+                  <div className="flex-1 min-w-0 relative">
+                    <input value={s.weight} inputMode="decimal" placeholder="0" style={{ fontSize: 16 }}
+                      onChange={(e) => setSets((p) => p.map((x, j) => j === i ? { ...x, weight: e.target.value } : x))}
+                      className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl pl-3 pr-9 py-3 focus:outline-none focus:border-red-500" />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-zinc-500">kg</span>
+                  </div>
+                  {sets.length > 1 && (
+                    <button onClick={() => setSets((p) => p.filter((_, j) => j !== i))}
+                      aria-label={t('mc_str_remove_set')}
+                      className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg text-zinc-600 hover:text-red-400 cursor-pointer">
+                      <i className="ri-close-line"></i>
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setSets((p) => [...p, { reps: p[p.length - 1]?.reps || '8', repsMax: p[p.length - 1]?.repsMax || '', weight: p[p.length - 1]?.weight || '' }])}
+              style={{ minHeight: 44 }}
+              className="w-full mt-2 flex items-center justify-center gap-2 text-xs font-bold text-zinc-300 bg-white/[0.03] border border-white/10 hover:border-white/25 rounded-xl cursor-pointer transition-colors">
+              <i className="ri-add-line"></i> {t('mc_str_add_set')}
+            </button>
+          </div>
+        </div>
+      </BottomSheet>
 
       {/* Revisión del dictado de sesión completa (varios ejercicios) */}
       {multi && (
