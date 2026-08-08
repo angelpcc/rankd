@@ -1,18 +1,23 @@
 // Biblioteca de ejercicios de gimnasio, organizada por grupo muscular.
 //
-// Se usa en dos sitios de la sección de Fuerza:
-//   1. El buscador del formulario: primero se filtra por grupo (pecho, espalda,
-//      hombro, brazo, pierna, core) y luego se elige el ejercicio concreto, para
-//      que no sea una lista larga e inmanejable.
-//   2. El dictado por voz: la lista plana de nombres (en el idioma activo) ayuda
-//      a reconocer qué ejercicio ha dicho el usuario.
+// Se usa en la sección de Fuerza:
+//   1. El registro por sesión: el usuario elige uno o varios grupos y, dentro de
+//      cada bloque, añade ejercicios de ESE grupo (o teclea uno libre).
+//   2. El dictado por voz: la lista plana de nombres (idioma activo) ayuda a
+//      reconocer qué ejercicio ha dicho el usuario y a colocarlo en su grupo.
 //
-// El campo sigue siendo LIBRE: si el ejercicio no está, el usuario teclea el suyo
-// y queda disponible la próxima vez (se deriva de sus propios registros).
+// El campo sigue siendo LIBRE: si el ejercicio no está, el usuario teclea el
+// suyo y queda disponible la próxima vez (se deriva de sus propios registros).
 
-export type MuscleGroup = 'chest' | 'back' | 'shoulders' | 'arms' | 'legs' | 'core';
+export type MuscleGroup =
+  | 'back' | 'chest' | 'shoulders' | 'biceps' | 'triceps'
+  | 'legs' | 'core' | 'power' | 'full_body';
 
-export const MUSCLE_GROUPS: MuscleGroup[] = ['chest', 'back', 'shoulders', 'arms', 'legs', 'core'];
+// Orden canónico de presentación (el que pidió el usuario):
+// Espalda, Pecho, Hombro, Bíceps, Tríceps, Pierna, Core, Potencia, Full Body.
+export const MUSCLE_GROUPS: MuscleGroup[] = [
+  'back', 'chest', 'shoulders', 'biceps', 'triceps', 'legs', 'core', 'power', 'full_body',
+];
 
 export interface LibExercise {
   es: string;
@@ -20,22 +25,7 @@ export interface LibExercise {
   group: MuscleGroup;
 }
 
-// Lista amplia de ejercicios habituales, con variantes reales por grupo.
 export const EXERCISE_LIBRARY: LibExercise[] = [
-  // ── PECHO ──
-  { es: 'Press banca', en: 'Bench press', group: 'chest' },
-  { es: 'Press inclinado con barra', en: 'Incline barbell press', group: 'chest' },
-  { es: 'Press declinado', en: 'Decline press', group: 'chest' },
-  { es: 'Press banca con mancuernas', en: 'Dumbbell bench press', group: 'chest' },
-  { es: 'Press inclinado con mancuernas', en: 'Incline dumbbell press', group: 'chest' },
-  { es: 'Press de pecho en máquina', en: 'Machine chest press', group: 'chest' },
-  { es: 'Aperturas con mancuernas', en: 'Dumbbell fly', group: 'chest' },
-  { es: 'Aperturas en polea', en: 'Cable fly', group: 'chest' },
-  { es: 'Contractor (peck deck)', en: 'Pec deck', group: 'chest' },
-  { es: 'Fondos en paralelas', en: 'Chest dips', group: 'chest' },
-  { es: 'Flexiones', en: 'Push-ups', group: 'chest' },
-  { es: 'Pullover con mancuerna', en: 'Dumbbell pullover', group: 'chest' },
-
   // ── ESPALDA ──
   { es: 'Dominadas', en: 'Pull-ups', group: 'back' },
   { es: 'Jalón al pecho', en: 'Lat pulldown', group: 'back' },
@@ -52,6 +42,20 @@ export const EXERCISE_LIBRARY: LibExercise[] = [
   { es: 'Face pull', en: 'Face pull', group: 'back' },
   { es: 'Pull-over en polea', en: 'Straight-arm pulldown', group: 'back' },
 
+  // ── PECHO ──
+  { es: 'Press banca', en: 'Bench press', group: 'chest' },
+  { es: 'Press inclinado con barra', en: 'Incline barbell press', group: 'chest' },
+  { es: 'Press declinado', en: 'Decline press', group: 'chest' },
+  { es: 'Press banca con mancuernas', en: 'Dumbbell bench press', group: 'chest' },
+  { es: 'Press inclinado con mancuernas', en: 'Incline dumbbell press', group: 'chest' },
+  { es: 'Press de pecho en máquina', en: 'Machine chest press', group: 'chest' },
+  { es: 'Aperturas con mancuernas', en: 'Dumbbell fly', group: 'chest' },
+  { es: 'Aperturas en polea', en: 'Cable fly', group: 'chest' },
+  { es: 'Contractor (peck deck)', en: 'Pec deck', group: 'chest' },
+  { es: 'Fondos en paralelas', en: 'Chest dips', group: 'chest' },
+  { es: 'Flexiones', en: 'Push-ups', group: 'chest' },
+  { es: 'Pullover con mancuerna', en: 'Dumbbell pullover', group: 'chest' },
+
   // ── HOMBRO ──
   { es: 'Press militar con barra', en: 'Overhead barbell press', group: 'shoulders' },
   { es: 'Press militar con mancuernas', en: 'Dumbbell shoulder press', group: 'shoulders' },
@@ -63,20 +67,24 @@ export const EXERCISE_LIBRARY: LibExercise[] = [
   { es: 'Pájaros (deltoide posterior)', en: 'Rear delt fly', group: 'shoulders' },
   { es: 'Remo al mentón', en: 'Upright row', group: 'shoulders' },
 
-  // ── BRAZO (bíceps y tríceps) ──
-  { es: 'Curl con barra', en: 'Barbell curl', group: 'arms' },
-  { es: 'Curl con mancuernas', en: 'Dumbbell curl', group: 'arms' },
-  { es: 'Curl martillo', en: 'Hammer curl', group: 'arms' },
-  { es: 'Curl concentrado', en: 'Concentration curl', group: 'arms' },
-  { es: 'Curl predicador', en: 'Preacher curl', group: 'arms' },
-  { es: 'Curl en polea', en: 'Cable curl', group: 'arms' },
-  { es: 'Curl inclinado', en: 'Incline dumbbell curl', group: 'arms' },
-  { es: 'Extensión de tríceps en polea', en: 'Triceps pushdown', group: 'arms' },
-  { es: 'Press francés', en: 'Skull crusher', group: 'arms' },
-  { es: 'Extensión sobre la cabeza', en: 'Overhead triceps extension', group: 'arms' },
-  { es: 'Fondos en banco', en: 'Bench dips', group: 'arms' },
-  { es: 'Patada de tríceps', en: 'Triceps kickback', group: 'arms' },
-  { es: 'Press cerrado', en: 'Close-grip bench press', group: 'arms' },
+  // ── BÍCEPS ──
+  { es: 'Curl con barra', en: 'Barbell curl', group: 'biceps' },
+  { es: 'Curl con mancuernas', en: 'Dumbbell curl', group: 'biceps' },
+  { es: 'Curl martillo', en: 'Hammer curl', group: 'biceps' },
+  { es: 'Curl concentrado', en: 'Concentration curl', group: 'biceps' },
+  { es: 'Curl predicador', en: 'Preacher curl', group: 'biceps' },
+  { es: 'Curl en polea', en: 'Cable curl', group: 'biceps' },
+  { es: 'Curl inclinado', en: 'Incline dumbbell curl', group: 'biceps' },
+  { es: 'Curl araña', en: 'Spider curl', group: 'biceps' },
+
+  // ── TRÍCEPS ──
+  { es: 'Extensión de tríceps en polea', en: 'Triceps pushdown', group: 'triceps' },
+  { es: 'Press francés', en: 'Skull crusher', group: 'triceps' },
+  { es: 'Extensión sobre la cabeza', en: 'Overhead triceps extension', group: 'triceps' },
+  { es: 'Fondos en banco', en: 'Bench dips', group: 'triceps' },
+  { es: 'Patada de tríceps', en: 'Triceps kickback', group: 'triceps' },
+  { es: 'Press cerrado', en: 'Close-grip bench press', group: 'triceps' },
+  { es: 'Extensión en polea con cuerda', en: 'Rope pushdown', group: 'triceps' },
 
   // ── PIERNA ──
   { es: 'Sentadilla', en: 'Squat', group: 'legs' },
@@ -105,6 +113,29 @@ export const EXERCISE_LIBRARY: LibExercise[] = [
   { es: 'Russian twist', en: 'Russian twist', group: 'core' },
   { es: 'Mountain climbers', en: 'Mountain climbers', group: 'core' },
   { es: 'Elevación de piernas colgado', en: 'Hanging leg raise', group: 'core' },
+
+  // ── POTENCIA ──
+  { es: 'Cargada de fuerza', en: 'Power clean', group: 'power' },
+  { es: 'Push press', en: 'Push press', group: 'power' },
+  { es: 'Tirón de cargada', en: 'Clean pull', group: 'power' },
+  { es: 'Balanceo con kettlebell', en: 'Kettlebell swing', group: 'power' },
+  { es: 'Salto al cajón', en: 'Box jump', group: 'power' },
+  { es: 'Sentadilla con salto', en: 'Jump squat', group: 'power' },
+  { es: 'Zancada con salto', en: 'Jumping lunge', group: 'power' },
+  { es: 'Golpe de balón medicinal', en: 'Medicine ball slam', group: 'power' },
+  { es: 'Lanzamiento de balón medicinal', en: 'Medicine ball throw', group: 'power' },
+  { es: 'Salto horizontal', en: 'Broad jump', group: 'power' },
+
+  // ── FULL BODY ──
+  { es: 'Thruster', en: 'Thruster', group: 'full_body' },
+  { es: 'Burpee', en: 'Burpee', group: 'full_body' },
+  { es: 'Cargada y press', en: 'Clean and press', group: 'full_body' },
+  { es: 'Arrancada', en: 'Snatch', group: 'full_body' },
+  { es: 'Man maker', en: 'Man maker', group: 'full_body' },
+  { es: 'Wall ball', en: 'Wall ball', group: 'full_body' },
+  { es: 'Levantada turca', en: 'Turkish get-up', group: 'full_body' },
+  { es: 'Devil press', en: 'Devil press', group: 'full_body' },
+  { es: 'Peso muerto con remo', en: 'Renegade row', group: 'full_body' },
 ];
 
 type Lang = 'es' | 'en';
