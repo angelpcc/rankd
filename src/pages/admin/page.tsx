@@ -308,11 +308,21 @@ export default function AdminPage() {
         {/* ══ RESUMEN ══ */}
         {tab === 'resumen' && (
           <div className="space-y-8">
-            <div>
-              <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(30px,5vw,44px)', letterSpacing: 1, lineHeight: 1 }}>
-                ESTADO DE LA <span className="rk-red-glow">PLATAFORMA</span>
-              </h1>
-              <p className="text-zinc-400 text-sm mt-2">Totales en tiempo real leídos de Supabase.</p>
+            <div className="rk-card relative overflow-hidden anim-fade-up" style={{ padding: 0, transform: 'none' }}>
+              <div className="rk-glow-red" style={{ width: 340, height: 340, top: -170, right: -90, borderRadius: '50%' }} />
+              <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(115deg, rgba(225,6,0,0.10) 0%, transparent 42%)' }} />
+              <div className="relative flex items-center gap-4 sm:gap-5 p-5 sm:p-7">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center rounded-2xl bg-red-600/12 border-2 border-red-500/30 text-red-400 flex-shrink-0" style={{ fontSize: 32 }}>
+                  <i className="ri-dashboard-3-line"></i>
+                </div>
+                <div className="min-w-0">
+                  <p className="rk-eyebrow">Panel de administración</p>
+                  <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(28px,5vw,44px)', letterSpacing: 1, lineHeight: 0.95, marginTop: 2 }}>
+                    ESTADO DE LA <span className="rk-red-glow">PLATAFORMA</span>
+                  </h1>
+                  <p className="text-zinc-400 text-sm mt-1.5">Totales en tiempo real leídos de Supabase.</p>
+                </div>
+              </div>
             </div>
 
             {statsLoading || !stats ? (

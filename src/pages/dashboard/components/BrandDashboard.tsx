@@ -333,12 +333,27 @@ export default function BrandDashboard({ profile }: Props) {
           {/* ── OVERVIEW ── */}
           {activeTab === 'overview' && (
             <div className="space-y-6 max-w-5xl">
-              <div>
-                <p className="rk-eyebrow">{t('dash_brand_label')}</p>
-                <h1 className="rk-h2" style={{ fontSize: 'clamp(1.9rem,4.5vw,2.6rem)', color: '#fff', margin: '4px 0 0' }}>
-                  {t('dash_brand_welcome')} <span style={{ color: '#C9A84C', textShadow: '0 0 50px rgba(201,168,76,0.45)' }}>{brandName || profile.full_name?.split(' ')[0] || t('dash_brand_tab_profile')}</span>
-                </h1>
-                <p className="text-zinc-400 text-sm mt-1.5">{t('dash_brand_panel')}</p>
+              {/* Hero cinematográfico con acento oro (identidad de marca) */}
+              <div className="rk-card relative overflow-hidden anim-fade-up" style={{ padding: 0, transform: 'none' }}>
+                <div className="rk-glow-red" style={{ width: 340, height: 340, top: -160, right: -80, borderRadius: '50%', background: 'radial-gradient(circle, rgba(201,168,76,0.16) 0%, transparent 68%)' }} />
+                <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(115deg, rgba(201,168,76,0.10) 0%, transparent 42%)' }} />
+                <div className="relative flex items-center gap-4 sm:gap-5 p-5 sm:p-7">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center rounded-2xl bg-[#C9A84C]/12 border-2 border-[#C9A84C]/35 text-[#C9A84C] flex-shrink-0" style={{ fontSize: 40 }}>
+                    <i className="ri-store-2-line"></i>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="rk-eyebrow">{t('dash_brand_label')}</p>
+                    <h1 className="rk-h2 truncate" style={{ fontSize: 'clamp(1.7rem,5vw,2.6rem)', color: '#fff', margin: '2px 0 0', lineHeight: 0.95 }}>
+                      {(brandName || profile.full_name || t('dash_brand_tab_profile')).toUpperCase()}
+                    </h1>
+                    <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border ${isPublic ? 'text-green-400 bg-green-500/10 border-green-500/25' : 'text-amber-400 bg-amber-500/10 border-amber-500/25'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isPublic ? 'bg-green-400 animate-pulse' : 'bg-amber-400'}`} />
+                        {isPublic ? t('dash_brand_active') : t('dash_brand_hidden_status')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Visibility banner */}

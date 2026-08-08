@@ -371,15 +371,32 @@ export default function OrgDashboard({ profile }: Props) {
           {/* ── OVERVIEW TAB ── */}
           {activeTab === 'overview' && (
             <div className="space-y-6 max-w-4xl">
-              {/* Welcome */}
-              <div>
-                <p className="rk-eyebrow">{typeLabel}</p>
-                <h1 className="rk-h2" style={{ fontSize: 'clamp(1.9rem,4.5vw,2.6rem)', color: '#fff', margin: '4px 0 0' }}>
-                  {t('dash_org_welcome')} <span className="rk-red-glow">{profile.full_name?.split(' ')[0] || typeLabel}</span>
-                </h1>
-                <p className="text-zinc-400 text-sm mt-1.5">
-                  {t('dash_org_panel')} · {typeLabel}
-                </p>
+              {/* Hero cinematográfico: identidad de la organización de un vistazo */}
+              <div className="rk-card relative overflow-hidden anim-fade-up" style={{ padding: 0, transform: 'none' }}>
+                <div className="rk-glow-red" style={{ width: 340, height: 340, top: -160, right: -80, borderRadius: '50%' }} />
+                <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(115deg, rgba(225,6,0,0.10) 0%, transparent 42%)' }} />
+                <div className="relative flex items-center gap-4 sm:gap-5 p-5 sm:p-7">
+                  <div className={`w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center rounded-2xl border-2 flex-shrink-0 ${typeBg}`} style={{ fontSize: 40 }}>
+                    <i className={typeIcon}></i>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="rk-eyebrow">{typeLabel}</p>
+                    <h1 className="rk-h2 truncate" style={{ fontSize: 'clamp(1.7rem,5vw,2.6rem)', color: '#fff', margin: '2px 0 0', lineHeight: 0.95 }}>
+                      {(orgName || profile.full_name || typeLabel).toUpperCase()}
+                    </h1>
+                    <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border ${isPublic ? 'text-green-400 bg-green-500/10 border-green-500/25' : 'text-amber-400 bg-amber-500/10 border-amber-500/25'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isPublic ? 'bg-green-400 animate-pulse' : 'bg-amber-400'}`} />
+                        {isPublic ? t('dash_org_visible_short') : t('dash_org_hidden_short')}
+                      </span>
+                      {org?.verified && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#C9A84C] bg-[#C9A84C]/12 border border-[#C9A84C]/30 px-2.5 py-1 rounded-full">
+                          <i className="ri-verified-badge-line"></i> {t('dash_org_verified')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Visibility banner */}

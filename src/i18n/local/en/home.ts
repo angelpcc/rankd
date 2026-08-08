@@ -508,6 +508,8 @@ export default {
   dash_org_verification_contact: 'Contact Rankd to verify your organization',
   dash_org_verified: 'Verified',
   dash_org_pending: 'Pending',
+  dash_org_visible_short: 'Visible',
+  dash_org_hidden_short: 'Hidden',
   dash_org_save_profile: 'Save Profile',
   dash_org_saved_ok: 'Profile saved successfully',
   dash_org_save_error: 'Error saving',

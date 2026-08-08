@@ -508,6 +508,8 @@ export default {
   dash_org_verification_contact: 'Contacta con Rankd para verificar tu organización',
   dash_org_verified: 'Verificado',
   dash_org_pending: 'Pendiente',
+  dash_org_visible_short: 'Visible',
+  dash_org_hidden_short: 'Oculto',
   dash_org_save_profile: 'Guardar Perfil',
   dash_org_saved_ok: 'Perfil guardado correctamente',
   dash_org_save_error: 'Error al guardar',

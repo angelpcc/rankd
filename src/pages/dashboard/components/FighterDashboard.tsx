@@ -363,12 +363,54 @@ export default function FighterDashboard({ profile }: Props) {
           {/* ══ OVERVIEW ══ */}
           {activeTab === 'overview' && (
             <div className="space-y-6 max-w-4xl">
-              <div>
-                <p className="rk-eyebrow">TU PANEL</p>
-                <h1 className="rk-h2" style={{ fontSize: 'clamp(1.9rem,4.5vw,2.6rem)', color: '#fff', margin: '4px 0 0' }}>
-                  HOLA, <span className="rk-red-glow">{(fullName || profile.full_name || '').split(' ')[0] || 'Peleador'}</span> 👊
-                </h1>
-                <p className="text-zinc-400 text-sm mt-1.5">Este es el estado de tu carrera en Rankd</p>
+              {/* Hero: lo primero que se ve al entrar. Foto grande, nombre y los
+                  datos de un vistazo (disciplina, categoría, récord) sobre un
+                  fondo cinematográfico con brillo rojo. */}
+              <div className="rk-card relative overflow-hidden anim-fade-up" style={{ padding: 0, transform: 'none' }}>
+                <div className="rk-glow-red" style={{ width: 340, height: 340, top: -160, right: -80, borderRadius: '50%' }} />
+                <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(115deg, rgba(225,6,0,0.10) 0%, transparent 42%)' }} />
+                <div className="relative flex items-center gap-4 sm:gap-5 p-5 sm:p-7">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="" className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover object-top border-2 border-red-500/40 flex-shrink-0" style={{ boxShadow: '0 10px 40px rgba(225,6,0,0.28)' }} />
+                  ) : (
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-950 border-2 border-red-500/30 flex items-center justify-center flex-shrink-0">
+                      <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 34, color: 'rgba(255,255,255,0.5)' }}>{initials}</span>
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="rk-eyebrow">{isHobby ? 'TU PANEL' : 'TU CARRERA'}</p>
+                    <h1 className="rk-h2 truncate" style={{ fontSize: 'clamp(1.7rem,5vw,2.6rem)', color: '#fff', margin: '2px 0 0', lineHeight: 0.95 }}>
+                      {(fullName || profile.full_name || 'Peleador').toUpperCase()}
+                    </h1>
+                    <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+                      {discipline && (
+                        <span className="text-[11px] font-bold text-red-300 bg-red-600/15 border border-red-500/30 px-2.5 py-1 rounded-full">
+                          {disciplineLabels[discipline] || discipline}
+                        </span>
+                      )}
+                      {weightClass && (
+                        <span className="text-[11px] font-bold text-[#C9A84C] bg-[#C9A84C]/12 border border-[#C9A84C]/30 px-2.5 py-1 rounded-full">
+                          {weightClass}
+                        </span>
+                      )}
+                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border ${isAvailable ? 'text-green-400 bg-green-500/10 border-green-500/25' : 'text-zinc-400 bg-white/[0.04] border-white/10'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${isAvailable ? 'bg-green-400 animate-pulse' : 'bg-zinc-500'}`} />
+                        {isAvailable ? t('dash_fighter_available') : t('dash_fighter_not_available')}
+                      </span>
+                    </div>
+                  </div>
+                  {/* Récord compacto a la derecha (solo competición y en pantallas anchas) */}
+                  {!isHobby && totalFights > 0 && (
+                    <div className="hidden sm:flex flex-col items-end flex-shrink-0 pl-4 border-l border-white/[0.08]">
+                      <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 40, lineHeight: 0.9, color: '#fff' }}>
+                        <span className="text-green-400">{wins}</span><span className="text-zinc-600 mx-1">-</span><span className="text-red-400">{losses}</span>
+                      </p>
+                      <p className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1">
+                        {winRate !== null ? `${winRate}% victorias` : 'Récord'}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Visibility banners */}
