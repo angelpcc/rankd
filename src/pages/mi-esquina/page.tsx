@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
-import { isViewingAs } from '@/lib/viewAs';
 import { useSEO } from '@/hooks/useSEO';
 import MessagesPanel from '@/pages/dashboard/components/messages/MessagesPanel';
 import NutritionTracker from '@/pages/mi-esquina/components/NutritionTracker';
@@ -99,10 +98,10 @@ export default function MiEsquinaPage() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  useEffect(() => {
-    // No expulsar al admin en modo "Ver como" mientras su sesión rehidrata.
-    if (!authLoading && !user && !isViewingAs()) navigate('/esquina');
-  }, [authLoading, user, navigate]);
+  // Antes se redirigía a /esquina cuando no había sesión, pero ahora la
+  // propia página se queda visible con un preview borroso + overlay de
+  // login (ver bloque `!user || !profile` más abajo). Así el visitante
+  // llega desde el menú y ve exactamente lo que va a desbloquear.
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -153,12 +152,21 @@ export default function MiEsquinaPage() {
     load();
   }, [profile?.id, section, refreshKey]);
 
-  if (authLoading || !user || !profile) {
+  // Mientras rehidrata la sesión, spinner: aún no sabemos si hay usuario.
+  if (authLoading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+      <div className="min-h-screen rk-screen-bg flex items-center justify-center">
         <div className="w-10 h-10 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
+  }
+
+  // Sin sesión: preview de la página con el layout real (top bar, barra
+  // lateral, cards) pero difuminado y sin interacción, y encima un
+  // overlay centrado que invita a iniciar sesión. No se monta el
+  // MiEsquinaPage real porque necesita perfil y datos de Supabase.
+  if (!user || !profile) {
+    return <LoggedOutPreview onSignIn={() => navigate('/auth')} />;
   }
 
   const isHobby = profile.athlete_mode === 'hobby';
@@ -635,6 +643,144 @@ export default function MiEsquinaPage() {
             </div>
           )}
         </main>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Preview de Mi Esquina cuando no hay sesión.
+ *
+ * Se pinta un layout estático parecido a la página real (top bar, barra
+ * lateral y cards) con `filter: blur(8px)` y `pointer-events: none`, y
+ * encima un overlay centrado con el CTA para iniciar sesión. No monta
+ * ni consulta datos reales de Supabase: es puramente visual.
+ */
+function LoggedOutPreview({ onSignIn }: { onSignIn: () => void }) {
+  const { t } = useTranslation();
+
+  // Contenido puramente decorativo del preview: 3 stats + 4 cards + una
+  // gráfica de barras falsa. Cualquier cambio aquí es sólo visual.
+  const fakeStats = [
+    { n: 128, l: 'Sesiones' },
+    { n: 6, l: 'Esta semana' },
+    { n: 340, l: 'Minutos' },
+  ];
+  const fakeCards = [
+    { icon: 'ri-calendar-check-line', t: 'Diario', d: 'Registra tu entrenamiento de hoy en 5 s' },
+    { icon: 'ri-boxing-line', t: 'Ring', d: 'Sparrings, combates y notas técnicas' },
+    { icon: 'ri-scales-2-line', t: 'Peso', d: 'Progresión y objetivos por semana' },
+    { icon: 'ri-sparkling-2-line', t: 'Coach IA', d: 'Preguntas concretas de entrenamiento' },
+  ];
+  const bars = [22, 45, 30, 55, 12, 40, 60];
+
+  return (
+    <div className="min-h-screen rk-screen-bg text-white relative overflow-hidden">
+      {/* ── Preview borroso y no interactivo ── */}
+      <div aria-hidden style={{ filter: 'blur(8px)', pointerEvents: 'none', userSelect: 'none' }}>
+        {/* Top bar decorativa */}
+        <div className="fixed top-0 left-0 w-full z-10 bg-zinc-950/80 backdrop-blur-sm border-b border-zinc-800 rk-safe-top">
+          <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm text-zinc-500">
+              <i className="ri-arrow-left-line" />
+              <span className="hidden sm:inline">Volver</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 3 }} className="text-white">MI</span>
+              <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 3 }} className="text-[#E10600]">ESQUINA</span>
+            </div>
+            <div style={{ width: 40 }} />
+          </div>
+        </div>
+
+        <div className="flex min-h-screen max-w-[1400px] mx-auto" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
+          {/* Sidebar fake (escritorio) */}
+          <aside className="hidden lg:flex flex-col w-60 flex-shrink-0 border-r border-zinc-800/70 py-6 px-3">
+            <nav className="space-y-1 flex-1">
+              {['Resumen', 'Agenda', 'Progreso', 'Ring', 'Coach IA', 'Material', 'Nutrición', 'Timer', 'Mensajes'].map((s, i) => (
+                <div key={s} className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium ${i === 0 ? 'bg-red-600 text-white' : 'text-zinc-400'}`}>
+                  <span className="w-4 h-4 bg-current opacity-40 rounded-sm" />
+                  <span className="flex-1">{s}</span>
+                </div>
+              ))}
+            </nav>
+          </aside>
+
+          {/* Main fake */}
+          <main className="flex-1 px-4 sm:px-6 lg:px-10 py-8 pt-24 lg:pt-8 min-w-0 space-y-6">
+            <div>
+              <p className="rk-eyebrow">TU ESQUINA</p>
+              <h1 className="rk-h1" style={{ margin: 0, color: '#fff' }}>
+                BIENVENIDO DE VUELTA, <span className="rk-red-glow">PELEADOR</span>
+              </h1>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              {fakeStats.map((s) => (
+                <div key={s.l} className="rk-card" style={{ padding: '22px 14px', textAlign: 'center' }}>
+                  <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(28px,5vw,40px)', lineHeight: 1, color: '#fff' }}>{s.n}</p>
+                  <p className="rk-body" style={{ fontSize: '0.72rem', letterSpacing: '0.16em', textTransform: 'uppercase', marginTop: 8 }}>{s.l}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="rk-card" style={{ padding: 20 }}>
+              <p className="text-[11px] font-bold tracking-[0.22em] uppercase text-zinc-600 mb-3">Últimos 7 días</p>
+              <div className="flex items-end justify-between gap-1.5" style={{ height: 76 }}>
+                {bars.map((h, i) => (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
+                    <span className="text-[9px] text-zinc-600">{h > 20 ? h : ''}</span>
+                    <div className="w-full rounded-md" style={{ height: h, background: i === bars.length - 1 ? '#E10600' : 'rgba(225,6,0,0.45)' }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-3">
+              {fakeCards.map((c) => (
+                <div key={c.t} className="rk-card flex items-center gap-3.5" style={{ padding: 18 }}>
+                  <div className="w-10 h-10 flex-shrink-0 rounded-xl bg-red-600/12 border border-red-500/25" />
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-white">{c.t}</p>
+                    <p className="text-xs text-zinc-400 mt-0.5">{c.d}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </main>
+        </div>
+      </div>
+
+      {/* ── Overlay centrado ── */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={t('nav_my_corner')}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 50,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '24px',
+          background: 'radial-gradient(ellipse at center, rgba(3,3,3,0.55) 0%, rgba(3,3,3,0.75) 100%)',
+        }}
+      >
+        <div className="card-primary" style={{ width: '100%', maxWidth: 420, padding: '32px 26px 28px', textAlign: 'center' }}>
+          <div className="w-14 h-14 mx-auto mb-4 flex items-center justify-center rounded-2xl bg-red-600/12 border border-red-500/30 text-red-400">
+            <i className="ri-boxing-line text-3xl" />
+          </div>
+          <h2 className="rk-title-card" style={{ fontSize: '1.4rem', marginBottom: 10 }}>
+            Inicia sesión para acceder a Mi Esquina
+          </h2>
+          <p className="rk-body-14" style={{ marginBottom: 22 }}>
+            Tu diario de entrenamiento, agenda, peso, sparring y coach IA — todo tuyo con una cuenta gratuita.
+          </p>
+          <button
+            onClick={onSignIn}
+            className="rk-cta"
+            style={{ width: '100%', fontSize: '0.95rem', padding: '0.9rem 1.5rem' }}
+          >
+            {t('nav_sign_in')}
+          </button>
+        </div>
       </div>
     </div>
   );
