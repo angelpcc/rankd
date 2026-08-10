@@ -168,6 +168,9 @@ export default function StrengthLog({ profile, showToast }: Props) {
   };
 
   const saveSession = async (session: BuiltSession) => {
+    // reps_max = null cuando la serie es "8" (fijo); = 10 cuando es "8-10".
+    // Solo se envía si la fila NEW lo trae; la degradación por si la
+    // migración 0026 aún no está aplicada vive más abajo.
     const base = session.blocks.flatMap((b) =>
       b.exercises.flatMap((e) => e.sets.map((s, i) => ({
         fighter_profile_id: profile.id,
@@ -176,6 +179,7 @@ export default function StrengthLog({ profile, showToast }: Props) {
         session_date: session.date,
         set_number: i + 1,
         reps: s.reps,
+        reps_max: s.repsMax ?? null,
         weight_kg: s.weight,
         muscle_group: b.group,
       }))),
@@ -196,12 +200,14 @@ export default function StrengthLog({ profile, showToast }: Props) {
     });
 
     setSaving(true);
-    // Insert con muscle_group; si la migración 0029 aún no está, se reintenta
-    // sin esa columna (la sesión se guarda igual; el grupo se deriva del nombre).
+    // Insert con las columnas nuevas (muscle_group de 0029, reps_max de 0026).
+    // Si cualquiera de las dos migraciones no está aplicada, isMissingColumn
+    // lo detecta y se reintenta sin ellas: la sesión se guarda igual
+    // (el grupo se deriva del nombre y el rango se pierde como fijo).
     let { data, error } = await supabase.from('strength_sets').insert(base).select();
     if (isMissingColumn(error)) {
-      const noGroup = base.map(({ muscle_group, ...r }) => r);
-      ({ data, error } = await supabase.from('strength_sets').insert(noGroup).select());
+      const noExtras = base.map(({ muscle_group, reps_max, ...r }) => r);
+      ({ data, error } = await supabase.from('strength_sets').insert(noExtras).select());
     }
     setSaving(false);
     if (error || !data) { showToast(t('error_save'), 'error'); return; }

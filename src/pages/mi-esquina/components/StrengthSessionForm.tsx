@@ -6,10 +6,40 @@ import { parseStrengthSessionFromSpeech } from '@/lib/dictation';
 import { MUSCLE_GROUPS, exercisesByGroup, libraryLabels, muscleGroupOf, type MuscleGroup } from '../lib/exercises';
 
 // ── Sesión construida que se devuelve al padre para guardar ──
-export interface BuiltSet { reps: number; weight: number }
+// reps = valor bajo/fijo (obligatorio); repsMax = valor alto del rango
+// (opcional, undefined = número fijo). El input acepta "8" o "8-10".
+export interface BuiltSet { reps: number; weight: number; repsMax?: number }
 export interface BuiltExercise { label: string; sets: BuiltSet[] }
 export interface BuiltBlock { group: MuscleGroup; exercises: BuiltExercise[] }
 export interface BuiltSession { date: string; blocks: BuiltBlock[] }
+
+/**
+ * Parsea el valor del input de reps.
+ * Acepta:
+ *   "8"        → { reps: 8 }
+ *   "8-10"     → { reps: 8, repsMax: 10 }
+ *   "8 a 10"   → { reps: 8, repsMax: 10 }
+ *   "8 - 10"   → { reps: 8, repsMax: 10 }
+ * Devuelve null si no se puede parsear o el rango es inválido (min > max).
+ */
+export function parseRepsInput(raw: string): { reps: number; repsMax?: number } | null {
+  const s = raw.trim().toLowerCase().replace(/\s+/g, ' ');
+  if (!s) return null;
+  // Rango: "8-10", "8 - 10", "8 a 10", "8 to 10"
+  const range = s.match(/^(\d+)\s*(?:-|–|a|to)\s*(\d+)$/);
+  if (range) {
+    const lo = parseInt(range[1], 10);
+    const hi = parseInt(range[2], 10);
+    if (!lo || !hi || lo <= 0 || hi <= 0 || hi < lo) return null;
+    return lo === hi ? { reps: lo } : { reps: lo, repsMax: hi };
+  }
+  const single = s.match(/^(\d+)$/);
+  if (single) {
+    const n = parseInt(single[1], 10);
+    return n > 0 ? { reps: n } : null;
+  }
+  return null;
+}
 
 // ── Estado editable interno (inputs como texto) ──
 interface FSet { reps: string; weight: string }
@@ -149,9 +179,15 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
       for (const e of b.exercises) {
         const label = e.label.trim();
         if (!label) continue;
-        const sets = e.sets
-          .map((s) => ({ reps: parseInt(s.reps, 10), weight: parseFloat(s.weight.replace(',', '.')) }))
-          .filter((s) => s.reps > 0 && s.weight > 0);
+        const sets: BuiltSet[] = [];
+        for (const s of e.sets) {
+          const parsed = parseRepsInput(s.reps);
+          const weight = parseFloat(s.weight.replace(',', '.'));
+          if (!parsed || !(weight > 0)) continue;
+          sets.push(parsed.repsMax !== undefined
+            ? { reps: parsed.reps, repsMax: parsed.repsMax, weight }
+            : { reps: parsed.reps, weight });
+        }
         if (sets.length > 0) exercises.push({ label, sets });
       }
       if (exercises.length > 0) built.push({ group: b.group, exercises });
@@ -302,12 +338,18 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
                         <span className="flex-1 text-[10px] font-bold uppercase tracking-wider text-zinc-600 text-center">{t('mc_str_weight')}</span>
                         {e.sets.length > 1 && <span className="w-8 flex-shrink-0" />}
                       </div>
-                      {e.sets.map((s, si) => (
+                      {e.sets.map((s, si) => {
+                        // Marca el input en rojo si el valor no parsea (ni "8"
+                        // ni "8-10"). Vacío se considera pendiente, no error.
+                        const repsInvalid = s.reps.trim() !== '' && !parseRepsInput(s.reps);
+                        return (
                         <div key={si} className="flex items-center gap-1.5">
                           <span className="w-6 flex-shrink-0 text-center text-[11px] font-bold text-zinc-500">{si + 1}</span>
-                          <input value={s.reps} inputMode="numeric" placeholder="10" style={{ fontSize: 16, minHeight: 44 }}
+                          <input value={s.reps} inputMode="text" placeholder="8-10" style={{ fontSize: 16, minHeight: 44 }}
+                            aria-invalid={repsInvalid || undefined}
+                            aria-label={t('mc_str_reps')}
                             onChange={(ev) => patchSet(b.group, e.id, si, { reps: ev.target.value })}
-                            className="flex-1 min-w-0 bg-white/[0.04] border border-white/10 text-white text-center rounded-xl px-2 py-2.5 focus:outline-none focus:border-red-500" />
+                            className={`flex-1 min-w-0 bg-white/[0.04] border text-white text-center rounded-xl px-2 py-2.5 focus:outline-none ${repsInvalid ? 'border-red-500/70 focus:border-red-500' : 'border-white/10 focus:border-red-500'}`} />
                           <div className="flex-1 min-w-0 relative">
                             <input value={s.weight} inputMode="decimal" placeholder="0" style={{ fontSize: 16, minHeight: 44 }}
                               onChange={(ev) => patchSet(b.group, e.id, si, { weight: ev.target.value })}
@@ -321,7 +363,8 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
                             </button>
                           )}
                         </div>
-                      ))}
+                        );
+                      })}
                       <button onClick={() => addSet(b.group, e.id)} style={{ minHeight: 40 }}
                         className="w-full flex items-center justify-center gap-2 text-xs font-bold text-zinc-300 bg-white/[0.03] border border-white/10 hover:border-white/25 rounded-xl cursor-pointer transition-colors">
                         <i className="ri-add-line"></i> {t('mc_str_add_set')}
