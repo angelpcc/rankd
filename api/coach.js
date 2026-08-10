@@ -191,6 +191,92 @@ const GEAR_SEARCH_ADDENDUM = `Tienes acceso a BÚSQUEDA WEB para consultar preci
 - Siempre que des precios, cierra con una nota breve avisando de que los precios y el stock cambian según la tienda y la fecha: son solo una referencia.
 - Sigues sin tener acuerdos comerciales con nadie: recomiendas por criterio técnico, no por comisión.`;
 
+// ── PLAN IA POR OBJETIVO ──
+// Genera un plan semanal completo (entreno + cardio + nutrición + notas por
+// día) a partir de un OBJETIVO del peleador y unas respuestas opcionales de
+// calibrado. Se guarda en `objective_plans` (jsonb) y, al confirmar, se
+// reparte día a día en `planned_events` reutilizando la Agenda existente.
+// Reusa `checkQuota` + `recordUsage` (falla cerrado sin ANTHROPIC_API_KEY).
+//
+// El esquema deja las 3 columnas (training/cardio/nutrition/notes) como
+// opcionales para modelar días de descanso o días solo de cardio/nutrición.
+const OBJECTIVE_PLAN_SCHEMA = {
+  type: 'object',
+  properties: {
+    plan_name: { type: 'string', description: 'Nombre corto del plan (5-8 palabras). Ej: "Bajar 2kg en 6 semanas"' },
+    summary: { type: 'string', description: '1-2 líneas resumiendo el enfoque del plan' },
+    disclaimer: { type: 'string', description: 'Aviso de que es orientativo, consultar profesional' },
+    weeks: {
+      type: 'array',
+      description: 'Semanas del plan. Genera 4-8 semanas según objetivo.',
+      items: {
+        type: 'object',
+        properties: {
+          week: { type: 'integer', description: 'Número de semana (1, 2, 3...)' },
+          days: {
+            type: 'array',
+            description: 'Los 7 días de la semana, en orden Lunes → Domingo',
+            items: {
+              type: 'object',
+              properties: {
+                day: { type: 'string', enum: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'] },
+                training: { type: ['string', 'null'], description: 'Entrenamiento del día (grupos, ejercicios, series/tiempo). Null si es día libre.' },
+                cardio: { type: ['string', 'null'], description: 'Cardio aparte del entreno principal (tipo + minutos). Null si no toca.' },
+                nutrition: { type: ['string', 'null'], description: 'Pauta nutricional del día (breve, orientativa). Null si no hay nada específico.' },
+                notes: { type: ['string', 'null'], description: 'Nota corta motivacional o técnica. Null si no aporta.' },
+              },
+              required: ['day', 'training', 'cardio', 'nutrition', 'notes'],
+              additionalProperties: false,
+            },
+          },
+        },
+        required: ['week', 'days'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['plan_name', 'summary', 'disclaimer', 'weeks'],
+  additionalProperties: false,
+};
+
+function objectivePlanSystem(profile, objective, answers, previous, adjustments) {
+  const ans = answers || {};
+  const answered = [];
+  if (ans.days_per_week) answered.push(`- Días entrenables por semana: ${ans.days_per_week}`);
+  if (ans.session_minutes) answered.push(`- Tiempo por sesión: ${ans.session_minutes} min`);
+  if (ans.cardio_extra_minutes) answered.push(`- Cardio aparte disponible: ${ans.cardio_extra_minutes} min/día`);
+  if (ans.can_cook !== undefined) answered.push(`- Puede cocinar/preparar comidas: ${ans.can_cook}`);
+  if (ans.extra_notes) answered.push(`- Notas: ${String(ans.extra_notes).slice(0, 400)}`);
+  const answersBlock = answered.length
+    ? `Restricciones y preferencias del peleador:\n${answered.join('\n')}`
+    : 'El peleador no ha calibrado el plan: úsalo genérico pero razonable (4 días/semana, 60 min por sesión, sin cardio extra, con margen para cocinar).';
+
+  const prev = (previous && adjustments)
+    ? `\n\nEl peleador YA tenía un plan previo (te lo doy) y ha pedido ajustarlo. Manténlo casi igual, aplica SOLO los ajustes solicitados y devuelve el plan entero con las modificaciones:\n${JSON.stringify(previous).slice(0, 6000)}\n\nAjustes solicitados: "${adjustments}"`
+    : '';
+
+  return `Eres el entrenador de IA de RANKD, experto en preparación de deportes de combate (boxeo, MMA, kickboxing, Muay Thai). Vas a generar un PLAN SEMANAL COMPLETO orientado al objetivo del peleador.
+
+${fighterContext(profile)}
+
+Objetivo del peleador: "${objective}"
+
+${answersBlock}${prev}
+
+Cómo generas el plan:
+- Duración: elige 4-8 semanas según el objetivo (bajar peso o preparar combate → 6-8 sem; mantenerse o ganar músculo → 4-6 sem).
+- Cada semana tiene los 7 días en orden LUNES→DOMINGO. Los días de descanso van con training/cardio/nutrition/notes en null.
+- Cada día: training (si toca), cardio (si aparte del entreno), nutrition (pauta breve), notes (motivacional o técnica). Cualquier campo puede ser null si ese día no aporta.
+- Ajusta la carga a la disciplina del peleador y a su nivel: un amateur no entrena como un profesional.
+- Respeta las restricciones: si dice "3 días", NO le pongas 5. Si dice "sin cardio extra", no lo metas.
+- Si dice que NO puede cocinar, la nutrición debe ser realista (opciones fáciles, meal prep sencillo, alternativas rápidas).
+- Progresión REAL: la semana 4 no puede ser igual que la 1. Sube volumen o intensidad de forma coherente.
+- Nada de humo: no inventes ejercicios raros ni promesas ("bajarás 5kg garantizados"). Sé directo y realista.
+- No des consejo médico. En "disclaimer" incluye SIEMPRE una frase corta indicando que es orientativo y recomendando consultar a un profesional (entrenador/dietista/médico) antes de cambios drásticos.
+- Idioma: SIEMPRE español, tono directo y motivador.
+- Cada campo de texto (training/cardio/nutrition/notes) es CORTO: 1-2 líneas máximo. Nada de listas anidadas dentro del string.`;
+}
+
 // ── Esquemas para extraer el plan y poder guardarlo en el diario ──
 const EXTRACT_SCHEMAS = {
   training: {
@@ -446,7 +532,7 @@ export default async function handler(req, res) {
     return res.status(503).json({ error: 'not_configured', message: 'La IA aún no está configurada en el servidor.' });
   }
 
-  const { section, profile, messages, extract, timerCombos, foodPhoto, creatorStudio } = req.body || {};
+  const { section, profile, messages, extract, timerCombos, foodPhoto, creatorStudio, objectivePlan } = req.body || {};
 
   // ── CREATOR STUDIO: solo admin, gasto contabilizado aparte de las cuotas
   //    de Mi Esquina (section:'creator-studio' en ai_usage) ──
@@ -514,6 +600,43 @@ export default async function handler(req, res) {
   }
 
   const anthropic = new Anthropic({ apiKey });
+
+  // ── MODO PLAN POR OBJETIVO ──
+  // Genera un plan semanal completo a partir de un objetivo + respuestas
+  // opcionales. Si `previous` viene, es una re-generación con ajustes: se
+  // manda el plan previo entero al modelo para que lo modifique en vez de
+  // rehacerlo. Cuenta como 1 turno de la cuota (kind='chat', section='training').
+  if (objectivePlan) {
+    const objective = String(objectivePlan.objective || '').trim().slice(0, 500);
+    if (!objective) {
+      return res.status(400).json({ error: 'bad_objective', message: 'Falta el objetivo del plan.' });
+    }
+    const answers = objectivePlan.answers || {};
+    const previous = objectivePlan.previous || null;   // plan anterior si es refine
+    const adjustments = String(objectivePlan.adjustments || '').trim().slice(0, 500) || null;
+    try {
+      const response = await anthropic.messages.create({
+        model: MODEL,
+        max_tokens: 4000,
+        system: objectivePlanSystem(profile || {}, objective, answers, previous, adjustments),
+        messages: [{ role: 'user', content: previous && adjustments
+          ? `Aquí tienes el objetivo, mi plan actual y los ajustes que quiero. Devuelve el plan entero con los ajustes aplicados.`
+          : `Genera el plan semanal para mi objetivo.` }],
+        output_config: { format: { type: 'json_schema', name: 'plan_objetivo', schema: OBJECTIVE_PLAN_SCHEMA } },
+      });
+      const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
+      let plan;
+      try { plan = JSON.parse(text); } catch { plan = null; }
+      await recordUsage(gate.db, gate.user.id, 'training', 'chat', response.usage);
+      if (!plan || !Array.isArray(plan.weeks) || plan.weeks.length === 0) {
+        return res.status(422).json({ error: 'no_plan', message: 'No he podido generar un plan concreto. Prueba a especificar más el objetivo.' });
+      }
+      return res.status(200).json({ plan, usage: response.usage });
+    } catch (err) {
+      const status = err?.status === 429 ? 429 : 500;
+      return res.status(status).json({ error: 'ia_error', message: status === 429 ? 'La IA está saturada, prueba en un momento.' : 'No se pudo generar el plan.' });
+    }
+  }
 
   // ── MODO FOTO DE COMIDA: imagen → estimación de macros ──
   // Cuenta como un turno normal de la cuota. Devuelve JSON validado.

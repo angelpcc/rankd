@@ -1,0 +1,96 @@
+// Plan IA por objetivo (Mi Esquina › Progreso › Plan IA).
+// Prefijo op_ ("objective plan").
+export default {
+  // ── Cabecera ──
+  op_eyebrow: 'PLAN IA',
+  op_title: 'Tu objetivo,',
+  op_title_2: 'tu plan',
+  op_sub: 'Dime a qué apuntas y te monto un plan semanal de entrenamiento, cardio y nutrición hecho a tu medida.',
+
+  // ── Muy pronto (sin API key) ──
+  op_soon_title: 'PLAN IA',
+  op_soon_desc: 'En cuanto activemos la IA podrás pedir un plan completo (entreno + cardio + nutrición) por tu objetivo, ajustarlo con tus palabras y añadirlo a tu Agenda de un toque.',
+  op_soon_tag: 'muy pronto',
+
+  // ── Paso 1: objetivo ──
+  op_step1_title: '¿Cuál es tu objetivo?',
+  op_step1_hint: 'Elige uno rápido o escríbelo con tus palabras.',
+  op_preset_lose_weight: 'Bajar de peso',
+  op_preset_gain_muscle: 'Ganar masa muscular',
+  op_preset_endurance: 'Mejorar resistencia',
+  op_preset_fight_prep: 'Preparar combate',
+  op_preset_stay_fit: 'Mantenerme en forma',
+  op_custom_ph: 'Ej: Bajar 2 kg antes de junio',
+  op_step1_next: 'Siguiente',
+
+  // ── Paso 2: preguntas de calibrado ──
+  op_step2_title: 'Personaliza tu plan',
+  op_step2_hint: 'Cada pregunta es opcional. Cuantas más contestes, más ajustado saldrá el plan.',
+  op_skip: 'Omitir',
+  op_skip_all: 'Omitir todas',
+
+  op_q_days_label: '¿Cuántos días puedes entrenar por semana?',
+  op_q_time_label: '¿Cuánto tiempo tienes por sesión?',
+  op_q_cardio_label: '¿Puedes hacer cardio aparte del entreno?',
+  op_q_cardio_yes: 'Sí',
+  op_q_cardio_no: 'No',
+  op_q_cardio_minutes_ph: 'Minutos por día',
+  op_q_cook_label: '¿Tienes tiempo para cocinar/preparar comidas?',
+  op_q_cook_yes: 'Sí',
+  op_q_cook_sometimes: 'A veces',
+  op_q_cook_no: 'No',
+  op_q_notes_label: '¿Algo más que deba saber?',
+  op_q_notes_ph: 'Lesiones, horarios, preferencias, alimentos que no comes...',
+  op_time_30: '30 min',
+  op_time_45: '45 min',
+  op_time_60: '1 h',
+  op_time_90: '1.5 h',
+  op_time_120: '2 h+',
+
+  op_step2_generate: 'Generar mi plan',
+  op_step2_generating: 'Preparando tu plan',
+
+  // ── Paso 3: preview del plan ──
+  op_plan_your: 'Tu plan',
+  op_week: 'Semana',
+  op_day_monday: 'Lunes',
+  op_day_tuesday: 'Martes',
+  op_day_wednesday: 'Miércoles',
+  op_day_thursday: 'Jueves',
+  op_day_friday: 'Viernes',
+  op_day_saturday: 'Sábado',
+  op_day_sunday: 'Domingo',
+  op_field_training: 'Entrenamiento',
+  op_field_cardio: 'Cardio',
+  op_field_nutrition: 'Nutrición',
+  op_field_notes: 'Notas',
+  op_day_rest: 'Descanso',
+
+  // ── Ajustes y guardar ──
+  op_adjust_title: '¿Quieres hacer algún ajuste?',
+  op_adjust_ph: 'Ej: Quítame los sábados; mete más cardio; sin lácteos...',
+  op_adjust_apply: 'Regenerar con estos ajustes',
+  op_adjust_applying: 'Aplicando ajustes',
+  op_save_agenda: 'Añadir a mi agenda',
+  op_saving: 'Añadiendo…',
+  op_saved_agenda: '{{n}} sesiones añadidas a tu agenda',
+  op_saved_none: 'No se ha podido añadir el plan',
+
+  // ── Estado del plan activo ──
+  op_active_plan: 'Plan activo',
+  op_no_active: 'Aún no tienes ningún plan activo. Genera uno con tu objetivo.',
+  op_start_over: 'Crear un plan nuevo',
+  op_start_over_confirm: 'Al generar uno nuevo, el actual pasa a archivo. ¿Seguir?',
+  op_version: 'v{{n}}',
+  op_created_at: 'Creado el {{date}}',
+  op_archive: 'Archivar plan',
+  op_archived_toast: 'Plan archivado',
+
+  // ── Errores ──
+  op_err_no_objective: 'Escribe primero tu objetivo.',
+  op_err_generate: 'No he podido generar el plan. Prueba a especificar más el objetivo.',
+  op_err_quota_out: 'Has agotado tus consultas de IA de este mes.',
+  op_err_generic: 'Algo ha fallado. Prueba en un momento.',
+
+  op_disclaimer_prefix: 'Aviso:',
+};
