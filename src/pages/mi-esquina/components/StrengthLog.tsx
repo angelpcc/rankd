@@ -167,6 +167,22 @@ export default function StrengthLog({ profile, showToast }: Props) {
     });
   };
 
+  // Si el Plan IA tenía algo agendado para el día de la sesión, márcalo hecho.
+  // Filtro por source='ai' para no tocar entradas planificadas a mano por el
+  // usuario. Best-effort y silencioso: si la migración 0021 no está aplicada,
+  // `source` no existe y no marcamos nada (mejor omitir que marcar de más).
+  const markPlanDayDone = async (sessionDate: string) => {
+    try {
+      const { error } = await supabase.from('planned_events')
+        .update({ done: true })
+        .eq('fighter_profile_id', profile.id)
+        .eq('event_date', sessionDate)
+        .eq('source', 'ai')
+        .eq('done', false);
+      if (error && isMissingColumn(error)) return;  // 0021 pending → no-op
+    } catch { /* silencioso: no bloqueamos el guardado por esto */ }
+  };
+
   const saveSession = async (session: BuiltSession) => {
     // reps_max = null cuando la serie es "8" (fijo); = 10 cuando es "8-10".
     // Solo se envía si la fila NEW lo trae; la degradación por si la
@@ -222,6 +238,8 @@ export default function StrengthLog({ profile, showToast }: Props) {
     const exCount = session.blocks.reduce((a, b) => a + b.exercises.length, 0);
     showToast(t('mc_str_session_saved', { groups: groupNames, n: exCount }));
     void logToAgenda(session.date, session.blocks.flatMap((b) => b.exercises.map((e) => e.label)));
+    // Si había un día del Plan IA agendado para esta fecha, se marca hecho.
+    void markPlanDayDone(session.date);
 
     // Marca personal: destello único de 600 ms sin loop.
     if (isPR) {
