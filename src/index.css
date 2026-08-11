@@ -602,29 +602,15 @@ html, body {
   border-color: rgba(225, 6, 0, 0.5);
 }
 
-/* ── SECCIÓN ENCAJADA AL VIEWPORT ──
-   Cada sección de la home (Cómo funciona, Beneficios, Peleadores…) ocupa
-   el alto de la ventana en escritorio y centra su contenido vertical.
-   Cuando el peleador scrollea a la sección, la ve entera sin que sobre
-   ni la mitad de una tarjeta cortada.
-
-   En móvil (≤900px) se libera el min-height: meter 4 tarjetas apiladas
-   en 812px no es realista, y forzarlo cortaría contenido; se deja scroll
-   natural y solo se conserva el padding contenido. */
+/* ── SECCIÓN COMPACTA ──
+   Padding vertical contenido para las secciones de la home, más apretado
+   que el sp-section original (que llegaba a 152px por lado en desktop
+   y dejaba huecos vacíos entre secciones).
+   NO fuerza min-height ni centra vertical: el contenido se pinta de
+   arriba a abajo natural, sin flotar en el medio ni dejar espacio raro. */
 .rk-viewport-section {
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding-top: clamp(40px, 5vw, 72px);
-  padding-bottom: clamp(40px, 5vw, 72px);
-}
-@media (max-width: 900px) {
-  .rk-viewport-section {
-    min-height: 0;
-    padding-top: clamp(48px, 10vw, 72px);
-    padding-bottom: clamp(48px, 10vw, 72px);
-  }
+  padding-top: clamp(48px, 6vw, 88px);
+  padding-bottom: clamp(48px, 6vw, 88px);
 }
 
 /* ── SIGNATURE MOMENT · Flash de Personal Record ──
