@@ -16,12 +16,10 @@ import FightPrep from '@/pages/mi-esquina/components/FightPrep';
 import AgendaHub from '@/pages/mi-esquina/components/AgendaHub';
 import ProgressHub from '@/pages/mi-esquina/components/ProgressHub';
 import RingHub from '@/pages/mi-esquina/components/RingHub';
-import GearChecklist, { GearReplacementAlert } from '@/pages/mi-esquina/components/GearChecklist';
+import { GearReplacementAlert } from '@/pages/mi-esquina/components/GearChecklist';
 import GymLink from '@/pages/mi-esquina/components/GymLink';
-import GearBrands from '@/pages/mi-esquina/components/GearBrands';
-import SectionCoach from '@/pages/mi-esquina/components/SectionCoach';
-import MealLog from '@/pages/mi-esquina/components/MealLog';
-import FoodPhotoAnalyzer from '@/pages/mi-esquina/components/FoodPhotoAnalyzer';
+import NutritionHub from '@/pages/mi-esquina/components/NutritionHub';
+import GearHub from '@/pages/mi-esquina/components/GearHub';
 import Reveal from '@/components/base/Reveal';
 import PageBreadcrumb from '@/components/base/PageBreadcrumb';
 import CountUp from '@/components/base/CountUp';
@@ -183,18 +181,6 @@ export default function MiEsquinaPage() {
 
   // Navega a una sección y, opcionalmente, abre un hub en una pestaña concreta.
   const go = (s: Section, tab?: string) => { setPendingTab(tab); setSection(s); };
-
-  // Guía de nutrición: el bloque de peso cambia según el perfil.
-  const NUTRITION_GUIDE = [
-    { icon: 'ri-drop-line', t: 'mc_ng_hydration_t', b: 'mc_ng_hydration_b' },
-    { icon: 'ri-restaurant-2-line', t: 'mc_ng_before_t', b: 'mc_ng_before_b' },
-    { icon: 'ri-flashlight-line', t: 'mc_ng_after_t', b: 'mc_ng_after_b' },
-    isHobby
-      ? { icon: 'ri-heart-pulse-line', t: 'mc_ng_fatloss_t', b: 'mc_ng_fatloss_b' }
-      : { icon: 'ri-scales-2-line', t: 'mc_ng_cut_t', b: 'mc_ng_cut_b' },
-    { icon: 'ri-capsule-line', t: 'mc_ng_supp_t', b: 'mc_ng_supp_b' },
-    { icon: 'ri-moon-line', t: 'mc_ng_sleep_t', b: 'mc_ng_sleep_b' },
-  ];
 
   // Accesos rápidos del resumen, distintos por perfil. `tab` abre el hub en la
   // pestaña indicada. Compartir vive aquí ahora que dejó la barra lateral.
@@ -516,152 +502,15 @@ export default function MiEsquinaPage() {
               accede ahora desde Progreso › Objetivos, con contexto del plan
               en curso. Nutrición y Material siguen teniendo su IA dentro. */}
 
-          {/* ══ MATERIAL ══ */}
+          {/* ══ MATERIAL ══ (R17b: sección por pestañas dentro de GearHub) */}
           {activeSection === 'material' && (
-            <div className="space-y-8 max-w-4xl">
-              <GearChecklist profile={profile} showToast={showToast} />
-
-              <div className="rk-rule" style={{ width: '100%', opacity: 0.5 }} />
-
-              <GearBrands profile={profile} mode={mode} />
-
-              <div className="rk-rule" style={{ width: '100%', opacity: 0.5 }} />
-
-              <Reveal>
-                <div className="mb-4">
-                  <p className="rk-eyebrow">{t('mc_gear_ask_ai')}</p>
-                  <h2 className="rk-h2" style={{ fontSize: 'clamp(1.6rem,3.5vw,2.1rem)', margin: '4px 0 0', color: '#fff' }}>
-                    {t('mc_nav_gear')}
-                  </h2>
-                  <p className="text-zinc-400 text-sm mt-1.5">{t('mc_gear_ask_ai_desc')}</p>
-                </div>
-                <SectionCoach
-                  section="gear"
-                  profile={profile}
-                  showToast={showToast}
-                  accent="red"
-                  title={t('mc_nav_gear')}
-                  intro={t('mc_gear_ask_ai_desc')}
-                  suggestions={[t('mc_gear_sug_1'), t('mc_gear_sug_2'), t('mc_gear_sug_3'), t('mc_gear_sug_4')]}
-                />
-              </Reveal>
-            </div>
+            <GearHub profile={profile} showToast={showToast} mode={mode} />
           )}
 
-          {/* ══ NUTRICIÓN ══ */}
-          {/* R17: reestructura visual con 4 bloques principales bien
-              separados (gap-8) — antes iban apilados sin respiración. Cada
-              bloque tiene su propio contenedor y una cabecera clara. Al
-              final quedan dos bloques extra: coach IA de nutrición (opcional,
-              gated por API key) y la guía informativa. */}
+          {/* ══ NUTRICIÓN ══ (R17b: sección por pestañas dentro de NutritionHub) */}
           {activeSection === 'nutricion' && (
-            <div className="flex flex-col gap-8 max-w-4xl">
-              {/* Aviso sanitario permanente y visible desde el primer momento */}
-              <div className="flex items-start gap-3 rounded-2xl border border-[#C9A84C]/30 bg-[#C9A84C]/[0.07] px-4 py-3.5">
-                <i className="ri-heart-pulse-line text-[#C9A84C] text-lg mt-0.5 flex-shrink-0"></i>
-                <p className="text-xs text-zinc-300 leading-relaxed">{t('mc_ng_safety_banner')}</p>
-              </div>
-
-              {/* ── BLOQUE 1 · DIARIO DE COMIDAS ── */}
-              <Reveal>
-                <section aria-labelledby="ng-block-diary" className="rk-card" style={{ padding: 22 }}>
-                  <header className="mb-4">
-                    <p className="rk-eyebrow">{t('mc_ng_log_title')}</p>
-                    <h2 id="ng-block-diary" className="rk-h3" style={{ fontSize: '1.25rem', color: '#fff', margin: '4px 0 0' }}>
-                      {t('mc_ng_log_head')} <span className="rk-red-glow">{t('mc_ng_log_head_2')}</span>
-                    </h2>
-                    <p className="rk-body-14 mt-1">{t('mc_ng_log_sub')}</p>
-                  </header>
-                  <MealLog profile={profile} showToast={showToast} />
-                </section>
-              </Reveal>
-
-              {/* ── BLOQUE 2 · ANALIZAR CON FOTO ── */}
-              <Reveal delay={40}>
-                <section aria-labelledby="ng-block-photo">
-                  <FoodPhotoAnalyzer showToast={showToast} />
-                </section>
-              </Reveal>
-
-              {/* ── BLOQUE 3 · HIDRATACIÓN ── */}
-              <Reveal delay={80}>
-                <section aria-labelledby="ng-block-water">
-                  <NutritionTracker profile={profile} showToast={showToast} onGoWeight={() => go('progreso', 'peso')} />
-                </section>
-              </Reveal>
-
-              {/* ── BLOQUE 4 · RESUMEN DEL DÍA ── */}
-              {/* Resumen ligero: mientras no exista un rollup real de calorías/
-                  macros, esto es un puente al Control de peso. Se mantiene aquí
-                  para que la sección cierre con una acción clara y no en el
-                  aire. Cuando haya rollup, sustituir el contenido interno. */}
-              <Reveal delay={120}>
-                <section aria-labelledby="ng-block-summary" className="rk-card" style={{ padding: 22 }}>
-                  <header className="mb-3">
-                    <p className="rk-eyebrow">{t('mc_ng_summary_eyebrow')}</p>
-                    <h2 id="ng-block-summary" className="rk-h3" style={{ fontSize: '1.15rem', color: '#fff', margin: '4px 0 0' }}>
-                      {t('mc_ng_summary_title')}
-                    </h2>
-                    <p className="rk-body-14 mt-1">{t('mc_ng_summary_desc')}</p>
-                  </header>
-                  <button onClick={() => go('progreso', 'peso')}
-                    className="rk-nav-btn text-sm w-full sm:w-auto flex items-center justify-center gap-1.5"
-                    style={{ padding: '0.7rem 1.3rem' }}>
-                    <i className="ri-scales-2-line" />
-                    {t('mc_ng_summary_go_weight')}
-                    <i className="ri-arrow-right-line" />
-                  </button>
-                </section>
-              </Reveal>
-
-              {/* ── EXTRA: coach IA de nutrición (in-section, gated) ── */}
-              <Reveal delay={160}>
-                <section aria-labelledby="ng-block-coach">
-                  <SectionCoach
-                    section="nutrition"
-                    profile={profile}
-                    showToast={showToast}
-                    accent="sky"
-                    title={t('mc_ng_coach_title')}
-                    intro={isHobby ? t('mc_ng_coach_intro_hobby') : t('mc_ng_coach_intro_pro')}
-                    suggestions={isHobby
-                      ? [t('mc_ng_sug_hobby_1'), t('mc_ng_sug_hobby_2'), t('mc_ng_sug_hobby_3')]
-                      : [t('mc_ng_sug_pro_1'), t('mc_ng_sug_pro_2'), t('mc_ng_sug_pro_3')]}
-                  />
-                </section>
-              </Reveal>
-
-              {/* ── EXTRA: guía de nutrición ── */}
-              <Reveal delay={200}>
-                <section aria-labelledby="ng-block-guide">
-                  <header className="mb-4">
-                    <p className="rk-eyebrow">{t('mc_ng_eyebrow')}</p>
-                    <h2 id="ng-block-guide" className="rk-h3" style={{ fontSize: '1.15rem', color: '#fff', margin: '4px 0 0' }}>
-                      {t('mc_ng_title')} <span className="rk-red-glow">{t('mc_ng_title_2')}</span>
-                    </h2>
-                    <p className="rk-body-14 mt-1">{t('mc_ng_sub')}</p>
-                  </header>
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    {NUTRITION_GUIDE.map((n, i) => (
-                      <Reveal key={n.t} delay={Math.min(i, 5) * 60}>
-                        <div className="rk-card" style={{ padding: 20 }}>
-                          <div className="flex items-center gap-3 mb-2.5">
-                            <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-green-500/10 border border-green-500/25 text-green-400"><i className={`${n.icon} text-lg`}></i></div>
-                            <h3 className="text-base font-bold text-white">{t(n.t)}</h3>
-                          </div>
-                          <p className="text-xs text-zinc-400 leading-relaxed">{t(n.b)}</p>
-                        </div>
-                      </Reveal>
-                    ))}
-                  </div>
-                </section>
-              </Reveal>
-
-              <div className="rk-card flex items-start gap-3" style={{ padding: 16 }}>
-                <i className="ri-information-line text-zinc-500 mt-0.5"></i>
-                <p className="text-[11px] text-zinc-500 leading-relaxed">{t('mc_ng_disclaimer')}</p>
-              </div>
-            </div>
+            <NutritionHub profile={profile} showToast={showToast} isHobby={isHobby}
+              onGoWeight={() => go('progreso', 'peso')} />
           )}
         </main>
       </div>

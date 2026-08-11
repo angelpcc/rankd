@@ -769,6 +769,16 @@ export default {
   mc_ng_summary_title: 'Enlaza tu nutrición con tu peso',
   mc_ng_summary_desc: 'Las comidas y la hidratación de hoy quedan registradas arriba. Para ver la evolución global y tu objetivo, salta al control de peso.',
   mc_ng_summary_go_weight: 'Ir a Control de peso',
+  // Tabs de la sección Nutrición (R17b)
+  mc_ng_tab_diary: 'Diario',
+  mc_ng_tab_photo: 'Foto',
+  mc_ng_tab_water: 'Agua',
+  mc_ng_tab_coach: 'Coach IA',
+  mc_ng_tab_guide: 'Guía',
+  // Tabs de la sección Material (R17b)
+  mc_gr_tab_gear: 'Mi equipo',
+  mc_gr_tab_brands: 'Marcas',
+  mc_gr_tab_coach: 'Asesor',
   mc_ng_safety_banner: 'Todo lo de esta sección es orientativo y no sustituye a un médico ni a un dietista-nutricionista colegiado. Ante cualquier patología, embarazo o problema con la comida, consulta a un profesional.',
   mc_ng_log_title: 'TU DIETA, A DIARIO',
   mc_ng_log_head: 'COACH DE',

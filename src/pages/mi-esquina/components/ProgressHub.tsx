@@ -17,10 +17,14 @@ interface Props {
 // mismo lugar (ver ObjectiveWizard). El GoalsPanel tradicional
 // (fighter_goals) queda archivado por ahora — el archivo sigue en disco por
 // si más adelante se reincorpora como bloque secundario dentro de esta tab.
+//
+// Orden intencional: Objetivos primero (dónde vas), Fuerza en medio (cómo
+// trabajas) y Peso al final (la medida). Antes iba Peso primero, pero eso
+// dejaba lo importante — el plan — enterrado a la derecha.
 const TABS: HubTab[] = [
-  { id: 'peso', labelKey: 'mc_pr_tab_weight', icon: 'ri-scales-2-line' },
-  { id: 'fuerza', labelKey: 'mc_pr_tab_strength', icon: 'ri-hammer-line' },
   { id: 'objetivos', labelKey: 'mc_nav_goals', icon: 'ri-sparkling-2-line' },
+  { id: 'fuerza', labelKey: 'mc_pr_tab_strength', icon: 'ri-hammer-line' },
+  { id: 'peso', labelKey: 'mc_pr_tab_weight', icon: 'ri-scales-2-line' },
 ];
 
 /**
@@ -28,7 +32,7 @@ const TABS: HubTab[] = [
  * son "seguir un número en el tiempo", así que van juntos con pestañas.
  */
 export default function ProgressHub({ profile, showToast, mode, initialTab }: Props) {
-  const [tab, setTab] = useState<string>(initialTab || 'peso');
+  const [tab, setTab] = useState<string>(initialTab || 'objetivos');
   useEffect(() => { if (initialTab) setTab(initialTab); }, [initialTab]);
 
   return (

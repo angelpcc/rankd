@@ -769,6 +769,16 @@ export default {
   mc_ng_summary_title: 'Link your nutrition to your weight',
   mc_ng_summary_desc: 'Today\'s meals and hydration are logged above. To see the big-picture trend and your target, jump to weight tracking.',
   mc_ng_summary_go_weight: 'Go to Weight tracking',
+  // Nutrition section tabs (R17b)
+  mc_ng_tab_diary: 'Diary',
+  mc_ng_tab_photo: 'Photo',
+  mc_ng_tab_water: 'Water',
+  mc_ng_tab_coach: 'AI coach',
+  mc_ng_tab_guide: 'Guide',
+  // Gear section tabs (R17b)
+  mc_gr_tab_gear: 'My gear',
+  mc_gr_tab_brands: 'Brands',
+  mc_gr_tab_coach: 'Advisor',
   mc_ng_safety_banner: 'Everything in this section is guidance only and does not replace a doctor or a registered dietitian. For any medical condition, pregnancy or problem with food, see a professional.',
   mc_ng_log_title: 'YOUR DIET, DAY BY DAY',
   mc_ng_log_head: 'NUTRITION',
