@@ -32,9 +32,12 @@ import NotificationBell from '@/components/feature/NotificationBell';
 // 'progreso' = peso+fuerza, 'ring' = sparring+combates+notas técnicas.
 // 'compartir' deja de ser sección de barra lateral y vive como acción del
 // resumen (sigue siendo un destino válido, por eso se mantiene en el tipo).
+// R17: Coach IA como sección propia se retiró — la IA vive DENTRO de cada
+// bloque (nutrición, material, objetivos), donde ya trae contexto de lo que
+// el peleador está haciendo. Un asistente genérico duplicaba entradas.
 type Section =
   | 'resumen' | 'agenda' | 'progreso' | 'ring' | 'objetivos' | 'documentos'
-  | 'compartir' | 'coach' | 'material' | 'nutricion' | 'timer' | 'mensajes';
+  | 'compartir' | 'material' | 'nutricion' | 'timer' | 'mensajes';
 
 interface SectionDef { id: Section; labelKey: string; icon: string }
 
@@ -52,7 +55,6 @@ const PRO_SECTIONS: SectionDef[] = [
   { id: 'agenda', labelKey: 'mc_nav_agenda', icon: 'ri-calendar-todo-line' },
   { id: 'progreso', labelKey: 'mc_nav_progress_hub', icon: 'ri-line-chart-line' },
   { id: 'ring', labelKey: 'mc_nav_ring', icon: 'ri-boxing-line' },
-  { id: 'coach', labelKey: 'mc_nav_coach', icon: 'ri-sparkling-2-line' },
   { id: 'material', labelKey: 'mc_nav_gear', icon: 'ri-t-shirt-line' },
   { id: 'nutricion', labelKey: 'mc_nav_nutrition', icon: 'ri-restaurant-line' },
   { id: 'timer', labelKey: 'mc_nav_timer', icon: 'ri-timer-flash-line' },
@@ -65,7 +67,6 @@ const HOBBY_SECTIONS: SectionDef[] = [
   { id: 'resumen', labelKey: 'mc_nav_summary', icon: 'ri-dashboard-line' },
   { id: 'agenda', labelKey: 'mc_nav_agenda', icon: 'ri-calendar-todo-line' },
   { id: 'progreso', labelKey: 'mc_nav_progress_hub', icon: 'ri-line-chart-line' },
-  { id: 'coach', labelKey: 'mc_nav_coach', icon: 'ri-sparkling-2-line' },
   { id: 'material', labelKey: 'mc_nav_gear', icon: 'ri-t-shirt-line' },
   { id: 'nutricion', labelKey: 'mc_nav_nutrition', icon: 'ri-restaurant-line' },
   { id: 'timer', labelKey: 'mc_nav_timer', icon: 'ri-timer-flash-line' },
@@ -90,7 +91,7 @@ export default function MiEsquinaPage() {
 
   useSEO({
     title: 'Mi Esquina | RANKD',
-    description: 'Tu espacio de entrenamiento en RANKD: diario, calendario, peso, objetivos y Coach IA.',
+    description: 'Tu espacio de entrenamiento en RANKD: diario, calendario, peso, plan IA por objetivo y agenda.',
   });
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
@@ -202,7 +203,7 @@ export default function MiEsquinaPage() {
         { s: 'agenda', tab: 'diario', icon: 'ri-calendar-check-line', titleKey: 'mc_nav_diary' },
         { s: 'agenda', tab: 'rutinas', icon: 'ri-repeat-line', titleKey: 'mc_nav_routines' },
         { s: 'progreso', tab: 'peso', icon: 'ri-line-chart-line', titleKey: 'mc_nav_progress' },
-        { s: 'coach', icon: 'ri-sparkling-2-line', titleKey: 'mc_nav_coach' },
+        { s: 'progreso', tab: 'objetivos', icon: 'ri-sparkling-2-line', titleKey: 'mc_nav_goals' },
         { s: 'compartir', icon: 'ri-share-forward-line', titleKey: 'mc_nav_share' },
       ]
     : [
@@ -210,7 +211,7 @@ export default function MiEsquinaPage() {
         { s: 'ring', tab: 'sparring', icon: 'ri-boxing-line', titleKey: 'mc_nav_sparring' },
         { s: 'progreso', tab: 'peso', icon: 'ri-scales-2-line', titleKey: 'mc_nav_weight' },
         { s: 'agenda', tab: 'plan', icon: 'ri-calendar-2-line', titleKey: 'mc_nav_calendar' },
-        { s: 'coach', icon: 'ri-sparkling-2-line', titleKey: 'mc_nav_coach' },
+        { s: 'progreso', tab: 'objetivos', icon: 'ri-sparkling-2-line', titleKey: 'mc_nav_goals' },
         { s: 'compartir', icon: 'ri-share-forward-line', titleKey: 'mc_nav_share' },
       ];
 
@@ -511,33 +512,9 @@ export default function MiEsquinaPage() {
 
           {activeSection === 'mensajes' && <div className="max-w-5xl"><MessagesPanel currentUserId={profile.id} /></div>}
 
-          {/* ══ COACH IA ══ */}
-          {activeSection === 'coach' && (
-            <div className="space-y-5 max-w-3xl">
-              <Reveal>
-                <div>
-                  <p className="rk-eyebrow">{t('mc_coach_eyebrow')}</p>
-                  <h2 className="rk-h2" style={{ fontSize: 'clamp(1.8rem,4vw,2.4rem)', color: '#fff', margin: '4px 0 0' }}>
-                    {t('mc_coach_training_title')} <span className="rk-red-glow">{t('mc_coach_training_title_2')}</span>
-                  </h2>
-                  <p className="text-zinc-400 text-sm mt-1.5 max-w-md">{isHobby ? t('mc_coach_sub_hobby') : t('mc_coach_sub_pro')}</p>
-                </div>
-              </Reveal>
-              <Reveal delay={80}>
-                <SectionCoach
-                  section="training"
-                  profile={profile}
-                  showToast={showToast}
-                  accent="red"
-                  title={t('mc_nav_coach')}
-                  intro={isHobby ? t('mc_coach_intro_hobby') : t('mc_coach_intro_pro')}
-                  suggestions={isHobby
-                    ? [t('mc_coach_sug_hobby_1'), t('mc_coach_sug_hobby_2'), t('mc_coach_sug_hobby_3'), t('mc_coach_sug_hobby_4')]
-                    : [t('mc_coach_sug_pro_1'), t('mc_coach_sug_pro_2'), t('mc_coach_sug_pro_3'), t('mc_coach_sug_pro_4')]}
-                />
-              </Reveal>
-            </div>
-          )}
+          {/* R17: bloque "Coach IA" retirado. El coach de entrenamiento se
+              accede ahora desde Progreso › Objetivos, con contexto del plan
+              en curso. Nutrición y Material siguen teniendo su IA dentro. */}
 
           {/* ══ MATERIAL ══ */}
           {activeSection === 'material' && (
@@ -572,32 +549,74 @@ export default function MiEsquinaPage() {
           )}
 
           {/* ══ NUTRICIÓN ══ */}
+          {/* R17: reestructura visual con 4 bloques principales bien
+              separados (gap-8) — antes iban apilados sin respiración. Cada
+              bloque tiene su propio contenedor y una cabecera clara. Al
+              final quedan dos bloques extra: coach IA de nutrición (opcional,
+              gated por API key) y la guía informativa. */}
           {activeSection === 'nutricion' && (
-            <div className="space-y-8 max-w-4xl">
+            <div className="flex flex-col gap-8 max-w-4xl">
               {/* Aviso sanitario permanente y visible desde el primer momento */}
               <div className="flex items-start gap-3 rounded-2xl border border-[#C9A84C]/30 bg-[#C9A84C]/[0.07] px-4 py-3.5">
                 <i className="ri-heart-pulse-line text-[#C9A84C] text-lg mt-0.5 flex-shrink-0"></i>
                 <p className="text-xs text-zinc-300 leading-relaxed">{t('mc_ng_safety_banner')}</p>
               </div>
 
-              <NutritionTracker profile={profile} showToast={showToast} onGoWeight={() => go('progreso', 'peso')} />
-
-              <div className="rk-rule" style={{ width: '100%', opacity: 0.5 }} />
-
+              {/* ── BLOQUE 1 · DIARIO DE COMIDAS ── */}
               <Reveal>
-                <div className="mb-4">
-                  <p className="rk-eyebrow">{t('mc_ng_log_title')}</p>
-                  <h2 className="rk-h2" style={{ fontSize: 'clamp(1.6rem,3.5vw,2.1rem)', margin: '4px 0 0', color: '#fff' }}>
-                    {t('mc_ng_log_head')} <span className="rk-red-glow">{t('mc_ng_log_head_2')}</span>
-                  </h2>
-                  <p className="text-zinc-400 text-sm mt-1.5">{t('mc_ng_log_sub')}</p>
-                </div>
-                {/* Analizar comida con foto (IA, disponible pronto) */}
-                <div className="mb-4">
-                  <FoodPhotoAnalyzer showToast={showToast} />
-                </div>
-                <div className="grid lg:grid-cols-2 gap-4 items-start">
+                <section aria-labelledby="ng-block-diary" className="rk-card" style={{ padding: 22 }}>
+                  <header className="mb-4">
+                    <p className="rk-eyebrow">{t('mc_ng_log_title')}</p>
+                    <h2 id="ng-block-diary" className="rk-h3" style={{ fontSize: '1.25rem', color: '#fff', margin: '4px 0 0' }}>
+                      {t('mc_ng_log_head')} <span className="rk-red-glow">{t('mc_ng_log_head_2')}</span>
+                    </h2>
+                    <p className="rk-body-14 mt-1">{t('mc_ng_log_sub')}</p>
+                  </header>
                   <MealLog profile={profile} showToast={showToast} />
+                </section>
+              </Reveal>
+
+              {/* ── BLOQUE 2 · ANALIZAR CON FOTO ── */}
+              <Reveal delay={40}>
+                <section aria-labelledby="ng-block-photo">
+                  <FoodPhotoAnalyzer showToast={showToast} />
+                </section>
+              </Reveal>
+
+              {/* ── BLOQUE 3 · HIDRATACIÓN ── */}
+              <Reveal delay={80}>
+                <section aria-labelledby="ng-block-water">
+                  <NutritionTracker profile={profile} showToast={showToast} onGoWeight={() => go('progreso', 'peso')} />
+                </section>
+              </Reveal>
+
+              {/* ── BLOQUE 4 · RESUMEN DEL DÍA ── */}
+              {/* Resumen ligero: mientras no exista un rollup real de calorías/
+                  macros, esto es un puente al Control de peso. Se mantiene aquí
+                  para que la sección cierre con una acción clara y no en el
+                  aire. Cuando haya rollup, sustituir el contenido interno. */}
+              <Reveal delay={120}>
+                <section aria-labelledby="ng-block-summary" className="rk-card" style={{ padding: 22 }}>
+                  <header className="mb-3">
+                    <p className="rk-eyebrow">{t('mc_ng_summary_eyebrow')}</p>
+                    <h2 id="ng-block-summary" className="rk-h3" style={{ fontSize: '1.15rem', color: '#fff', margin: '4px 0 0' }}>
+                      {t('mc_ng_summary_title')}
+                    </h2>
+                    <p className="rk-body-14 mt-1">{t('mc_ng_summary_desc')}</p>
+                  </header>
+                  <button onClick={() => go('progreso', 'peso')}
+                    className="rk-nav-btn text-sm w-full sm:w-auto flex items-center justify-center gap-1.5"
+                    style={{ padding: '0.7rem 1.3rem' }}>
+                    <i className="ri-scales-2-line" />
+                    {t('mc_ng_summary_go_weight')}
+                    <i className="ri-arrow-right-line" />
+                  </button>
+                </section>
+              </Reveal>
+
+              {/* ── EXTRA: coach IA de nutrición (in-section, gated) ── */}
+              <Reveal delay={160}>
+                <section aria-labelledby="ng-block-coach">
                   <SectionCoach
                     section="nutrition"
                     profile={profile}
@@ -609,33 +628,35 @@ export default function MiEsquinaPage() {
                       ? [t('mc_ng_sug_hobby_1'), t('mc_ng_sug_hobby_2'), t('mc_ng_sug_hobby_3')]
                       : [t('mc_ng_sug_pro_1'), t('mc_ng_sug_pro_2'), t('mc_ng_sug_pro_3')]}
                   />
-                </div>
+                </section>
               </Reveal>
 
-              <div className="rk-rule" style={{ width: '100%', opacity: 0.5 }} />
-
-              <Reveal>
-                <div>
-                  <p className="rk-eyebrow">{t('mc_ng_eyebrow')}</p>
-                  <h2 className="rk-h2" style={{ fontSize: 'clamp(1.6rem,3.5vw,2.1rem)', margin: '4px 0 0', color: '#fff' }}>
-                    {t('mc_ng_title')} <span className="rk-red-glow">{t('mc_ng_title_2')}</span>
-                  </h2>
-                  <p className="text-zinc-400 text-sm mt-1.5">{t('mc_ng_sub')}</p>
-                </div>
+              {/* ── EXTRA: guía de nutrición ── */}
+              <Reveal delay={200}>
+                <section aria-labelledby="ng-block-guide">
+                  <header className="mb-4">
+                    <p className="rk-eyebrow">{t('mc_ng_eyebrow')}</p>
+                    <h2 id="ng-block-guide" className="rk-h3" style={{ fontSize: '1.15rem', color: '#fff', margin: '4px 0 0' }}>
+                      {t('mc_ng_title')} <span className="rk-red-glow">{t('mc_ng_title_2')}</span>
+                    </h2>
+                    <p className="rk-body-14 mt-1">{t('mc_ng_sub')}</p>
+                  </header>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {NUTRITION_GUIDE.map((n, i) => (
+                      <Reveal key={n.t} delay={Math.min(i, 5) * 60}>
+                        <div className="rk-card" style={{ padding: 20 }}>
+                          <div className="flex items-center gap-3 mb-2.5">
+                            <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-green-500/10 border border-green-500/25 text-green-400"><i className={`${n.icon} text-lg`}></i></div>
+                            <h3 className="text-base font-bold text-white">{t(n.t)}</h3>
+                          </div>
+                          <p className="text-xs text-zinc-400 leading-relaxed">{t(n.b)}</p>
+                        </div>
+                      </Reveal>
+                    ))}
+                  </div>
+                </section>
               </Reveal>
-              <div className="grid sm:grid-cols-2 gap-4">
-                {NUTRITION_GUIDE.map((n, i) => (
-                  <Reveal key={n.t} delay={Math.min(i, 5) * 60}>
-                    <div className="rk-card" style={{ padding: 20 }}>
-                      <div className="flex items-center gap-3 mb-2.5">
-                        <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-green-500/10 border border-green-500/25 text-green-400"><i className={`${n.icon} text-lg`}></i></div>
-                        <h3 className="text-base font-bold text-white">{t(n.t)}</h3>
-                      </div>
-                      <p className="text-xs text-zinc-400 leading-relaxed">{t(n.b)}</p>
-                    </div>
-                  </Reveal>
-                ))}
-              </div>
+
               <div className="rk-card flex items-start gap-3" style={{ padding: 16 }}>
                 <i className="ri-information-line text-zinc-500 mt-0.5"></i>
                 <p className="text-[11px] text-zinc-500 leading-relaxed">{t('mc_ng_disclaimer')}</p>
@@ -670,7 +691,7 @@ function LoggedOutPreview({ onSignIn }: { onSignIn: () => void }) {
     { icon: 'ri-calendar-check-line', t: 'Diario', d: 'Registra tu entrenamiento de hoy en 5 s' },
     { icon: 'ri-boxing-line', t: 'Ring', d: 'Sparrings, combates y notas técnicas' },
     { icon: 'ri-scales-2-line', t: 'Peso', d: 'Progresión y objetivos por semana' },
-    { icon: 'ri-sparkling-2-line', t: 'Coach IA', d: 'Preguntas concretas de entrenamiento' },
+    { icon: 'ri-sparkling-2-line', t: 'Plan IA', d: 'Genera un plan a medida por tu objetivo' },
   ];
   const bars = [22, 45, 30, 55, 12, 40, 60];
 
@@ -697,7 +718,7 @@ function LoggedOutPreview({ onSignIn }: { onSignIn: () => void }) {
           {/* Sidebar fake (escritorio) */}
           <aside className="hidden lg:flex flex-col w-60 flex-shrink-0 border-r border-zinc-800/70 py-6 px-3">
             <nav className="space-y-1 flex-1">
-              {['Resumen', 'Agenda', 'Progreso', 'Ring', 'Coach IA', 'Material', 'Nutrición', 'Timer', 'Mensajes'].map((s, i) => (
+              {['Resumen', 'Agenda', 'Progreso', 'Ring', 'Material', 'Nutrición', 'Timer', 'Mensajes'].map((s, i) => (
                 <div key={s} className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium ${i === 0 ? 'bg-red-600 text-white' : 'text-zinc-400'}`}>
                   <span className="w-4 h-4 bg-current opacity-40 rounded-sm" />
                   <span className="flex-1">{s}</span>
@@ -771,7 +792,7 @@ function LoggedOutPreview({ onSignIn }: { onSignIn: () => void }) {
             Inicia sesión para acceder a Mi Esquina
           </h2>
           <p className="rk-body-14" style={{ marginBottom: 22 }}>
-            Tu diario de entrenamiento, agenda, peso, sparring y coach IA — todo tuyo con una cuenta gratuita.
+            Tu diario de entrenamiento, agenda, peso, sparring y plan IA — todo tuyo con una cuenta gratuita.
           </p>
           <button
             onClick={onSignIn}

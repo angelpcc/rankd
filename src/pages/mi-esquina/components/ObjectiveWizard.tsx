@@ -1,29 +1,30 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable, isMissingColumn } from '@/lib/dbState';
 
 /**
- * Plan IA por objetivo (Mi Esquina › Progreso › Plan IA).
+ * Plan IA por objetivo (Mi Esquina › Progreso › Objetivos).
  *
- * El peleador escribe un OBJETIVO ("bajar 2kg", "preparar combate"), contesta
- * opcionalmente 4-5 preguntas de calibrado y la IA genera un plan semanal
- * completo (entreno + cardio + nutrición + notas por día). El plan se guarda
- * en `objective_plans` (fase que también archiva cualquier plan activo
- * anterior) y, al confirmar, cada día se convierte en una entrada de
- * `planned_events` con `source='ai'` que ya alimenta la Agenda existente.
+ * R17: la sección Objetivos ahora unifica lo que antes eran dos pestañas.
+ * Todo el flujo vive en UNA sola pantalla scrolleable — el usuario baja
+ * como en una conversación: escribe objetivo → aparecen preguntas → aparece
+ * plan → ajustes/confirmar. Nada de wizard por pasos.
+ *
+ * Contrato con la BD:
+ * - `objective_plans` (mig 0030): guarda objetivo + respuestas + plan JSON.
+ * - `planned_events` (existente): al confirmar, cada día del plan se
+ *   convierte en una entrada con `source='ai'` (mig 0021) que ya alimenta
+ *   la Agenda existente. Sin la 0021, se degrada silenciosamente.
  *
  * Gating: sonda GET a /api/coach al abrir. Sin `ANTHROPIC_API_KEY` en el
- * servidor, muestra el estado "muy pronto" con el CTA deshabilitado; con la
- * clave, funciona end-to-end sin tocar nada más.
+ * servidor, se muestra el estado "muy pronto" con el CTA deshabilitado.
  */
 
 interface Props {
   profile: Profile;
   showToast: (msg: string, type?: 'success' | 'error') => void;
 }
-
-type Stage = 'idle' | 'objective' | 'questions' | 'generating' | 'preview';
 
 interface Answers {
   days_per_week?: number;
@@ -58,15 +59,13 @@ interface DBPlan {
   created_at: string;
 }
 
-// El día del plan → índice de offset desde HOY (0=hoy, 6=hoy+6).
-// El plan empieza SIEMPRE en el lunes de la semana actual y va sumando semanas.
-// Si "hoy" es viernes y el plan dice "lunes semana 1", ese lunes es hace 4
-// días → se ignora (day_offset<0). Los días futuros del lunes al domingo de
-// esa semana sí entran; a partir de la semana 2 se cuentan enteras.
+// Convierte los días del plan (Lunes→Domingo) en offsets desde HOY.
+// La semana 1 empieza SIEMPRE el lunes de esta semana; los días ya pasados
+// de la semana actual (offset<0) se descartan del agendado. La semana 2+
+// se cuenta entera.
 function computeDayOffsets(weeks: PlanWeek[]): Array<{ dayIndex: number; weekIndex: number; day: PlanDay; offset: number }> {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
-  // getDay: 0=domingo, 1=lunes… → convertir a 0=lunes … 6=domingo
   const todayIdx = now.getDay() === 0 ? 6 : now.getDay() - 1;
   const mondayThisWeek = new Date(now);
   mondayThisWeek.setDate(now.getDate() - todayIdx);
@@ -76,7 +75,7 @@ function computeDayOffsets(weeks: PlanWeek[]): Array<{ dayIndex: number; weekInd
       const dayDate = new Date(mondayThisWeek);
       dayDate.setDate(mondayThisWeek.getDate() + wi * 7 + di);
       const offset = Math.round((dayDate.getTime() - now.getTime()) / 86400000);
-      if (offset < 0) return;   // días pasados de la semana actual: no se agendan
+      if (offset < 0) return;
       out.push({ dayIndex: di, weekIndex: wi, day: d, offset });
     });
   });
@@ -99,15 +98,16 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
 
-  // Gating: comprobar disponibilidad de IA al abrir.
+  // Gating IA
   const [checking, setChecking] = useState(true);
   const [notConfigured, setNotConfigured] = useState(false);
   const [tableMissing, setTableMissing] = useState(false);
 
+  // Plan activo persistido
   const [activePlan, setActivePlan] = useState<DBPlan | null>(null);
   const [loadingActive, setLoadingActive] = useState(true);
 
-  const [stage, setStage] = useState<Stage>('idle');
+  // Estado del flujo (todo en una sola pantalla)
   const [objective, setObjective] = useState('');
   const [answers, setAnswers] = useState<Answers>({});
   const [plan, setPlan] = useState<Plan | null>(null);
@@ -115,8 +115,15 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
   const [adjustments, setAdjustments] = useState('');
   const [savingAgenda, setSavingAgenda] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  // Cuando true, ocultamos el bloque del plan activo y mostramos el flujo
+  // de creación (objetivo → preguntas → plan). Al guardar vuelve a false.
+  const [creating, setCreating] = useState(false);
 
-  // ── Cargar plan activo + sondear IA en paralelo ──
+  // Refs para scroll suave al bloque nuevo cuando aparece
+  const questionsRef = useRef<HTMLDivElement | null>(null);
+  const planRef = useRef<HTMLDivElement | null>(null);
+
+  // ── Sonda IA + plan activo en paralelo ──
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -145,13 +152,12 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
       .maybeSingle();
     if (isMissingTable(error)) { setTableMissing(true); setLoadingActive(false); return; }
     setActivePlan((data as DBPlan) || null);
-    if (data?.plan_json) setPlan(data.plan_json as Plan);
     setLoadingActive(false);
   }, [profile.id]);
 
   useEffect(() => { void loadActivePlan(); }, [loadActivePlan]);
 
-  // ── Perfil físico para el system prompt (mismo formato que SectionCoach) ──
+  // Perfil físico para el system prompt
   const [physical, setPhysical] = useState<Record<string, unknown>>({});
   useEffect(() => {
     (async () => {
@@ -173,25 +179,31 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
     })();
   }, [profile.id, profile.full_name]);
 
+  // ── Scroll suave a un bloque cuando aparece ──
+  useEffect(() => {
+    if (creating && objective.trim() && questionsRef.current) {
+      questionsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [creating, objective]);
+
+  useEffect(() => {
+    if (plan && planRef.current) {
+      planRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [plan]);
+
   const startNew = () => {
     if (activePlan && !confirmReset) { setConfirmReset(true); return; }
     setConfirmReset(false);
-    setStage('objective');
+    setCreating(true);
     setObjective('');
     setAnswers({});
     setPlan(null);
     setAdjustments('');
   };
 
-  const goQuestions = () => {
-    if (!objective.trim()) { showToast(t('op_err_no_objective'), 'error'); return; }
-    setStage('questions');
-  };
-
-  const skipAll = () => { setAnswers({}); void generate(objective, {}, null, null); };
-
+  // ── Generación (nueva o refine) ──
   const generate = useCallback(async (obj: string, ans: Answers, previous: Plan | null, adjustText: string | null) => {
-    setStage('generating');
     setGenerating(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -202,43 +214,36 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
           ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         },
         body: JSON.stringify({
-          objectivePlan: {
-            objective: obj,
-            answers: ans,
-            previous,
-            adjustments: adjustText,
-          },
+          objectivePlan: { objective: obj, answers: ans, previous, adjustments: adjustText },
           profile: physical,
         }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.status === 429 && data?.error === 'quota_reached') {
         showToast(t('op_err_quota_out'), 'error');
-        setStage(previous ? 'preview' : 'questions');
         setGenerating(false);
         return;
       }
       if (!res.ok || !data?.plan) {
         showToast(data?.message || t('op_err_generate'), 'error');
-        setStage(previous ? 'preview' : 'questions');
         setGenerating(false);
         return;
       }
       setPlan(data.plan as Plan);
-      setStage('preview');
+      setAdjustments('');
     } catch {
       showToast(t('op_err_generic'), 'error');
-      setStage(previous ? 'preview' : 'questions');
     }
     setGenerating(false);
   }, [physical, showToast, t]);
 
+  const canGenerate = objective.trim().length > 0 && !generating;
   const applyAdjustments = () => {
     if (!plan || !adjustments.trim()) return;
     void generate(objective || activePlan?.objective_text || '', answers, plan, adjustments.trim());
   };
 
-  // ── Guardar en agenda + persistir el plan ──
+  // ── Guardar plan + volcar días futuros a la Agenda ──
   const saveToAgenda = useCallback(async () => {
     if (!plan || savingAgenda) return;
     setSavingAgenda(true);
@@ -248,7 +253,7 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
         await supabase.from('objective_plans').update({ status: 'archived', updated_at: new Date().toISOString() })
           .eq('id', activePlan.id);
       }
-      // 2. Guardar el nuevo plan como activo (con versión + 1 si venimos de un refine).
+      // 2. Guardar el nuevo plan como activo. Version+1 si venimos de un refine.
       const version = (activePlan?.version || 0) + 1;
       const { data: saved, error: saveErr } = await supabase.from('objective_plans').insert({
         fighter_profile_id: profile.id,
@@ -260,12 +265,12 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
       }).select().maybeSingle();
       if (saveErr || !saved) { showToast(t('op_saved_none'), 'error'); setSavingAgenda(false); return; }
 
-      // 3. Volcar los días futuros a planned_events con source='ai'.
+      // 3. Volcar días futuros a planned_events (source='ai' cuando exista la col).
       const scheduled = computeDayOffsets(plan.weeks);
       const rows = scheduled
-        .filter((s) => s.day.training || s.day.cardio)  // solo días con algo entrenable
+        .filter((s) => s.day.training || s.day.cardio)
         .map((s) => {
-          const bits = [];
+          const bits: string[] = [];
           if (s.day.training) bits.push(`Entreno: ${s.day.training}`);
           if (s.day.cardio) bits.push(`Cardio: ${s.day.cardio}`);
           if (s.day.nutrition) bits.push(`Nutrición: ${s.day.nutrition}`);
@@ -285,7 +290,6 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
       if (rows.length > 0) {
         let ins = await supabase.from('planned_events').insert(rows);
         if (ins.error && isMissingColumn(ins.error)) {
-          // Migración 0021 (source) sin aplicar: reintentar sin ese campo.
           const bare = rows.map((r) => { const c = { ...r } as Record<string, unknown>; delete c.source; return c; });
           ins = await supabase.from('planned_events').insert(bare);
         }
@@ -294,7 +298,11 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
 
       showToast(t('op_saved_agenda', { n: rows.length }), 'success');
       setActivePlan(saved as DBPlan);
-      setStage('idle');
+      setPlan(null);
+      setObjective('');
+      setAnswers({});
+      setAdjustments('');
+      setCreating(false);
     } catch {
       showToast(t('op_saved_none'), 'error');
     }
@@ -306,7 +314,7 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
     const { error } = await supabase.from('objective_plans')
       .update({ status: 'archived', updated_at: new Date().toISOString() }).eq('id', activePlan.id);
     if (error) { showToast(t('op_saved_none'), 'error'); return; }
-    setActivePlan(null); setPlan(null); setStage('idle');
+    setActivePlan(null); setPlan(null); setCreating(false);
     showToast(t('op_archived_toast'));
   };
 
@@ -327,7 +335,7 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
     );
   }
 
-  // ── Muy pronto (sin API key) ──
+  // Muy pronto (sin API key)
   if (notConfigured) {
     return (
       <div className="rk-card relative overflow-hidden text-center" style={{ padding: '44px 26px' }}>
@@ -346,7 +354,6 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
     );
   }
 
-  // ── Migración 0030 sin aplicar ──
   if (tableMissing) {
     return (
       <div className="rk-card text-center" style={{ padding: '44px 26px' }}>
@@ -359,9 +366,12 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
     );
   }
 
-  // ── Vista principal: plan activo o wizard ──
+  const hasObjective = objective.trim().length > 0;
+  const showActivePlan = !creating && activePlan;
+  const showEmpty = !creating && !activePlan;
+
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-8 max-w-3xl">
       {/* Cabecera */}
       <div>
         <p className="rk-eyebrow">{t('op_eyebrow')}</p>
@@ -371,11 +381,11 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
         <p className="text-zinc-400 text-sm mt-1.5 max-w-md">{t('op_sub')}</p>
       </div>
 
-      {/* IDLE con plan activo → resumen del plan */}
-      {stage === 'idle' && activePlan && plan && (
+      {/* Plan activo (si existe y no estamos creando) */}
+      {showActivePlan && (
         <ActivePlanView
-          plan={plan}
-          activePlan={activePlan}
+          plan={activePlan!.plan_json}
+          activePlan={activePlan!}
           locale={locale}
           onStartNew={startNew}
           onArchive={archivePlan}
@@ -384,8 +394,8 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
         />
       )}
 
-      {/* IDLE sin plan activo */}
-      {stage === 'idle' && !activePlan && (
+      {/* Sin plan activo → CTA para empezar */}
+      {showEmpty && (
         <div className="card-primary text-center" style={{ padding: '40px 26px' }}>
           <div className="w-14 h-14 mx-auto mb-4 flex items-center justify-center rounded-2xl bg-red-600/12 border border-red-500/30 text-red-400">
             <i className="ri-sparkling-2-line text-2xl" />
@@ -397,78 +407,87 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
         </div>
       )}
 
-      {/* ── PASO 1: OBJETIVO ── */}
-      {stage === 'objective' && (
-        <div className="rk-card space-y-4" style={{ padding: 22 }}>
-          <div>
-            <p className="text-sm font-bold text-white">{t('op_step1_title')}</p>
-            <p className="text-xs text-zinc-500 mt-0.5">{t('op_step1_hint')}</p>
+      {/* ══ FLUJO DE CREACIÓN (siempre visible cuando creating=true) ══ */}
+      {creating && (
+        <>
+          {/* PASO 1 — Objetivo (siempre visible) */}
+          <div className="rk-card space-y-4" style={{ padding: 22 }}>
+            <div>
+              <p className="text-sm font-bold text-white">{t('op_step1_title')}</p>
+              <p className="text-xs text-zinc-500 mt-0.5">{t('op_step1_hint')}</p>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {presets.map((p) => {
+                const label = t(p.key);
+                const selected = objective.trim() === label;
+                return (
+                  <button key={p.key} onClick={() => setObjective(label)}
+                    className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border transition-all cursor-pointer text-center ${selected ? 'bg-red-600/15 border-red-500/60 text-white' : 'bg-white/[0.03] border-white/10 text-zinc-300 hover:border-white/25'}`}>
+                    <i className={p.icon} style={{ fontSize: 18, color: selected ? '#E10600' : '#C9A84C' }} />
+                    <span className="text-xs font-semibold leading-tight">{label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div>
+              <input value={objective} onChange={(e) => setObjective(e.target.value)} maxLength={200}
+                placeholder={t('op_custom_ph')} style={{ fontSize: 16, minHeight: 44 }}
+                className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-red-500" />
+            </div>
+            {activePlan && (
+              <button onClick={() => { setCreating(false); setConfirmReset(false); }}
+                className="text-xs text-zinc-500 hover:text-white cursor-pointer">
+                <i className="ri-arrow-left-line mr-1" />{t('mc_cancel')}
+              </button>
+            )}
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {presets.map((p) => {
-              const label = t(p.key);
-              const selected = objective.trim() === label;
-              return (
-                <button key={p.key} onClick={() => setObjective(label)}
-                  className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border transition-all cursor-pointer text-center ${selected ? 'bg-red-600/15 border-red-500/60 text-white' : 'bg-white/[0.03] border-white/10 text-zinc-300 hover:border-white/25'}`}>
-                  <i className={p.icon} style={{ fontSize: 18, color: selected ? '#E10600' : '#C9A84C' }} />
-                  <span className="text-xs font-semibold leading-tight">{label}</span>
+
+          {/* PASO 2 — Preguntas (aparecen cuando hay objetivo) */}
+          {hasObjective && (
+            <div ref={questionsRef}>
+              <QuestionsBlock
+                answers={answers}
+                setAnswers={setAnswers}
+                canGenerate={canGenerate}
+                generating={generating}
+                onGenerate={() => generate(objective, answers, null, null)}
+              />
+            </div>
+          )}
+
+          {/* PASO 3 — Loading intermedio (solo la primera vez, sin plan aún) */}
+          {generating && !plan && (
+            <div className="card-primary text-center" style={{ padding: '32px 26px' }}>
+              <div className="w-12 h-12 mx-auto mb-3 flex items-center justify-center rounded-2xl bg-red-600/12 border border-red-500/30">
+                <div className="w-5 h-5 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+              </div>
+              <p className="rk-title-card">{t('op_step2_generating')}</p>
+            </div>
+          )}
+
+          {/* PASO 4 — Plan generado + ajustes + confirmar */}
+          {plan && (
+            <div ref={planRef} className="space-y-6">
+              <PlanBanner plan={plan} />
+              <PlanWeeksRender plan={plan} />
+              <AdjustBlock
+                adjustments={adjustments}
+                setAdjustments={setAdjustments}
+                onApply={applyAdjustments}
+                generating={generating}
+              />
+              <div className="flex flex-wrap gap-2 justify-end">
+                <button onClick={() => { setPlan(null); setCreating(false); setObjective(''); setAnswers({}); }}
+                  className="rk-nav-btn text-sm">{t('mc_cancel')}</button>
+                <button onClick={saveToAgenda} disabled={savingAgenda} className="rk-cta text-sm disabled:opacity-60">
+                  {savingAgenda
+                    ? <><span className="inline-block w-3 h-3 border-2 border-white/40 border-t-transparent rounded-full animate-spin mr-2" /> {t('op_saving')}</>
+                    : <><i className="ri-calendar-todo-line mr-1" />{t('op_save_agenda')}</>}
                 </button>
-              );
-            })}
-          </div>
-          <div>
-            <label className="block text-xs text-zinc-400 mb-1.5">{t('op_custom_ph')}</label>
-            <input value={objective} onChange={(e) => setObjective(e.target.value)} maxLength={200}
-              placeholder={t('op_custom_ph')} style={{ fontSize: 16, minHeight: 44 }}
-              className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-red-500" />
-          </div>
-          <div className="flex gap-2 justify-end">
-            <button onClick={() => setStage('idle')} className="rk-nav-btn text-sm">
-              {t('mc_cancel')}
-            </button>
-            <button onClick={goQuestions} disabled={!objective.trim()} className="rk-cta text-sm disabled:opacity-50">
-              {t('op_step1_next')} <i className="ri-arrow-right-line ml-1" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ── PASO 2: PREGUNTAS ── */}
-      {stage === 'questions' && (
-        <QuestionsForm
-          answers={answers}
-          setAnswers={setAnswers}
-          onSkipAll={skipAll}
-          onGenerate={() => generate(objective, answers, null, null)}
-          onBack={() => setStage('objective')}
-        />
-      )}
-
-      {/* ── PASO 3: LOADING ── */}
-      {stage === 'generating' && (
-        <div className="card-primary text-center" style={{ padding: '44px 26px' }}>
-          <div className="w-14 h-14 mx-auto mb-4 flex items-center justify-center rounded-2xl bg-red-600/12 border border-red-500/30">
-            <div className="w-6 h-6 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
-          </div>
-          <p className="rk-title-card">{t('op_step2_generating')}</p>
-          <p className="rk-body-14 mt-2 max-w-sm mx-auto">{t('op_sub')}</p>
-        </div>
-      )}
-
-      {/* ── PASO 4: PREVIEW ── */}
-      {stage === 'preview' && plan && (
-        <PlanPreview
-          plan={plan}
-          locale={locale}
-          adjustments={adjustments}
-          setAdjustments={setAdjustments}
-          onApplyAdjustments={applyAdjustments}
-          onSaveAgenda={saveToAgenda}
-          savingAgenda={savingAgenda}
-          generating={generating}
-          onCancel={() => setStage('idle')}
-        />
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -488,16 +507,12 @@ function ActivePlanView({
   return (
     <div className="space-y-4">
       <div className="card-primary" style={{ padding: 22 }}>
-        <div className="flex items-start justify-between gap-3 flex-wrap">
-          <div className="min-w-0">
-            <p className="text-[11px] font-bold tracking-[0.22em] uppercase text-red-400 mb-1">
-              {t('op_active_plan')} · {t('op_version', { n: activePlan.version })}
-            </p>
-            <h3 className="rk-title-card" style={{ fontSize: '1.3rem' }}>{plan.plan_name}</h3>
-            <p className="rk-body-14 mt-1.5">{plan.summary}</p>
-            <p className="rk-meta mt-2">{t('op_created_at', { date: created })}</p>
-          </div>
-        </div>
+        <p className="text-[11px] font-bold tracking-[0.22em] uppercase text-red-400 mb-1">
+          {t('op_active_plan')} · {t('op_version', { n: activePlan.version })}
+        </p>
+        <h3 className="rk-title-card" style={{ fontSize: '1.3rem' }}>{plan.plan_name}</h3>
+        <p className="rk-body-14 mt-1.5">{plan.summary}</p>
+        <p className="rk-meta mt-2">{t('op_created_at', { date: created })}</p>
       </div>
 
       <PlanWeeksRender plan={plan} />
@@ -524,11 +539,11 @@ function ActivePlanView({
   );
 }
 
-function QuestionsForm({
-  answers, setAnswers, onSkipAll, onGenerate, onBack,
+function QuestionsBlock({
+  answers, setAnswers, canGenerate, generating, onGenerate,
 }: {
   answers: Answers; setAnswers: (a: Answers) => void;
-  onSkipAll: () => void; onGenerate: () => void; onBack: () => void;
+  canGenerate: boolean; generating: boolean; onGenerate: () => void;
 }) {
   const { t } = useTranslation();
   const setKey = <K extends keyof Answers>(k: K, v: Answers[K]) => setAnswers({ ...answers, [k]: v });
@@ -541,10 +556,9 @@ function QuestionsForm({
           <p className="text-sm font-bold text-white">{t('op_step2_title')}</p>
           <p className="text-xs text-zinc-500 mt-0.5">{t('op_step2_hint')}</p>
         </div>
-        <button onClick={onSkipAll} className="rk-nav-btn text-xs">{t('op_skip_all')}</button>
+        <button onClick={() => setAnswers({})} className="rk-nav-btn text-xs">{t('op_skip_all')}</button>
       </div>
 
-      {/* Q1: días */}
       <QuestionBlock label={t('op_q_days_label')} onSkip={() => clearKey('days_per_week')} value={answers.days_per_week}>
         <div className="flex gap-1.5 flex-wrap">
           {[2, 3, 4, 5, 6, 7].map((n) => (
@@ -557,7 +571,6 @@ function QuestionsForm({
         </div>
       </QuestionBlock>
 
-      {/* Q2: tiempo */}
       <QuestionBlock label={t('op_q_time_label')} onSkip={() => clearKey('session_minutes')} value={answers.session_minutes}>
         <div className="flex gap-1.5 flex-wrap">
           {timeOptions.map((n) => (
@@ -570,7 +583,6 @@ function QuestionsForm({
         </div>
       </QuestionBlock>
 
-      {/* Q3: cardio */}
       <QuestionBlock label={t('op_q_cardio_label')} onSkip={() => clearKey('cardio_extra_minutes')} value={answers.cardio_extra_minutes}>
         <div className="flex gap-1.5 flex-wrap items-center">
           <button onClick={() => setKey('cardio_extra_minutes', 0)}
@@ -589,7 +601,6 @@ function QuestionsForm({
         </div>
       </QuestionBlock>
 
-      {/* Q4: cocinar */}
       <QuestionBlock label={t('op_q_cook_label')} onSkip={() => clearKey('can_cook')} value={answers.can_cook}>
         <div className="flex gap-1.5 flex-wrap">
           {(['yes', 'sometimes', 'no'] as const).map((v) => (
@@ -602,19 +613,17 @@ function QuestionsForm({
         </div>
       </QuestionBlock>
 
-      {/* Q5: notas */}
       <QuestionBlock label={t('op_q_notes_label')} onSkip={() => clearKey('extra_notes')} value={answers.extra_notes}>
         <textarea value={answers.extra_notes || ''} onChange={(e) => setKey('extra_notes', e.target.value)}
           rows={3} maxLength={400} placeholder={t('op_q_notes_ph')} style={{ fontSize: 16 }}
           className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-500 resize-none" />
       </QuestionBlock>
 
-      <div className="flex gap-2 justify-end pt-1">
-        <button onClick={onBack} className="rk-nav-btn text-sm">
-          <i className="ri-arrow-left-line mr-1" />{t('mc_cancel')}
-        </button>
-        <button onClick={onGenerate} className="rk-cta text-sm">
-          <i className="ri-sparkling-2-line mr-1" />{t('op_step2_generate')}
+      <div className="flex justify-end pt-1">
+        <button onClick={onGenerate} disabled={!canGenerate} className="rk-cta text-sm disabled:opacity-50">
+          {generating
+            ? <><span className="inline-block w-3 h-3 border-2 border-white/40 border-t-transparent rounded-full animate-spin mr-2" /> {t('op_step2_generating')}</>
+            : <><i className="ri-sparkling-2-line mr-1" />{t('op_step2_generate')}</>}
         </button>
       </div>
     </div>
@@ -640,6 +649,22 @@ function QuestionBlock({ label, value, onSkip, children }: {
         )}
       </div>
       {children}
+    </div>
+  );
+}
+
+function PlanBanner({ plan }: { plan: Plan }) {
+  const { t } = useTranslation();
+  return (
+    <div className="card-primary" style={{ padding: 22 }}>
+      <p className="text-[11px] font-bold tracking-[0.22em] uppercase text-red-400 mb-1">{t('op_plan_your')}</p>
+      <h3 className="rk-title-card" style={{ fontSize: '1.35rem' }}>{plan.plan_name}</h3>
+      <p className="rk-body-14 mt-1.5">{plan.summary}</p>
+      {plan.disclaimer && (
+        <p className="rk-meta mt-3 leading-relaxed">
+          <strong className="text-zinc-400">{t('op_disclaimer_prefix')}</strong> {plan.disclaimer}
+        </p>
+      )}
     </div>
   );
 }
@@ -696,52 +721,25 @@ function PlanField({ label, value, color }: { label: string; value: string; colo
   );
 }
 
-function PlanPreview({
-  plan, locale, adjustments, setAdjustments, onApplyAdjustments, onSaveAgenda, savingAgenda, generating, onCancel,
+function AdjustBlock({
+  adjustments, setAdjustments, onApply, generating,
 }: {
-  plan: Plan; locale: string;
   adjustments: string; setAdjustments: (v: string) => void;
-  onApplyAdjustments: () => void; onSaveAgenda: () => void;
-  savingAgenda: boolean; generating: boolean; onCancel: () => void;
+  onApply: () => void; generating: boolean;
 }) {
-  void locale;
   const { t } = useTranslation();
   return (
-    <div className="space-y-4">
-      <div className="card-primary" style={{ padding: 22 }}>
-        <p className="text-[11px] font-bold tracking-[0.22em] uppercase text-red-400 mb-1">{t('op_plan_your')}</p>
-        <h3 className="rk-title-card" style={{ fontSize: '1.35rem' }}>{plan.plan_name}</h3>
-        <p className="rk-body-14 mt-1.5">{plan.summary}</p>
-        {plan.disclaimer && (
-          <p className="rk-meta mt-3 leading-relaxed">
-            <strong className="text-zinc-400">{t('op_disclaimer_prefix')}</strong> {plan.disclaimer}
-          </p>
-        )}
-      </div>
-
-      <PlanWeeksRender plan={plan} />
-
-      <div className="rk-card" style={{ padding: 20 }}>
-        <label className="block text-sm font-semibold text-white mb-2">{t('op_adjust_title')}</label>
-        <textarea value={adjustments} onChange={(e) => setAdjustments(e.target.value)}
-          rows={3} maxLength={500} placeholder={t('op_adjust_ph')} style={{ fontSize: 16 }}
-          className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-500 resize-none" />
-        <div className="flex gap-2 justify-end mt-3">
-          <button onClick={onApplyAdjustments} disabled={!adjustments.trim() || generating}
-            className="rk-nav-btn text-sm disabled:opacity-50">
-            {generating
-              ? <><span className="inline-block w-3 h-3 border-2 border-white/40 border-t-transparent rounded-full animate-spin mr-2" /> {t('op_adjust_applying')}</>
-              : <><i className="ri-sparkling-line mr-1" />{t('op_adjust_apply')}</>}
-          </button>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-2 justify-end">
-        <button onClick={onCancel} className="rk-nav-btn text-sm">{t('mc_cancel')}</button>
-        <button onClick={onSaveAgenda} disabled={savingAgenda} className="rk-cta text-sm disabled:opacity-60">
-          {savingAgenda
-            ? <><span className="inline-block w-3 h-3 border-2 border-white/40 border-t-transparent rounded-full animate-spin mr-2" /> {t('op_saving')}</>
-            : <><i className="ri-calendar-todo-line mr-1" />{t('op_save_agenda')}</>}
+    <div className="rk-card" style={{ padding: 20 }}>
+      <label className="block text-sm font-semibold text-white mb-2">{t('op_adjust_title')}</label>
+      <textarea value={adjustments} onChange={(e) => setAdjustments(e.target.value)}
+        rows={3} maxLength={500} placeholder={t('op_adjust_ph')} style={{ fontSize: 16 }}
+        className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-500 resize-none" />
+      <div className="flex justify-end mt-3">
+        <button onClick={onApply} disabled={!adjustments.trim() || generating}
+          className="rk-nav-btn text-sm disabled:opacity-50">
+          {generating
+            ? <><span className="inline-block w-3 h-3 border-2 border-white/40 border-t-transparent rounded-full animate-spin mr-2" /> {t('op_adjust_applying')}</>
+            : <><i className="ri-sparkling-line mr-1" />{t('op_adjust_apply')}</>}
         </button>
       </div>
     </div>
