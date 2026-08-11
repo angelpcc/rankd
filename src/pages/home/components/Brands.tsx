@@ -17,7 +17,7 @@ export default function BrandsSection() {
   ];
 
   return (
-    <section id="brands" className="py-24 md:py-32 bg-[#0d0d0d] overflow-hidden relative">
+    <section id="brands" className="rk-viewport-section bg-[#0d0d0d] overflow-hidden relative">
       <div className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full pointer-events-none"
         style={{ background: 'radial-gradient(circle, rgba(225,6,0,0.04) 0%, transparent 65%)' }} />
 

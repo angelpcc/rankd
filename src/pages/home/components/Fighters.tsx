@@ -56,7 +56,7 @@ export default function Fighters() {
   }
 
   return (
-    <section id="fighters" style={{ position: 'relative', padding: 'var(--sp-section) 0', background: 'var(--rk-ink)', overflow: 'hidden' }}>
+    <section id="fighters" className="rk-viewport-section" style={{ position: 'relative', background: 'var(--rk-ink)', overflow: 'hidden' }}>
       {/* Ambiente */}
       <div className="rk-glow-red" style={{ top: '8%', right: '-12%', width: '55%', height: '60%' }} />
       <div className="rk-grid-bg" style={{ position: 'absolute', inset: 0, opacity: 0.3, maskImage: 'linear-gradient(to bottom, transparent, black 30%, black 70%, transparent)', WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 30%, black 70%, transparent)' }} />

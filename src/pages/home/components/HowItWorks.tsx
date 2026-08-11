@@ -47,7 +47,8 @@ export default function HowItWorks() {
   return (
     <section
       id="how-it-works"
-      style={{ position: 'relative', background: 'var(--rk-black)', padding: 'var(--sp-section) 0', overflow: 'hidden' }}
+      className="rk-viewport-section"
+      style={{ position: 'relative', background: 'var(--rk-black)', overflow: 'hidden' }}
     >
       {/* Ambiente */}
       <div className="rk-glow-red" style={{ top: '-10%', left: '50%', transform: 'translateX(-50%)', width: '80%', height: '55%' }} />
@@ -56,7 +57,7 @@ export default function HowItWorks() {
       <div style={{ position: 'relative', zIndex: 2, maxWidth: 1320, margin: '0 auto', padding: '0 24px' }}>
 
         {/* ── CABECERA ── */}
-        <div className="hiw-head" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 40, alignItems: 'end', marginBottom: 52 }}>
+        <div className="hiw-head" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 32, alignItems: 'end', marginBottom: 32 }}>
           <Reveal>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
               <span className="rk-index">RANKD</span>
@@ -77,11 +78,11 @@ export default function HowItWorks() {
         </div>
 
         <Reveal delay={80}>
-          <div className="rk-rule" style={{ marginBottom: 44 }} />
+          <div className="rk-rule" style={{ marginBottom: 28 }} />
         </Reveal>
 
         {/* ── CAMINOS POR AUDIENCIA ── */}
-        <div className="hiw-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 56 }}>
+        <div className="hiw-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
           {PATHS.map((p, i) => (
             <Reveal key={p.role} delay={i * 110} variant="up">
               <button

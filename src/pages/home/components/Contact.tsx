@@ -34,7 +34,7 @@ export default function Contact() {
   });
 
   return (
-    <section id="contact" style={{ padding: '120px 0', background: '#050505', position: 'relative', overflow: 'hidden' }}>
+    <section id="contact" className="rk-viewport-section" style={{ background: '#050505', position: 'relative', overflow: 'hidden' }}>
       {/* BG imagen muay thai */}
       <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
         <img src="https://images.unsplash.com/photo-1540496905036-5937c10647cc?w=1920&q=80&fit=crop" alt="Muay Thai" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.08 }} />
@@ -50,15 +50,15 @@ export default function Contact() {
               <div style={{ width: 32, height: 2, background: '#C9A84C' }} />
               <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: 5, textTransform: 'uppercase', color: '#C9A84C' }}>{t('contact_eyebrow')}</span>
             </div>
-            <h2 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(48px, 6vw, 90px)', lineHeight: 0.92, color: 'white', margin: '0 0 24px' }}>
+            <h2 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(40px, 4.6vw, 68px)', lineHeight: 0.94, color: 'white', margin: '0 0 20px' }}>
               {t('contact_headline_1')}<br />
               <span style={{ color: '#E10600' }}>{t('contact_headline_2')}</span><br />
               <span style={{ color: 'rgba(255,255,255,0.12)' }}>{t('contact_headline_3')}</span>
             </h2>
-            <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, color: 'rgba(255,255,255,0.65)', lineHeight: 1.6, maxWidth: 420, marginBottom: 48 }}>{t('contact_subtext')}</p>
+            <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5, maxWidth: 420, marginBottom: 28 }}>{t('contact_subtext')}</p>
 
             {/* Contacto info */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 40 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
               <a href="tel:638933153" style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '18px 20px', borderRadius: 12, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', textDecoration: 'none', transition: 'all 0.2s', cursor: 'pointer' }}
                 onMouseEnter={(e) => (e.currentTarget as HTMLAnchorElement).style.borderColor = 'rgba(201,168,76,0.3)'}
                 onMouseLeave={(e) => (e.currentTarget as HTMLAnchorElement).style.borderColor = 'rgba(255,255,255,0.06)'}>
@@ -97,7 +97,7 @@ export default function Contact() {
           </div>
 
           {/* Right — Form */}
-          <div style={{ borderRadius: 20, padding: '40px 44px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', backdropFilter: 'blur(10px)' }}>
+          <div style={{ borderRadius: 20, padding: '30px 34px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', backdropFilter: 'blur(10px)' }}>
             {submitted ? (
               <div style={{ textAlign: 'center', padding: '48px 0' }}>
                 <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
@@ -107,7 +107,7 @@ export default function Contact() {
                 <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, color: 'rgba(255,255,255,0.65)' }}>{t('contact_success_desc')}</p>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div>
                   <h3 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 32, color: 'white', margin: '0 0 6px' }}>{t('contact_form_title')}</h3>
                   <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, color: 'rgba(255,255,255,0.6)' }}>{t('contact_form_subtitle')}</p>

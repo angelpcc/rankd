@@ -18,7 +18,7 @@ export default function Partners() {
   }, []);
 
   return (
-    <section id="join" ref={sectionRef} style={{ background: '#050505', position: 'relative', overflow: 'hidden' }}>
+    <section id="join" ref={sectionRef} className="rk-viewport-section" style={{ background: '#050505', position: 'relative', overflow: 'hidden' }}>
       <div style={{ position: 'relative', overflow: 'hidden', background: '#080808', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', overflow: 'hidden', pointerEvents: 'none' }}>
           <div style={{ position: 'absolute', top: -100, left: -100, width: 600, height: 600, background: 'radial-gradient(circle, rgba(225,6,0,0.07) 0%, transparent 65%)' }} />

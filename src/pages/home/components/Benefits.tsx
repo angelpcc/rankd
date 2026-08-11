@@ -27,8 +27,8 @@ export default function Benefits() {
   }, []);
 
   return (
-    <section id="benefits" ref={sectionRef} style={{ background: '#050505', position: 'relative', overflow: 'hidden' }}>
-      <div style={{ padding: '88px 0 80px' }}>
+    <section id="benefits" ref={sectionRef} className="rk-viewport-section" style={{ background: '#050505', position: 'relative', overflow: 'hidden' }}>
+      <div style={{ width: '100%' }}>
         <div style={{ maxWidth: 1300, margin: '0 auto', padding: '0 24px' }}>
           {/* Header */}
           <div className="reveal" style={{ marginBottom: 44 }}>

@@ -87,13 +87,13 @@ export default function Opportunities() {
   }
 
   return (
-    <section id="opportunities" className="py-24 md:py-32 bg-[#0d0d0d] relative overflow-hidden">
+    <section id="opportunities" className="rk-viewport-section bg-[#0d0d0d] relative overflow-hidden">
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full pointer-events-none"
         style={{ background: 'radial-gradient(circle, rgba(225,6,0,0.04) 0%, transparent 65%)' }} />
 
       <div className="max-w-7xl mx-auto px-6 md:px-10 relative z-10">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-14">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-8">
           <div>
             <div className="flex items-center gap-3 mb-5">
               <div className="w-6 h-px bg-[#E10600]" />
@@ -108,7 +108,7 @@ export default function Opportunities() {
         </div>
 
         {/* Abanico de conexiones — deja claro que no es solo una bolsa de combates */}
-        <div className="flex flex-wrap items-center gap-2.5 mb-10">
+        <div className="flex flex-wrap items-center gap-2.5 mb-6">
           <span className="text-white/40 text-xs font-semibold uppercase tracking-[0.15em] font-inter mr-1">{t('opp_kinds_intro')}</span>
           {CONNECTION_KINDS.map((k) => (
             <span key={k.labelKey}
@@ -119,7 +119,7 @@ export default function Opportunities() {
         </div>
 
         {/* Filtros */}
-        <div className="flex flex-wrap gap-2 mb-10">
+        <div className="flex flex-wrap gap-2 mb-6">
           {filterKeys.map((f) => (
             <button key={f.key} onClick={() => setActive(f.key)}
               className="px-5 py-2.5 rounded-full text-sm font-semibold border transition-all cursor-pointer whitespace-nowrap font-inter"
