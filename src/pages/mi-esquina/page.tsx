@@ -5,14 +5,11 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useSEO } from '@/hooks/useSEO';
 import MessagesPanel from '@/pages/dashboard/components/messages/MessagesPanel';
-import NutritionTracker from '@/pages/mi-esquina/components/NutritionTracker';
 import ShareProgress from '@/pages/mi-esquina/components/ShareProgress';
 import { DocumentExpiryAlert } from '@/pages/mi-esquina/components/DocumentsPanel';
-import QuickRoutines from '@/pages/mi-esquina/components/QuickRoutines';
-import LastStrengthSession from '@/pages/mi-esquina/components/LastStrengthSession';
-import QuickStatsRow from '@/pages/mi-esquina/components/QuickStatsRow';
-import WeeklySummary from '@/pages/mi-esquina/components/WeeklySummary';
-import FightPrep from '@/pages/mi-esquina/components/FightPrep';
+import TodayCard from '@/pages/mi-esquina/components/TodayCard';
+import SummaryMetrics from '@/pages/mi-esquina/components/SummaryMetrics';
+import SummaryAiLine from '@/pages/mi-esquina/components/SummaryAiLine';
 import AgendaHub from '@/pages/mi-esquina/components/AgendaHub';
 import ProgressHub from '@/pages/mi-esquina/components/ProgressHub';
 import RingHub from '@/pages/mi-esquina/components/RingHub';
@@ -22,7 +19,6 @@ import NutritionHub from '@/pages/mi-esquina/components/NutritionHub';
 import GearHub from '@/pages/mi-esquina/components/GearHub';
 import Reveal from '@/components/base/Reveal';
 import PageBreadcrumb from '@/components/base/PageBreadcrumb';
-import CountUp from '@/components/base/CountUp';
 import NotificationBell from '@/components/feature/NotificationBell';
 
 // R12-T0: la barra lateral se reorganizó de 17/13 a 11/9 secciones fusionando
@@ -182,25 +178,6 @@ export default function MiEsquinaPage() {
   // Navega a una sección y, opcionalmente, abre un hub en una pestaña concreta.
   const go = (s: Section, tab?: string) => { setPendingTab(tab); setSection(s); };
 
-  // Accesos rápidos del resumen, distintos por perfil. `tab` abre el hub en la
-  // pestaña indicada. Compartir vive aquí ahora que dejó la barra lateral.
-  const QUICK_CARDS: { s: Section; tab?: string; icon: string; titleKey: string }[] = isHobby
-    ? [
-        { s: 'agenda', tab: 'diario', icon: 'ri-calendar-check-line', titleKey: 'mc_nav_diary' },
-        { s: 'agenda', tab: 'rutinas', icon: 'ri-repeat-line', titleKey: 'mc_nav_routines' },
-        { s: 'progreso', tab: 'peso', icon: 'ri-line-chart-line', titleKey: 'mc_nav_progress' },
-        { s: 'progreso', tab: 'objetivos', icon: 'ri-sparkling-2-line', titleKey: 'mc_nav_goals' },
-        { s: 'compartir', icon: 'ri-share-forward-line', titleKey: 'mc_nav_share' },
-      ]
-    : [
-        { s: 'agenda', tab: 'diario', icon: 'ri-calendar-check-line', titleKey: 'mc_nav_diary' },
-        { s: 'ring', tab: 'sparring', icon: 'ri-boxing-line', titleKey: 'mc_nav_sparring' },
-        { s: 'progreso', tab: 'peso', icon: 'ri-scales-2-line', titleKey: 'mc_nav_weight' },
-        { s: 'agenda', tab: 'plan', icon: 'ri-calendar-2-line', titleKey: 'mc_nav_calendar' },
-        { s: 'progreso', tab: 'objetivos', icon: 'ri-sparkling-2-line', titleKey: 'mc_nav_goals' },
-        { s: 'compartir', icon: 'ri-share-forward-line', titleKey: 'mc_nav_share' },
-      ];
-
   return (
     <div className="min-h-screen text-white rk-screen-bg">
       {/* Top bar propia */}
@@ -290,190 +267,33 @@ export default function MiEsquinaPage() {
 
           {/* ══════════ RESUMEN ══════════ */}
           {activeSection === 'resumen' && (
-            <div className="space-y-6 max-w-3xl">
-              {/* PRO: lo primero es el combate que viene */}
-              {!isHobby && (
-                <Reveal>
-                  <FightPrep profile={profile} onOpenCalendar={() => go('agenda', 'plan')} />
-                </Reveal>
-              )}
-
-              {/* PRO: si un papel caduca, que se entere ANTES de que le toque pelear */}
+            <div className="space-y-8 max-w-3xl">
+              {/* Alertas condicionales (seguridad): normalmente null, no saturan */}
               {!isHobby && (
                 <DocumentExpiryAlert profile={profile} onOpen={() => go('ring', 'documentos')} />
               )}
-
-              {/* Si toca renovar material, avisar desde el resumen */}
               <GearReplacementAlert profile={profile} onOpen={() => setSection('material')} />
 
-              {/* Tu gimnasio en RANKD: consentimiento para compartir actividad */}
-              <GymLink profile={profile} showToast={showToast} />
-
-              {/* Estado de un vistazo: semana, última sesión, objetivo de peso.
-                  El check-in "¿Cómo estás hoy?" (energía/cansancio/sueño) se
-                  quitó por completo del resumen a petición del usuario. El
-                  componente DailyCheckin.tsx se conserva por si se reincorpora,
-                  pero ya no se monta en ninguna parte. */}
-              <Reveal delay={40}>
-                <QuickStatsRow profile={profile} weekSessions={stats.week}
-                  onOpenAgenda={() => go('agenda', 'diario')} onOpenStrength={() => go('progreso', 'fuerza')} />
+              {/* 1. HOY — card primaria, el elemento principal (único con glow) */}
+              <Reveal>
+                <TodayCard profile={profile}
+                  onStart={() => go('agenda', 'plan')}
+                  onCreatePlan={() => go('progreso', 'objetivos')} />
               </Reveal>
 
-              {/* Resumen automático de la semana + objetivos */}
-              <Reveal delay={70}>
-                <WeeklySummary profile={profile} refreshKey={refreshKey} onOpenGoals={() => go('progreso', 'objetivos')} />
+              {/* 2. Tres métricas compactas (secundarias) */}
+              <Reveal delay={90}>
+                <SummaryMetrics profile={profile} weekSessions={stats.week}
+                  onOpenAgenda={() => go('agenda', 'diario')} onOpenWeight={() => go('progreso', 'peso')} />
               </Reveal>
 
-              {/* Registro de un toque */}
-              <Reveal delay={100}>
-                <QuickRoutines profile={profile} showToast={showToast} compact onLogged={() => setRefreshKey((k) => k + 1)} />
-              </Reveal>
-
-              {/* Última sesión de fuerza registrada (si hay alguna) */}
-              <Reveal delay={110}>
-                <LastStrengthSession profile={profile} onOpen={() => go('progreso', 'fuerza')} />
-              </Reveal>
-
-              {/* Hábito diario */}
-              <Reveal delay={120}>
-                {stats.todayLogged ? (
-                  <div className="rk-card relative overflow-hidden" style={{ padding: '18px 20px', borderColor: 'rgba(34,197,94,0.25)' }}>
-                    <div className="rk-glow-red" style={{ width: 160, height: 160, top: -70, right: -50, borderRadius: '50%', background: 'radial-gradient(circle, rgba(34,197,94,0.14) 0%, transparent 68%)' }} />
-                    <div className="relative flex items-center gap-4">
-                      <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl bg-green-500/12 border border-green-500/30 text-green-400"><i className="ri-check-double-line text-2xl"></i></div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-white">{t('mc_today_logged')}</p>
-                        <p className="text-xs text-zinc-400 mt-0.5">
-                          {stats.streak > 1 ? `${t('mc_streak_of', { n: stats.streak })} ` : ''}
-                          {stats.week === 1 ? t('mc_week_session_one') : t('mc_week_sessions', { n: stats.week })}
-                          {stats.lastWeekMin > 0 && (
-                            <span className={stats.weekMin >= stats.lastWeekMin ? 'text-green-400' : 'text-orange-400'}>
-                              {' · '}{stats.weekMin >= stats.lastWeekMin ? '▲' : '▼'} {t('mc_vs_last_week', { n: Math.abs(stats.weekMin - stats.lastWeekMin) })}
-                            </span>
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="card-primary relative overflow-hidden" style={{ padding: '20px 22px' }}>
-                    <div className="rk-glow-red" style={{ width: 180, height: 180, top: -80, right: -50, borderRadius: '50%' }} />
-                    <div className="relative flex items-center gap-4 flex-wrap sm:flex-nowrap">
-                      <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-2xl bg-red-600/12 border border-red-500/30 text-red-400 anim-pulse-glow"><i className="ri-fire-line text-2xl"></i></div>
-                      <div className="flex-1 min-w-0">
-                        <p className="rk-title-card">{t('mc_today_pending')}</p>
-                        <p className="rk-meta mt-1">{stats.streak > 0 ? t('mc_today_streak_risk', { n: stats.streak }) : t('mc_today_streak_start')}</p>
-                      </div>
-                      <button onClick={() => go('agenda', 'diario')} className="rk-cta flex-shrink-0 w-full sm:w-auto text-sm">
-                        {t('mc_today_cta')}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </Reveal>
-
-              {/* Titular */}
-              <Reveal delay={140}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
-                    <span className="rk-index">{t('mc_sum_eyebrow')}</span>
-                    <span style={{ flex: '0 0 38px', height: 1, background: 'rgba(255,255,255,0.16)' }} />
-                    <span className="rk-eyebrow">{isHobby ? t('mc_mode_hobby') : t('mc_mode_pro')}</span>
-                  </div>
-                  <h1 className="rk-h1" style={{ margin: 0, color: '#fff' }}>
-                    {t('mc_sum_welcome')} <span className="rk-red-glow">{t('mc_sum_corner_word')}</span>,<br />{firstName.toUpperCase()}
-                  </h1>
-                  <p className="text-zinc-400 text-sm mt-2">{isHobby ? t('mc_sum_sub_hobby') : t('mc_sum_sub_pro')}</p>
-                </div>
-              </Reveal>
-
-              {/* Cifras: cuentan al aparecer, para que se lean en vez de pasar
-                  desapercibidas como un dato estático más */}
+              {/* 3. Recomendación / plan activo (una línea clicable, si existe) */}
               <Reveal delay={160}>
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { n: stats.total, suf: '', l: t('mc_stat_total'), c: '#ffffff' },
-                    { n: isHobby ? stats.streak : stats.week, suf: '', l: isHobby ? t('mc_stat_streak') : t('mc_stat_week'), c: '#E10600' },
-                    { n: stats.weekMin, suf: 'min', l: t('mc_stat_time'), c: '#4ade80' },
-                  ].map((s) => (
-                    <div key={s.l} className="rk-card" style={{ padding: '22px 14px', textAlign: 'center' }}>
-                      <CountUp value={s.n} suffix={s.suf}
-                        style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(28px,5vw,40px)', lineHeight: 1, color: s.c }} />
-                      <p className="rk-body" style={{ fontSize: '0.72rem', letterSpacing: '0.16em', textTransform: 'uppercase', marginTop: 8 }}>{s.l}</p>
-                    </div>
-                  ))}
-                </div>
+                <SummaryAiLine profile={profile} onOpen={() => go('progreso', 'objetivos')} />
               </Reveal>
 
-              {/* Últimos 7 días: la carga de la semana de un vistazo, sin leer cifras */}
-              {stats.last7.some((d) => d.min > 0) && (
-                <Reveal delay={175}>
-                  <div className="rk-card" style={{ padding: '18px 20px', transform: 'none' }}>
-                    <p className="text-[11px] font-bold tracking-[0.22em] uppercase text-zinc-600 mb-3">{t('mc_ws_title')}</p>
-                    <div className="flex items-end justify-between gap-1.5" style={{ height: 76 }}>
-                      {stats.last7.map((d) => {
-                        const max = Math.max(...stats.last7.map((x) => x.min), 1);
-                        const h = d.min > 0 ? Math.max(8, Math.round((d.min / max) * 62)) : 3;
-                        const dayLabel = new Date(d.key + 'T12:00:00')
-                          .toLocaleDateString(i18nLocale, { weekday: 'narrow' }).toUpperCase();
-                        return (
-                          <div key={d.key} className="flex-1 flex flex-col items-center gap-1.5 min-w-0">
-                            <span className="text-[9px] text-zinc-600 tabular-nums">{d.min > 0 ? d.min : ''}</span>
-                            <div className="w-full rounded-md rk-bar-fill" style={{
-                              height: h,
-                              background: d.min === 0
-                                ? 'rgba(255,255,255,0.06)'
-                                : d.today ? '#E10600' : 'rgba(225,6,0,0.45)',
-                            }} />
-                            <span className={`text-[10px] font-bold ${d.today ? 'text-red-400' : 'text-zinc-600'}`}>{dayLabel}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </Reveal>
-              )}
-
-              {/* AFICIONADO: en qué se enfoca su esquina */}
-              {isHobby && (
-                <Reveal delay={180}>
-                  <div>
-                    <p className="text-[11px] font-bold tracking-[0.22em] uppercase text-zinc-600 mb-3">{t('mc_hb_focus_title')}</p>
-                    <div className="grid sm:grid-cols-3 gap-3">
-                      {[
-                        { icon: 'ri-fire-line', t: 'mc_hb_consistency', d: 'mc_hb_consistency_desc', c: '#E10600' },
-                        { icon: 'ri-line-chart-line', t: 'mc_hb_progress', d: 'mc_hb_progress_desc', c: '#4ade80' },
-                        { icon: 'ri-heart-pulse-line', t: 'mc_hb_wellbeing', d: 'mc_hb_wellbeing_desc', c: '#38bdf8' },
-                      ].map((f) => (
-                        <div key={f.t} className="rk-card" style={{ padding: 18 }}>
-                          <div className="w-10 h-10 flex items-center justify-center rounded-xl border mb-3"
-                            style={{ background: `${f.c}14`, borderColor: `${f.c}3a`, color: f.c }}>
-                            <i className={`${f.icon} text-lg`}></i>
-                          </div>
-                          <p className="text-sm font-bold text-white">{t(f.t)}</p>
-                          <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{t(f.d)}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <p className="text-[11px] text-zinc-600 mt-3 leading-relaxed flex items-start gap-1.5">
-                      <i className="ri-information-line mt-0.5 flex-shrink-0"></i>{t('mc_hb_no_competition')}
-                    </p>
-                  </div>
-                </Reveal>
-              )}
-
-              {/* Accesos rápidos */}
-              <Reveal delay={200}>
-                <div className="grid sm:grid-cols-2 gap-3">
-                  {QUICK_CARDS.map((c) => (
-                    <button key={`${c.s}-${c.tab || ''}`} onClick={() => go(c.s, c.tab)} className="rk-card text-left group flex items-center gap-3.5" style={{ padding: 18, cursor: 'pointer' }}>
-                      <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl bg-red-600/12 border border-red-500/25 text-red-400"><i className={`${c.icon} text-lg`}></i></div>
-                      <p className="text-sm font-bold text-white flex-1">{t(c.titleKey)}</p>
-                      <i className="ri-arrow-right-line text-zinc-600 group-hover:text-red-400 transition-colors"></i>
-                    </button>
-                  ))}
-                </div>
-              </Reveal>
+              {/* Consentimiento del gimnasio (condicional, subordinado) */}
+              <GymLink profile={profile} showToast={showToast} />
             </div>
           )}
 
