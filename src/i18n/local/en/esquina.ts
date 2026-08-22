@@ -359,6 +359,14 @@ export default {
   mc_metric_to_gain: 'To your goal',
   mc_metric_goal: 'Weight goal',
   mc_ai_line_label: 'Your active plan',
+  // ── Muscle map (Strength) ──
+  mc_str_map_title: 'What you trained',
+  mc_str_map_front: 'Front',
+  mc_str_map_back: 'Back',
+  mc_str_map_today: 'Today',
+  mc_str_map_week: 'Week',
+  mc_str_map_none: 'Untrained',
+  mc_str_map_no_ex: 'No exercises for this group yet.',
 
   // ── Saved routines ──
   mc_rt_title: 'MY ROUTINES',

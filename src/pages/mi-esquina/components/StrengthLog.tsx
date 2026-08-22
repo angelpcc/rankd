@@ -4,6 +4,7 @@ import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable, isMissingColumn } from '@/lib/dbState';
 import { MUSCLE_GROUPS, muscleGroupOf, type MuscleGroup } from '../lib/exercises';
 import Reveal from '@/components/base/Reveal';
+import MuscleMap, { type MapGroup, type TrainState } from './MuscleMap';
 import StrengthSessionForm, { type BuiltSession } from './StrengthSessionForm';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
@@ -67,6 +68,9 @@ export default function StrengthLog({ profile, showToast }: Props) {
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
   // Signature moment: destello full-screen cuando se bate marca personal.
   const [showPRFlash, setShowPRFlash] = useState(false);
+  // Grupo muscular seleccionado en el mapa: filtra la progresión y resalta las
+  // sesiones que lo trabajaron. null = sin filtro.
+  const [mapFilter, setMapFilter] = useState<MapGroup | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -128,6 +132,40 @@ export default function StrengthLog({ profile, showToast }: Props) {
         return { date, groups, exerciseCount, groupKeys: groups.map((g) => g.group), volume };
       });
   }, [rows, groupOfRow]);
+
+  // ── Estado por grupo muscular para el mapa: entrenado hoy / esta semana ──
+  const MAP_GROUPS: MapGroup[] = ['chest', 'shoulders', 'biceps', 'triceps', 'back', 'core', 'legs'];
+  const groupStatus = useMemo(() => {
+    const today = todayISO();
+    const wk = new Date(); const day = wk.getDay() === 0 ? 6 : wk.getDay() - 1;
+    wk.setDate(wk.getDate() - day); wk.setHours(0, 0, 0, 0);
+    const weekStart = `${wk.getFullYear()}-${String(wk.getMonth() + 1).padStart(2, '0')}-${String(wk.getDate()).padStart(2, '0')}`;
+    const st = {} as Record<MapGroup, TrainState>;
+    MAP_GROUPS.forEach((g) => { st[g] = 'none'; });
+    rows.forEach((r) => {
+      const g = groupOfRow(r) as MapGroup;
+      if (!MAP_GROUPS.includes(g)) return;
+      if (r.session_date === today) st[g] = 'today';
+      else if (r.session_date >= weekStart && st[g] === 'none') st[g] = 'week';
+    });
+    return st;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, groupOfRow]);
+
+  // Ejercicios del selector de progresión, filtrados por el grupo del mapa.
+  const progExercises = useMemo(() => {
+    if (!mapFilter) return exerciseList;
+    const keys = new Set(ownExercises.filter((e) => e.group === mapFilter).map((e) => e.label));
+    return exerciseList.filter(([, label]) => keys.has(label));
+  }, [exerciseList, ownExercises, mapFilter]);
+
+  // Al filtrar por un grupo, si el ejercicio de la progresión no es de ese grupo,
+  // salta al primero que sí lo sea.
+  useEffect(() => {
+    if (mapFilter && progExercises.length && !progExercises.some(([ex]) => ex === selected)) {
+      setSelected(progExercises[0][0]);
+    }
+  }, [mapFilter, progExercises, selected]);
 
   // ── Progresión del ejercicio elegido: mejor peso por sesión ──
   const progression = useMemo(() => {
@@ -304,15 +342,28 @@ export default function StrengthLog({ profile, showToast }: Props) {
         </div>
       ) : (
         <>
+          {/* ── MAPA MUSCULAR (bloque C.3): qué has entrenado, tocable para filtrar ── */}
+          <MuscleMap status={groupStatus} selected={mapFilter}
+            onSelect={(g) => setMapFilter((cur) => (cur === g ? null : g))} />
+
           {/* ── HISTORIAL POR DÍAS ── */}
           <div>
-            <h3 className="rk-h3 mb-3" style={{ fontSize: '1rem', color: '#fff' }}>{t('mc_str_history')}</h3>
+            <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+              <h3 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>{t('mc_str_history')}</h3>
+              {mapFilter && (
+                <button onClick={() => setMapFilter(null)}
+                  className="text-[11px] font-bold text-[#C9A84C] flex items-center gap-1 cursor-pointer">
+                  {t(`mc_str_mg_${mapFilter}`)} <i className="ri-close-line"></i>
+                </button>
+              )}
+            </div>
             <div className="space-y-2.5">
               {sessions.map((s, i) => {
                 const isOpen = openDay === s.date;
+                const inFilter = !mapFilter || s.groupKeys.includes(mapFilter);
                 return (
                   <Reveal key={s.date} delay={Math.min(i, 6) * 40}>
-                    <div className="rk-card" style={{ padding: 0, overflow: 'hidden' }}>
+                    <div className="rk-card" style={{ padding: 0, overflow: 'hidden', opacity: inFilter ? 1 : 0.4, borderColor: mapFilter && inFilter ? 'rgba(201,168,76,0.35)' : undefined, transition: 'opacity 0.2s' }}>
                       {/* Cabecera de la sesión */}
                       <button onClick={() => { setOpenDay(isOpen ? null : s.date); setOpenEx(null); }}
                         className="w-full text-left flex items-center gap-3 px-4 py-3.5 cursor-pointer">
@@ -414,15 +465,19 @@ export default function StrengthLog({ profile, showToast }: Props) {
               )}
             </div>
 
-            {/* Selector de ejercicio · pill (rk-nav-btn) para diferenciar de CTAs */}
+            {/* Selector de ejercicio · pill (rk-nav-btn) para diferenciar de CTAs.
+                Filtrado por el grupo del mapa muscular si hay uno seleccionado. */}
             <div className="flex gap-1.5 overflow-x-auto pb-1 mb-3 rk-noscroll-x">
-              {exerciseList.map(([ex, label]) => (
+              {progExercises.map(([ex, label]) => (
                 <button key={ex} onClick={() => setSelected(ex)}
                   className={`rk-nav-btn text-xs font-bold whitespace-nowrap ${selected === ex ? 'is-active' : ''}`}
                   style={{ padding: '0.4rem 0.9rem' }}>
                   {label}
                 </button>
               ))}
+              {progExercises.length === 0 && (
+                <p className="text-xs text-zinc-500 py-2">{t('mc_str_map_no_ex')}</p>
+              )}
             </div>
 
             {progression.length < 2 ? (

@@ -359,6 +359,14 @@ export default {
   mc_metric_to_gain: 'Para tu objetivo',
   mc_metric_goal: 'Objetivo de peso',
   mc_ai_line_label: 'Tu plan activo',
+  // ── Mapa muscular (Fuerza) ──
+  mc_str_map_title: 'Qué has entrenado',
+  mc_str_map_front: 'Frente',
+  mc_str_map_back: 'Espalda',
+  mc_str_map_today: 'Hoy',
+  mc_str_map_week: 'Semana',
+  mc_str_map_none: 'Sin entrenar',
+  mc_str_map_no_ex: 'Sin ejercicios de este grupo todavía.',
 
   // ── Rutinas guardadas ──
   mc_rt_title: 'MIS RUTINAS',

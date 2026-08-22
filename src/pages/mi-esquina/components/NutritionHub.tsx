@@ -69,7 +69,7 @@ export default function NutritionHub({ profile, showToast, isHobby, onGoWeight }
 
       {/* ── DIARIO ── */}
       {tab === 'diario' && (
-        <div className="space-y-4">
+        <div className="space-y-8 mt-6">
           <header>
             <p className="rk-eyebrow">{t('mc_ng_log_title')}</p>
             <h2 className="rk-h3" style={{ fontSize: '1.25rem', color: '#fff', margin: '4px 0 0' }}>
@@ -96,32 +96,34 @@ export default function NutritionHub({ profile, showToast, isHobby, onGoWeight }
 
       {/* ── FOTO ── */}
       {tab === 'foto' && (
-        <FoodPhotoAnalyzer showToast={showToast} />
+        <div className="mt-6"><FoodPhotoAnalyzer showToast={showToast} /></div>
       )}
 
       {/* ── AGUA ── */}
       {tab === 'agua' && (
-        <NutritionTracker profile={profile} showToast={showToast} onGoWeight={onGoWeight} />
+        <div className="mt-6"><NutritionTracker profile={profile} showToast={showToast} onGoWeight={onGoWeight} /></div>
       )}
 
       {/* ── COACH IA ── */}
       {tab === 'coach' && (
-        <SectionCoach
-          section="nutrition"
-          profile={profile}
-          showToast={showToast}
-          accent="sky"
-          title={t('mc_ng_coach_title')}
-          intro={isHobby ? t('mc_ng_coach_intro_hobby') : t('mc_ng_coach_intro_pro')}
-          suggestions={isHobby
-            ? [t('mc_ng_sug_hobby_1'), t('mc_ng_sug_hobby_2'), t('mc_ng_sug_hobby_3')]
-            : [t('mc_ng_sug_pro_1'), t('mc_ng_sug_pro_2'), t('mc_ng_sug_pro_3')]}
-        />
+        <div className="mt-6">
+          <SectionCoach
+            section="nutrition"
+            profile={profile}
+            showToast={showToast}
+            accent="sky"
+            title={t('mc_ng_coach_title')}
+            intro={isHobby ? t('mc_ng_coach_intro_hobby') : t('mc_ng_coach_intro_pro')}
+            suggestions={isHobby
+              ? [t('mc_ng_sug_hobby_1'), t('mc_ng_sug_hobby_2'), t('mc_ng_sug_hobby_3')]
+              : [t('mc_ng_sug_pro_1'), t('mc_ng_sug_pro_2'), t('mc_ng_sug_pro_3')]}
+          />
+        </div>
       )}
 
       {/* ── GUÍA ── */}
       {tab === 'guia' && (
-        <div className="space-y-4">
+        <div className="space-y-8 mt-6">
           <header>
             <p className="rk-eyebrow">{t('mc_ng_eyebrow')}</p>
             <h2 className="rk-h3" style={{ fontSize: '1.15rem', color: '#fff', margin: '4px 0 0' }}>
