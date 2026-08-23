@@ -113,11 +113,16 @@ function fighterContext(p = {}) {
   if (p.level) lines.push(`- Nivel: ${p.level}`);
   if (p.weightClass) lines.push(`- Categoría de peso: ${p.weightClass}`);
   if (p.age) lines.push(`- Edad: ${p.age}`);
+  if (p.sex) lines.push(`- Sexo: ${p.sex}`);
   if (p.heightCm) lines.push(`- Altura: ${p.heightCm} cm`);
   if (p.currentWeight) lines.push(`- Peso actual: ${p.currentWeight} kg`);
   if (p.targetWeight) lines.push(`- Peso objetivo: ${p.targetWeight} kg`);
   if (p.record) lines.push(`- Récord: ${p.record}`);
   if (p.goal) lines.push(`- Objetivo declarado: ${p.goal}`);
+  if (p.trainingDaysPerWeek) lines.push(`- Días entrenables/semana: ${p.trainingDaysPerWeek}`);
+  if (p.sessionMinutes) lines.push(`- Minutos por sesión: ${p.sessionMinutes} min`);
+  if (p.equipmentAccess) lines.push(`- Material disponible: ${p.equipmentAccess}`);
+  if (p.injuries) lines.push(`- Lesiones o notas: ${String(p.injuries).slice(0, 300)}`);
   if (p.weeklyMinutes) lines.push(`- Volumen de entreno esta semana: ${p.weeklyMinutes} min`);
   if (Array.isArray(p.goals) && p.goals.length) lines.push(`- Metas con fecha límite: ${p.goals.join('; ')}`);
   if (p.recovery) lines.push(`- Cómo llega esta semana: ${p.recovery}`);

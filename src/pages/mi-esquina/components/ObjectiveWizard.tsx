@@ -157,24 +157,45 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
 
   useEffect(() => { void loadActivePlan(); }, [loadActivePlan]);
 
-  // Perfil físico para el system prompt
+  // Perfil físico para el system prompt (mezcla fighters + weight + nutrition +
+  // fighter_physical del bloque A). El perfil físico manda cuando hay conflicto:
+  // p. ej. `weight_kg` de fighter_physical pisa el último weight_entry.
   const [physical, setPhysical] = useState<Record<string, unknown>>({});
   useEffect(() => {
     (async () => {
-      const [{ data: f }, { data: w }, { data: g }] = await Promise.all([
+      const [{ data: f }, { data: w }, { data: g }, { data: fp }] = await Promise.all([
         supabase.from('fighters').select('discipline, weight_class, experience_level, age, wins, losses, draws, kos').eq('profile_id', profile.id).maybeSingle(),
         supabase.from('weight_entries').select('weight_kg').eq('fighter_profile_id', profile.id).order('entry_date', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('nutrition_goals').select('target_weight_kg').eq('fighter_profile_id', profile.id).maybeSingle(),
+        supabase.from('fighter_physical').select('*').eq('fighter_profile_id', profile.id).maybeSingle(),
       ]);
+      const phys = (fp as Partial<{
+        weight_kg: number; height_cm: number; birth_date: string; sex: string; sport: string; level: string;
+        training_days_per_week: number; session_minutes: number; equipment_access: string; injuries_notes: string;
+      }> | null) || {};
+      // Edad de birth_date > edad de fighters. Sport del perfil físico > discipline. Level idem.
+      const ageFromBirth = phys.birth_date ? (() => {
+        const b = new Date(phys.birth_date + 'T12:00:00'); const now = new Date();
+        let a = now.getFullYear() - b.getFullYear();
+        const m = now.getMonth() - b.getMonth();
+        if (m < 0 || (m === 0 && now.getDate() < b.getDate())) a--;
+        return a >= 0 && a < 120 ? a : undefined;
+      })() : undefined;
       setPhysical({
         name: (profile.full_name || '').split(' ')[0] || undefined,
-        discipline: f?.discipline || undefined,
-        level: f?.experience_level || undefined,
+        discipline: phys.sport || f?.discipline || undefined,
+        level: phys.level || f?.experience_level || undefined,
         weightClass: f?.weight_class || undefined,
-        age: f?.age || undefined,
-        currentWeight: (w as { weight_kg?: number } | null)?.weight_kg || undefined,
+        age: ageFromBirth ?? f?.age ?? undefined,
+        heightCm: phys.height_cm || undefined,
+        sex: phys.sex || undefined,
+        currentWeight: phys.weight_kg || (w as { weight_kg?: number } | null)?.weight_kg || undefined,
         targetWeight: (g as { target_weight_kg?: number } | null)?.target_weight_kg || undefined,
         record: f ? `${f.wins ?? 0}-${f.losses ?? 0}-${f.draws ?? 0}, ${f.kos ?? 0} KO` : undefined,
+        trainingDaysPerWeek: phys.training_days_per_week || undefined,
+        sessionMinutes: phys.session_minutes || undefined,
+        equipmentAccess: phys.equipment_access || undefined,
+        injuries: phys.injuries_notes || undefined,
       });
     })();
   }, [profile.id, profile.full_name]);

@@ -5,6 +5,7 @@ import { supabase, Profile, Fighter, FighterVideo, FighterAchievement } from '@/
 import DashboardNav from './DashboardNav';
 import DashMobileNav from './DashMobileNav';
 import PageBreadcrumb from '@/components/base/PageBreadcrumb';
+import PhysicalProfileCard from '@/pages/mi-esquina/components/PhysicalProfileCard';
 import AvatarUpload from './AvatarUpload';
 import FighterOpportunities from './FighterOpportunities';
 import MessagesPanel from './messages/MessagesPanel';
@@ -801,6 +802,9 @@ export default function FighterDashboard({ profile }: Props) {
 
           {activeTab === 'settings' && (
             <div className="max-w-lg space-y-4">
+              {/* Perfil físico (Bloque A.2): editable siempre desde Ajustes */}
+              <PhysicalProfileCard profileId={profile.id} showToast={showToast} />
+
               {/* Acceso rápido móvil a tabs secundarios */}
               <div className="lg:hidden grid grid-cols-3 gap-2 mb-2">
                 {[

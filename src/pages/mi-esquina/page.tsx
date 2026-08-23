@@ -10,6 +10,7 @@ import { DocumentExpiryAlert } from '@/pages/mi-esquina/components/DocumentsPane
 import TodayCard from '@/pages/mi-esquina/components/TodayCard';
 import SummaryMetrics from '@/pages/mi-esquina/components/SummaryMetrics';
 import SummaryAiLine from '@/pages/mi-esquina/components/SummaryAiLine';
+import PhysicalProfileCard from '@/pages/mi-esquina/components/PhysicalProfileCard';
 import AgendaHub from '@/pages/mi-esquina/components/AgendaHub';
 import ProgressHub from '@/pages/mi-esquina/components/ProgressHub';
 import RingHub from '@/pages/mi-esquina/components/RingHub';
@@ -291,6 +292,9 @@ export default function MiEsquinaPage() {
               <Reveal delay={160}>
                 <SummaryAiLine profile={profile} onOpen={() => go('progreso', 'objetivos')} />
               </Reveal>
+
+              {/* Perfil físico incompleto (A.3): discreto, se oculta al 100% */}
+              <PhysicalProfileCard profileId={profile.id} showToast={showToast} hideWhenComplete />
 
               {/* Consentimiento del gimnasio (condicional, subordinado) */}
               <GymLink profile={profile} showToast={showToast} />
