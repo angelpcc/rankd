@@ -180,6 +180,7 @@ export default {
 
   // Fighters page — hardcoded texts
   fighters_dir_registered: 'registered fighters',
+  fighters_dir_search_ph: 'Search by name, nickname, gym or city…',
   fighters_dir_discover: 'Discover the next',
   fighters_dir_champion: 'champion',
   fighters_dir_desc: 'Explore profiles of professional, semi-pro and amateur fighters. Filter by discipline, weight class, level and digital presence.',

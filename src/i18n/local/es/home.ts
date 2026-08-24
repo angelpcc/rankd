@@ -180,6 +180,7 @@ export default {
 
   // Fighters page — textos hardcodeados
   fighters_dir_registered: 'peleadores registrados',
+  fighters_dir_search_ph: 'Buscar por nombre, apodo, gimnasio o ciudad…',
   fighters_dir_discover: 'Descubre el próximo',
   fighters_dir_champion: 'campeón',
   fighters_dir_desc: 'Explora perfiles de peleadores profesionales, semi-pro y amateurs. Filtra por disciplina, categoría de peso, nivel y presencia digital.',

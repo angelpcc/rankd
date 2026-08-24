@@ -338,6 +338,51 @@ export default function FightersDirectoryPage() {
           </div>
         </div>
 
+        {/* Búsqueda sticky — siempre visible al scrollear (D.1) */}
+        {!loading && data.length > 0 && (
+          <div
+            className="sticky z-30 bg-[#070707]/95 backdrop-blur border-b border-white/[0.06]"
+            style={{ top: 'calc(4rem + env(safe-area-inset-top, 0px))' }}
+          >
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 py-3">
+              <div className="flex items-center gap-2">
+                <div className="relative flex-1 min-w-0">
+                  <i className="ri-search-line absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"></i>
+                  <input
+                    value={filters.search}
+                    onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
+                    placeholder={t('fighters_dir_search_ph')}
+                    style={{ fontSize: 16, minHeight: 44 }}
+                    className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl pl-10 pr-10 focus:outline-none focus:border-red-500 placeholder-zinc-500"
+                  />
+                  {filters.search && (
+                    <button
+                      onClick={() => setFilters((f) => ({ ...f, search: '' }))}
+                      aria-label={t('mc_clear') || 'Limpiar'}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:text-white cursor-pointer"
+                    >
+                      <i className="ri-close-line"></i>
+                    </button>
+                  )}
+                </div>
+                {/* Botón "Filtros" solo en móvil: en desktop el sidebar ya se ve */}
+                <button
+                  onClick={() => setFiltersOpen(true)}
+                  style={{ minHeight: 44 }}
+                  className="lg:hidden flex-shrink-0 flex items-center gap-1.5 px-3.5 rounded-xl bg-white/[0.04] border border-white/10 text-sm font-semibold text-zinc-300 hover:text-white cursor-pointer relative"
+                >
+                  <i className="ri-equalizer-line"></i>
+                  {activeFilterCount > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-red-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Explorar por disciplina — entrada visual, no lista plana */}
         {!loading && data.length > 0 && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 pt-7">
