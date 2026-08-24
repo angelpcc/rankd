@@ -23,6 +23,7 @@ const ComoFuncionaPage = lazy(() => import('../pages/como-funciona/page'));
 const PromotorasPage = lazy(() => import('../pages/promotoras/page'));
 const EventoDetailPage = lazy(() => import('../pages/evento/page'));
 const TermsPage = lazy(() => import('../pages/terms/page'));
+const AvisoLegalPage = lazy(() => import('../pages/aviso-legal/page'));
 const EsquinaPage = lazy(() => import('../pages/esquina/page'));
 const MiEsquinaPage = lazy(() => import('../pages/mi-esquina/page'));
 const TimerPage = lazy(() => import('../pages/timer/page'));
@@ -293,6 +294,24 @@ const routes: RouteObject[] = [
     element: (
       <Suspense fallback={<LoadingSpinner />}>
         <PrivacyPage />
+      </Suspense>
+    ),
+  },
+  // Alias legales (LEGAL_RANKD): /aviso-legal es nuevo; /privacidad es alias
+  // en español de /privacy para poder enlazarla con URL localizada.
+  {
+    path: '/privacidad',
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <PrivacyPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/aviso-legal',
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <AvisoLegalPage />
       </Suspense>
     ),
   },

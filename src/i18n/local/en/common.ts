@@ -4,6 +4,11 @@ export default {
   lg_privacy_title: 'Privacy Policy',
   lg_seo_terms: 'RANKD terms and conditions of use.',
   lg_seo_privacy: 'RANKD privacy policy and data processing (GDPR).',
+  lg_aviso_title: 'Legal Notice',
+  lg_seo_aviso: 'RANKD legal notice under Spanish law (LSSI-CE).',
+  // Sign-up: accept terms and privacy (required, LEGAL_RANKD)
+  auth_accept_terms: "I've read and accept the <p>Privacy policy</p> and the <t>Terms & conditions</t>",
+  auth_accept_terms_required: 'You must accept the privacy policy and terms to create your account.',
   // Nav
   nav_home: 'Home',
   nav_how_it_works: 'How It Works',
@@ -179,8 +184,9 @@ export default {
   footer_contact: 'Contact',
   footer_headquarters: 'Headquarters',
   footer_rights: '© 2026 RANKD. All rights reserved.',
-  footer_privacy: 'Privacy',
-  footer_terms: 'Terms',
+  footer_legal_notice: 'Legal notice',
+  footer_terms: 'Terms & conditions',
+  footer_privacy: 'Privacy policy',
   footer_description: 'We connect fighters with promoters, managers and brands in the world of combat sports.',
   footer_fighters: 'Fighters',
   footer_opportunities: 'Opportunities',

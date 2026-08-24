@@ -4,6 +4,11 @@ export default {
   lg_privacy_title: 'Política de Privacidad',
   lg_seo_terms: 'Términos y condiciones de uso de RANKD.',
   lg_seo_privacy: 'Política de privacidad de RANKD y tratamiento de datos (RGPD).',
+  lg_aviso_title: 'Aviso Legal',
+  lg_seo_aviso: 'Aviso legal de RANKD conforme a la LSSI-CE.',
+  // Registro: aceptación de términos y privacidad (obligatorio, LEGAL_RANKD)
+  auth_accept_terms: 'He leído y acepto la <p>Política de privacidad</p> y los <t>Términos y condiciones</t>',
+  auth_accept_terms_required: 'Debes aceptar la política de privacidad y los términos para crear tu cuenta.',
   // Nav
   nav_home: 'Inicio',
   nav_how_it_works: 'Cómo Funciona',
@@ -179,8 +184,9 @@ export default {
   footer_contact: 'Contacto',
   footer_headquarters: 'Sede',
   footer_rights: '© 2026 RANKD. Todos los derechos reservados.',
-  footer_privacy: 'Privacidad',
-  footer_terms: 'Términos',
+  footer_legal_notice: 'Aviso legal',
+  footer_terms: 'Términos y condiciones',
+  footer_privacy: 'Política de privacidad',
   footer_description: 'Conectamos peleadores con promotoras, managers y marcas del mundo de los deportes de contacto.',
   footer_fighters: 'Peleadores',
   footer_opportunities: 'Oportunidades',

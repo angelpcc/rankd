@@ -12,9 +12,10 @@ const NAV = [
   { label: 'Tienda', href: '/tienda' },
 ];
 
-const LEGAL = [
-  { label: 'Términos y condiciones', href: '/terms' },
-  { label: 'Política de privacidad', href: '/privacy' },
+const LEGAL: { key: string; href: string }[] = [
+  { key: 'footer_legal_notice', href: '/aviso-legal' },
+  { key: 'footer_terms', href: '/terms' },
+  { key: 'footer_privacy', href: '/privacidad' },
 ];
 
 export default function Footer() {
@@ -153,7 +154,7 @@ export default function Footer() {
                 onMouseEnter={(e) => (e.currentTarget.style.color = '#fff')}
                 onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--rk-text-3)')}
               >
-                {l.label}
+                {t(l.key)}
               </a>
             ))}
           </div>

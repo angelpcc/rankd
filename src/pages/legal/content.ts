@@ -220,3 +220,65 @@ export const privacyContent: Record<'es' | 'en', LegalSection[]> = {
     { h: '14. Contact', p: [`For any privacy query: ${CONTACT}.`] },
   ],
 };
+
+// ── Aviso legal (LSSI-CE) ──
+// Correo específico del owner para reclamaciones legales según ficha del
+// responsable (distinto del genérico de soporte).
+const OWNER_LEGAL_EMAIL = 'angelpc2005@gmail.com';
+
+export const avisoLegalContent: Record<'es' | 'en', LegalSection[]> = {
+  es: [
+    { h: 'Identificación del responsable', p: [
+      'En cumplimiento de la Ley 34/2002, de 11 de julio, de Servicios de la Sociedad de la Información y de Comercio Electrónico (LSSI-CE), se informa de que el responsable de este sitio web es:',
+    ], ul: [
+      `Responsable: ${OWNER}`,
+      `Correo de contacto: ${OWNER_LEGAL_EMAIL}`,
+      'Sitio web: RANKD',
+    ] },
+    { h: 'Objeto', p: [
+      'RANKD es una plataforma dedicada al mundo de los deportes de combate (boxeo, MMA, kickboxing y muay thai) que permite a peleadores, promotoras, marcas y aficionados crear un perfil, registrar su actividad deportiva y conectar entre sí.',
+      'Actualmente el uso de la plataforma es gratuito y no se realiza ninguna actividad comercial ni de venta a través de ella.',
+    ] },
+    { h: 'Condiciones de uso', p: [
+      'El acceso a este sitio web atribuye la condición de usuario e implica la aceptación de este aviso legal. El usuario se compromete a hacer un uso adecuado de la plataforma y a no emplearla para actividades ilícitas, contrarias a la buena fe o que puedan dañar derechos de terceros.',
+      'RANKD se reserva el derecho a retirar contenidos o suspender cuentas que incumplan estas condiciones o los términos y condiciones de la plataforma.',
+    ] },
+    { h: 'Propiedad intelectual', p: [
+      'El diseño, logotipos, textos y demás elementos de este sitio web son titularidad de su responsable o se utilizan con autorización. El contenido que los usuarios suben a sus perfiles (fotos, datos deportivos, publicaciones) es responsabilidad de quien lo publica.',
+    ] },
+    { h: 'Responsabilidad', p: [
+      'El responsable no garantiza la disponibilidad ininterrumpida del sitio ni se hace responsable de los daños derivados de un uso incorrecto de la plataforma o de los contenidos publicados por los usuarios. La información deportiva, de entrenamiento o de nutrición que pueda mostrarse en la plataforma tiene carácter orientativo y no sustituye el consejo de un profesional cualificado.',
+    ] },
+    { h: 'Legislación aplicable', p: [
+      'Este aviso legal se rige por la legislación española.',
+    ] },
+  ],
+  // El aviso legal se publica solo en español (LSSI-CE, jurisdicción española).
+  // Se muestra el mismo contenido en la versión en si el usuario cambia idioma.
+  en: [
+    { h: 'Identification of the operator', p: [
+      'Under Spanish Law 34/2002 (LSSI-CE), the operator of this website is:',
+    ], ul: [
+      `Operator: ${OWNER}`,
+      `Contact e-mail: ${OWNER_LEGAL_EMAIL}`,
+      'Website: RANKD',
+    ] },
+    { h: 'Purpose', p: [
+      'RANKD is a platform for combat sports (boxing, MMA, kickboxing and muay thai) that lets fighters, promoters, brands and fans create a profile, log their activity and connect with each other.',
+      'The platform is currently free to use; no commercial activity or sales are conducted through it.',
+    ] },
+    { h: 'Conditions of use', p: [
+      'Accessing this site makes you a user and implies acceptance of this legal notice. You commit to using the platform properly and not for unlawful activities or those that could harm third parties.',
+      'RANKD reserves the right to remove content or suspend accounts that breach these conditions or the Terms.',
+    ] },
+    { h: 'Intellectual property', p: [
+      'The design, logos, texts and other elements on this site belong to the operator or are used with permission. Content uploaded by users to their profiles (photos, sports data, posts) is the responsibility of whoever publishes it.',
+    ] },
+    { h: 'Liability', p: [
+      'The operator does not guarantee uninterrupted availability of the site and is not liable for damages arising from improper use of the platform or from user-published content. Any sports, training or nutrition information shown on the platform is orientative and does not replace advice from a qualified professional.',
+    ] },
+    { h: 'Applicable law', p: [
+      'This legal notice is governed by Spanish law.',
+    ] },
+  ],
+};

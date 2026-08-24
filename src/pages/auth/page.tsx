@@ -117,6 +117,9 @@ export default function AuthPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState('');
+  // Aceptación obligatoria de privacidad + términos (LEGAL_RANKD). Se guarda
+  // como accepted_terms_at en profiles (mig 0032). Sin marcar, no se registra.
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -258,6 +261,7 @@ export default function AuthPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userType) { setError(t('error_select_account_type')); return; }
+    if (!acceptedTerms) { setError(t('auth_accept_terms_required')); return; }
     setLoading(true);
     setError('');
 
@@ -303,7 +307,21 @@ export default function AuthPage() {
           full_name: fullName,
           country: country || null,
           athlete_mode: userType === 'fighter' ? athleteMode : null,
-        }, { onConflict: 'id', ignoreDuplicates: true });
+          // Trazabilidad legal (mig 0032). Si la columna aún no existe,
+          // el upsert se reintenta abajo sin el campo — nada bloquea.
+          accepted_terms_at: new Date().toISOString(),
+        }, { onConflict: 'id', ignoreDuplicates: true }).then(async ({ error: upsertErr }) => {
+          // Si la columna accepted_terms_at no existe, reintentar sin ella.
+          if (upsertErr && (upsertErr.code === '42703' || /accepted_terms_at/.test(upsertErr.message || ''))) {
+            await supabase.from('profiles').upsert({
+              id: data.user!.id,
+              user_type: userType,
+              full_name: fullName,
+              country: country || null,
+              athlete_mode: userType === 'fighter' ? athleteMode : null,
+            }, { onConflict: 'id', ignoreDuplicates: true });
+          }
+        });
         if (pendingInvite()) {
           navigate('/unirse');
         } else if (userType === 'fighter' && athleteMode === 'hobby') {
@@ -529,17 +547,23 @@ export default function AuthPage() {
                       </button>
                     </div>
                   </div>
+                  {/* Aceptación obligatoria (LEGAL_RANKD). Sin marcar, submit bloqueado. */}
+                  <label className="flex items-start gap-3 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={acceptedTerms}
+                      onChange={(e) => setAcceptedTerms(e.target.checked)}
+                      className="mt-0.5 w-5 h-5 rounded border-white/25 bg-white/[0.04] accent-[#E10600] cursor-pointer flex-shrink-0"
+                    />
+                    <span className="text-xs text-white/70 leading-relaxed font-inter">
+                      <TermsAcceptText />
+                    </span>
+                  </label>
                   {error && <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 font-inter">{error}</p>}
                   {success && <p className="text-green-400 text-sm bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-3 font-inter">{success}</p>}
-                  <button type="submit" disabled={loading} className="w-full bg-[#E10600] hover:bg-red-700 text-white font-semibold py-3.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60 font-inter">
+                  <button type="submit" disabled={loading || !acceptedTerms} className="w-full bg-[#E10600] hover:bg-red-700 text-white font-semibold py-3.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed font-inter">
                     {loading ? t('auth_register_loading') : t('auth_register_btn')}
                   </button>
-                  <p className="text-center text-white/40 text-xs font-inter pt-1">
-                    {t('auth_register_terms')}{' '}
-                    <a href="/terms" className="text-white/70 hover:text-white underline underline-offset-2 transition-colors">{t('auth_register_terms_link')}</a>
-                    {' '}{t('auth_register_terms_and')}{' '}
-                    <a href="/privacy" className="text-white/70 hover:text-white underline underline-offset-2 transition-colors">{t('auth_register_privacy_link')}</a>
-                  </p>
                 </form>
               )}
             </>
@@ -553,4 +577,29 @@ export default function AuthPage() {
       </div>
     </div>
   );
+}
+
+// Texto del checkbox de aceptación con enlaces a Privacidad y Términos.
+// La clave i18n usa marcadores <p>...</p> (privacidad) y <t>...</t> (términos)
+// que se sustituyen por <a> reales. Así el enlazado se localiza en el idioma
+// que el usuario tenga activo, sin hardcodear posiciones ni orden.
+function TermsAcceptText() {
+  const { t } = useTranslation();
+  const raw = t('auth_accept_terms');
+  const regex = /<(p|t)>([^<]+)<\/\1>/g;
+  const parts: React.ReactNode[] = [];
+  let last = 0; let m: RegExpExecArray | null; let i = 0;
+  while ((m = regex.exec(raw)) !== null) {
+    if (m.index > last) parts.push(raw.slice(last, m.index));
+    const href = m[1] === 'p' ? '/privacidad' : '/terms';
+    parts.push(
+      <a key={i++} href={href} target="_blank" rel="noopener noreferrer"
+        className="text-white hover:text-white underline underline-offset-2">
+        {m[2]}
+      </a>
+    );
+    last = m.index + m[0].length;
+  }
+  if (last < raw.length) parts.push(raw.slice(last));
+  return <>{parts}</>;
 }
