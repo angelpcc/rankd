@@ -1,10 +1,31 @@
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Profile, Fighter, FighterVideo, FighterAchievement } from '@/lib/supabase';
+
+// Historial de combates del peleador (D.3). Deriva de `event_bouts` (mig 0023):
+// eventos donde participó como A o B con resultado registrado. La fila incluye
+// ya normalizado el oponente, el resultado desde su punto de vista, y el
+// evento (fecha, título, ubicación) para navegar al detalle.
+export interface FightHistoryRow {
+  id: string;
+  opponent: string;
+  opponentId: string | null;
+  outcome: 'win' | 'loss' | 'draw';
+  rounds: number | null;
+  weightClass: string | null;
+  isMain: boolean;
+  eventTitle: string | null;
+  eventDate: string | null;
+  eventLocation: string | null;
+  eventId: string | null;
+}
 
 interface Props {
   profile: Profile;
   fighter: Fighter | null;
   videos: FighterVideo[];
   achievements: FighterAchievement[];
+  history?: FightHistoryRow[];
   views?: number;
   onContact: () => void;
   canContact: boolean;
@@ -39,8 +60,20 @@ function getYouTubeThumbnail(url: string): string | null {
   return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null;
 }
 
-export default function FighterProfileBody({ profile, fighter, videos, achievements, views, onContact, canContact }: Props) {
+export default function FighterProfileBody({ profile, fighter, videos, achievements, history = [], views, onContact, canContact }: Props) {
+  const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
   const lookingFor = fighter?.looking_for || [];
+
+  const fmtDate = (d: string | null) => d
+    ? new Date(d + 'T12:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })
+    : '—';
+  const outcomeCfg: Record<'win' | 'loss' | 'draw', { label: string; letter: string; color: string; bg: string; border: string }> = {
+    win:  { label: t('fh_win'),  letter: t('fh_win_letter'),  color: 'text-green-400',  bg: 'bg-green-500/12',  border: 'border-green-500/25' },
+    loss: { label: t('fh_loss'), letter: t('fh_loss_letter'), color: 'text-red-400',    bg: 'bg-red-500/12',    border: 'border-red-500/25' },
+    draw: { label: t('fh_draw'), letter: t('fh_draw_letter'), color: 'text-yellow-400', bg: 'bg-yellow-500/12', border: 'border-yellow-500/25' },
+  };
 
   return (
     <div className="min-h-screen">
@@ -227,6 +260,50 @@ export default function FighterProfileBody({ profile, fighter, videos, achieveme
                 <div className="w-12 h-12 flex items-center justify-center rounded-xl bg-white/[0.05] mx-auto mb-3"><i className="ri-user-line text-2xl text-zinc-400"></i></div>
                 <p className="text-sm font-semibold text-zinc-200">Perfil deportivo incompleto</p>
                 <p className="text-xs text-zinc-400 mt-1">Este peleador aún no ha completado su ficha deportiva.</p>
+              </div>
+            )}
+
+            {/* Historial de combates (D.3): derivado de event_bouts confirmados */}
+            {history.length > 0 && (
+              <div>
+                <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <i className="ri-history-line"></i>{t('fh_title')} ({history.length})
+                </h4>
+                <div className="space-y-2">
+                  {history.map((h) => {
+                    const oc = outcomeCfg[h.outcome];
+                    return (
+                      <div key={h.id} className={`flex items-stretch gap-3 rounded-xl border ${oc.border} ${oc.bg} overflow-hidden`}>
+                        {/* Franja de resultado con la letra grande */}
+                        <div className={`flex items-center justify-center w-12 sm:w-14 flex-shrink-0 ${oc.color} border-r ${oc.border}`} style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 28 }}>
+                          {oc.letter}
+                        </div>
+                        <div className="flex-1 min-w-0 py-3 pr-3">
+                          <div className="flex items-start justify-between gap-2 flex-wrap">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-bold text-white truncate">
+                                {t('fh_vs')} <span className={h.opponentId ? 'hover:underline cursor-pointer' : ''} onClick={h.opponentId ? (e) => { e.stopPropagation(); navigate(`/fighter/${h.opponentId}`); } : undefined}>{h.opponent}</span>
+                                {h.isMain && <span className="ml-2 text-[9px] font-bold uppercase tracking-wider text-[#C9A84C] bg-[#C9A84C]/12 border border-[#C9A84C]/30 px-1.5 py-0.5 rounded-full align-middle">{t('fh_main')}</span>}
+                              </p>
+                              <p className="text-xs text-zinc-400 mt-0.5">{oc.label}{h.rounds ? ` · ${h.rounds}R` : ''}{h.weightClass ? ` · ${h.weightClass}` : ''}</p>
+                            </div>
+                            <span className="text-[11px] text-zinc-500 whitespace-nowrap flex-shrink-0">{fmtDate(h.eventDate)}</span>
+                          </div>
+                          {h.eventTitle && (
+                            <button
+                              onClick={() => h.eventId && navigate(`/evento/${h.eventId}`)}
+                              disabled={!h.eventId}
+                              className="mt-1 text-xs text-zinc-400 hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer disabled:cursor-default text-left"
+                            >
+                              <i className="ri-calendar-event-line text-zinc-500"></i>
+                              <span className="truncate">{h.eventTitle}{h.eventLocation ? ` · ${h.eventLocation}` : ''}</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
 

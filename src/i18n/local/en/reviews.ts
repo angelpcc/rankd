@@ -33,6 +33,8 @@ export default {
   pp_upcoming_events: 'Upcoming events',
   pp_past_events: 'Past events',
   pp_no_events: 'No events published.',
+  pp_looking_now: 'Looking for now',
+  pp_see_all_opps: 'See all opportunities',
   pp_visit_web: 'Visit website',
   pp_message: 'Send message',
   pp_organizes: 'Organiser',

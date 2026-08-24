@@ -181,6 +181,16 @@ export default {
   // Fighters page — hardcoded texts
   fighters_dir_registered: 'registered fighters',
   fighters_dir_search_ph: 'Search by name, nickname, gym or city…',
+  // Fight history in the fighter profile (D.3)
+  fh_title: 'Fight history',
+  fh_vs: 'vs',
+  fh_main: 'Main',
+  fh_win: 'Win',
+  fh_win_letter: 'W',
+  fh_loss: 'Loss',
+  fh_loss_letter: 'L',
+  fh_draw: 'Draw',
+  fh_draw_letter: 'D',
   fighters_dir_discover: 'Discover the next',
   fighters_dir_champion: 'champion',
   fighters_dir_desc: 'Explore profiles of professional, semi-pro and amateur fighters. Filter by discipline, weight class, level and digital presence.',

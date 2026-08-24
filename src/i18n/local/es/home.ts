@@ -181,6 +181,16 @@ export default {
   // Fighters page — textos hardcodeados
   fighters_dir_registered: 'peleadores registrados',
   fighters_dir_search_ph: 'Buscar por nombre, apodo, gimnasio o ciudad…',
+  // Historial de combates del perfil de peleador (D.3)
+  fh_title: 'Historial de combates',
+  fh_vs: 'vs',
+  fh_main: 'Main',
+  fh_win: 'Victoria',
+  fh_win_letter: 'V',
+  fh_loss: 'Derrota',
+  fh_loss_letter: 'D',
+  fh_draw: 'Empate',
+  fh_draw_letter: 'E',
   fighters_dir_discover: 'Descubre el próximo',
   fighters_dir_champion: 'campeón',
   fighters_dir_desc: 'Explora perfiles de peleadores profesionales, semi-pro y amateurs. Filtra por disciplina, categoría de peso, nivel y presencia digital.',

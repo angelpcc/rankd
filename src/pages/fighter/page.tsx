@@ -3,8 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile, Fighter, FighterVideo, FighterAchievement } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { isMissingTable } from '@/lib/dbState';
 import FighterProfileHero from './components/FighterProfileHero';
-import FighterProfileBody from './components/FighterProfileBody';
+import FighterProfileBody, { type FightHistoryRow } from './components/FighterProfileBody';
 import FighterContactModal from './components/FighterContactModal';
 
 export default function FighterPublicPage() {
@@ -17,6 +18,7 @@ export default function FighterPublicPage() {
   const [views, setViews] = useState<number>(0);
   const [videos, setVideos] = useState<FighterVideo[]>([]);
   const [achievements, setAchievements] = useState<FighterAchievement[]>([]);
+  const [history, setHistory] = useState<FightHistoryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [showContact, setShowContact] = useState(false);
@@ -68,12 +70,46 @@ export default function FighterPublicPage() {
       setFighter({ ...fighterData, profile_views: newViews });
       setProfile(profileData);
 
-      const [{ data: vids }, { data: achs }] = await Promise.all([
+      const [{ data: vids }, { data: achs }, { data: bouts, error: boutsErr }] = await Promise.all([
         supabase.from('fighter_videos').select('*').eq('fighter_id', fighterData.id).order('created_at', { ascending: false }),
         supabase.from('fighter_achievements').select('*').eq('fighter_id', fighterData.id).order('year', { ascending: false }),
+        // Historial de combates: eventos donde participó como A o B, con datos del evento.
+        // Solo combates con result != null (ya se pelearon). Degrada con isMissingTable.
+        supabase.from('event_bouts')
+          .select('id, fighter_a_profile_id, fighter_a_name, fighter_b_profile_id, fighter_b_name, result, rounds, weight_class, is_main, event:organization_events(id, title, event_date, location)')
+          .or(`fighter_a_profile_id.eq.${profileData.id},fighter_b_profile_id.eq.${profileData.id}`)
+          .not('result', 'is', null),
       ]);
       setVideos(vids || []);
       setAchievements(achs || []);
+
+      if (isMissingTable(boutsErr) || !bouts) {
+        setHistory([]);
+      } else {
+        const rows = (bouts as unknown as Array<{
+          id: string;
+          fighter_a_profile_id: string | null; fighter_a_name: string | null;
+          fighter_b_profile_id: string | null; fighter_b_name: string | null;
+          result: 'a' | 'b' | 'draw' | null; rounds: number | null; weight_class: string | null; is_main: boolean;
+          event: { id: string; title: string; event_date: string | null; location: string | null } | null;
+        }>).map((b) => {
+          const meIsA = b.fighter_a_profile_id === profileData!.id;
+          const opponent = (meIsA ? b.fighter_b_name : b.fighter_a_name) || '—';
+          const opponentId = meIsA ? b.fighter_b_profile_id : b.fighter_a_profile_id;
+          const outcome: 'win' | 'loss' | 'draw' =
+            b.result === 'draw' ? 'draw'
+            : (b.result === 'a' && meIsA) || (b.result === 'b' && !meIsA) ? 'win' : 'loss';
+          return {
+            id: b.id, opponent, opponentId,
+            outcome, rounds: b.rounds, weightClass: b.weight_class, isMain: b.is_main,
+            eventTitle: b.event?.title || null,
+            eventDate: b.event?.event_date || null,
+            eventLocation: b.event?.location || null,
+            eventId: b.event?.id || null,
+          };
+        }).sort((x, y) => (y.eventDate || '').localeCompare(x.eventDate || ''));
+        setHistory(rows);
+      }
       setLoading(false);
     };
     load();
@@ -183,6 +219,7 @@ export default function FighterPublicPage() {
           fighter={fighter}
           videos={videos}
           achievements={achievements}
+          history={history}
           views={views}
           onContact={handleContactClick}
           canContact={canContact}

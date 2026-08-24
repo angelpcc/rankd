@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { supabase, Profile, Organization, OrgEvent } from '@/lib/supabase';
+import { supabase, Profile, Organization, OrgEvent, Opportunity } from '@/lib/supabase';
+import { isPastEvent } from '@/lib/opportunityDate';
 import { useSEO } from '@/hooks/useSEO';
 import Navbar from '@/pages/home/components/Navbar';
 import Footer from '@/pages/home/components/Footer';
@@ -18,6 +19,7 @@ export default function PromotoraPublicPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [org, setOrg] = useState<Organization | null>(null);
   const [events, setEvents] = useState<OrgEvent[]>([]);
+  const [openOpps, setOpenOpps] = useState<Opportunity[]>([]);
   const [rating, setRating] = useState<{ avg: number; n: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -31,13 +33,18 @@ export default function PromotoraPublicPage() {
       const { data: prof } = await supabase.from('profiles').select('*').eq('id', id).maybeSingle();
       if (!prof || prof.user_type === 'brand' || prof.user_type === 'fighter') { setNotFound(true); setLoading(false); return; }
       setProfile(prof);
-      const [{ data: o }, { data: evs }, { data: rat }] = await Promise.all([
+      const [{ data: o }, { data: evs }, { data: opps }, { data: rat }] = await Promise.all([
         supabase.from('organizations').select('*').eq('profile_id', id).maybeSingle(),
         supabase.from('organization_events').select('*').eq('org_profile_id', id).order('event_date', { ascending: true }),
+        // Oportunidades activas de la promotora ("qué buscan ahora") — ocultamos
+        // vencidas con isPastEvent para no confundir. Aditivo: sin la tabla o
+        // sin filas se degrada silenciosamente.
+        supabase.from('opportunities').select('*').eq('profile_id', id).eq('status', 'open').order('created_at', { ascending: false }),
         supabase.from('org_rating_summary').select('avg_rating, review_count').eq('org_profile_id', id).maybeSingle(),
       ]);
       setOrg(o);
       setEvents(((evs || []) as OrgEvent[]).filter((e) => e.status !== 'draft'));
+      setOpenOpps(((opps || []) as Opportunity[]).filter((op) => !isPastEvent(op.event_date)));
       if (rat) setRating({ avg: Number(rat.avg_rating) || 0, n: rat.review_count || 0 });
       setLoading(false);
     };
@@ -120,6 +127,38 @@ export default function PromotoraPublicPage() {
           <div className="rk-card" style={{ padding: '20px 22px' }}>
             <h2 className="rk-h3 text-white mb-2" style={{ fontSize: '1rem' }}>{t('pp_about')}</h2>
             <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-line">{org.description}</p>
+          </div>
+        )}
+
+        {/* Qué buscan ahora — oportunidades activas de la promotora (D.4) */}
+        {openOpps.length > 0 && (
+          <div className="rk-card" style={{ padding: '20px 22px', borderColor: 'rgba(225,6,0,0.22)' }}>
+            <h2 className="rk-h3 text-white mb-3 flex items-center gap-2" style={{ fontSize: '1rem' }}>
+              <i className="ri-megaphone-line text-red-400" />{t('pp_looking_now')}
+            </h2>
+            <div className="space-y-2">
+              {openOpps.slice(0, 6).map((op) => (
+                <button key={op.id} onClick={() => navigate('/opportunities')}
+                  className="w-full text-left flex items-center gap-3 rounded-xl bg-white/[0.03] border border-white/10 hover:border-red-500/40 transition-colors px-3 py-2.5 cursor-pointer">
+                  <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg bg-red-600/12 border border-red-500/25 text-red-400">
+                    <i className="ri-boxing-line text-sm" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-white truncate">{op.title}</p>
+                    <p className="text-[11px] text-zinc-500 mt-0.5 truncate">
+                      {[op.discipline, op.weight_class, op.location].filter(Boolean).join(' · ')}
+                      {op.event_date && ` · ${new Date(op.event_date + 'T12:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short' })}`}
+                    </p>
+                  </div>
+                  <i className="ri-arrow-right-line text-zinc-600 flex-shrink-0" />
+                </button>
+              ))}
+            </div>
+            {openOpps.length > 6 && (
+              <button onClick={() => navigate('/opportunities')} className="mt-3 text-xs font-bold text-red-400 hover:text-red-300 flex items-center gap-1 cursor-pointer">
+                {t('pp_see_all_opps')} ({openOpps.length}) <i className="ri-arrow-right-line" />
+              </button>
+            )}
           </div>
         )}
 
