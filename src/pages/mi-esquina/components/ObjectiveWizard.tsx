@@ -550,6 +550,13 @@ function ActivePlanView({
             <button onClick={onStartNew} className="rk-cta text-sm">
               <i className="ri-add-line mr-1" /> {t('op_start_over')}
             </button>
+            <button
+              onClick={() => window.open('/mi-esquina/plan/imprimir?print=1', '_blank', 'noopener')}
+              className="rk-nav-btn text-sm"
+              title={t('op_print_download')}
+            >
+              <i className="ri-file-download-line mr-1" /> {t('op_print_download')}
+            </button>
             <button onClick={onArchive} className="rk-nav-btn text-sm">
               <i className="ri-archive-line mr-1" /> {t('op_archive')}
             </button>

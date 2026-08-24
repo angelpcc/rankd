@@ -93,4 +93,14 @@ export default {
   op_err_generic: 'Algo ha fallado. Prueba en un momento.',
 
   op_disclaimer_prefix: 'Aviso:',
+  // ── Vista de impresión / PDF (Bloque B.7) ──
+  op_print_download: 'Descargar PDF',
+  op_print_back: 'Volver',
+  op_print_objective: 'Objetivo',
+  op_print_duration: 'Duración',
+  op_print_generated: 'Generado',
+  op_print_weeks_n: '{{n}} semanas',
+  op_print_generated_by: 'Generado en RANKD',
+  op_print_no_plan_title: 'No hay plan activo',
+  op_print_no_plan_desc: 'Todavía no has creado un plan. Vuelve a Mi Esquina › Progreso › Objetivos.',
 };

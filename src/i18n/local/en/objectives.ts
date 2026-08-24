@@ -93,4 +93,14 @@ export default {
   op_err_generic: 'Something went wrong. Try again in a moment.',
 
   op_disclaimer_prefix: 'Note:',
+  // ── Print / PDF view (Block B.7) ──
+  op_print_download: 'Download PDF',
+  op_print_back: 'Back',
+  op_print_objective: 'Objective',
+  op_print_duration: 'Duration',
+  op_print_generated: 'Generated',
+  op_print_weeks_n: '{{n}} weeks',
+  op_print_generated_by: 'Generated in RANKD',
+  op_print_no_plan_title: 'No active plan',
+  op_print_no_plan_desc: "You haven't created a plan yet. Go back to My Corner › Progress › Goals.",
 };
