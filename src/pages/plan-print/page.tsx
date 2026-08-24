@@ -137,9 +137,14 @@ export default function PlanPrintPage() {
             <div className="rk-print-days">
               {DAY_ORDER.map((dayName) => {
                 const d = w.days.find((x) => x.day === dayName);
-                const empty = !d || (!d.training && !d.cardio && !d.nutrition && !d.notes);
+                const kind = !d ? 'rest' : d.training ? 'training' : d.cardio ? 'cardio' : d.nutrition ? 'nutrition' : 'rest';
+                const stripe = kind === 'training' ? '#E10600'
+                  : kind === 'cardio' ? '#c26518'
+                  : kind === 'nutrition' ? '#2f8a3d'
+                  : '#ddd';
+                const empty = kind === 'rest';
                 return (
-                  <div key={dayName} className={`rk-print-day ${empty ? 'is-rest' : ''}`}>
+                  <div key={dayName} className={`rk-print-day ${empty ? 'is-rest' : ''}`} style={{ borderLeftColor: stripe }}>
                     <div className="rk-print-day-name">{dayName}</div>
                     {empty ? (
                       <div className="rk-print-day-rest">{t('op_day_rest')}</div>

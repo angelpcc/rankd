@@ -93,6 +93,14 @@ export default {
   op_err_generic: 'Something went wrong. Try again in a moment.',
 
   op_disclaimer_prefix: 'Note:',
+  // ── Plan render (B.5): day kinds + week summary ──
+  op_day_kind_training: 'Training',
+  op_day_kind_cardio: 'Cardio only',
+  op_day_kind_nutrition: 'Nutrition only',
+  op_day_kind_rest: 'Rest',
+  op_day_rest_hint: 'Recover: light walk, mobility, sleep well.',
+  op_week_summary_one: '{{count}} session',
+  op_week_summary_other: '{{count}} sessions',
   // ── Print / PDF view (Block B.7) ──
   op_print_download: 'Download PDF',
   op_print_back: 'Back',

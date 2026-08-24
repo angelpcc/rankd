@@ -697,6 +697,22 @@ function PlanBanner({ plan }: { plan: Plan }) {
   );
 }
 
+// Tipo visual del día según qué toca: da la franja de color de la tarjeta.
+// El schema actual del plan es texto libre por campo, no una lista estructurada
+// de ejercicios, así que la franja no puede ir por grupo muscular. En su lugar
+// va por CONTENIDO del día, que es lo que un peleador quiere distinguir de un
+// vistazo: entreno principal · solo cardio · solo pauta nutricional · descanso.
+type DayKind = 'training' | 'cardio' | 'nutrition' | 'rest';
+function kindOfDay(d: PlanDay): DayKind {
+  if (d.training) return 'training';
+  if (d.cardio) return 'cardio';
+  if (d.nutrition) return 'nutrition';
+  return 'rest';
+}
+const KIND_COLOR: Record<DayKind, string> = {
+  training: '#E10600', cardio: '#fb923c', nutrition: '#4ade80', rest: 'rgba(255,255,255,0.14)',
+};
+
 function PlanWeeksRender({ plan }: { plan: Plan }) {
   const { t } = useTranslation();
   const [openWeek, setOpenWeek] = useState<number>(1);
@@ -704,30 +720,57 @@ function PlanWeeksRender({ plan }: { plan: Plan }) {
     <div className="space-y-3">
       {plan.weeks.map((w) => {
         const open = openWeek === w.week;
+        const kinds = w.days.map(kindOfDay);
+        const trainingCount = kinds.filter((k) => k === 'training').length;
         return (
           <div key={w.week} className="rk-card" style={{ padding: 0, overflow: 'hidden' }}>
             <button onClick={() => setOpenWeek(open ? -1 : w.week)}
               className="w-full text-left flex items-center gap-3 px-4 py-3 cursor-pointer">
-              <span className="text-[11px] font-bold tracking-[0.22em] uppercase text-red-400 flex-1">
+              <span className="text-[11px] font-bold tracking-[0.22em] uppercase text-red-400">
                 {t('op_week')} {w.week}
+              </span>
+              {/* Mini-strip de 7 puntos = un vistazo a la semana sin abrirla */}
+              <span className="flex items-center gap-1 flex-1">
+                {kinds.map((k, i) => (
+                  <span key={i} className="w-1.5 h-1.5 rounded-full" style={{ background: KIND_COLOR[k] }} />
+                ))}
+              </span>
+              <span className="text-[10px] font-semibold text-zinc-500 mr-1">
+                {t('op_week_summary', { count: trainingCount })}
               </span>
               <i className={`ri-arrow-down-s-line text-zinc-500 transition-transform ${open ? 'rotate-180' : ''}`} />
             </button>
             {open && (
-              <div className="px-4 pb-4 space-y-3 border-t border-white/[0.06] pt-3">
+              <div className="px-3 pb-3 pt-3 border-t border-white/[0.06] grid gap-2 sm:grid-cols-2">
                 {w.days.map((d) => {
                   const dayLabel = DAY_KEYS[d.day] ? t(DAY_KEYS[d.day]) : d.day;
-                  const empty = !d.training && !d.cardio && !d.nutrition && !d.notes;
+                  const kind = kindOfDay(d);
+                  const color = KIND_COLOR[kind];
+                  const isRest = kind === 'rest';
                   return (
-                    <div key={d.day} className="border-l-2 pl-3" style={{ borderColor: empty ? 'rgba(255,255,255,0.08)' : '#E10600' }}>
-                      <p className="text-sm font-bold text-white">
-                        {dayLabel}
-                        {empty && <span className="text-xs text-zinc-500 font-normal ml-2">· {t('op_day_rest')}</span>}
-                      </p>
-                      {d.training && <PlanField label={t('op_field_training')} value={d.training} color="#E10600" />}
-                      {d.cardio && <PlanField label={t('op_field_cardio')} value={d.cardio} color="#fb923c" />}
-                      {d.nutrition && <PlanField label={t('op_field_nutrition')} value={d.nutrition} color="#4ade80" />}
-                      {d.notes && <PlanField label={t('op_field_notes')} value={d.notes} color="#C9A84C" />}
+                    <div key={d.day}
+                      className="rounded-xl overflow-hidden bg-white/[0.02] border border-white/[0.06]"
+                      style={{ borderLeft: `3px solid ${color}` }}>
+                      <div className="px-3 pt-2.5 pb-1.5 flex items-baseline justify-between gap-2">
+                        <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 15, letterSpacing: 1.5, color: '#fff' }}>
+                          {dayLabel.toUpperCase()}
+                        </span>
+                        <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: isRest ? 'rgba(255,255,255,0.35)' : color }}>
+                          {t(`op_day_kind_${kind}`)}
+                        </span>
+                      </div>
+                      <div className="px-3 pb-3">
+                        {isRest ? (
+                          <p className="text-xs text-zinc-500 italic mt-0.5">{t('op_day_rest_hint')}</p>
+                        ) : (
+                          <>
+                            {d.training && <PlanField label={t('op_field_training')} value={d.training} color="#E10600" />}
+                            {d.cardio && <PlanField label={t('op_field_cardio')} value={d.cardio} color="#fb923c" />}
+                            {d.nutrition && <PlanField label={t('op_field_nutrition')} value={d.nutrition} color="#4ade80" />}
+                            {d.notes && <PlanField label={t('op_field_notes')} value={d.notes} color="#C9A84C" />}
+                          </>
+                        )}
+                      </div>
                     </div>
                   );
                 })}

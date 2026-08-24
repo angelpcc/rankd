@@ -93,6 +93,14 @@ export default {
   op_err_generic: 'Algo ha fallado. Prueba en un momento.',
 
   op_disclaimer_prefix: 'Aviso:',
+  // ── Render del plan (B.5): tipos de día + resumen de semana ──
+  op_day_kind_training: 'Entreno',
+  op_day_kind_cardio: 'Solo cardio',
+  op_day_kind_nutrition: 'Solo nutrición',
+  op_day_kind_rest: 'Descanso',
+  op_day_rest_hint: 'Recupera: caminar suave, movilidad, dormir bien.',
+  op_week_summary_one: '{{count}} entreno',
+  op_week_summary_other: '{{count}} entrenos',
   // ── Vista de impresión / PDF (Bloque B.7) ──
   op_print_download: 'Descargar PDF',
   op_print_back: 'Volver',
