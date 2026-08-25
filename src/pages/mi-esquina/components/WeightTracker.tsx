@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
-import { isMissingTable } from '@/lib/dbState';
+import { isMissingTable, isMissingColumn } from '@/lib/dbState';
 import Reveal from '@/components/base/Reveal';
 import WeightCutPlanner from '@/pages/mi-esquina/components/WeightCutPlanner';
 import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -18,6 +18,7 @@ interface WeightEntry {
   weight_kg: number;
   entry_date: string;
   note: string | null;
+  recorded_at: string | null;
 }
 
 const RANGES = [
@@ -55,16 +56,24 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
   const [dateInput, setDateInput] = useState('');
   const [savingGoal, setSavingGoal] = useState(false);
   const [range, setRange] = useState(90);
+  // Si la migración 0035 aún no está, ocultamos la hora del registro.
+  const [recordedReady, setRecordedReady] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [weightRes, goalRes] = await Promise.all([
-      supabase.from('weight_entries').select('id, weight_kg, entry_date, note')
+    const [weightRes0, goalRes] = await Promise.all([
+      supabase.from('weight_entries').select('id, weight_kg, entry_date, note, recorded_at')
         .eq('fighter_profile_id', profile.id).order('entry_date', { ascending: false }).limit(400),
       // select('*') a propósito: weigh_in_date y weight_class_label son columnas
       // nuevas y pedirlas por nombre fallaría si la migración 0010 no está aplicada.
       supabase.from('nutrition_goals').select('*').eq('fighter_profile_id', profile.id).maybeSingle(),
     ]);
+    let weightRes = weightRes0;
+    if (weightRes.error && isMissingColumn(weightRes.error)) {
+      setRecordedReady(false);
+      weightRes = await supabase.from('weight_entries').select('id, weight_kg, entry_date, note')
+        .eq('fighter_profile_id', profile.id).order('entry_date', { ascending: false }).limit(400);
+    }
     if (isMissingTable(weightRes.error)) { setUnavailable(true); setLoading(false); return; }
     setWeights((weightRes.data || []) as WeightEntry[]);
     const g = goalRes.data as Record<string, unknown> | null;
@@ -82,17 +91,31 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
     if (!val || val < 20 || val > 250) { showToast(t('error_save'), 'error'); return; }
     setSavingWeight(true);
     const today = todayISO();
+    const now = new Date().toISOString();
     const existing = weights.find((w) => w.entry_date === today);
     if (existing) {
-      const { error } = await supabase.from('weight_entries').update({ weight_kg: val }).eq('id', existing.id);
+      let recordedOk = true;
+      const patch: Record<string, unknown> = { weight_kg: val, recorded_at: now };
+      let { error } = await supabase.from('weight_entries').update(patch).eq('id', existing.id);
+      if (error && isMissingColumn(error)) {
+        recordedOk = false;
+        setRecordedReady(false);
+        ({ error } = await supabase.from('weight_entries').update({ weight_kg: val }).eq('id', existing.id));
+      }
       if (error) { showToast(t('error_save'), 'error'); setSavingWeight(false); return; }
-      setWeights((prev) => prev.map((w) => w.id === existing.id ? { ...w, weight_kg: val } : w));
+      setWeights((prev) => prev.map((w) => w.id === existing.id ? { ...w, weight_kg: val, recorded_at: recordedOk ? now : w.recorded_at } : w));
     } else {
-      const { data, error } = await supabase.from('weight_entries')
-        .insert({ fighter_profile_id: profile.id, weight_kg: val, entry_date: today })
-        .select('id, weight_kg, entry_date, note').maybeSingle();
-      if (error || !data) { showToast(t('error_save'), 'error'); setSavingWeight(false); return; }
-      setWeights((prev) => [data, ...prev]);
+      const full = { fighter_profile_id: profile.id, weight_kg: val, entry_date: today, recorded_at: now };
+      let res = await supabase.from('weight_entries').insert(full)
+        .select('id, weight_kg, entry_date, note, recorded_at').maybeSingle();
+      if (res.error && isMissingColumn(res.error)) {
+        setRecordedReady(false);
+        res = await supabase.from('weight_entries')
+          .insert({ fighter_profile_id: profile.id, weight_kg: val, entry_date: today })
+          .select('id, weight_kg, entry_date, note').maybeSingle();
+      }
+      if (res.error || !res.data) { showToast(t('error_save'), 'error'); setSavingWeight(false); return; }
+      setWeights((prev) => [res.data as WeightEntry, ...prev]);
     }
     // Feedback inmediato con comparación, para que se note el progreso sin
     // tener que abrir el gráfico (prioriza ayer; si no hay, compara con hace
@@ -392,7 +415,12 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-bold text-white">{w.weight_kg} kg</p>
+                      <p className="text-sm font-bold text-white">
+                        {w.weight_kg} kg
+                        {recordedReady && w.recorded_at && (
+                          <span className="text-zinc-500 font-normal"> · {new Date(w.recorded_at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}</span>
+                        )}
+                      </p>
                       {diff !== null && diff !== 0 && (
                         <span className={`text-[11px] font-bold ${diff < 0 ? 'text-green-400' : 'text-orange-400'}`}>{diff > 0 ? '+' : ''}{diff}</span>
                       )}
