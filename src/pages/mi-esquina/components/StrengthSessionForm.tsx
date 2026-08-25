@@ -4,6 +4,8 @@ import BottomSheet from '@/components/base/BottomSheet';
 import VoiceButton from '@/components/feature/VoiceButton';
 import { parseStrengthSessionFromSpeech } from '@/lib/dictation';
 import { MUSCLE_GROUPS, exercisesByGroup, libraryLabels, muscleGroupOf, type MuscleGroup } from '../lib/exercises';
+import { hasTechnique } from '../lib/exerciseTechnique';
+import ExerciseTechniqueCard from './ExerciseTechniqueCard';
 
 // ── Sesión construida que se devuelve al padre para guardar ──
 // reps = valor bajo/fijo (obligatorio); repsMax = valor alto del rango
@@ -11,7 +13,10 @@ import { MUSCLE_GROUPS, exercisesByGroup, libraryLabels, muscleGroupOf, type Mus
 export interface BuiltSet { reps: number; weight: number; repsMax?: number }
 export interface BuiltExercise { label: string; sets: BuiltSet[] }
 export interface BuiltBlock { group: MuscleGroup; exercises: BuiltExercise[] }
-export interface BuiltSession { date: string; blocks: BuiltBlock[] }
+export type SessionSlot = 'morning' | 'afternoon' | 'evening';
+// slot = null cuando es la única sesión del día (no molestamos al usuario con
+// la franja); solo pedimos franja cuando ya hay otra sesión guardada ese día.
+export interface BuiltSession { date: string; blocks: BuiltBlock[]; slot: SessionSlot | null }
 
 /**
  * Parsea el valor del input de reps.
@@ -43,7 +48,7 @@ export function parseRepsInput(raw: string): { reps: number; repsMax?: number } 
 
 // ── Estado editable interno (inputs como texto) ──
 interface FSet { reps: string; weight: string }
-interface FExercise { id: string; label: string; query: string; open: boolean; sets: FSet[] }
+interface FExercise { id: string; label: string; query: string; open: boolean; sets: FSet[]; techOpen?: boolean }
 interface FBlock { group: MuscleGroup; exercises: FExercise[] }
 
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -63,9 +68,17 @@ interface Props {
   /** Ejercicios que el usuario ya ha registrado, para sugerir en su grupo. */
   ownExercises: { label: string; group: MuscleGroup | 'other' }[];
   showToast: (msg: string, type?: 'success' | 'error') => void;
+  /**
+   * Franjas ya usadas por día (YYYY-MM-DD → slots ocupadas). Cuando este
+   * día tiene al menos una sesión, mostramos el selector de franja y elegimos
+   * por defecto la siguiente libre en el orden mañana→tarde→noche.
+   */
+  slotsByDate?: Record<string, SessionSlot[]>;
 }
 
-export default function StrengthSessionForm({ open, onClose, saving, onSave, ownExercises, showToast }: Props) {
+const SLOT_ORDER: SessionSlot[] = ['morning', 'afternoon', 'evening'];
+
+export default function StrengthSessionForm({ open, onClose, saving, onSave, ownExercises, showToast, slotsByDate }: Props) {
   const { t, i18n } = useTranslation();
   const lang: 'es' | 'en' = i18n.language === 'en' ? 'en' : 'es';
   const library = useMemo(() => libraryLabels(lang), [lang]);
@@ -75,10 +88,25 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
   const [blocks, setBlocks] = useState<FBlock[]>([]);
   const [freeText, setFreeText] = useState('');
   const [interpreted, setInterpreted] = useState(false);
+  // Franja elegida. null = "sesión única del día" (implícito, no se pide).
+  const [slot, setSlot] = useState<SessionSlot | null>(null);
+
+  // Franjas ya usadas ese día. Si hay alguna, mostramos el selector de franja
+  // y proponemos por defecto la siguiente libre.
+  const usedSlots = (slotsByDate && slotsByDate[date]) || [];
+  const dayHasSession = usedSlots.length > 0;
+  const nextFreeSlot: SessionSlot = SLOT_ORDER.find((s) => !usedSlots.includes(s)) || 'evening';
+  // Al abrir la sesión (o cambiar el día), si el día ya tiene sesión, elegimos
+  // la próxima franja libre. Si no, dejamos null (no se pide franja).
+  useMemo(() => {
+    if (!open) return;
+    setSlot(dayHasSession ? nextFreeSlot : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, date, dayHasSession]);
 
   const selectedGroups = useMemo(() => new Set(blocks.map((b) => b.group)), [blocks]);
 
-  const resetAll = () => { setStep(1); setDate(todayISO()); setBlocks([]); setFreeText(''); setInterpreted(false); };
+  const resetAll = () => { setStep(1); setDate(todayISO()); setBlocks([]); setFreeText(''); setInterpreted(false); setSlot(null); };
 
   const close = () => { onClose(); };
 
@@ -193,7 +221,7 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
       if (exercises.length > 0) built.push({ group: b.group, exercises });
     }
     if (built.length === 0) { showToast(t('mc_str_no_exercises'), 'error'); return; }
-    onSave({ date, blocks: built });
+    onSave({ date, blocks: built, slot });
   };
 
   // Se llama tras guardar con éxito desde el padre (via key remount) — aquí solo
@@ -284,6 +312,28 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
               style={{ fontSize: 16, minHeight: 44 }}
               className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 cursor-pointer" />
           </div>
+          {/* Selector de franja: solo cuando ese día ya tiene otra sesión */}
+          {dayHasSession && (
+            <div>
+              <label className="block text-xs text-zinc-400 mb-1.5">
+                {t('mc_str_slot_label')}
+                <span className="text-zinc-500 font-normal ml-2">{t('mc_str_slot_used_hint', { n: usedSlots.length })}</span>
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {SLOT_ORDER.map((s) => {
+                  const used = usedSlots.includes(s);
+                  const active = slot === s;
+                  return (
+                    <button key={s} type="button" onClick={() => setSlot(s)} disabled={used && !active} style={{ minHeight: 44 }}
+                      className={`px-2 rounded-xl text-sm font-semibold border transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${active ? 'bg-red-600 border-red-600 text-white' : 'bg-white/[0.03] border-white/12 text-zinc-300 hover:border-white/30'}`}>
+                      {t(`mc_str_slot_${s}`)}
+                      {used && !active && <span className="block text-[9px] font-normal opacity-70 mt-0.5">{t('mc_str_slot_taken')}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -301,18 +351,28 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
               <div className="space-y-3">
                 {b.exercises.map((e) => (
                   <div key={e.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5">
-                    {/* Nombre del ejercicio + eliminar */}
+                    {/* Nombre del ejercicio + info + eliminar */}
                     <div className="flex items-center gap-2">
                       <input value={e.label}
                         onChange={(ev) => patchExercise(b.group, e.id, { label: ev.target.value, query: ev.target.value, open: true })}
                         onFocus={() => patchExercise(b.group, e.id, { open: true })}
                         placeholder={t('mc_str_pick_exercise')} maxLength={50} style={{ fontSize: 16, minHeight: 44 }}
                         className="flex-1 min-w-0 bg-white/[0.04] border border-white/10 text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-500" />
+                      {/* Ficha de técnica: solo si el ejercicio la tiene (PROMPT_4·B3) */}
+                      {hasTechnique(e.label) && (
+                        <button type="button" onClick={() => patchExercise(b.group, e.id, { techOpen: !e.techOpen, open: false })}
+                          aria-label={t('mc_ex_tech_toggle')} title={t('mc_ex_tech_toggle')}
+                          className={`w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg cursor-pointer transition-colors ${e.techOpen ? 'text-red-400 bg-red-600/12 border border-red-500/30' : 'text-zinc-500 hover:text-white'}`}>
+                          <i className="ri-information-line"></i>
+                        </button>
+                      )}
                       <button onClick={() => removeExercise(b.group, e.id)} aria-label={t('mc_str_remove_exercise')}
                         className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg text-zinc-600 hover:text-red-400 cursor-pointer">
                         <i className="ri-delete-bin-line"></i>
                       </button>
                     </div>
+                    {/* Panel de ficha desplegable (en línea, no navega) */}
+                    {e.techOpen && <ExerciseTechniqueCard name={e.label} />}
                     {/* Sugerencias del grupo (en línea, para no recortarse en el sheet) */}
                     {e.open && (() => {
                       const sug = suggestFor(b.group, e.query || e.label);

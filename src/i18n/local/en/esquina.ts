@@ -229,6 +229,8 @@ export default {
   mc_meal_ph: 'e.g. 150g chicken, rice and salad',
   mc_meal_empty: 'Log what you eat and build your history. The nutrition AI can fine-tune it on this basis.',
   mc_meal_saved: 'Meal logged',
+  mc_meal_frequent_title: 'Frequent',
+  mc_meal_frequent_add: 'Add to diary',
   mc_meal_unavailable_title: 'Meal diary on the way',
   mc_meal_unavailable_desc: 'It will turn on once the table is created on the server.',
   // ── AI coach (SectionCoach) — R13-T5 ──
@@ -943,6 +945,23 @@ export default {
   mc_str_vol_group: '{{group}} volume',
   mc_str_delete_session: 'Delete session',
   mc_str_delete_confirm: 'Delete this session?',
+  // Multiple sessions per day (mig 0033)
+  mc_str_slot_morning: 'Morning',
+  mc_str_slot_afternoon: 'Afternoon',
+  mc_str_slot_evening: 'Evening',
+  mc_str_slot_label: 'Time of day',
+  mc_str_slot_used_hint_one: '{{n}} session already logged today',
+  mc_str_slot_used_hint_other: '{{n}} sessions already logged today',
+  mc_str_slot_taken: 'Already used',
+  mc_str_double_session_one: '{{count}} session',
+  mc_str_double_session_other: '{{count}} sessions',
+  // Weekly volume per muscle group (last 7 days)
+  mc_str_wk_vol_title: 'Volume this week',
+  mc_str_wk_vol_series: 'sets',
+  // Exercise technique card (PROMPT_4·B3)
+  mc_ex_tech_title: 'Technique',
+  mc_ex_tech_mistakes: 'Common mistakes',
+  mc_ex_tech_toggle: 'See technique',
   mc_str_ex_count_one: '{{count}} exercise',
   mc_str_ex_count_other: '{{count}} exercises',
   mc_str_today_trained: 'Today you trained',

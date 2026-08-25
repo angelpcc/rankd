@@ -25,6 +25,19 @@ export interface LibExercise {
   group: MuscleGroup;
 }
 
+// Ficha de técnica (contenido estático, PROMPT_4·B3). Opcional: los ejercicios
+// sin ficha simplemente no muestran el icono de info.
+export interface ExerciseTechnique {
+  /** Músculos secundarios (mostrar como chips). */
+  secondary: string[];
+  /** 3-4 puntos, una línea cada uno. */
+  technique: string[];
+  /** 2-3 errores típicos. */
+  mistakes: string[];
+  /** Material principal: "barra", "mancuernas", "polea", "peso corporal"... */
+  equipment: string;
+}
+
 export const EXERCISE_LIBRARY: LibExercise[] = [
   // ── ESPALDA ──
   { es: 'Dominadas', en: 'Pull-ups', group: 'back' },

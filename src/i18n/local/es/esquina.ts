@@ -229,6 +229,8 @@ export default {
   mc_meal_ph: 'Ej: 150g pollo, arroz y ensalada',
   mc_meal_empty: 'Apunta lo que comes y ve construyendo tu histórico. La IA de nutrición podrá ajustarlo sobre esta base.',
   mc_meal_saved: 'Comida registrada',
+  mc_meal_frequent_title: 'Frecuentes',
+  mc_meal_frequent_add: 'Añadir al diario',
   mc_meal_unavailable_title: 'Diario de comidas en camino',
   mc_meal_unavailable_desc: 'Se activará en cuanto se cree la tabla en el servidor.',
   // ── Coach IA (SectionCoach) — R13-T5 ──
@@ -943,6 +945,23 @@ export default {
   mc_str_vol_group: 'Volumen {{group}}',
   mc_str_delete_session: 'Borrar sesión',
   mc_str_delete_confirm: '¿Borrar esta sesión?',
+  // Doble sesión por día (mig 0033)
+  mc_str_slot_morning: 'Mañana',
+  mc_str_slot_afternoon: 'Tarde',
+  mc_str_slot_evening: 'Noche',
+  mc_str_slot_label: 'Franja del día',
+  mc_str_slot_used_hint_one: '{{n}} sesión ya registrada hoy',
+  mc_str_slot_used_hint_other: '{{n}} sesiones ya registradas hoy',
+  mc_str_slot_taken: 'Ya usada',
+  mc_str_double_session_one: '{{count}} sesión',
+  mc_str_double_session_other: '{{count}} sesiones',
+  // Volumen semanal por grupo muscular (últimos 7 días)
+  mc_str_wk_vol_title: 'Volumen esta semana',
+  mc_str_wk_vol_series: 'series',
+  // Ficha de técnica por ejercicio (PROMPT_4·B3)
+  mc_ex_tech_title: 'Técnica',
+  mc_ex_tech_mistakes: 'Errores comunes',
+  mc_ex_tech_toggle: 'Ver técnica',
   mc_str_ex_count_one: '{{count}} ejercicio',
   mc_str_ex_count_other: '{{count}} ejercicios',
   mc_str_today_trained: 'Hoy entrenaste',

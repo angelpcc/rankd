@@ -5,7 +5,7 @@ import { isMissingTable, isMissingColumn } from '@/lib/dbState';
 import { MUSCLE_GROUPS, muscleGroupOf, type MuscleGroup } from '../lib/exercises';
 import Reveal from '@/components/base/Reveal';
 import MuscleMap, { type MapGroup, type TrainState } from './MuscleMap';
-import StrengthSessionForm, { type BuiltSession } from './StrengthSessionForm';
+import StrengthSessionForm, { type BuiltSession, type SessionSlot } from './StrengthSessionForm';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 interface Props {
@@ -23,6 +23,7 @@ interface StrengthSet {
   reps_max: number | null;
   weight_kg: number;
   muscle_group: string | null;
+  session_slot: SessionSlot | null;
   created_at: string;
 }
 
@@ -42,7 +43,12 @@ function fmtReps(reps: number, repsMax: number | null | undefined): string {
 
 interface SessExercise { exercise: string; label: string; sets: StrengthSet[] }
 interface SessGroup { group: GroupKey; exercises: SessExercise[]; volume: number }
-interface DaySession { date: string; groups: SessGroup[]; exerciseCount: number; groupKeys: GroupKey[]; volume: number }
+// Doble sesión por día: cada día tiene una o varias franjas (mañana/tarde/
+// noche o "única" cuando slot=null). Cada franja tiene sus grupos y volumen.
+interface DaySlot { slot: SessionSlot | null; groups: SessGroup[]; exerciseCount: number; groupKeys: GroupKey[]; volume: number }
+interface DaySession { date: string; slots: DaySlot[]; exerciseCount: number; volume: number }
+const SLOT_ORDER: SessionSlot[] = ['morning', 'afternoon', 'evening'];
+function slotKey(s: SessionSlot | null): string { return s || '_none'; }
 
 /**
  * Registro de fuerza por SESIÓN (rediseño 2026-08).
@@ -108,30 +114,59 @@ export default function StrengthLog({ profile, showToast }: Props) {
     return [...m.entries()];
   }, [rows]);
 
-  // ── Sesiones por día, agrupadas por grupo muscular ──
+  // ── Sesiones por día → franja → grupo muscular (doble sesión por día) ──
   const sessions = useMemo<DaySession[]>(() => {
     const byDate = new Map<string, StrengthSet[]>();
     rows.forEach((r) => { const l = byDate.get(r.session_date) || []; l.push(r); byDate.set(r.session_date, l); });
+
+    const buildGroups = (sets: StrengthSet[]): SessGroup[] => {
+      const byGroup = new Map<GroupKey, StrengthSet[]>();
+      sets.forEach((r) => { const g = groupOfRow(r); const l = byGroup.get(g) || []; l.push(r); byGroup.set(g, l); });
+      return ORDER.filter((g) => byGroup.has(g)).map((g) => {
+        const gsets = byGroup.get(g)!;
+        const byEx = new Map<string, StrengthSet[]>();
+        gsets.forEach((r) => { const l = byEx.get(r.exercise) || []; l.push(r); byEx.set(r.exercise, l); });
+        const exercises: SessExercise[] = [...byEx.entries()].map(([ex, es]) => ({
+          exercise: ex, label: es[0].exercise_label, sets: [...es].sort((a, b) => a.set_number - b.set_number),
+        }));
+        const volume = Math.round(gsets.reduce((a, r) => a + Number(r.weight_kg) * r.reps, 0));
+        return { group: g, exercises, volume };
+      });
+    };
+
     return [...byDate.entries()]
       .sort((a, b) => b[0].localeCompare(a[0]))
       .map(([date, sets]) => {
-        const byGroup = new Map<GroupKey, StrengthSet[]>();
-        sets.forEach((r) => { const g = groupOfRow(r); const l = byGroup.get(g) || []; l.push(r); byGroup.set(g, l); });
-        const groups: SessGroup[] = ORDER.filter((g) => byGroup.has(g)).map((g) => {
-          const gsets = byGroup.get(g)!;
-          const byEx = new Map<string, StrengthSet[]>();
-          gsets.forEach((r) => { const l = byEx.get(r.exercise) || []; l.push(r); byEx.set(r.exercise, l); });
-          const exercises: SessExercise[] = [...byEx.entries()].map(([ex, es]) => ({
-            exercise: ex, label: es[0].exercise_label, sets: [...es].sort((a, b) => a.set_number - b.set_number),
-          }));
-          const volume = Math.round(gsets.reduce((a, r) => a + Number(r.weight_kg) * r.reps, 0));
-          return { group: g, exercises, volume };
+        // Partimos por franja. Mañana → tarde → noche → "única" (null) al final.
+        const bySlot = new Map<string, StrengthSet[]>();
+        sets.forEach((r) => { const k = slotKey(r.session_slot); const l = bySlot.get(k) || []; l.push(r); bySlot.set(k, l); });
+        const orderedKeys = [...SLOT_ORDER.map((s) => s as SessionSlot | null), null as SessionSlot | null]
+          .filter((s, i, arr) => arr.indexOf(s) === i)
+          .filter((s) => bySlot.has(slotKey(s)));
+        const slots: DaySlot[] = orderedKeys.map((s) => {
+          const slotSets = bySlot.get(slotKey(s))!;
+          const groups = buildGroups(slotSets);
+          const exerciseCount = groups.reduce((a, g) => a + g.exercises.length, 0);
+          const volume = groups.reduce((a, g) => a + g.volume, 0);
+          return { slot: s, groups, exerciseCount, groupKeys: groups.map((g) => g.group), volume };
         });
-        const exerciseCount = groups.reduce((a, g) => a + g.exercises.length, 0);
-        const volume = groups.reduce((a, g) => a + g.volume, 0);
-        return { date, groups, exerciseCount, groupKeys: groups.map((g) => g.group), volume };
+        const exerciseCount = slots.reduce((a, sl) => a + sl.exerciseCount, 0);
+        const volume = slots.reduce((a, sl) => a + sl.volume, 0);
+        return { date, slots, exerciseCount, volume };
       });
   }, [rows, groupOfRow]);
+
+  // Franjas ocupadas por día — se pasa al form para deshabilitar/proponer libre.
+  const slotsByDate = useMemo<Record<string, SessionSlot[]>>(() => {
+    const m: Record<string, Set<SessionSlot>> = {};
+    rows.forEach((r) => {
+      if (!r.session_slot) return;
+      (m[r.session_date] = m[r.session_date] || new Set()).add(r.session_slot);
+    });
+    const out: Record<string, SessionSlot[]> = {};
+    Object.keys(m).forEach((d) => { out[d] = [...m[d]]; });
+    return out;
+  }, [rows]);
 
   // ── Estado por grupo muscular para el mapa: entrenado hoy / esta semana ──
   const MAP_GROUPS: MapGroup[] = ['chest', 'shoulders', 'biceps', 'triceps', 'back', 'core', 'legs'];
@@ -150,6 +185,26 @@ export default function StrengthLog({ profile, showToast }: Props) {
     });
     return st;
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, groupOfRow]);
+
+  // ── Volumen semanal por grupo muscular (últimos 7 días) ──
+  // Suma DE SERIES por grupo primario. Sin umbrales ni valoraciones: solo el
+  // dato bruto para que el usuario vea qué está cubriendo y qué no.
+  const weekSetsByGroup = useMemo(() => {
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 7); cutoff.setHours(0, 0, 0, 0);
+    const cutoffISO = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}-${String(cutoff.getDate()).padStart(2, '0')}`;
+    const counts = {} as Record<GroupKey, number>;
+    ORDER.forEach((g) => { counts[g] = 0; });
+    rows.forEach((r) => { if (r.session_date >= cutoffISO) counts[groupOfRow(r)]++; });
+    // Ordenar de más a menos, y los de 0 al final.
+    const entries: [GroupKey, number][] = ORDER.map((g) => [g, counts[g]]);
+    entries.sort((a, b) => {
+      if (a[1] === 0 && b[1] > 0) return 1;
+      if (b[1] === 0 && a[1] > 0) return -1;
+      return b[1] - a[1];
+    });
+    const max = Math.max(1, ...entries.map(([, n]) => n));
+    return { entries, max };
   }, [rows, groupOfRow]);
 
   // Ejercicios del selector de progresión, filtrados por el grupo del mapa.
@@ -236,6 +291,7 @@ export default function StrengthLog({ profile, showToast }: Props) {
         reps_max: s.repsMax ?? null,
         weight_kg: s.weight,
         muscle_group: b.group,
+        session_slot: session.slot,
       }))),
     );
     if (base.length === 0) return;
@@ -254,19 +310,19 @@ export default function StrengthLog({ profile, showToast }: Props) {
     });
 
     setSaving(true);
-    // Insert con las columnas nuevas (muscle_group de 0029, reps_max de 0026).
-    // Si cualquiera de las dos migraciones no está aplicada, isMissingColumn
-    // lo detecta y se reintenta sin ellas: la sesión se guarda igual
-    // (el grupo se deriva del nombre y el rango se pierde como fijo).
+    // Insert con las columnas nuevas (muscle_group de 0029, reps_max de 0026,
+    // session_slot de 0033). Si alguna migración no está aplicada,
+    // isMissingColumn lo detecta y se reintenta sin ninguna extra: la sesión
+    // se guarda igual (grupo derivado del nombre, rango como fijo, sin franja).
     let { data, error } = await supabase.from('strength_sets').insert(base).select();
     if (isMissingColumn(error)) {
-      const noExtras = base.map(({ muscle_group, reps_max, ...r }) => r);
+      const noExtras = base.map(({ muscle_group, reps_max, session_slot, ...r }) => r);
       ({ data, error } = await supabase.from('strength_sets').insert(noExtras).select());
     }
     setSaving(false);
     if (error || !data) { showToast(t('error_save'), 'error'); return; }
 
-    const inserted = (data as StrengthSet[]).map((r) => ({ ...r, reps_max: r.reps_max ?? null, muscle_group: r.muscle_group ?? null }));
+    const inserted = (data as StrengthSet[]).map((r) => ({ ...r, reps_max: r.reps_max ?? null, muscle_group: r.muscle_group ?? null, session_slot: r.session_slot ?? null }));
     setRows((prev) => [...inserted, ...prev]);
     setShowForm(false);
     setFormKey((k) => k + 1);
@@ -346,6 +402,32 @@ export default function StrengthLog({ profile, showToast }: Props) {
           <MuscleMap status={groupStatus} selected={mapFilter}
             onSelect={(g) => setMapFilter((cur) => (cur === g ? null : g))} />
 
+          {/* ── VOLUMEN SEMANAL POR GRUPO (últimos 7 días) ──
+              Solo el dato bruto, sin marcar bueno/malo. */}
+          {rows.length > 0 && (
+            <div className="rk-card" style={{ padding: '18px 20px' }}>
+              <p className="text-[11px] font-bold tracking-[0.2em] uppercase text-zinc-500 mb-3">{t('mc_str_wk_vol_title')}</p>
+              <div className="space-y-1.5">
+                {weekSetsByGroup.entries.map(([g, n]) => {
+                  const pct = n === 0 ? 0 : Math.round((n / weekSetsByGroup.max) * 100);
+                  const zero = n === 0;
+                  return (
+                    <div key={g} className="flex items-center gap-3">
+                      <span className={`w-20 flex-shrink-0 text-xs font-semibold ${zero ? 'text-zinc-600' : 'text-white'}`}>{t(`mc_str_mg_${g}`)}</span>
+                      <span className="w-12 flex-shrink-0 text-xs font-bold text-right" style={{ color: zero ? 'rgba(255,255,255,0.35)' : '#C9A84C', fontFamily: "'Barlow Condensed', sans-serif" }}>
+                        {n}
+                      </span>
+                      <span className="text-[10px] text-zinc-500 flex-shrink-0">{t('mc_str_wk_vol_series')}</span>
+                      <div className="flex-1 h-2 rounded-full bg-white/[0.04] overflow-hidden">
+                        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: zero ? 'transparent' : 'linear-gradient(90deg, #E10600, #C9A84C)' }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* ── HISTORIAL POR DÍAS ── */}
           <div>
             <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
@@ -360,28 +442,57 @@ export default function StrengthLog({ profile, showToast }: Props) {
             <div className="space-y-2.5">
               {sessions.map((s, i) => {
                 const isOpen = openDay === s.date;
-                const inFilter = !mapFilter || s.groupKeys.includes(mapFilter);
+                const allGroupKeys = [...new Set(s.slots.flatMap((sl) => sl.groupKeys))];
+                const inFilter = !mapFilter || allGroupKeys.includes(mapFilter);
+                const hasSlots = s.slots.some((sl) => sl.slot !== null);
                 return (
                   <Reveal key={s.date} delay={Math.min(i, 6) * 40}>
                     <div className="rk-card" style={{ padding: 0, overflow: 'hidden', opacity: inFilter ? 1 : 0.4, borderColor: mapFilter && inFilter ? 'rgba(201,168,76,0.35)' : undefined, transition: 'opacity 0.2s' }}>
-                      {/* Cabecera de la sesión */}
+                      {/* Cabecera del día */}
                       <button onClick={() => { setOpenDay(isOpen ? null : s.date); setOpenEx(null); }}
                         className="w-full text-left flex items-center gap-3 px-4 py-3.5 cursor-pointer">
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-bold text-white">
                             {fmtDate(s.date)} <span className="text-zinc-500 font-normal">· {agoLabel(s.date)}</span>
+                            {s.slots.length > 1 && (
+                              <span className="ml-2 text-[10px] font-bold uppercase tracking-wider text-[#C9A84C] bg-[#C9A84C]/12 border border-[#C9A84C]/30 px-1.5 py-0.5 rounded-full align-middle">
+                                {t('mc_str_double_session', { count: s.slots.length })}
+                              </span>
+                            )}
                           </p>
-                          <p className="text-xs text-zinc-400 mt-0.5 truncate">
-                            {groupLabels(s.groupKeys)} · {t('mc_str_ex_count', { count: s.exerciseCount })}
-                          </p>
+                          {hasSlots ? (
+                            <div className="text-xs text-zinc-400 mt-0.5 space-y-0.5">
+                              {s.slots.map((sl, si) => (
+                                <p key={si} className="truncate">
+                                  <span className="text-zinc-500">↳ </span>
+                                  {sl.slot ? <span className="text-[#C9A84C] font-semibold">{t(`mc_str_slot_${sl.slot}`)} · </span> : null}
+                                  {groupLabels(sl.groupKeys)} · {t('mc_str_ex_count', { count: sl.exerciseCount })}
+                                </p>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-zinc-400 mt-0.5 truncate">
+                              {groupLabels(s.slots[0]?.groupKeys || [])} · {t('mc_str_ex_count', { count: s.exerciseCount })}
+                            </p>
+                          )}
                         </div>
                         <i className={`ri-arrow-down-s-line text-zinc-500 flex-shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`}></i>
                       </button>
 
-                      {/* Detalle agrupado por grupo muscular */}
+                      {/* Detalle: una franja tras otra, con sus grupos dentro */}
                       {isOpen && (
                         <div className="px-4 pb-4 space-y-4 border-t border-white/[0.06] pt-3">
-                          {s.groups.map((g) => (
+                          {s.slots.map((sl, slotIdx) => (
+                            <div key={slotIdx} className="space-y-3">
+                              {(hasSlots || s.slots.length > 1) && sl.slot && (
+                                <div className="flex items-center gap-2">
+                                  <span className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-lg bg-[#C9A84C]/12 border border-[#C9A84C]/30 text-[#C9A84C]">
+                                    <i className={sl.slot === 'morning' ? 'ri-sun-line' : sl.slot === 'afternoon' ? 'ri-sun-cloudy-line' : 'ri-moon-line'} />
+                                  </span>
+                                  <p className="text-[11px] font-bold tracking-[0.16em] uppercase text-[#C9A84C]">{t(`mc_str_slot_${sl.slot}`)}</p>
+                                </div>
+                              )}
+                          {sl.groups.map((g) => (
                             <div key={g.group}>
                               <p className="text-[11px] font-bold tracking-[0.16em] uppercase text-red-400 mb-2">{t(`mc_str_mg_${g.group}`)}</p>
                               <div className="space-y-1">
@@ -427,6 +538,8 @@ export default function StrengthLog({ profile, showToast }: Props) {
                                 })}
                               </div>
                               <p className="text-[11px] text-zinc-600 mt-1.5">{t('mc_str_vol_group', { group: t(`mc_str_mg_${g.group}`) })}: {g.volume.toLocaleString(locale)} kg</p>
+                            </div>
+                          ))}
                             </div>
                           ))}
 
@@ -519,6 +632,7 @@ export default function StrengthLog({ profile, showToast }: Props) {
         onSave={saveSession}
         ownExercises={ownExercises}
         showToast={showToast}
+        slotsByDate={slotsByDate}
       />
 
       {/* Signature moment: destello full-screen al batir marca. Se desmonta

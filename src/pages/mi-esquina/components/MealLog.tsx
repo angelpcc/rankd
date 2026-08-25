@@ -44,6 +44,9 @@ export default function MealLog({ profile, showToast }: Props) {
   const [type, setType] = useState('comida');
   const [desc, setDesc] = useState('');
   const [saving, setSaving] = useState(false);
+  // Comidas frecuentes: se calculan sobre los últimos 60 días (agrupando por
+  // texto normalizado, contando repeticiones). Solo aparecen si hay ≥3.
+  const [frequent, setFrequent] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase
@@ -60,23 +63,73 @@ export default function MealLog({ profile, showToast }: Props) {
 
   useEffect(() => { load(); }, [load]);
 
+  // Frecuentes: fetch ligero de los últimos 60 días, agrupado por texto
+  // normalizado y devolviendo el más común primero. Sale como chips.
+  const loadFrequent = useCallback(async () => {
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 60);
+    const iso = cutoff.toISOString().slice(0, 10);
+    const { data } = await supabase.from('meal_entries')
+      .select('description')
+      .eq('fighter_profile_id', profile.id)
+      .gte('entry_date', iso)
+      .limit(500);
+    if (!data || data.length === 0) { setFrequent([]); return; }
+    const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+    // key normalizada → { display, count } (guardamos la primera forma escrita).
+    const map = new Map<string, { display: string; count: number }>();
+    (data as { description: string }[]).forEach((r) => {
+      const k = norm(r.description || ''); if (!k) return;
+      const cur = map.get(k); if (cur) cur.count++;
+      else map.set(k, { display: r.description.trim(), count: 1 });
+    });
+    // Solo comidas repetidas ≥2 veces. Top 6 por frecuencia.
+    const repeated = [...map.values()].filter((v) => v.count >= 2);
+    // El brief exige "al menos 3 comidas repetidas distintas" para no ocupar
+    // espacio sin motivo.
+    if (repeated.length < 3) { setFrequent([]); return; }
+    repeated.sort((a, b) => b.count - a.count);
+    setFrequent(repeated.slice(0, 6).map((v) => v.display));
+  }, [profile.id]);
+
+  useEffect(() => { loadFrequent(); }, [loadFrequent]);
+
+  const insertMeal = async (description: string, mealType: string): Promise<Meal | null> => {
+    const { data, error } = await supabase.from('meal_entries')
+      .insert({ fighter_profile_id: profile.id, entry_date: todayISO(), meal_type: mealType, description })
+      .select('id, entry_date, meal_type, description, created_at').maybeSingle();
+    if (error || !data) return null;
+    return data as Meal;
+  };
+
   const add = async () => {
     if (!desc.trim() || saving) return;
     setSaving(true);
-    const { data, error } = await supabase.from('meal_entries')
-      .insert({ fighter_profile_id: profile.id, entry_date: todayISO(), meal_type: type, description: desc.trim() })
-      .select('id, entry_date, meal_type, description, created_at').maybeSingle();
-    if (error || !data) { showToast(t('error_save'), 'error'); setSaving(false); return; }
-    setMeals((prev) => [data as Meal, ...prev]);
+    const meal = await insertMeal(desc.trim(), type);
+    if (!meal) { showToast(t('error_save'), 'error'); setSaving(false); return; }
+    setMeals((prev) => [meal, ...prev]);
     setDesc('');
     showToast(t('mc_meal_saved'));
     setSaving(false);
+    // Cada nueva comida puede desbloquear el bloque de frecuentes (≥2 repes).
+    loadFrequent();
+  };
+
+  const addFromFrequent = async (description: string) => {
+    if (saving) return;
+    setSaving(true);
+    const meal = await insertMeal(description, type);
+    if (!meal) { showToast(t('error_save'), 'error'); setSaving(false); return; }
+    setMeals((prev) => [meal, ...prev]);
+    showToast(t('mc_meal_saved'));
+    setSaving(false);
+    loadFrequent();
   };
 
   const remove = async (id: string) => {
     const { error } = await supabase.from('meal_entries').delete().eq('id', id);
     if (error) { showToast(t('error_save'), 'error'); return; }
     setMeals((prev) => prev.filter((m) => m.id !== id));
+    loadFrequent();
   };
 
   const grouped = useMemo(() => {
@@ -109,6 +162,24 @@ export default function MealLog({ profile, showToast }: Props) {
         <h3 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>{t('mc_meal_title')}</h3>
         <i className="ri-book-2-line text-green-400"></i>
       </div>
+
+      {/* Frecuentes: aparecen solo si el usuario ya repite comidas.
+          Un toque las añade a la franja seleccionada; luego puede editarlas. */}
+      {frequent.length > 0 && (
+        <div className="mb-4">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 mb-1.5">{t('mc_meal_frequent_title')}</p>
+          <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+            {frequent.map((f) => (
+              <button key={f} onClick={() => addFromFrequent(f)} disabled={saving}
+                title={t('mc_meal_frequent_add')}
+                className="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold text-zinc-200 bg-green-500/10 border border-green-500/25 hover:bg-green-500/15 hover:border-green-500/50 px-3 py-1.5 rounded-full cursor-pointer disabled:opacity-50 transition-colors whitespace-nowrap">
+                <i className="ri-add-line text-xs text-green-400"></i>
+                <span className="max-w-[180px] truncate">{f}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Añadir */}
       <div className="flex flex-wrap gap-1.5 mb-2">
