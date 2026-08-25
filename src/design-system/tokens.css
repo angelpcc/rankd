@@ -1,0 +1,183 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   RANKD · Design System · Tokens
+   Única fuente de verdad para colores, superficies, tipografía, radios,
+   sombras, espaciado y motion. Consumido por los componentes de
+   src/design-system/components/ y (progresivamente) por el resto de la app.
+
+   Convención de nombres:
+     --rk-color-*      color puro
+     --rk-surface-*    fondo de bloque
+     --rk-text-*       color de texto
+     --rk-border-*     color de borde/línea
+     --rk-radius-*     radios de esquina
+     --rk-shadow-*     sombras/elevaciones
+     --rk-space-*      espaciado base
+     --rk-font-*       familias tipográficas
+     --rk-fs-*         tamaños de fuente (app-scale y editorial-scale)
+     --rk-fw-*         pesos
+     --rk-lh-*         line-heights
+     --rk-ls-*         letter-spacing
+     --rk-ease-*       curvas de animación
+     --rk-dur-*        duraciones
+     --rk-z-*          z-index
+     --rk-touch-*      mínimos táctiles
+
+   Los tokens legacy --rk-* (v1/v2/v3) en src/index.css se mantienen por
+   compatibilidad hasta que las pantallas migren al sistema. Cuando eso
+   ocurra, la sección "Legacy compat" al final de este archivo desaparece.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── COLOR · Base ─────────────────────────────────────────────────────── */
+  --rk-color-black:      #030303;
+  --rk-color-ink:        #070707;
+  --rk-color-red:        #E10600;
+  --rk-color-red-deep:   #A00400;
+  --rk-color-gold:       #C9A84C;
+  --rk-color-gold-warm:  #dcc06a;
+  --rk-color-gold-deep:  #a8894a;
+  --rk-color-white:      #FFFFFF;
+
+  /* ── COLOR · Semántico (SOLO para estados, no como acento decorativo) ── */
+  --rk-color-success:    #22c55e;  /* verde: acción completada, plan activo    */
+  --rk-color-warning:    #f59e0b;  /* ámbar: perfil incompleto, aviso suave    */
+  --rk-color-danger:     #E10600;  /* rojo:  error de sistema (usa el rojo de marca) */
+  --rk-color-info:       #38bdf8;  /* cielo: mensajes de sistema informativos  */
+
+  /* ── SUPERFICIES (fondos sólidos, sin translucidez ni blur por defecto) ── */
+  --rk-surface-base:     #030303;  /* fondo de página                          */
+  --rk-surface-canvas:   #0a0a0a;  /* área de contenido                        */
+  --rk-surface-raised:   #101010;  /* tarjeta default                          */
+  --rk-surface-feature:  #141414;  /* tarjeta feature (1 por pantalla)         */
+  --rk-surface-sunken:   #060606;  /* input, área rebajada                     */
+  --rk-surface-contrast: #ffffff;  /* solo botones inversos (gold hero)        */
+  /* Translucidez: SOLO para navegación fija sobre imagen (topbar hero, etc). */
+  --rk-surface-scrim:    rgba(0,0,0,0.72);
+
+  /* ── TEXTO (jerarquía en 3 niveles + inverso) ───────────────────────── */
+  --rk-text-primary:     rgba(255,255,255,0.95);  /* feature, títulos          */
+  --rk-text-default:     rgba(255,255,255,0.78);  /* cuerpo, mayoría           */
+  --rk-text-quiet:       rgba(255,255,255,0.50);  /* metadata, timestamps      */
+  --rk-text-mute:        rgba(255,255,255,0.32);  /* placeholders, disabled    */
+  --rk-text-invert:      #0a0a0a;                 /* sobre superficies claras  */
+  --rk-text-red:         #ff2d2d;                 /* acento marca en texto     */
+  --rk-text-gold:        var(--rk-color-gold);
+
+  /* ── BORDES · líneas (3 niveles + acento) ────────────────────────────── */
+  --rk-border-quiet:     rgba(255,255,255,0.06);  /* separación mínima         */
+  --rk-border-default:   rgba(255,255,255,0.10);  /* borde de tarjeta          */
+  --rk-border-strong:    rgba(255,255,255,0.18);  /* input focused, feature    */
+  --rk-border-red:       rgba(225,6,0,0.45);      /* selección, error          */
+  --rk-border-gold:      rgba(201,168,76,0.40);
+
+  /* ── RADIOS (escala corta y honesta) ─────────────────────────────────── */
+  --rk-radius-xs:  4px;    /* chip pequeño                                    */
+  --rk-radius-sm:  8px;    /* input, badge                                    */
+  --rk-radius-md:  12px;   /* botón funcional (CTA rectangular)               */
+  --rk-radius-lg:  16px;   /* tarjeta default                                 */
+  --rk-radius-xl:  20px;   /* tarjeta feature, modal desktop                  */
+  --rk-radius-2xl: 28px;   /* bottom sheet mobile                             */
+  --rk-radius-pill: 999px;
+
+  /* ── SOMBRAS (4 elevaciones + glow controlado) ───────────────────────── */
+  --rk-shadow-none:    none;
+  --rk-shadow-sm:      0 1px 2px rgba(0,0,0,0.25);
+  --rk-shadow-md:      0 6px 20px rgba(0,0,0,0.35);
+  --rk-shadow-lg:      0 18px 40px rgba(0,0,0,0.5);
+  --rk-shadow-xl:      0 32px 80px rgba(0,0,0,0.65);
+  /* Glow: rojo/oro. Máximo UN elemento con glow por viewport (principio). */
+  --rk-glow-red:       0 0 24px rgba(225,6,0,0.30), 0 0 60px rgba(225,6,0,0.10);
+  --rk-glow-gold:      0 0 24px rgba(201,168,76,0.28), 0 0 60px rgba(201,168,76,0.10);
+  --rk-glow-success:   0 0 20px rgba(34,197,94,0.30);
+
+  /* ── ESPACIADO (múltiplos de 4, escala corta) ────────────────────────── */
+  --rk-space-1:  4px;
+  --rk-space-2:  8px;
+  --rk-space-3:  12px;
+  --rk-space-4:  16px;
+  --rk-space-5:  20px;
+  --rk-space-6:  24px;
+  --rk-space-8:  32px;
+  --rk-space-10: 40px;
+  --rk-space-12: 48px;
+  --rk-space-16: 64px;
+  --rk-space-20: 80px;
+
+  /* ── TIPOGRAFÍA · familias ──────────────────────────────────────────── */
+  --rk-font-display:  'Bebas Neue', system-ui, sans-serif;
+  --rk-font-body:     'Barlow Condensed', system-ui, sans-serif;
+
+  /* ── TIPOGRAFÍA · APP-SCALE (uso diario, sobria) ─────────────────────
+     Para pantallas internas (Mi Esquina, dashboards, formularios). Sin
+     clamps agresivos: en app queremos tamaños predecibles. */
+  --rk-fs-caption:   11px;   /* meta, timestamps                              */
+  --rk-fs-small:     13px;   /* auxiliar                                      */
+  --rk-fs-body:      15px;   /* párrafo estándar                              */
+  --rk-fs-body-lg:   17px;   /* párrafo destacado                             */
+  --rk-fs-title-sm:  18px;   /* card title                                    */
+  --rk-fs-title-md:  22px;   /* section title                                 */
+  --rk-fs-title-lg:  28px;   /* screen title                                  */
+  --rk-fs-title-xl:  36px;   /* dashboard hero                                */
+  --rk-fs-number:    32px;   /* KPI compacto                                  */
+  --rk-fs-number-lg: 44px;   /* KPI destacado                                 */
+
+  /* ── TIPOGRAFÍA · EDITORIAL-SCALE (landing, cinematográfica) ─────────
+     Solo para home pública, hero de perfil público, momentos cartelera.
+     Con clamp para escalar bien entre mobile y desktop grande. */
+  --rk-fs-editorial-h3:      clamp(1.5rem, 3vw, 2rem);
+  --rk-fs-editorial-h2:      clamp(2rem, 5vw, 3.6rem);
+  --rk-fs-editorial-h1:      clamp(2.4rem, 6.5vw, 4.6rem);
+  --rk-fs-editorial-display: clamp(2.8rem, 9vw, 7rem);
+
+  /* ── TIPOGRAFÍA · pesos y line-height ─────────────────────────────── */
+  --rk-fw-regular:   400;
+  --rk-fw-medium:    500;
+  --rk-fw-semibold:  600;
+  --rk-fw-bold:      700;
+  --rk-fw-black:     900;
+  --rk-lh-tight:     1.05;   /* titulares                                    */
+  --rk-lh-snug:      1.25;   /* subtítulos                                   */
+  --rk-lh-normal:    1.5;    /* cuerpo                                       */
+  --rk-lh-relaxed:   1.65;   /* párrafos largos                              */
+  --rk-ls-tight:     -0.01em;
+  --rk-ls-normal:    0;
+  --rk-ls-wide:      0.05em;
+  --rk-ls-wider:     0.12em;
+  --rk-ls-widest:    0.24em; /* eyebrows                                     */
+
+  /* ── MOTION ────────────────────────────────────────────────────────── */
+  --rk-ease-out:      cubic-bezier(0.22, 1, 0.36, 1);   /* entra              */
+  --rk-ease-in-out:   cubic-bezier(0.65, 0, 0.35, 1);   /* transición         */
+  --rk-ease-emphasis: cubic-bezier(0.34, 1.56, 0.64, 1); /* overshoot suave   */
+  --rk-dur-instant:   80ms;
+  --rk-dur-fast:      160ms;
+  --rk-dur-base:      260ms;
+  --rk-dur-slow:      420ms;
+  --rk-dur-slower:    680ms;
+
+  /* ── LAYOUT ────────────────────────────────────────────────────────── */
+  --rk-max-content:   1280px;
+  --rk-max-narrow:    720px;
+  --rk-max-form:      520px;
+
+  /* ── Z-INDEX ───────────────────────────────────────────────────────── */
+  --rk-z-nav:        100;
+  --rk-z-sticky:     200;
+  --rk-z-overlay:    900;
+  --rk-z-modal:      1000;
+  --rk-z-toast:      2000;
+  --rk-z-tooltip:    3000;
+
+  /* ── TÁCTIL ────────────────────────────────────────────────────────── */
+  --rk-touch-min:    44px;   /* Apple/Google minimum                          */
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   FOCUS RING · accesible, sin over-decoración
+   Se aplica a componentes con :focus-visible dentro del DS.
+   ══════════════════════════════════════════════════════════════════════════ */
+.rk-ds-focus-ring:focus-visible {
+  outline: 2px solid var(--rk-color-red);
+  outline-offset: 2px;
+  border-radius: inherit;
+}

@@ -1,6 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;600;700;900&display=swap');
 @import url('https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css');
 
+/* RANKD Design System · única fuente de verdad de tokens.
+   Los tokens legacy --rk-* de más abajo se mantienen por compatibilidad
+   mientras las pantallas migran al DS; ver design-system/README.md.
+   Verificado: cero colisiones de nombre con los tokens legacy de este
+   archivo (comm -12 sobre ambas listas de variables, vacío). */
+@import './design-system/tokens.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
