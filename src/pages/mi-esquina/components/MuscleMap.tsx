@@ -14,19 +14,19 @@ interface Region { group: MapGroup; paths: string[] }
 
 /* ─── Colores por estado ─── */
 const FILL: Record<TrainState, string> = {
-  none: '#17171a',
-  week: '#7f1518',
-  today: '#ed1c24',
+  none: '#2a2a2e',
+  week: 'rgba(225,6,0,0.50)',
+  today: '#E10600',
 };
 const STROKE: Record<TrainState, string> = {
-  none: 'rgba(255,255,255,0.16)',
-  week: '#c52a2f',
-  today: '#ff5a5f',
+  none: 'rgba(255,255,255,0.10)',
+  week: 'rgba(225,6,0,0.70)',
+  today: '#ff3333',
 };
 const GLOW: Record<TrainState, string | undefined> = {
   none: undefined,
-  week: '0 0 10px rgba(225,6,0,0.40)',
-  today: '0 0 18px rgba(237,28,36,0.65)',
+  week: '0 0 8px rgba(225,6,0,0.35)',
+  today: '0 0 14px rgba(225,6,0,0.55)',
 };
 
 /* ─── Silueta base (partes no interactivas: cabeza, cuello, brazos, piernas) ───
@@ -142,18 +142,13 @@ export default function MuscleMap({ status, selected, onSelect }: Props) {
   const details = view === 'front' ? FRONT_DETAILS : BACK_DETAILS;
 
   return (
-    <div className="rk-card" style={{
-      padding: '18px 16px',
-      transform: 'none',
-      background: 'radial-gradient(circle at 50% 38%, rgba(225,6,0,0.10), transparent 37%), linear-gradient(145deg, #171719, #09090a)',
-      borderColor: 'rgba(255,255,255,0.11)',
-    }}>
+    <div className="rk-card" style={{ padding: '18px 16px', transform: 'none' }}>
       <div className="flex items-center justify-between mb-3">
         <p className="text-[11px] font-bold tracking-[0.16em] uppercase text-zinc-500">{t('mc_str_map_title')}</p>
         <div className="flex gap-1 bg-white/[0.04] rounded-full p-0.5">
           {(['front', 'back'] as const).map((v) => (
             <button key={v} onClick={() => setView(v)}
-              className={`px-3 py-1 rounded-full text-[11px] font-bold cursor-pointer transition-colors ${view === v ? 'bg-[#ed1c24] text-white shadow-[0_0_12px_rgba(237,28,36,0.5)]' : 'text-zinc-400 hover:text-white'}`}>
+              className={`px-3 py-1 rounded-full text-[11px] font-bold cursor-pointer transition-colors ${view === v ? 'bg-red-600 text-white' : 'text-zinc-400'}`}>
               {t(v === 'front' ? 'mc_str_map_front' : 'mc_str_map_back')}
             </button>
           ))}
@@ -183,7 +178,7 @@ export default function MuscleMap({ status, selected, onSelect }: Props) {
             </radialGradient>
             <filter id="selGlow" x="-30%" y="-30%" width="160%" height="160%">
               <feGaussianBlur in="SourceAlpha" stdDeviation="3.5" result="blur" />
-              <feFlood floodColor="#ed1c24" floodOpacity="0.62" result="color" />
+              <feFlood floodColor="#C9A84C" floodOpacity="0.55" result="color" />
               <feComposite in="color" in2="blur" operator="in" result="glow" />
               <feMerge>
                 <feMergeNode in="glow" />
@@ -202,7 +197,7 @@ export default function MuscleMap({ status, selected, onSelect }: Props) {
             const isSel = selected === r.group;
             const st = status[r.group] || 'none';
             const fill = st === 'today' ? 'url(#todayGrad)' : st === 'week' ? 'url(#weekGrad)' : FILL[st];
-            const stroke = isSel ? '#ff6b70' : STROKE[st];
+            const stroke = isSel ? '#C9A84C' : STROKE[st];
             const glow = isSel ? 'url(#selGlow)' : GLOW[st];
 
             return (
@@ -233,7 +228,7 @@ export default function MuscleMap({ status, selected, onSelect }: Props) {
               <button key={r.group} onClick={() => onSelect(r.group)} style={{ minHeight: 34 }}
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border transition-all duration-200 ${
                   isSel
-                    ? 'border-[#ed1c24] text-white bg-[#ed1c24]/15 shadow-[0_0_14px_rgba(237,28,36,0.3)]'
+                    ? 'border-[#C9A84C] text-white bg-[#C9A84C]/15 shadow-[0_0_12px_rgba(201,168,76,0.25)]'
                     : 'border-white/10 text-zinc-300 hover:border-white/25 hover:bg-white/[0.03]'
                 }`}>
                 <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{
