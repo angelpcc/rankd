@@ -632,3 +632,80 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .rk-pr-flash { animation: none !important; opacity: 0 !important; }
 }
+
+/* ══════════════════════════════════════════════════════════
+   MI ESQUINA · TEMA CLARO PILOTO (PROMPT_DISEÑO_CLARO_GRAFICAS)
+   Solo se aplica al scope explícito .rk-light-scope. Fuera de él
+   la app mantiene su estética oscura sin cambios.
+   ══════════════════════════════════════════════════════════ */
+
+.rk-light-scope {
+  /* Paleta clara según el brief: fondo crema cálido, cards blancas,
+     textos oscuros. NO blanco puro. Se scopea con la clase para no tocar
+     el resto de la app. */
+  --rkl-bg-base: #F5F0E8;
+  --rkl-bg-card: #FFFFFF;
+  --rkl-bg-card-alt: #FAF7F2;
+  --rkl-bg-input: #F0EDE6;
+  --rkl-text-primary: #1A1A1A;
+  --rkl-text-secondary: #6B6B66;
+  --rkl-text-muted: #9B9B94;
+  --rkl-accent: #E10600;
+  --rkl-accent-soft: rgba(225, 6, 0, 0.08);
+  --rkl-data-highlight: #8A6D1F;
+  --rkl-border: rgba(0, 0, 0, 0.06);
+  --rkl-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  --rkl-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
+
+  background: var(--rkl-bg-base);
+  color: var(--rkl-text-primary);
+  border-radius: 20px;
+  padding: 20px;
+}
+
+/* Card blanca básica: reutilizable dentro del scope */
+.rk-light-scope .rk-lc {
+  background: var(--rkl-bg-card);
+  border: 1px solid var(--rkl-border);
+  border-radius: 16px;
+  box-shadow: var(--rkl-shadow);
+  padding: 20px;
+  transition: box-shadow 0.2s ease;
+}
+.rk-light-scope .rk-lc:hover { box-shadow: var(--rkl-shadow-hover); }
+
+/* Card primaria "HOY": fondo crema con borde izquierdo rojo */
+.rk-light-scope .rk-lc-primary {
+  background: var(--rkl-bg-card-alt);
+  border: 1px solid var(--rkl-border);
+  border-left: 3px solid var(--rkl-accent);
+  border-radius: 16px;
+  box-shadow: var(--rkl-shadow);
+  padding: 22px;
+}
+
+/* Utilidades tipográficas del scope claro */
+.rk-light-scope .rk-lc-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--rkl-text-secondary); }
+.rk-light-scope .rk-lc-data { font-family: 'Bebas Neue', sans-serif; font-size: clamp(28px, 6vw, 36px); line-height: 1; color: var(--rkl-text-primary); letter-spacing: 0.01em; }
+.rk-light-scope .rk-lc-data-accent { color: var(--rkl-data-highlight); }
+.rk-light-scope .rk-lc-unit { font-size: 15px; color: var(--rkl-text-muted); margin-left: 4px; }
+.rk-light-scope .rk-lc-body { font-size: 14px; color: var(--rkl-text-secondary); line-height: 1.45; }
+.rk-light-scope .rk-lc-meta { font-size: 12px; color: var(--rkl-text-muted); }
+
+/* CTA principal (rojo con glow) — mismo botón que el tema oscuro,
+   funciona bien sobre claro. */
+.rk-light-scope .rk-lc-cta {
+  background: linear-gradient(135deg, #E10600, #b30500);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 18px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(225, 6, 0, 0.25);
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+  min-height: 44px;
+}
+.rk-light-scope .rk-lc-cta:hover { box-shadow: 0 4px 14px rgba(225, 6, 0, 0.35); }
+.rk-light-scope .rk-lc-cta:active { transform: scale(0.98); }

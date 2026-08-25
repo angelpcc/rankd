@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useSEO } from '@/hooks/useSEO';
-import MessagesPanel from '@/pages/dashboard/components/messages/MessagesPanel';
 import ShareProgress from '@/pages/mi-esquina/components/ShareProgress';
 import { DocumentExpiryAlert } from '@/pages/mi-esquina/components/DocumentsPanel';
 import TodayCard from '@/pages/mi-esquina/components/TodayCard';
@@ -32,7 +31,7 @@ import NotificationBell from '@/components/feature/NotificationBell';
 // el peleador está haciendo. Un asistente genérico duplicaba entradas.
 type Section =
   | 'resumen' | 'agenda' | 'progreso' | 'ring' | 'objetivos' | 'documentos'
-  | 'compartir' | 'material' | 'nutricion' | 'timer' | 'mensajes';
+  | 'compartir' | 'material' | 'nutricion' | 'timer';
 
 interface SectionDef { id: Section; labelKey: string; icon: string }
 
@@ -53,7 +52,6 @@ const PRO_SECTIONS: SectionDef[] = [
   { id: 'material', labelKey: 'mc_nav_gear', icon: 'ri-t-shirt-line' },
   { id: 'nutricion', labelKey: 'mc_nav_nutrition', icon: 'ri-restaurant-line' },
   { id: 'timer', labelKey: 'mc_nav_timer', icon: 'ri-timer-flash-line' },
-  { id: 'mensajes', labelKey: 'mc_nav_messages', icon: 'ri-message-3-line' },
 ];
 
 // El aficionado ve menos, pero todo lo que ve es suyo: nada de Ring ni
@@ -65,7 +63,6 @@ const HOBBY_SECTIONS: SectionDef[] = [
   { id: 'material', labelKey: 'mc_nav_gear', icon: 'ri-t-shirt-line' },
   { id: 'nutricion', labelKey: 'mc_nav_nutrition', icon: 'ri-restaurant-line' },
   { id: 'timer', labelKey: 'mc_nav_timer', icon: 'ri-timer-flash-line' },
-  { id: 'mensajes', labelKey: 'mc_nav_messages', icon: 'ri-message-3-line' },
 ];
 
 export default function MiEsquinaPage() {
@@ -268,30 +265,37 @@ export default function MiEsquinaPage() {
 
           {/* ══════════ RESUMEN ══════════ */}
           {activeSection === 'resumen' && (
-            <div className="space-y-8 max-w-3xl">
-              {/* Alertas condicionales (seguridad): normalmente null, no saturan */}
+            <div className="space-y-6 max-w-3xl">
+              {/* Alertas y elementos auxiliares — mantienen su estilo actual */}
               {!isHobby && (
                 <DocumentExpiryAlert profile={profile} onOpen={() => go('ring', 'documentos')} />
               )}
               <GearReplacementAlert profile={profile} onOpen={() => setSection('material')} />
 
-              {/* 1. HOY — card primaria, el elemento principal (único con glow) */}
-              <Reveal>
-                <TodayCard profile={profile}
-                  onStart={() => go('agenda', 'plan')}
-                  onCreatePlan={() => go('progreso', 'objetivos')} />
-              </Reveal>
+              {/* ── PILOTO TEMA CLARO (PROMPT_DISEÑO_CLARO_GRAFICAS) ──
+                  Envuelve las 3 cards principales del Resumen. Fondo crema, cards
+                  blancas, textos oscuros, mini gráficos Recharts integrados.
+                  Solo aplica dentro de este scope; el resto de Mi Esquina y de
+                  la app sigue con la estética oscura cinematográfica. */}
+              <div className="rk-light-scope space-y-4">
+                {/* 1. HOY — card primaria con borde izquierdo rojo */}
+                <Reveal>
+                  <TodayCard profile={profile}
+                    onStart={() => go('agenda', 'plan')}
+                    onCreatePlan={() => go('progreso', 'objetivos')} />
+                </Reveal>
 
-              {/* 2. Tres métricas compactas (secundarias) */}
-              <Reveal delay={90}>
-                <SummaryMetrics profile={profile} weekSessions={stats.week}
-                  onOpenAgenda={() => go('agenda', 'diario')} onOpenWeight={() => go('progreso', 'peso')} />
-              </Reveal>
+                {/* 2. Métricas: Peso (línea) · Entrenamientos (barras) · Objetivo/Combate */}
+                <Reveal delay={90}>
+                  <SummaryMetrics profile={profile} weekSessions={stats.week}
+                    onOpenAgenda={() => go('agenda', 'diario')} onOpenWeight={() => go('progreso', 'peso')} />
+                </Reveal>
 
-              {/* 3. Recomendación / plan activo (una línea clicable, si existe) */}
-              <Reveal delay={160}>
-                <SummaryAiLine profile={profile} onOpen={() => go('progreso', 'objetivos')} />
-              </Reveal>
+                {/* 3. Plan activo (card clara con acento oro) */}
+                <Reveal delay={160}>
+                  <SummaryAiLine profile={profile} onOpen={() => go('progreso', 'objetivos')} />
+                </Reveal>
+              </div>
 
               {/* Perfil físico incompleto (A.3): discreto, se oculta al 100% */}
               <PhysicalProfileCard profileId={profile.id} showToast={showToast} hideWhenComplete />
@@ -319,8 +323,6 @@ export default function MiEsquinaPage() {
           )}
 
           {activeSection === 'compartir' && <ShareProgress profile={profile} mode={mode} showToast={showToast} />}
-
-          {activeSection === 'mensajes' && <div className="max-w-5xl"><MessagesPanel currentUserId={profile.id} /></div>}
 
           {/* R17: bloque "Coach IA" retirado. El coach de entrenamiento se
               accede ahora desde Progreso › Objetivos, con contexto del plan

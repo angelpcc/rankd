@@ -2,12 +2,11 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 
-// Línea de recomendación del resumen (bloque C.1, 3er elemento). Una sola línea
-// clicable. Con la IA en pausa no hay consejos en vivo, así que apunta al PLAN
-// activo (el que la IA generó): "Sigue tu plan: {título}". Si no hay plan, no
-// renderiza nada (el hero "HOY" ya invita a crearlo).
+// Línea "plan activo" del Resumen. PILOTO DE TEMA CLARO: card blanca con
+// icono a la izquierda, label en el color de acento, título del plan grande.
+// Con la IA en pausa no hay consejos en vivo; si no hay plan, no renderiza.
 
-interface Props { profile: Profile; onOpen: () => void; }
+interface Props { profile: Profile; onOpen: () => void }
 
 export default function SummaryAiLine({ profile, onOpen }: Props) {
   const { t } = useTranslation();
@@ -28,16 +27,15 @@ export default function SummaryAiLine({ profile, onOpen }: Props) {
   if (!title) return null;
 
   return (
-    <button onClick={onOpen}
-      className="w-full flex items-center gap-3 rk-card text-left cursor-pointer group" style={{ padding: '12px 16px' }}>
-      <span className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg bg-[#C9A84C]/12 border border-[#C9A84C]/30 text-[#C9A84C]">
-        <i className="ri-sparkling-2-line"></i>
+    <button onClick={onOpen} className="rk-lc w-full text-left cursor-pointer group flex items-center gap-3">
+      <span style={{ width: 40, height: 40, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, background: 'rgba(138,109,31,0.10)', border: '1px solid rgba(138,109,31,0.28)', color: 'var(--rkl-data-highlight)' }}>
+        <i className="ri-sparkling-2-line text-lg"></i>
       </span>
       <span className="flex-1 min-w-0">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-[#C9A84C]">{t('mc_ai_line_label')}</span>
-        <span className="block text-sm text-zinc-200 truncate group-hover:text-white">{title}</span>
+        <span className="rk-lc-label" style={{ color: 'var(--rkl-data-highlight)' }}>{t('mc_ai_line_label')}</span>
+        <span className="block text-sm mt-0.5 truncate group-hover:underline" style={{ color: 'var(--rkl-text-primary)', fontWeight: 600 }}>{title}</span>
       </span>
-      <i className="ri-arrow-right-line text-zinc-600 group-hover:text-[#C9A84C] transition-colors flex-shrink-0"></i>
+      <i className="ri-arrow-right-line flex-shrink-0" style={{ color: 'var(--rkl-text-muted)' }}></i>
     </button>
   );
 }
