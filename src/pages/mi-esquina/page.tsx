@@ -83,7 +83,7 @@ export default function MiEsquinaPage() {
 
   useSEO({
     title: 'Mi Esquina | RANKD',
-    description: 'Tu espacio de entrenamiento en RANKD: diario, calendario, peso, plan IA por objetivo y agenda.',
+    description: 'Tu espacio de entrenamiento en RANKD: diario, calendario, peso, plan personalizado por objetivo y agenda.',
   });
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
@@ -366,7 +366,7 @@ function LoggedOutPreview({ onSignIn }: { onSignIn: () => void }) {
     { icon: 'ri-calendar-check-line', t: 'Diario', d: 'Registra tu entrenamiento de hoy en 5 s' },
     { icon: 'ri-boxing-line', t: 'Ring', d: 'Sparrings, combates y notas técnicas' },
     { icon: 'ri-scales-2-line', t: 'Peso', d: 'Progresión y objetivos por semana' },
-    { icon: 'ri-sparkling-2-line', t: 'Plan IA', d: 'Genera un plan a medida por tu objetivo' },
+    { icon: 'ri-sparkling-2-line', t: 'Mi plan', d: 'Genera un plan a medida por tu objetivo' },
   ];
   const bars = [22, 45, 30, 55, 12, 40, 60];
 
@@ -467,7 +467,7 @@ function LoggedOutPreview({ onSignIn }: { onSignIn: () => void }) {
             Inicia sesión para acceder a Mi Esquina
           </h2>
           <p className="rk-body-14" style={{ marginBottom: 22 }}>
-            Tu diario de entrenamiento, agenda, peso, sparring y plan IA — todo tuyo con una cuenta gratuita.
+            Tu diario de entrenamiento, agenda, peso, sparring y plan personalizado — todo tuyo con una cuenta gratuita.
           </p>
           <button
             onClick={onSignIn}

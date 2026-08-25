@@ -237,13 +237,13 @@ export default {
   mc_ai_video_watch: 'Watch:',
   mc_ai_context: 'Uses your physical profile as context',
   mc_ai_input_ph: 'Type your question…',
-  mc_ai_disclaimer: 'AI can be wrong. It doesn’t replace your coach, doctor or dietitian.',
+  mc_ai_disclaimer: 'The automated system can be wrong. It doesn’t replace your coach, doctor or dietitian.',
   mc_ai_soon: 'Coming soon',
   mc_ai_soon_desc: 'We’re fine-tuning this assistant. Once it’s live, it will use your physical profile and your My Corner data to answer you{{extra}}. Meanwhile, the rest of the section works as normal.',
   mc_ai_soon_desc_save: ', and you’ll be able to save the plan straight into your diary',
   mc_ai_err_generate: 'Couldn’t generate a response. Please try again.',
   mc_ai_err_empty: 'I couldn’t generate a response, please try again.',
-  mc_ai_err_connection: 'The connection to the AI dropped. Please try again.',
+  mc_ai_err_connection: 'The connection to the assistant dropped. Please try again.',
   mc_ai_plan_save_generic: 'Couldn’t save the plan',
   // ── Training diary (FighterTraining) — R13-T5 ──
   mc_ft_eyebrow: 'Your diary',
@@ -848,7 +848,7 @@ export default {
   mc_ng_tab_diary: 'Diary',
   mc_ng_tab_photo: 'Photo',
   mc_ng_tab_water: 'Water',
-  mc_ng_tab_coach: 'AI coach',
+  mc_ng_tab_coach: 'Advisor',
   mc_ng_tab_guide: 'Guide',
   // Gear section tabs (R17b)
   mc_gr_tab_gear: 'My gear',
@@ -858,7 +858,7 @@ export default {
   mc_ng_log_title: 'YOUR DIET, DAY BY DAY',
   mc_ng_log_head: 'NUTRITION',
   mc_ng_log_head_2: 'COACH',
-  mc_ng_log_sub: 'Log what you eat and ask the AI to plan or adjust your diet around your goal.',
+  mc_ng_log_sub: 'Log what you eat and ask the advisor to plan or adjust your diet around your goal.',
   mc_ng_coach_title: 'Nutrition coach',
   mc_ng_coach_intro_pro: 'Tell me your goal or ask me for a meal plan. I can adjust it if you tell me what to drop or reinforce.',
   mc_ng_coach_intro_hobby: 'Tell me what you want to achieve and I will suggest realistic meals, no impossible diets.',
@@ -1001,11 +1001,11 @@ export default {
 
   // ── AI quota ──
   mc_ai_quota_left: 'You have {{n}} questions left this month',
-  mc_ai_quota_warn: 'You have {{n}} AI questions left this month',
+  mc_ai_quota_warn: 'You have {{n}} questions left this month',
   mc_ai_quota_out_title: "You've used up this month's questions",
   mc_ai_quota_out_desc: 'They reset on the 1st. If you need more, get in touch and we will raise your quota.',
   mc_ai_limits_off_title: 'Spend control not configured',
-  mc_ai_limits_off_desc: 'The AI will not answer until usage control is active on the server. That is deliberate: it stops costs running away.',
+  mc_ai_limits_off_desc: 'The assistant will not answer until usage control is active on the server. That is deliberate: it stops costs running away.',
   mc_ai_searching: 'Searching the web for current prices and stores…',
 
   // ── Documents (license, medical, insurance) ──
@@ -1133,8 +1133,8 @@ export default {
   mc_coach_eyebrow: 'YOUR SMART CORNER',
   mc_coach_training_title: 'TRAINING',
   mc_coach_training_title_2: 'COACH',
-  mc_coach_sub_pro: 'Plan with an AI that knows your record, your division, your fight date and how you have felt this week.',
-  mc_coach_sub_hobby: 'Plan with an AI that knows your level and your goal. No jargon: it explains the why behind everything.',
+  mc_coach_sub_pro: 'Plan with an assistant that knows your record, your division, your fight date and how you have felt this week.',
+  mc_coach_sub_hobby: 'Plan with an assistant that knows your level and your goal. No jargon: it explains the why behind everything.',
   mc_coach_intro_pro: 'Tell me your goal and I will build you a plan. I have your fight date, your weight and this week\'s check-ins.',
   mc_coach_intro_hobby: 'Tell me what you want to achieve and where you are, and I will build a realistic plan for your level.',
   mc_coach_sug_pro_1: "This week's plan",

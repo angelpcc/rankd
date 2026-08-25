@@ -301,7 +301,7 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
             event_date: isoFromOffset(s.offset),
             kind: 'training',
             session_type: s.day.training ? 'tecnica' : 'cardio',
-            title: (plan.plan_name || 'Plan IA').slice(0, 80),
+            title: (plan.plan_name || 'Plan de entrenamiento').slice(0, 80),
             time: null,
             notes: bits.join(' · ').slice(0, 500) || null,
             done: false,

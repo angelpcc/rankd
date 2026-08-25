@@ -243,7 +243,7 @@ export default {
   mc_ai_soon_desc_save: ', y podrás guardar el plan directamente en tu diario',
   mc_ai_err_generate: 'No se pudo generar respuesta. Inténtalo de nuevo.',
   mc_ai_err_empty: 'No he podido generar respuesta, inténtalo de nuevo.',
-  mc_ai_err_connection: 'Se ha cortado la conexión con la IA. Inténtalo de nuevo.',
+  mc_ai_err_connection: 'Se ha cortado la conexión con el asistente. Inténtalo de nuevo.',
   mc_ai_plan_save_generic: 'No se pudo guardar el plan',
   // ── Diario de entrenos (FighterTraining) — R13-T5 ──
   mc_ft_eyebrow: 'Tu diario',
@@ -848,7 +848,7 @@ export default {
   mc_ng_tab_diary: 'Diario',
   mc_ng_tab_photo: 'Foto',
   mc_ng_tab_water: 'Agua',
-  mc_ng_tab_coach: 'Coach IA',
+  mc_ng_tab_coach: 'Asesor',
   mc_ng_tab_guide: 'Guía',
   // Tabs de la sección Material (R17b)
   mc_gr_tab_gear: 'Mi equipo',
@@ -858,7 +858,7 @@ export default {
   mc_ng_log_title: 'TU DIETA, A DIARIO',
   mc_ng_log_head: 'COACH DE',
   mc_ng_log_head_2: 'NUTRICIÓN',
-  mc_ng_log_sub: 'Apunta lo que comes y pide a la IA que te planifique o ajuste la dieta según tu objetivo.',
+  mc_ng_log_sub: 'Apunta lo que comes y pide al asesor que te planifique o ajuste la dieta según tu objetivo.',
   mc_ng_coach_title: 'Coach de nutrición',
   mc_ng_coach_intro_pro: 'Cuéntame tu objetivo o pídeme un plan de comidas. Puedo ajustarlo si me dices qué quitar o reforzar.',
   mc_ng_coach_intro_hobby: 'Cuéntame qué quieres conseguir y te planteo comidas realistas, sin dietas imposibles.',
@@ -1001,11 +1001,11 @@ export default {
 
   // ── Cuota de IA ──
   mc_ai_quota_left: 'Te quedan {{n}} consultas este mes',
-  mc_ai_quota_warn: 'Te quedan {{n}} consultas de IA este mes',
+  mc_ai_quota_warn: 'Te quedan {{n}} consultas este mes',
   mc_ai_quota_out_title: 'Has agotado tus consultas de este mes',
   mc_ai_quota_out_desc: 'Se renuevan el día 1. Si necesitas más, escríbenos y te ampliamos la cuota.',
   mc_ai_limits_off_title: 'Control de gasto sin configurar',
-  mc_ai_limits_off_desc: 'La IA no responderá hasta que el control de consumo esté activo en el servidor. Es a propósito: evita que se dispare el gasto.',
+  mc_ai_limits_off_desc: 'El asistente no responderá hasta que el control de consumo esté activo en el servidor. Es a propósito: evita que se dispare el gasto.',
   mc_ai_searching: 'Buscando precios y tiendas actuales en la web…',
 
   // ── Documentación (licencia, médico, seguro) ──
@@ -1133,8 +1133,8 @@ export default {
   mc_coach_eyebrow: 'TU ESQUINA INTELIGENTE',
   mc_coach_training_title: 'COACH DE',
   mc_coach_training_title_2: 'ENTRENAMIENTO',
-  mc_coach_sub_pro: 'Planifica con una IA que conoce tu récord, tu categoría, la fecha de tu combate y cómo te has sentido esta semana.',
-  mc_coach_sub_hobby: 'Planifica con una IA que conoce tu nivel y tu objetivo. Sin tecnicismos: te explica el porqué de cada cosa.',
+  mc_coach_sub_pro: 'Planifica con un asistente que conoce tu récord, tu categoría, la fecha de tu combate y cómo te has sentido esta semana.',
+  mc_coach_sub_hobby: 'Planifica con un asistente que conoce tu nivel y tu objetivo. Sin tecnicismos: te explica el porqué de cada cosa.',
   mc_coach_intro_pro: 'Cuéntame tu objetivo y te armo un plan. Tengo tu fecha de combate, tu peso y tus check-ins de esta semana.',
   mc_coach_intro_hobby: 'Cuéntame qué quieres conseguir y por dónde andas, y te armo un plan realista para tu nivel.',
   mc_coach_sug_pro_1: 'Plan de esta semana',

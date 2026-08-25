@@ -454,7 +454,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-bold text-white truncate">{title}</h3>
-            <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${a.bg} ${a.text}`}>IA</span>
+            <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${a.bg} ${a.text}`}>AUTO</span>
           </div>
           <p className="text-[11px] text-zinc-500 flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full" style={{ background: a.dot }} /> {t('mc_ai_context')}
