@@ -1,15 +1,15 @@
-// Plan IA por objetivo (Mi Esquina › Progreso › Plan IA).
+// Plan automatizado por objetivo (Mi Esquina › Progreso › Plan automatizado).
 // Prefijo op_ ("objective plan").
 export default {
   // ── Cabecera ──
-  op_eyebrow: 'PLAN IA',
+  op_eyebrow: 'PLAN AUTOMATIZADO',
   op_title: 'Tu objetivo,',
   op_title_2: 'tu plan',
   op_sub: 'Dime a qué apuntas y te monto un plan semanal de entrenamiento, cardio y nutrición hecho a tu medida.',
 
   // ── Muy pronto (sin API key) ──
-  op_soon_title: 'PLAN IA',
-  op_soon_desc: 'En cuanto activemos la IA podrás pedir un plan completo (entreno + cardio + nutrición) por tu objetivo, ajustarlo con tus palabras y añadirlo a tu Agenda de un toque.',
+  op_soon_title: 'PLAN AUTOMATIZADO',
+  op_soon_desc: 'En cuanto activemos el sistema automatizado podrás pedir un plan completo (entreno + cardio + nutrición) por tu objetivo, ajustarlo con tus palabras y añadirlo a tu Agenda de un toque.',
   op_soon_tag: 'muy pronto',
 
   // ── Paso 1: objetivo ──
@@ -89,7 +89,7 @@ export default {
   // ── Errores ──
   op_err_no_objective: 'Escribe primero tu objetivo.',
   op_err_generate: 'No he podido generar el plan. Prueba a especificar más el objetivo.',
-  op_err_quota_out: 'Has agotado tus consultas de IA de este mes.',
+  op_err_quota_out: 'Has agotado tus consultas del sistema automatizado de este mes.',
   op_err_generic: 'Algo ha fallado. Prueba en un momento.',
 
   op_disclaimer_prefix: 'Aviso:',
@@ -111,4 +111,7 @@ export default {
   op_print_generated_by: 'Generado en RANKD',
   op_print_no_plan_title: 'No hay plan activo',
   op_print_no_plan_desc: 'Todavía no has creado un plan. Vuelve a Mi Esquina › Progreso › Objetivos.',
+  op_export_weekly: 'Semanal',
+  op_export_monthly: 'Mensual',
+  op_export_custom: 'Personalizado',
 };

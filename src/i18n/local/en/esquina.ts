@@ -3,11 +3,11 @@
 export default {
   // ── Section navigation ──
   mc_here_root: 'My Corner',
-  // ── Analyse food from a photo (AI, coming soon) ──
+  // ── Analyse food from a photo (automated system, coming soon) ──
   mc_food_photo_title: 'Analyse food from a photo',
   mc_food_photo_soon_badge: 'Coming soon',
-  mc_food_photo_desc: 'Take a photo of your plate and the AI will estimate calories and macros to save them to your diary.',
-  mc_food_photo_soon_note: "We're fine-tuning the AI analysis. You'll be able to use it very soon.",
+  mc_food_photo_desc: 'Take a photo of your plate and the automated system will estimate calories and macros to save them to your diary.',
+  mc_food_photo_soon_note: "We're fine-tuning the automated analysis. You'll be able to use it very soon.",
   mc_food_photo_camera: 'Open camera',
   mc_food_photo_upload: 'Upload photo',
   mc_food_photo_change: 'Change photo',
@@ -25,7 +25,7 @@ export default {
   mc_food_photo_saved: 'Saved to your diary',
   // ── Physical profile (Block A) ──
   mc_pp_title: 'My physical profile',
-  mc_pp_intro: 'All fields are optional. The more you fill in, the better the AI personalises your plans.',
+  mc_pp_intro: 'All fields are optional. The more you fill in, the better the automated system personalises your plans.',
   mc_pp_save: 'Save profile',
   mc_pp_saved: 'Physical profile updated',
   mc_pp_weight: 'Weight (kg)',
@@ -58,7 +58,7 @@ export default {
   mc_pp_injuries_ph: 'e.g. right shoulder discomfort when pressing',
   // Completion card
   mc_pp_card_title: 'Your profile is {{pct}}% complete',
-  mc_pp_card_desc: 'Completing it improves the plans the AI generates for you.',
+  mc_pp_card_desc: 'Completing it improves the plans the automated system generates for you.',
   mc_pp_card_cta: 'Complete',
   mc_pp_card_done: 'Your physical profile is up to date',
   mc_nav_summary: 'Overview',
@@ -70,7 +70,7 @@ export default {
   mc_nav_weight: 'Weight tracking',
   mc_nav_progress: 'My progress',
   mc_nav_goals: 'Goals',
-  mc_nav_coach: 'AI Coach',
+  mc_nav_coach: 'Automated Coach',
   mc_nav_gear: 'Gear',
   mc_nav_nutrition: 'Nutrition',
   mc_nav_timer: 'Round timer',
@@ -167,7 +167,7 @@ export default {
   mc_ai_plan_added_agenda_other: '{{count}} sessions added to your agenda ✓',
   mc_ai_meals_added_one: '1 meal added to your diary ✓',
   mc_ai_meals_added_other: '{{count}} meals added to your diary ✓',
-  mc_ai_from_ai: 'Suggested by AI',
+  mc_ai_from_ai: 'Suggested by system',
   mc_from_coach: 'From your coach',
   // ── Goals (GoalsPanel) — R13-T5 ──
   mc_go_eyebrow: 'Where you’re headed',
@@ -227,7 +227,7 @@ export default {
   mc_meal_dinner: 'Dinner',
   mc_meal_snack: 'Snack',
   mc_meal_ph: 'e.g. 150g chicken, rice and salad',
-  mc_meal_empty: 'Log what you eat and build your history. The nutrition AI can fine-tune it on this basis.',
+  mc_meal_empty: 'Log what you eat and build your history. The automated nutrition system can fine-tune it on this basis.',
   mc_meal_saved: 'Meal logged',
   mc_meal_frequent_title: 'Frequent',
   mc_meal_frequent_add: 'Add to diary',
@@ -287,8 +287,8 @@ export default {
   mc_ft_notes: 'Notes (optional)',
   mc_ft_notes_ph: 'Worked jab and lateral movement, felt good…',
   mc_ft_save: 'Save session',
-  mc_ft_coach_title: 'AI Coach',
-  mc_ft_coach_desc: 'Your personal AI coach: ask about planning, strategy and prep. It’ll know your profile, your record and your training diary.',
+  mc_ft_coach_title: 'Automated Coach',
+  mc_ft_coach_desc: 'Your personal automated coach: ask about planning, strategy and prep. It’ll know your profile, your record and your training diary.',
   mc_ft_history: 'History',
   mc_ft_empty_title: 'Your history starts today',
   mc_ft_empty_desc: 'Every session you log adds to your streak and your progress. The first step is the most important.',
@@ -343,7 +343,7 @@ export default {
 
   // ── Daily check-in ──
   mc_ci_title: 'HOW ARE YOU TODAY?',
-  mc_ci_subtitle: 'Thirty seconds. Your AI Coach uses it to adjust your load.',
+  mc_ci_subtitle: 'Thirty seconds. Your automated coach uses it to adjust your load.',
   mc_ci_energy: 'Energy',
   mc_ci_soreness: 'Muscle soreness',
   mc_ci_sleep: 'Hours of sleep',
@@ -379,10 +379,19 @@ export default {
   mc_st_tecnica: 'Technique',
   mc_st_fuerza: 'Strength',
   mc_st_cardio: 'Cardio',
+  mc_st_correr: 'Running',
+  mc_st_boxeo: 'Boxing',
+  mc_st_muay_thai: 'Muay Thai',
+  mc_st_bici: 'Cycling',
   mc_st_flexibilidad: 'Mobility',
   mc_st_recuperacion: 'Recovery',
   mc_st_combate: 'Fight',
   mc_st_pesaje: 'Weigh-in',
+  mc_st_otro: 'Other',
+  // ── Export options ──
+  op_export_weekly: 'Weekly',
+  op_export_monthly: 'Monthly',
+  op_export_custom: 'Custom',
   // ── Redesigned summary: TODAY card + metrics + AI line ──
   mc_hoy_eyebrow: 'Today',
   mc_hoy_start: 'Start training',

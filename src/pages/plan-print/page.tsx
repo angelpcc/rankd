@@ -47,6 +47,9 @@ export default function PlanPrintPage() {
   const [plan, setPlan] = useState<DBPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [exportPeriod, setExportPeriod] = useState<'weekly' | 'monthly' | 'custom'>('weekly');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
 
   useEffect(() => {
     // Mismo guard consciente de "ver como" que el resto de páginas privadas.
@@ -75,6 +78,33 @@ export default function PlanPrintPage() {
     const id = window.setTimeout(() => window.print(), 400);
     return () => window.clearTimeout(id);
   }, [plan]);
+
+  // Filter weeks based on export period
+  const filteredWeeks = (() => {
+    if (!plan) return [];
+    const weeks = plan.plan_json.weeks;
+    
+    if (exportPeriod === 'weekly') {
+      // Show only first week
+      return weeks.slice(0, 1);
+    } else if (exportPeriod === 'monthly') {
+      // Show first 4 weeks (approximately a month)
+      return weeks.slice(0, 4);
+    } else if (exportPeriod === 'custom') {
+      // Filter by custom date range
+      if (!customStart || !customEnd) return weeks;
+      const startDate = new Date(customStart);
+      const endDate = new Date(customEnd);
+      
+      // Calculate which weeks fall within the custom range
+      // Assuming weeks are sequential starting from week 1
+      const startWeek = Math.max(1, Math.floor((startDate.getTime() - new Date(plan.created_at).getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1);
+      const endWeek = Math.min(weeks.length, Math.floor((endDate.getTime() - new Date(plan.created_at).getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1);
+      
+      return weeks.slice(Math.max(0, startWeek - 1), endWeek);
+    }
+    return weeks;
+  })();
 
   if (loading || authLoading) {
     return (
@@ -107,6 +137,33 @@ export default function PlanPrintPage() {
       {/* Barra superior (SOLO pantalla, no imprime) */}
       <div className="rk-print-toolbar">
         <button onClick={() => navigate(-1)} className="rk-print-back">← {t('op_print_back')}</button>
+        <div className="rk-print-period-selector">
+          <select 
+            value={exportPeriod} 
+            onChange={(e) => setExportPeriod(e.target.value as any)}
+            className="rk-print-select"
+          >
+            <option value="weekly">{t('op_export_weekly')}</option>
+            <option value="monthly">{t('op_export_monthly')}</option>
+            <option value="custom">{t('op_export_custom')}</option>
+          </select>
+          {exportPeriod === 'custom' && (
+            <div className="rk-print-custom-dates">
+              <input 
+                type="date" 
+                value={customStart}
+                onChange={(e) => setCustomStart(e.target.value)}
+                className="rk-print-date-input"
+              />
+              <input 
+                type="date" 
+                value={customEnd}
+                onChange={(e) => setCustomEnd(e.target.value)}
+                className="rk-print-date-input"
+              />
+            </div>
+          )}
+        </div>
         <button onClick={() => window.print()} className="rk-print-btn">
           <span style={{ marginRight: 6 }}>⇩</span>{t('op_print_download')}
         </button>
@@ -131,7 +188,7 @@ export default function PlanPrintPage() {
         </div>
 
         {/* Semanas */}
-        {p.weeks.map((w) => (
+        {filteredWeeks.map((w) => (
           <section key={w.week} className="rk-print-week">
             <h2 className="rk-print-week-title">{t('op_week')} {w.week}</h2>
             <div className="rk-print-days">
@@ -184,10 +241,24 @@ export default function PlanPrintPage() {
         }
         /* Toolbar */
         .rk-print-toolbar {
-          max-width: 210mm; margin: 0 auto 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px;
+          max-width: 210mm; margin: 0 auto 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
         }
         .rk-print-back {
           background: transparent; border: none; color: #333; cursor: pointer; font-size: 14px; font-weight: 600;
+        }
+        .rk-print-period-selector {
+          display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        }
+        .rk-print-select {
+          background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 8px 12px;
+          font-size: 13px; font-weight: 600; color: #333; cursor: pointer;
+        }
+        .rk-print-custom-dates {
+          display: flex; gap: 8px; align-items: center;
+        }
+        .rk-print-date-input {
+          background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 6px 10px;
+          font-size: 12px; color: #333; cursor: pointer;
         }
         .rk-print-btn {
           background: #E10600; color: #fff; border: none; border-radius: 8px; padding: 10px 18px;

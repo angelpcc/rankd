@@ -1,15 +1,15 @@
-// AI plan by objective (Mi Esquina › Progress › AI Plan).
+// Automated plan by objective (Mi Esquina › Progress › Automated Plan).
 // Prefix op_ ("objective plan").
 export default {
   // ── Header ──
-  op_eyebrow: 'AI PLAN',
+  op_eyebrow: 'AUTOMATED PLAN',
   op_title: 'Your goal,',
   op_title_2: 'your plan',
   op_sub: 'Tell me what you\'re aiming for and I\'ll build a weekly plan of training, cardio and nutrition tailored to you.',
 
   // ── Coming soon (no API key) ──
-  op_soon_title: 'AI PLAN',
-  op_soon_desc: 'Once we turn AI on, you\'ll be able to ask for a full plan (training + cardio + nutrition) built around your goal, adjust it in plain words and add it to your Agenda with a tap.',
+  op_soon_title: 'AUTOMATED PLAN',
+  op_soon_desc: 'Once we turn the automated system on, you\'ll be able to ask for a full plan (training + cardio + nutrition) built around your goal, adjust it in plain words and add it to your Agenda with a tap.',
   op_soon_tag: 'coming soon',
 
   // ── Step 1: objective ──
@@ -89,7 +89,7 @@ export default {
   // ── Errors ──
   op_err_no_objective: 'Write your goal first.',
   op_err_generate: 'Couldn\'t generate the plan. Try being more specific about the goal.',
-  op_err_quota_out: 'You\'ve used up your AI credits for this month.',
+  op_err_quota_out: 'You\'ve used up your automated system credits for this month.',
   op_err_generic: 'Something went wrong. Try again in a moment.',
 
   op_disclaimer_prefix: 'Note:',
@@ -111,4 +111,7 @@ export default {
   op_print_generated_by: 'Generated in RANKD',
   op_print_no_plan_title: 'No active plan',
   op_print_no_plan_desc: "You haven't created a plan yet. Go back to My Corner › Progress › Goals.",
+  op_export_weekly: 'Weekly',
+  op_export_monthly: 'Monthly',
+  op_export_custom: 'Custom',
 };

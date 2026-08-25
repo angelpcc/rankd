@@ -55,8 +55,8 @@ export default function NotificationBell({ userId, reminders, align = 'right' }:
 
       {open && (
         <div
-          className={`absolute top-11 ${align === 'right' ? 'right-0' : 'left-0'} w-[330px] max-w-[calc(100vw-2rem)] rounded-2xl border border-white/[0.1] bg-[#0b0b0b]/98 backdrop-blur-xl overflow-hidden z-50 anim-scale-in`}
-          style={{ boxShadow: '0 28px 70px rgba(0,0,0,0.75)' }}
+          className={`absolute top-11 ${align === 'right' ? 'right-0' : 'left-0'} w-[330px] max-w-[calc(100vw-2rem)] rounded-2xl border border-white/[0.15] bg-[#0a0a0a] overflow-hidden z-50 anim-scale-in`}
+          style={{ boxShadow: '0 28px 70px rgba(0,0,0,0.85)' }}
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.07]">
             <span className="text-sm font-bold text-white" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 16, letterSpacing: 2 }}>

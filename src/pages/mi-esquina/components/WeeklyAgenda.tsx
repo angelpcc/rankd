@@ -56,8 +56,13 @@ const SESSION_TYPES = [
   { value: 'tecnica', key: 'mc_st_tecnica', icon: 'ri-focus-3-line', hex: '#38bdf8' },
   { value: 'fuerza', key: 'mc_st_fuerza', icon: 'ri-hammer-line', hex: '#fb923c' },
   { value: 'cardio', key: 'mc_st_cardio', icon: 'ri-run-line', hex: '#4ade80' },
+  { value: 'correr', key: 'mc_st_correr', icon: 'ri-run-line', hex: '#22c55e' },
+  { value: 'boxeo', key: 'mc_st_boxeo', icon: 'ri-boxing-line', hex: '#E10600' },
+  { value: 'muay_thai', key: 'mc_st_muay_thai', icon: 'ri-armchair-line', hex: '#f97316' },
+  { value: 'bici', key: 'mc_st_bici', icon: 'ri-riding-line', hex: '#3b82f6' },
   { value: 'flexibilidad', key: 'mc_st_flexibilidad', icon: 'ri-yoga-line', hex: '#a78bfa' },
   { value: 'recuperacion', key: 'mc_st_recuperacion', icon: 'ri-heart-pulse-line', hex: '#facc15' },
+  { value: 'otro', key: 'mc_st_otro', icon: 'ri-checkbox-circle-line', hex: '#6b7280' },
 ];
 const sessionCfg = (v: string) => SESSION_TYPES.find((s) => s.value === v) || SESSION_TYPES[0];
 
@@ -150,17 +155,28 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro' }: Props
     showToast(t('mc_ag_plan_saved'));
   };
 
-  const insertSession = async (payload: Omit<TrainingSession, 'id'>) => {
-    let res = await supabase.from('training_sessions').insert({ fighter_profile_id: profile.id, ...payload }).select().maybeSingle();
+  const insertSession = async (payload: Omit<TrainingSession, 'id'> & { weight_kg?: number | null }) => {
+    // El peso es opcional y NO es una columna de training_sessions: si viene,
+    // se guarda aparte como un registro real en weight_entries (el mismo sitio
+    // que alimenta el control de peso y la card de Peso del Resumen), en vez
+    // de meterlo como texto suelto en las notas de la sesión.
+    const { weight_kg, ...sessionPayload } = payload;
+    let res = await supabase.from('training_sessions').insert({ fighter_profile_id: profile.id, ...sessionPayload }).select().maybeSingle();
     if (res.error && isMissingColumn(res.error)) {
       // La migración 0019 no está aplicada: reintenta sin los campos nuevos.
       setExtraCols(false);
-      const { feeling: _f, part_of_day: _p, ...base } = payload;
+      const { feeling: _f, part_of_day: _p, ...base } = sessionPayload;
       void _f; void _p;
       res = await supabase.from('training_sessions').insert({ fighter_profile_id: profile.id, ...base }).select().maybeSingle();
     }
     if (res.error || !res.data) { showToast(t('error_save'), 'error'); return; }
     setSessions((s) => [res.data as TrainingSession, ...s]);
+    if (weight_kg) {
+      // Best-effort: si falla, la sesión ya se guardó igual.
+      void supabase.from('weight_entries').insert({
+        fighter_profile_id: profile.id, entry_date: sessionPayload.session_date, weight_kg,
+      });
+    }
     showToast(t('mc_ag_session_saved'));
   };
 
@@ -415,7 +431,7 @@ interface DayDetailProps {
   onRemovePlan: (id: string) => void;
   onRemoveSession: (id: string) => void;
   onAddPlan: (p: Omit<PlannedEvent, 'id' | 'done'>) => Promise<void>;
-  onAddSession: (s: Omit<TrainingSession, 'id'>) => Promise<void>;
+  onAddSession: (s: Omit<TrainingSession, 'id'> & { weight_kg?: number | null }) => Promise<void>;
 }
 
 function DayDetail({ date, locale, mode, availableKinds, planned, sessions, extraCols, onBack, onToggleDone, onRemovePlan, onRemoveSession, onAddPlan, onAddSession }: DayDetailProps) {
@@ -650,7 +666,7 @@ function PlanForm({ date, mode, availableKinds, onSubmit, onDone, onSavingChange
 // ────────────────────────────────────────────────────────────────────────
 function LogForm({ date, extraCols, onSubmit, onDone, onSavingChange }: {
   date: string; extraCols: boolean;
-  onSubmit: (s: Omit<TrainingSession, 'id'>) => Promise<void>; onDone: () => void;
+  onSubmit: (s: Omit<TrainingSession, 'id'> & { weight_kg?: number | null }) => Promise<void>; onDone: () => void;
   onSavingChange: (saving: boolean) => void;
 }) {
   const { t } = useTranslation();
@@ -661,6 +677,7 @@ function LogForm({ date, extraCols, onSubmit, onDone, onSavingChange }: {
   const [part, setPart] = useState<string>('');
   const [notes, setNotes] = useState('');
   const [interpreted, setInterpreted] = useState(false);
+  const [weight, setWeight] = useState('');
 
   // Dictado: interpreta el lenguaje natural y PRE-RELLENA. No guarda: el
   // peleador revisa los campos y confirma con el botón de guardar.
@@ -678,6 +695,10 @@ function LogForm({ date, extraCols, onSubmit, onDone, onSavingChange }: {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     onSavingChange(true);
+    // La hora de registro ya la guarda sola `created_at` al insertar — no hace
+    // falta tocar `part_of_day` (ese campo es la franja manual mañana/tarde/
+    // noche del picker de abajo, no un reloj).
+    const w = parseFloat(weight.replace(',', '.'));
     await onSubmit({
       session_date: date,
       session_type: type,
@@ -686,6 +707,9 @@ function LogForm({ date, extraCols, onSubmit, onDone, onSavingChange }: {
       feeling: feeling || null,
       part_of_day: part || null,
       notes: notes.trim() || null,
+      // Peso opcional: se guarda como un registro real en el control de peso
+      // (weight_entries), no como texto suelto en las notas de la sesión.
+      weight_kg: Number.isFinite(w) && w > 0 ? w : null,
     });
     onSavingChange(false);
     onDone();
@@ -702,7 +726,7 @@ function LogForm({ date, extraCols, onSubmit, onDone, onSavingChange }: {
       )}
       <div>
         <label className="block text-xs text-zinc-400 mb-2">{t('mc_rt_type')}</label>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
           {SESSION_TYPES.map((s) => (
             <button key={s.value} type="button" onClick={() => setType(s.value)} className={`flex flex-col items-center justify-center gap-1 py-2.5 px-1 rounded-xl border text-[11px] font-medium transition-all cursor-pointer ${type === s.value ? 'text-white' : 'bg-white/[0.03] border-white/10 text-zinc-500 hover:border-white/25'}`}
               style={type === s.value ? { background: `${s.hex}1f`, borderColor: `${s.hex}66`, color: s.hex, minHeight: 44 } : { minHeight: 44 }}>
@@ -726,6 +750,13 @@ function LogForm({ date, extraCols, onSubmit, onDone, onSavingChange }: {
               </button>
             ))}
           </div>
+        </div>
+      </div>
+      <div>
+        <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_str_weight')} <span className="text-zinc-600 font-normal">({t('mc_optional')})</span></label>
+        <div className="relative">
+          <input type="number" inputMode="decimal" step="0.1" min="30" max="200" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="75.5" style={{ fontSize: 16, minHeight: 44 }} className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl pl-4 pr-10 py-2.5 focus:outline-none focus:border-red-500" />
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-500">kg</span>
         </div>
       </div>
       <div>

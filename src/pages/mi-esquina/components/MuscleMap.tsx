@@ -14,19 +14,19 @@ interface Region { group: MapGroup; paths: string[] }
 
 /* ─── Colores por estado ─── */
 const FILL: Record<TrainState, string> = {
-  none: '#1e1e1e',
-  week: 'rgba(225,6,0,0.40)',
+  none: '#2a2a2a',
+  week: 'rgba(225,6,0,0.50)',
   today: '#E10600',
 };
 const STROKE: Record<TrainState, string> = {
-  none: '#2e2e2e',
-  week: 'rgba(225,6,0,0.55)',
-  today: '#ff2222',
+  none: '#3a3a3a',
+  week: 'rgba(225,6,0,0.70)',
+  today: '#ff3333',
 };
 const GLOW: Record<TrainState, string> = {
-  none: 'none',
-  week: '0 0 6px rgba(225,6,0,0.25)',
-  today: '0 0 10px rgba(225,6,0,0.45)',
+  none: '0 0 4px rgba(255,255,255,0.1)',
+  week: '0 0 8px rgba(225,6,0,0.35)',
+  today: '0 0 14px rgba(225,6,0,0.55)',
 };
 
 /* ─── Silueta de cuerpo ─── */
@@ -144,25 +144,32 @@ export default function MuscleMap({ status, selected, onSelect }: Props) {
 
       <div className="flex items-center gap-4">
         <div className="flex-shrink-0" style={{ maxWidth: '45%' }}>
-          <svg viewBox="0 0 140 204" width="126" height="180" style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.5))' }}>
+          <svg viewBox="0 0 140 204" width="140" height="200" style={{ filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.6))' }}>
             <defs>
-              {/* Gradiente del cuerpo */}
-              <radialGradient id="bodyGrad" cx="50%" cy="25%" r="75%">
-                <stop offset="0%" stopColor="#222" />
-                <stop offset="60%" stopColor="#141414" />
-                <stop offset="100%" stopColor="#0a0a0a" />
+              {/* Gradiente del cuerpo mejorado */}
+              <radialGradient id="bodyGrad" cx="50%" cy="30%" r="80%">
+                <stop offset="0%" stopColor="#3a3a3a" />
+                <stop offset="50%" stopColor="#252525" />
+                <stop offset="100%" stopColor="#151515" />
               </radialGradient>
 
-              {/* Gradiente rojo para "hoy" */}
-              <radialGradient id="todayGrad" cx="50%" cy="40%" r="60%">
-                <stop offset="0%" stopColor="#ff2222" />
-                <stop offset="100%" stopColor="#c40404" />
+              {/* Gradiente rojo para "hoy" mejorado */}
+              <radialGradient id="todayGrad" cx="50%" cy="40%" r="65%">
+                <stop offset="0%" stopColor="#ff4444" />
+                <stop offset="50%" stopColor="#E10600" />
+                <stop offset="100%" stopColor="#a30303" />
               </radialGradient>
 
-              {/* Brillo del seleccionado */}
-              <filter id="selGlow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="blur" />
-                <feFlood floodColor="#C9A84C" floodOpacity="0.35" result="color" />
+              {/* Gradiente para "week" */}
+              <radialGradient id="weekGrad" cx="50%" cy="40%" r="65%">
+                <stop offset="0%" stopColor="rgba(225,6,0,0.7)" />
+                <stop offset="100%" stopColor="rgba(225,6,0,0.4)" />
+              </radialGradient>
+
+              {/* Brillo del seleccionado mejorado */}
+              <filter id="selGlow" x="-25%" y="-25%" width="150%" height="150%">
+                <feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur" />
+                <feFlood floodColor="#C9A84C" floodOpacity="0.5" result="color" />
                 <feComposite in="color" in2="blur" operator="in" result="glow" />
                 <feMerge>
                   <feMergeNode in="glow" />
@@ -170,40 +177,51 @@ export default function MuscleMap({ status, selected, onSelect }: Props) {
                 </feMerge>
               </filter>
 
-              {/* Sombra interna */}
-              <filter id="innerShade" x="-5%" y="-5%" width="110%" height="110%">
-                <feGaussianBlur in="SourceAlpha" stdDeviation="1.5" result="blur" />
-                <feOffset dx="0" dy="2" result="offset" />
+              {/* Sombra interna mejorada */}
+              <filter id="innerShade" x="-8%" y="-8%" width="116%" height="116%">
+                <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur" />
+                <feOffset dx="0" dy="3" result="offset" />
                 <feComposite in="SourceGraphic" in2="offset" operator="over" />
+              </filter>
+
+              {/* Brillo exterior para visibilidad */}
+              <filter id="outerGlow" x="-30%" y="-30%" width="160%" height="160%">
+                <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur" />
+                <feFlood floodColor="rgba(255,255,255,0.15)" floodOpacity="0.3" result="color" />
+                <feComposite in="color" in2="blur" operator="in" result="glow" />
+                <feMerge>
+                  <feMergeNode in="glow" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
               </filter>
             </defs>
 
-            {/* Cuerpo base */}
-            <path d={BODY} fill="url(#bodyGrad)" stroke="rgba(255,255,255,0.06)" strokeWidth={0.5} strokeLinejoin="round" />
+            {/* Cuerpo base con mejor visibilidad */}
+            <path d={BODY} fill="url(#bodyGrad)" stroke="rgba(255,255,255,0.12)" strokeWidth={0.8} strokeLinejoin="round" filter="url(#outerGlow)" />
 
-            {/* Líneas de definición muscular */}
+            {/* Líneas de definición muscular mejoradas */}
             {details.map((d, i) => (
-              <path key={`d${i}`} d={d} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={0.5} strokeLinecap="round" />
+              <path key={`d${i}`} d={d} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={0.8} strokeLinecap="round" />
             ))}
 
-            {/* Regiones musculares */}
+            {/* Regiones musculares con mejor visibilidad */}
             {regions.map((r) => {
               const isSel = selected === r.group;
               const st = status[r.group] || 'none';
-              const fill = st === 'today' ? 'url(#todayGrad)' : FILL[st];
+              const fill = st === 'today' ? 'url(#todayGrad)' : st === 'week' ? 'url(#weekGrad)' : FILL[st];
               const stroke = isSel ? '#C9A84C' : STROKE[st];
-              const glow = isSel ? 'url(#selGlow)' : GLOW[st] !== 'none' ? undefined : undefined;
+              const glow = isSel ? 'url(#selGlow)' : GLOW[st] !== 'none' ? GLOW[st] : undefined;
 
               return (
                 <g key={r.group} onClick={() => onSelect(r.group)} style={{ cursor: 'pointer' }}
                   role="button" aria-label={t(`mc_str_mg_${r.group}`)}>
                   {r.paths.map((d, i) => (
                     <path key={i} d={d} fill={fill} stroke={stroke}
-                      strokeWidth={isSel ? 1.6 : 0.5}
+                      strokeWidth={isSel ? 2 : 1}
                       strokeLinejoin="round"
                       style={{
                         transition: 'all 0.3s ease',
-                        filter: isSel ? 'url(#selGlow)' : undefined,
+                        filter: glow,
                       }} />
                   ))}
                 </g>
@@ -234,9 +252,9 @@ export default function MuscleMap({ status, selected, onSelect }: Props) {
             })}
           </div>
           <div className="flex items-center gap-3 mt-3 text-[10px] text-zinc-500">
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: FILL.today, boxShadow: '0 0 6px rgba(225,6,0,0.5)' }} />{t('mc_str_map_today')}</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: FILL.week }} />{t('mc_str_map_week')}</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: FILL.none }} />{t('mc_str_map_none')}</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: FILL.today, boxShadow: '0 0 8px rgba(225,6,0,0.7)' }} />{t('mc_str_map_today')}</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: FILL.week, boxShadow: '0 0 6px rgba(225,6,0,0.4)' }} />{t('mc_str_map_week')}</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full" style={{ background: FILL.none, boxShadow: '0 0 4px rgba(255,255,255,0.1)' }} />{t('mc_str_map_none')}</span>
           </div>
         </div>
       </div>

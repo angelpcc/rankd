@@ -3,11 +3,11 @@
 export default {
   // ── Navegación de secciones ──
   mc_here_root: 'Mi Esquina',
-  // ── Analizar comida con foto (IA, disponible pronto) ──
+  // ── Analizar comida con foto (sistema automatizado, disponible pronto) ──
   mc_food_photo_title: 'Analizar comida con foto',
   mc_food_photo_soon_badge: 'Disponible pronto',
-  mc_food_photo_desc: 'Haz una foto de tu plato y la IA estimará las calorías y los macros para guardarlos en tu diario.',
-  mc_food_photo_soon_note: 'Estamos afinando el análisis por IA. Podrás usarlo muy pronto.',
+  mc_food_photo_desc: 'Haz una foto de tu plato y el sistema automatizado estimará las calorías y los macros para guardarlos en tu diario.',
+  mc_food_photo_soon_note: 'Estamos afinando el análisis automatizado. Podrás usarlo muy pronto.',
   mc_food_photo_camera: 'Abrir cámara',
   mc_food_photo_upload: 'Subir foto',
   mc_food_photo_change: 'Cambiar foto',
@@ -25,7 +25,7 @@ export default {
   mc_food_photo_saved: 'Guardado en tu diario',
   // ── Perfil físico (Bloque A) ──
   mc_pp_title: 'Mi perfil físico',
-  mc_pp_intro: 'Todos los datos son opcionales. Cuantos más completes, mejor te ayuda la IA a personalizar tus planes.',
+  mc_pp_intro: 'Todos los datos son opcionales. Cuantos más completes, mejor te ayuda el sistema automatizado a personalizar tus planes.',
   mc_pp_save: 'Guardar perfil',
   mc_pp_saved: 'Perfil físico actualizado',
   mc_pp_weight: 'Peso (kg)',
@@ -58,7 +58,7 @@ export default {
   mc_pp_injuries_ph: 'Ej.: molestia en el hombro derecho al empujar',
   // Card de completitud
   mc_pp_card_title: 'Tu perfil está al {{pct}}%',
-  mc_pp_card_desc: 'Completarlo mejora los planes que la IA genera para ti.',
+  mc_pp_card_desc: 'Completarlo mejora los planes que el sistema automatizado genera para ti.',
   mc_pp_card_cta: 'Completar',
   mc_pp_card_done: 'Tu perfil físico está al día',
   mc_nav_summary: 'Resumen',
@@ -70,7 +70,7 @@ export default {
   mc_nav_weight: 'Control de peso',
   mc_nav_progress: 'Mi progreso',
   mc_nav_goals: 'Objetivos',
-  mc_nav_coach: 'Coach IA',
+  mc_nav_coach: 'Entrenador automatizado',
   mc_nav_gear: 'Material',
   mc_nav_nutrition: 'Nutrición',
   mc_nav_timer: 'Temporizador',
@@ -167,7 +167,7 @@ export default {
   mc_ai_plan_added_agenda_other: 'Añadidas {{count}} sesiones a tu agenda ✓',
   mc_ai_meals_added_one: 'Añadida 1 comida a tu diario ✓',
   mc_ai_meals_added_other: 'Añadidas {{count}} comidas a tu diario ✓',
-  mc_ai_from_ai: 'Propuesto por la IA',
+  mc_ai_from_ai: 'Propuesto por el sistema',
   mc_from_coach: 'De tu entrenador',
   // ── Objetivos (GoalsPanel) — R13-T5 ──
   mc_go_eyebrow: 'Hacia dónde vas',
@@ -227,7 +227,7 @@ export default {
   mc_meal_dinner: 'Cena',
   mc_meal_snack: 'Snack',
   mc_meal_ph: 'Ej: 150g pollo, arroz y ensalada',
-  mc_meal_empty: 'Apunta lo que comes y ve construyendo tu histórico. La IA de nutrición podrá ajustarlo sobre esta base.',
+  mc_meal_empty: 'Apunta lo que comes y ve construyendo tu histórico. El sistema de nutrición automatizado podrá ajustarlo sobre esta base.',
   mc_meal_saved: 'Comida registrada',
   mc_meal_frequent_title: 'Frecuentes',
   mc_meal_frequent_add: 'Añadir al diario',
@@ -237,7 +237,7 @@ export default {
   mc_ai_video_watch: 'Ver:',
   mc_ai_context: 'Usa tu perfil físico como contexto',
   mc_ai_input_ph: 'Escribe tu pregunta…',
-  mc_ai_disclaimer: 'La IA puede equivocarse. No sustituye a tu entrenador, médico ni dietista.',
+  mc_ai_disclaimer: 'El sistema automatizado puede equivocarse. No sustituye a tu entrenador, médico ni dietista.',
   mc_ai_soon: 'Muy pronto',
   mc_ai_soon_desc: 'Estamos afinando este asistente. Cuando se active, usará tu perfil físico y tus datos de Mi Esquina para responderte{{extra}}. Mientras tanto, el resto de la sección funciona con normalidad.',
   mc_ai_soon_desc_save: ', y podrás guardar el plan directamente en tu diario',
@@ -287,8 +287,8 @@ export default {
   mc_ft_notes: 'Notas (opcional)',
   mc_ft_notes_ph: 'Trabajé jab y movimiento lateral, buenas sensaciones…',
   mc_ft_save: 'Guardar sesión',
-  mc_ft_coach_title: 'Coach IA',
-  mc_ft_coach_desc: 'Tu entrenador personal con inteligencia artificial: pregúntale sobre planificación, estrategia y preparación. Conocerá tu perfil, tu récord y tu diario de entrenamiento.',
+  mc_ft_coach_title: 'Entrenador automatizado',
+  mc_ft_coach_desc: 'Tu entrenador personal automatizado: pregúntale sobre planificación, estrategia y preparación. Conocerá tu perfil, tu récord y tu diario de entrenamiento.',
   mc_ft_history: 'Historial',
   mc_ft_empty_title: 'Tu historial empieza hoy',
   mc_ft_empty_desc: 'Cada sesión que registras suma a tu racha y a tu progreso. El primer paso es el más importante.',
@@ -343,7 +343,7 @@ export default {
 
   // ── Check-in diario ──
   mc_ci_title: '¿CÓMO ESTÁS HOY?',
-  mc_ci_subtitle: 'Treinta segundos. Tu Coach IA lo usa para ajustar la carga.',
+  mc_ci_subtitle: 'Treinta segundos. Tu entrenador automatizado lo usa para ajustar la carga.',
   mc_ci_energy: 'Energía',
   mc_ci_soreness: 'Cansancio muscular',
   mc_ci_sleep: 'Horas de sueño',
@@ -379,10 +379,19 @@ export default {
   mc_st_tecnica: 'Técnica',
   mc_st_fuerza: 'Fuerza',
   mc_st_cardio: 'Cardio',
+  mc_st_correr: 'Correr',
+  mc_st_boxeo: 'Boxeo',
+  mc_st_muay_thai: 'Muay Thai',
+  mc_st_bici: 'Bici',
   mc_st_flexibilidad: 'Movilidad',
   mc_st_recuperacion: 'Recuperación',
   mc_st_combate: 'Combate',
   mc_st_pesaje: 'Pesaje',
+  mc_st_otro: 'Otro',
+  // ── Export options ──
+  op_export_weekly: 'Semanal',
+  op_export_monthly: 'Mensual',
+  op_export_custom: 'Personalizado',
   // ── Resumen rediseñado: card HOY + métricas + línea IA ──
   mc_hoy_eyebrow: 'Hoy',
   mc_hoy_start: 'Empezar entrenamiento',
