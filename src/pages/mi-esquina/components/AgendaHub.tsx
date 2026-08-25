@@ -6,6 +6,7 @@ import FighterTraining from '@/pages/dashboard/components/FighterTraining';
 import QuickRoutines from '@/pages/mi-esquina/components/QuickRoutines';
 import AgendaWeekStrip from '@/pages/mi-esquina/components/AgendaWeekStrip';
 import FightPrep from '@/pages/mi-esquina/components/FightPrep';
+import TrainerPlanUpload from '@/pages/mi-esquina/components/TrainerPlanUpload';
 import Reveal from '@/components/base/Reveal';
 
 interface Props {
@@ -43,6 +44,7 @@ export default function AgendaHub({ profile, showToast, mode, onLogged, initialT
         </>
       )}
       <HubTabs tabs={TABS} active={tab} onChange={setTab} />
+      {tab === 'plan' && <TrainerPlanUpload profile={profile} showToast={showToast} />}
       {tab === 'plan' && <WeeklyAgenda profile={profile} showToast={showToast} mode={mode} />}
       {tab === 'diario' && <FighterTraining profile={profile} showToast={showToast} />}
       {tab === 'rutinas' && <QuickRoutines profile={profile} showToast={showToast} onLogged={onLogged} />}
