@@ -1,14 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-// Mapa muscular interactivo (bloque C.3). Silueta estilizada frente/espalda con
-// zonas tocables por grupo. Color por estado de entreno de la semana:
-//   · none  #333 (sin entrenar)
-//   · week  rgba(225,6,0,0.4) (entrenado esta semana)
-//   · today #E10600 (entrenado hoy)
-// Tocar un grupo lo selecciona (filtra la progresión y resalta las sesiones).
-// Zonas táctiles amplias (≥44px efectivos): cada región es una forma grande.
-
 export type MapGroup = 'chest' | 'shoulders' | 'biceps' | 'triceps' | 'back' | 'core' | 'legs';
 export type TrainState = 'none' | 'week' | 'today';
 
@@ -18,29 +10,52 @@ interface Props {
   onSelect: (g: MapGroup) => void;
 }
 
-const FILL: Record<TrainState, string> = { none: '#333333', week: 'rgba(225,6,0,0.4)', today: '#E10600' };
+const FILL: Record<TrainState, string> = { none: '#2a2a2a', week: 'rgba(225,6,0,0.45)', today: '#E10600' };
+const STROKE: Record<TrainState, string> = { none: '#3a3a3a', week: 'rgba(225,6,0,0.6)', today: '#ff1a1a' };
 
-// Cada grupo = una o varias formas (mano izq/der en espejo). Path de silueta
-// aparte (no tocable). Vista frontal y dorsal.
-interface Region { group: MapGroup; shapes: string[] }
+interface Region { group: MapGroup; paths: string[] }
 
 const FRONT: Region[] = [
-  { group: 'shoulders', shapes: ['M30 62 q-7 -2 -9 8 q9 5 15 2 q1 -8 -6 -10Z', 'M110 62 q7 -2 9 8 q-9 5 -15 2 q-1 -8 6 -10Z'] },
-  { group: 'chest', shapes: ['M46 66 q22 -6 26 10 q-13 8 -26 3Z', 'M94 66 q-22 -6 -26 10 q13 8 26 3Z'] },
-  { group: 'biceps', shapes: ['M24 78 q-6 12 -2 26 q9 -1 11 -10 q-1 -12 -9 -16Z', 'M116 78 q6 12 2 26 q-9 -1 -11 -10 q1 -12 9 -16Z'] },
-  { group: 'core', shapes: ['M56 84 q14 -3 28 0 q2 20 -3 38 q-11 5 -22 0 q-5 -18 -3 -38Z'] },
-  { group: 'legs', shapes: ['M52 126 q12 -3 16 0 q1 30 -4 54 q-8 3 -13 0 q-3 -28 1 -54Z', 'M88 126 q-12 -3 -16 0 q-1 30 4 54 q8 3 13 0 q3 -28 -1 -54Z'] },
+  { group: 'shoulders', paths: [
+    'M26 58 c-4-1-10 2-11 12 c2 6 8 8 14 5 c2-4 1-10-3-17Z',
+    'M114 58 c4-1 10 2 11 12 c-2 6-8 8-14 5 c-2-4-1-10 3-17Z',
+  ]},
+  { group: 'chest', paths: [
+    'M42 64 c8-4 18-5 26 0 c2 8-4 18-26 14 c-2-6 0-12 0-14Z',
+    'M98 64 c-8-4-18-5-26 0 c-2 8 4 18 26 14 c2-6 0-12 0-14Z',
+  ]},
+  { group: 'biceps', paths: [
+    'M22 74 c-3 6-4 16-1 28 c4 2 9 0 10-8 c1-10-1-16-9-20Z',
+    'M118 74 c3 6 4 16 1 28 c-4 2-9 0-10-8 c-1-10 1-16 9-20Z',
+  ]},
+  { group: 'core', paths: [
+    'M54 82 c10-2 22-2 32 0 c2 14-1 30-4 42 c-12 4-24 4-32 0 c-2-14 0-30 4-42Z',
+  ]},
+  { group: 'legs', paths: [
+    'M50 126 c6-1 14-1 18 2 c2 18-1 38-3 56 c-4 4-10 6-14 2 c-2-12-1-34 0-60Z',
+    'M90 126 c-6-1-14-1-18 2 c-2 18 1 38 3 56 c4 4 10 6 14 2 c2-12 1-34 0-60Z',
+  ]},
 ];
 
 const BACK: Region[] = [
-  { group: 'shoulders', shapes: ['M30 62 q-7 -2 -9 8 q9 5 15 2 q1 -8 -6 -10Z', 'M110 62 q7 -2 9 8 q-9 5 -15 2 q-1 -8 6 -10Z'] },
-  { group: 'back', shapes: ['M46 64 q24 -6 48 0 q3 30 -4 52 q-20 6 -40 0 q-7 -22 -4 -52Z'] },
-  { group: 'triceps', shapes: ['M24 78 q-6 12 -2 26 q9 -1 11 -10 q-1 -12 -9 -16Z', 'M116 78 q6 12 2 26 q-9 -1 -11 -10 q1 -12 9 -16Z'] },
-  { group: 'legs', shapes: ['M52 126 q12 -3 16 0 q1 32 -3 58 q-8 3 -13 0 q-4 -30 0 -58Z', 'M88 126 q-12 -3 -16 0 q-1 32 3 58 q8 3 13 0 q4 -30 0 -58Z'] },
+  { group: 'shoulders', paths: [
+    'M26 58 c-4-1-10 2-11 12 c2 6 8 8 14 5 c2-4 1-10-3-17Z',
+    'M114 58 c4-1 10 2 11 12 c-2 6-8 8-14 5 c-2-4-1-10 3-17Z',
+  ]},
+  { group: 'back', paths: [
+    'M42 62 c12-4 34-4 56 0 c3 18-2 38-6 52 c-16 6-34 6-46 0 c-4-16-5-34-4-52Z',
+  ]},
+  { group: 'triceps', paths: [
+    'M22 74 c-3 6-4 16-1 28 c4 2 9 0 10-8 c1-10-1-16-9-20Z',
+    'M118 74 c3 6 4 16 1 28 c-4 2-9 0-10-8 c-1-10 1-16 9-20Z',
+  ]},
+  { group: 'legs', paths: [
+    'M50 126 c6-1 14-1 18 2 c2 20-1 42-3 60 c-4 4-10 6-14 2 c-2-14-1-38 0-64Z',
+    'M90 126 c-6-1-14-1-18 2 c-2 20 1 42 3 60 c4 4 10 6 14 2 c2-14 1-38 0-64Z',
+  ]},
 ];
 
-// Silueta de fondo (cuerpo), no tocable.
-const BODY = 'M70 8 q11 0 11 13 q0 9 -6 12 q14 3 22 12 q10 10 12 26 q4 -1 6 4 q3 12 -2 24 q-6 2 -9 -3 q-1 10 -5 16 q3 6 2 16 q-2 30 -6 58 q-1 8 -8 8 q-6 0 -7 -8 q-2 -20 -3 -40 q-1 20 -3 40 q-1 8 -7 8 q-7 0 -8 -8 q-4 -28 -6 -58 q-1 -10 2 -16 q-4 -6 -5 -16 q-3 5 -9 3 q-5 -12 -2 -24 q2 -5 6 -4 q2 -16 12 -26 q8 -9 22 -12 q-6 -3 -6 -12 q0 -13 11 -13Z';
+const BODY = 'M70 6 c6 0 10 4 10 12 c0 6-3 10-6 13 c8 2 16 8 22 16 c8 10 12 22 14 32 c2-1 5 2 6 8 c2 10-1 22-4 30 c-4 2-8 0-10-4 c-1 8-3 16-5 22 c2 8 2 18 0 28 c-2 24-4 48-6 62 c-1 6-5 8-8 6 c-4-2-6-8-7-16 c-1 8-3 14-6 16 c-2 0-5-2-6-6 c-1 8-3 14-7 16 c-3 2-7 0-8-6 c-2-14-4-38-6-62 c-2-10-2-20 0-28 c-2-6-4-14-5-22 c-2 4-6 6-10 4 c-3-8-6-20-4-30 c1-6 4-9 6-8 c2-10 6-22 14-32 c6-8 14-14 22-16 c-3-3-6-7-6-13 c0-8 4-12 10-12Z';
 
 export default function MuscleMap({ status, selected, onSelect }: Props) {
   const { t } = useTranslation();
@@ -49,9 +64,8 @@ export default function MuscleMap({ status, selected, onSelect }: Props) {
 
   return (
     <div className="rk-card" style={{ padding: '16px 14px', transform: 'none' }}>
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-3">
         <p className="text-[11px] font-bold tracking-[0.16em] uppercase text-zinc-500">{t('mc_str_map_title')}</p>
-        {/* Toggle frente / espalda */}
         <div className="flex gap-1 bg-white/[0.04] rounded-full p-0.5">
           {(['front', 'back'] as const).map((v) => (
             <button key={v} onClick={() => setView(v)}
@@ -63,24 +77,40 @@ export default function MuscleMap({ status, selected, onSelect }: Props) {
       </div>
 
       <div className="flex items-center gap-4">
-        <svg viewBox="0 0 140 200" width="118" height="170" className="flex-shrink-0" style={{ maxWidth: '45%' }}>
-          <path d={BODY} fill="#0a0a0a" stroke="rgba(255,255,255,0.10)" strokeWidth={1.2} />
-          {regions.map((r) => {
-            const isSel = selected === r.group;
-            const fill = FILL[status[r.group] || 'none'];
-            return (
-              <g key={r.group} onClick={() => onSelect(r.group)} style={{ cursor: 'pointer' }}
-                role="button" aria-label={t(`mc_str_mg_${r.group}`)}>
-                {r.shapes.map((d, i) => (
-                  <path key={i} d={d} fill={fill} stroke={isSel ? '#C9A84C' : 'rgba(0,0,0,0.35)'}
-                    strokeWidth={isSel ? 2 : 0.8} style={{ transition: 'fill 0.2s' }} />
-                ))}
-              </g>
-            );
-          })}
-        </svg>
+        <div className="flex-shrink-0" style={{ maxWidth: '45%' }}>
+          <svg viewBox="0 0 140 200" width="126" height="180" style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.4))' }}>
+            <defs>
+              <radialGradient id="bodyGrad" cx="50%" cy="30%" r="70%">
+                <stop offset="0%" stopColor="#1a1a1a" />
+                <stop offset="100%" stopColor="#0a0a0a" />
+              </radialGradient>
+              <filter id="innerShadow">
+                <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur" />
+                <feOffset dx="0" dy="1" result="offsetBlur" />
+                <feComposite in="SourceGraphic" in2="offsetBlur" operator="over" />
+              </filter>
+            </defs>
+            <path d={BODY} fill="url(#bodyGrad)" stroke="rgba(255,255,255,0.08)" strokeWidth={0.8} />
+            {regions.map((r) => {
+              const isSel = selected === r.group;
+              const st = status[r.group] || 'none';
+              const fill = FILL[st];
+              const stroke = isSel ? '#C9A84C' : STROKE[st];
+              return (
+                <g key={r.group} onClick={() => onSelect(r.group)} style={{ cursor: 'pointer' }}
+                  role="button" aria-label={t(`mc_str_mg_${r.group}`)}>
+                  {r.paths.map((d, i) => (
+                    <path key={i} d={d} fill={fill} stroke={stroke}
+                      strokeWidth={isSel ? 1.8 : 0.6}
+                      strokeLinejoin="round"
+                      style={{ transition: 'fill 0.25s, stroke 0.25s', filter: isSel ? 'url(#innerShadow)' : undefined }} />
+                  ))}
+                </g>
+              );
+            })}
+          </svg>
+        </div>
 
-        {/* Leyenda + grupos tocables como chips (garantiza área táctil ≥44px) */}
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap gap-1.5">
             {regions.map((r) => {
@@ -88,8 +118,8 @@ export default function MuscleMap({ status, selected, onSelect }: Props) {
               const isSel = selected === r.group;
               return (
                 <button key={r.group} onClick={() => onSelect(r.group)} style={{ minHeight: 34 }}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border transition-colors ${isSel ? 'border-[#C9A84C] text-white bg-[#C9A84C]/10' : 'border-white/10 text-zinc-300 hover:border-white/25'}`}>
-                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: FILL[st] }} />
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border transition-all ${isSel ? 'border-[#C9A84C] text-white bg-[#C9A84C]/10 shadow-[0_0_8px_rgba(201,168,76,0.2)]' : 'border-white/10 text-zinc-300 hover:border-white/25'}`}>
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: FILL[st], boxShadow: st === 'today' ? '0 0 6px rgba(225,6,0,0.5)' : undefined }} />
                   {t(`mc_str_mg_${r.group}`)}
                 </button>
               );
