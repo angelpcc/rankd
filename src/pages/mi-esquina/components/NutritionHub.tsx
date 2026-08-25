@@ -1,11 +1,26 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { Profile } from '@/lib/supabase';
+import { supabase, type Profile } from '@/lib/supabase';
+import { isMissingColumn } from '@/lib/dbState';
 import HubTabs, { HubTab } from '@/pages/mi-esquina/components/HubTabs';
 import MealLog from '@/pages/mi-esquina/components/MealLog';
 import FoodPhotoAnalyzer from '@/pages/mi-esquina/components/FoodPhotoAnalyzer';
+import type { NutritionAnalysis } from '@/services/nutritionAnalysis';
 import NutritionTracker from '@/pages/mi-esquina/components/NutritionTracker';
 import SectionCoach from '@/pages/mi-esquina/components/SectionCoach';
+
+function todayISO(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+// Sin selector de franja en el flujo de foto: se infiere de la hora actual.
+function inferMealType(): string {
+  const h = new Date().getHours();
+  if (h < 11) return 'desayuno';
+  if (h < 16) return 'comida';
+  if (h < 20) return 'snack';
+  return 'cena';
+}
 
 interface Props {
   profile: Profile;
@@ -56,6 +71,27 @@ export default function NutritionHub({ profile, showToast, isHobby, onGoWeight }
     { icon: 'ri-moon-line', t: 'mc_ng_sleep_t', b: 'mc_ng_sleep_b' },
   ];
 
+  // "Guardar en diario" del análisis de foto: lo añade a meal_entries con las
+  // macros estimadas. Si falla, lanza para que FoodPhotoAnalyzer NO muestre
+  // su toast de éxito ni resetee la tarjeta.
+  const saveFoodPhoto = async (analysis: NutritionAnalysis) => {
+    const description = analysis.alimentos.length > 0
+      ? analysis.alimentos.map((a) => a.nombre).join(', ')
+      : t('mc_food_photo_title');
+    const full = {
+      fighter_profile_id: profile.id, entry_date: todayISO(), meal_type: inferMealType(), description,
+      calories: Math.round(analysis.total.calorias), protein_g: Math.round(analysis.total.proteina),
+      carbs_g: Math.round(analysis.total.carbohidratos), fat_g: Math.round(analysis.total.grasas),
+    };
+    let { error } = await supabase.from('meal_entries').insert(full);
+    if (error && isMissingColumn(error)) {
+      ({ error } = await supabase.from('meal_entries').insert({
+        fighter_profile_id: profile.id, entry_date: todayISO(), meal_type: inferMealType(), description,
+      }));
+    }
+    if (error) { showToast(t('error_save'), 'error'); throw error; }
+  };
+
   return (
     <div className="max-w-4xl">
       {/* Aviso sanitario permanente: FUERA de tabs para que no se pueda
@@ -96,7 +132,7 @@ export default function NutritionHub({ profile, showToast, isHobby, onGoWeight }
 
       {/* ── FOTO ── */}
       {tab === 'foto' && (
-        <div className="mt-6"><FoodPhotoAnalyzer showToast={showToast} /></div>
+        <div className="mt-6"><FoodPhotoAnalyzer showToast={showToast} onSave={saveFoodPhoto} /></div>
       )}
 
       {/* ── AGUA ── */}
