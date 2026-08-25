@@ -14,19 +14,19 @@ interface Region { group: MapGroup; paths: string[] }
 
 /* ─── Colores por estado ─── */
 const FILL: Record<TrainState, string> = {
-  none: '#2a2a2e',
-  week: 'rgba(225,6,0,0.50)',
-  today: '#E10600',
+  none: '#17171a',
+  week: '#7f1518',
+  today: '#ed1c24',
 };
 const STROKE: Record<TrainState, string> = {
-  none: 'rgba(255,255,255,0.10)',
-  week: 'rgba(225,6,0,0.70)',
-  today: '#ff3333',
+  none: 'rgba(255,255,255,0.16)',
+  week: '#c52a2f',
+  today: '#ff5a5f',
 };
 const GLOW: Record<TrainState, string | undefined> = {
   none: undefined,
-  week: '0 0 8px rgba(225,6,0,0.35)',
-  today: '0 0 14px rgba(225,6,0,0.55)',
+  week: '0 0 10px rgba(225,6,0,0.40)',
+  today: '0 0 18px rgba(237,28,36,0.65)',
 };
 
 /* ─── Silueta base (partes no interactivas: cabeza, cuello, brazos, piernas) ───
@@ -56,19 +56,26 @@ const FRONT: Region[] = [
     'M137 76 C145 78 153 83 157 92 C158 99 154 105 147 106 C140 106 135 100 133 92 C132 86 133 80 137 76 Z',
   ]},
   { group: 'chest', paths: [
-    'M100 78 C92 75 81 76 75 82 C70 90 70 101 75 108 C82 113 92 112 100 106 Z',
-    'M100 78 C108 75 119 76 125 82 C130 90 130 101 125 108 C118 113 108 112 100 106 Z',
+    'M99 79 C91 75 80 77 74 83 C69 90 70 101 75 107 C81 112 91 111 99 105 Z',
+    'M101 79 C109 75 120 77 126 83 C131 90 130 101 125 107 C119 112 109 111 101 105 Z',
   ]},
   { group: 'biceps', paths: [
     'M58 92 C53 100 51 113 52 128 C53 135 61 134 63 124 C65 112 64 100 62 92 Z',
     'M142 92 C147 100 149 113 148 128 C147 135 139 134 137 124 C135 112 136 100 138 92 Z',
   ]},
   { group: 'core', paths: [
-    'M78 116 C87 113 113 113 122 116 C124 138 122 166 116 190 C109 195 91 195 84 190 C78 166 76 138 78 116 Z',
+    'M79 116 C85 113 94 113 99 116 L99 139 C92 141 85 139 80 135 Z',
+    'M101 116 C106 113 115 113 121 116 L120 135 C115 139 108 141 101 139 Z',
+    'M80 138 C86 141 93 142 99 140 L99 164 C92 167 85 165 81 161 Z',
+    'M101 140 C107 142 114 141 120 138 L119 161 C115 165 108 167 101 164 Z',
+    'M82 164 C87 167 93 168 99 166 L99 189 C92 192 87 191 84 188 Z',
+    'M101 166 C107 168 113 167 118 164 L116 188 C113 191 108 192 101 189 Z',
   ]},
   { group: 'legs', paths: [
-    'M69 244 C63 246 58 253 57 264 L56 314 C62 319 76 319 80 314 L81 264 C81 253 77 246 71 244 Z',
-    'M131 244 C137 246 142 253 143 264 L144 314 C138 319 124 319 120 314 L119 264 C119 253 123 246 129 244 Z',
+    'M69 245 C62 248 59 255 58 266 L57 311 C63 316 75 316 79 311 L80 266 C80 255 76 248 70 245 Z',
+    'M131 245 C138 248 141 255 142 266 L143 311 C137 316 125 316 121 311 L120 266 C120 255 124 248 130 245 Z',
+    'M56 320 C61 325 73 325 79 320 L78 389 C74 400 61 400 57 389 Z',
+    'M144 320 C139 325 127 325 121 320 L122 389 C126 400 139 400 143 389 Z',
   ]},
 ];
 
@@ -78,15 +85,20 @@ const BACK: Region[] = [
     'M137 76 C145 78 153 83 157 92 C158 99 154 105 147 106 C140 106 135 100 133 92 C132 86 133 80 137 76 Z',
   ]},
   { group: 'back', paths: [
-    'M70 80 C82 74 118 74 130 80 C134 96 133 114 129 132 C127 154 122 172 115 184 C107 189 93 189 85 184 C78 172 73 154 71 132 C67 114 66 96 70 80 Z',
+    'M70 81 C79 75 91 75 99 80 L99 139 C88 139 78 136 72 128 C69 111 67 94 70 81 Z',
+    'M130 81 C121 75 109 75 101 80 L101 139 C112 139 122 136 128 128 C131 111 133 94 130 81 Z',
+    'M74 130 C81 137 90 141 99 141 L99 181 C91 183 86 180 83 175 C78 161 75 146 74 130 Z',
+    'M126 130 C119 137 110 141 101 141 L101 181 C109 183 114 180 117 175 C122 161 125 146 126 130 Z',
   ]},
   { group: 'triceps', paths: [
     'M58 92 C53 100 51 113 52 128 C53 135 61 134 63 124 C65 112 64 100 62 92 Z',
     'M142 92 C147 100 149 113 148 128 C147 135 139 134 137 124 C135 112 136 100 138 92 Z',
   ]},
   { group: 'legs', paths: [
-    'M69 244 C63 246 58 253 57 264 L56 314 C62 319 76 319 80 314 L81 264 C81 253 77 246 71 244 Z',
-    'M131 244 C137 246 142 253 143 264 L144 314 C138 319 124 319 120 314 L119 264 C119 253 123 246 129 244 Z',
+    'M69 245 C62 248 59 255 58 266 L57 311 C63 316 75 316 79 311 L80 266 C80 255 76 248 70 245 Z',
+    'M131 245 C138 248 141 255 142 266 L143 311 C137 316 125 316 121 311 L120 266 C120 255 124 248 130 245 Z',
+    'M56 320 C61 325 73 325 79 320 L78 389 C74 400 61 400 57 389 Z',
+    'M144 320 C139 325 127 325 121 320 L122 389 C126 400 139 400 143 389 Z',
   ]},
 ];
 
@@ -130,13 +142,18 @@ export default function MuscleMap({ status, selected, onSelect }: Props) {
   const details = view === 'front' ? FRONT_DETAILS : BACK_DETAILS;
 
   return (
-    <div className="rk-card" style={{ padding: '18px 16px', transform: 'none' }}>
+    <div className="rk-card" style={{
+      padding: '18px 16px',
+      transform: 'none',
+      background: 'radial-gradient(circle at 50% 38%, rgba(225,6,0,0.10), transparent 37%), linear-gradient(145deg, #171719, #09090a)',
+      borderColor: 'rgba(255,255,255,0.11)',
+    }}>
       <div className="flex items-center justify-between mb-3">
         <p className="text-[11px] font-bold tracking-[0.16em] uppercase text-zinc-500">{t('mc_str_map_title')}</p>
         <div className="flex gap-1 bg-white/[0.04] rounded-full p-0.5">
           {(['front', 'back'] as const).map((v) => (
             <button key={v} onClick={() => setView(v)}
-              className={`px-3 py-1 rounded-full text-[11px] font-bold cursor-pointer transition-colors ${view === v ? 'bg-red-600 text-white' : 'text-zinc-400'}`}>
+              className={`px-3 py-1 rounded-full text-[11px] font-bold cursor-pointer transition-colors ${view === v ? 'bg-[#ed1c24] text-white shadow-[0_0_12px_rgba(237,28,36,0.5)]' : 'text-zinc-400 hover:text-white'}`}>
               {t(v === 'front' ? 'mc_str_map_front' : 'mc_str_map_back')}
             </button>
           ))}
@@ -147,13 +164,13 @@ export default function MuscleMap({ status, selected, onSelect }: Props) {
         <svg viewBox="0 0 200 420" width="168" height="353" style={{ filter: 'drop-shadow(0 8px 20px rgba(0,0,0,0.55))' }}>
           <defs>
             <radialGradient id="bodyGrad" cx="45%" cy="25%" r="85%">
-              <stop offset="0%" stopColor="#3e3e43" />
-              <stop offset="55%" stopColor="#28282c" />
-              <stop offset="100%" stopColor="#18181b" />
+              <stop offset="0%" stopColor="#44444a" />
+              <stop offset="55%" stopColor="#252529" />
+              <stop offset="100%" stopColor="#111114" />
             </radialGradient>
             <linearGradient id="bodyGradDark" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#2c2c30" />
-              <stop offset="100%" stopColor="#1c1c1f" />
+              <stop offset="0%" stopColor="#29292e" />
+              <stop offset="100%" stopColor="#101013" />
             </linearGradient>
             <radialGradient id="todayGrad" cx="50%" cy="35%" r="70%">
               <stop offset="0%" stopColor="#ff4d40" />
@@ -166,7 +183,7 @@ export default function MuscleMap({ status, selected, onSelect }: Props) {
             </radialGradient>
             <filter id="selGlow" x="-30%" y="-30%" width="160%" height="160%">
               <feGaussianBlur in="SourceAlpha" stdDeviation="3.5" result="blur" />
-              <feFlood floodColor="#C9A84C" floodOpacity="0.55" result="color" />
+              <feFlood floodColor="#ed1c24" floodOpacity="0.62" result="color" />
               <feComposite in="color" in2="blur" operator="in" result="glow" />
               <feMerge>
                 <feMergeNode in="glow" />
@@ -185,7 +202,7 @@ export default function MuscleMap({ status, selected, onSelect }: Props) {
             const isSel = selected === r.group;
             const st = status[r.group] || 'none';
             const fill = st === 'today' ? 'url(#todayGrad)' : st === 'week' ? 'url(#weekGrad)' : FILL[st];
-            const stroke = isSel ? '#C9A84C' : STROKE[st];
+            const stroke = isSel ? '#ff6b70' : STROKE[st];
             const glow = isSel ? 'url(#selGlow)' : GLOW[st];
 
             return (
@@ -216,7 +233,7 @@ export default function MuscleMap({ status, selected, onSelect }: Props) {
               <button key={r.group} onClick={() => onSelect(r.group)} style={{ minHeight: 34 }}
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border transition-all duration-200 ${
                   isSel
-                    ? 'border-[#C9A84C] text-white bg-[#C9A84C]/15 shadow-[0_0_12px_rgba(201,168,76,0.25)]'
+                    ? 'border-[#ed1c24] text-white bg-[#ed1c24]/15 shadow-[0_0_14px_rgba(237,28,36,0.3)]'
                     : 'border-white/10 text-zinc-300 hover:border-white/25 hover:bg-white/[0.03]'
                 }`}>
                 <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{
