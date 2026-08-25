@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 
 export type NotificationKind =
-  | 'training_reminder' | 'inactivity' | 'message' | 'application'
+  | 'training_reminder' | 'weight_reminder' | 'inactivity' | 'message' | 'application'
   | 'application_accepted' | 'verification' | 'ticket_sold' | 'broadcast' | 'system';
 
 export interface AppNotification {
@@ -19,6 +19,7 @@ export interface AppNotification {
 /** Icono y color por tipo de aviso. Se usa en la campana y en el listado. */
 export const NOTIF_STYLE: Record<string, { icon: string; color: string }> = {
   training_reminder: { icon: 'ri-calendar-check-line', color: '#E10600' },
+  weight_reminder: { icon: 'ri-scales-2-line', color: '#C9A84C' },
   inactivity: { icon: 'ri-fire-line', color: '#fb923c' },
   message: { icon: 'ri-message-3-line', color: '#38bdf8' },
   application: { icon: 'ri-file-list-3-line', color: '#C9A84C' },
@@ -121,8 +122,21 @@ export function useNotifications(userId: string | undefined, opts?: { reminders?
 
     const pending: { kind: NotificationKind; title: string; body: string; link: string }[] = [];
 
-    // 1. Entreno planificado para hoy
-    if (!already.has('training_reminder')) {
+    // Preferencias de Ajustes › Notificaciones. Sin fila todavía (usuario que
+    // nunca abrió Ajustes, o migración 0038 sin aplicar): valores por defecto
+    // que mantienen el comportamiento de siempre (entreno ON, peso OFF).
+    const { data: prefsRow } = await supabase
+      .from('user_preferences').select('*').eq('fighter_profile_id', userId).maybeSingle();
+    const prefs = prefsRow as {
+      training_reminder_enabled?: boolean; training_reminder_time?: string; weight_reminder_enabled?: boolean;
+    } | null;
+    const trainingEnabled = prefs?.training_reminder_enabled ?? true;
+    const trainingTime = (prefs?.training_reminder_time || '17:00').slice(0, 5);
+    const weightEnabled = prefs?.weight_reminder_enabled ?? false;
+    const nowHHMM = `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`;
+
+    // 1. Entreno planificado para hoy — solo a partir de la hora configurada.
+    if (trainingEnabled && nowHHMM >= trainingTime && !already.has('training_reminder')) {
       const { data: plan } = await supabase
         .from('weekly_plans').select('plan').eq('fighter_profile_id', userId).maybeSingle();
       const jsDay = new Date().getDay();
@@ -157,6 +171,23 @@ export function useNotifications(userId: string | undefined, opts?: { reminders?
             link: '/mi-esquina',
           });
         }
+      }
+    }
+
+    // 3. Recordatorio de registrar el peso (solo si está activado en Ajustes)
+    if (weightEnabled && !already.has('weight_reminder')) {
+      const { data: weights } = await supabase
+        .from('weight_entries').select('entry_date')
+        .eq('fighter_profile_id', userId)
+        .order('entry_date', { ascending: false }).limit(1);
+      const lastWeighIn = weights?.[0]?.entry_date;
+      if (lastWeighIn !== iso(new Date())) {
+        pending.push({
+          kind: 'weight_reminder',
+          title: 'Registra tu peso de hoy',
+          body: 'Un registro diario hace que la evolución se vea de verdad.',
+          link: '/mi-esquina',
+        });
       }
     }
 

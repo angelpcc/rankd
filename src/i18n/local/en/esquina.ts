@@ -108,6 +108,19 @@ export default {
   mc_pr_tab_weight: 'Weight',
   mc_pr_tab_strength: 'Strength',
   mc_export_report: 'Export report',
+
+  // ── Settings › Notifications (item 9) ──
+  mc_set_title: 'Settings',
+  mc_set_notifications: 'Notifications',
+  mc_set_training_toggle: 'Daily training reminder',
+  mc_set_training_desc: 'A nudge if you had a session planned today and haven\'t marked it done yet.',
+  mc_set_training_time: 'From',
+  mc_set_weight_toggle: 'Weight log reminder',
+  mc_set_weight_desc: 'A nudge if you haven\'t logged your weight today.',
+  mc_set_hint: 'Reminders show up in the bell when you open the app. Real push notifications are coming later.',
+  mc_set_save_fail: 'Could not save.',
+  mc_set_saved: 'Settings saved',
+  mc_set_unavailable: 'Coming soon.',
   // Ring tabs
   mc_rg_header_title: 'Ring — your fight history',
   mc_rg_header_desc: 'Sparring, fight analysis, technique notes and documents, all in one place.',

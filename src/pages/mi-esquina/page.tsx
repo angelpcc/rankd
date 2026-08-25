@@ -20,6 +20,7 @@ import GearHub from '@/pages/mi-esquina/components/GearHub';
 import Reveal from '@/components/base/Reveal';
 import PageBreadcrumb from '@/components/base/PageBreadcrumb';
 import NotificationBell from '@/components/feature/NotificationBell';
+import SettingsModal from '@/pages/mi-esquina/components/SettingsModal';
 
 // R12-T0: la barra lateral se reorganizó de 17/13 a 11/9 secciones fusionando
 // grupos que se solapaban. 'agenda' = calendario+diario+rutinas,
@@ -74,6 +75,7 @@ export default function MiEsquinaPage() {
   // Pestaña con la que abrir un hub (Agenda/Progreso/Ring) desde un acceso rápido.
   const [pendingTab, setPendingTab] = useState<string | undefined>(undefined);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
   const [stats, setStats] = useState({
     total: 0, week: 0, weekMin: 0, todayLogged: false, streak: 0, lastWeekMin: 0,
     last7: [] as { key: string; min: number; today: boolean }[],
@@ -193,6 +195,13 @@ export default function MiEsquinaPage() {
             </span>
           </div>
           <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => setShowSettings(true)}
+              aria-label={t('mc_set_title')}
+              className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/[0.05] border border-white/10 text-zinc-300 hover:text-white hover:border-white/25 transition-colors cursor-pointer"
+            >
+              <i className="ri-settings-3-line"></i>
+            </button>
             <NotificationBell userId={profile.id} reminders />
             <a href="/beta" className="hidden sm:flex items-center gap-0 cursor-pointer">
               <span className="font-unbounded font-black tracking-tighter leading-none text-[15px] text-white" style={{ letterSpacing: '-0.04em' }}>RAN</span>
@@ -216,6 +225,10 @@ export default function MiEsquinaPage() {
           </span>
           <span className="flex-1 min-w-0 font-semibold leading-snug">{toast.msg}</span>
         </div>
+      )}
+
+      {showSettings && (
+        <SettingsModal profile={profile} showToast={showToast} onClose={() => setShowSettings(false)} />
       )}
 
       <div className="flex min-h-screen max-w-[1400px] mx-auto" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>

@@ -108,6 +108,19 @@ export default {
   mc_pr_tab_weight: 'Peso',
   mc_pr_tab_strength: 'Fuerza',
   mc_export_report: 'Exportar informe',
+
+  // ── Ajustes › Notificaciones (punto 9) ──
+  mc_set_title: 'Ajustes',
+  mc_set_notifications: 'Notificaciones',
+  mc_set_training_toggle: 'Recordatorio diario de entrenamiento',
+  mc_set_training_desc: 'Un aviso si hoy tenías entreno planificado y aún no lo has marcado.',
+  mc_set_training_time: 'A partir de',
+  mc_set_weight_toggle: 'Recordatorio de registrar peso',
+  mc_set_weight_desc: 'Un aviso si no has apuntado tu peso hoy.',
+  mc_set_hint: 'Los avisos aparecen en la campana al abrir la app. Las notificaciones push llegarán más adelante.',
+  mc_set_save_fail: 'No se pudo guardar.',
+  mc_set_saved: 'Ajustes guardados',
+  mc_set_unavailable: 'Disponible en breve.',
   // Pestañas del Ring
   mc_rg_header_title: 'Ring — tu historial de combate',
   mc_rg_header_desc: 'Sparring, análisis de combates, notas técnicas y documentos, todo en un sitio.',
