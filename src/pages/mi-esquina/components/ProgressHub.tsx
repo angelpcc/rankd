@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Profile } from '@/lib/supabase';
 import HubTabs, { HubTab } from '@/pages/mi-esquina/components/HubTabs';
 import WeightTracker from '@/pages/mi-esquina/components/WeightTracker';
@@ -32,11 +33,21 @@ const TABS: HubTab[] = [
  * son "seguir un número en el tiempo", así que van juntos con pestañas.
  */
 export default function ProgressHub({ profile, showToast, mode, initialTab }: Props) {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<string>(initialTab || 'objetivos');
   useEffect(() => { if (initialTab) setTab(initialTab); }, [initialTab]);
 
   return (
     <div className="max-w-4xl">
+      <div className="flex justify-end mb-3">
+        <button
+          onClick={() => window.open('/mi-esquina/informe/imprimir', '_blank', 'noopener')}
+          className="rk-btn rk-btn-ghost flex items-center gap-1.5"
+          style={{ fontSize: '0.78rem', padding: '0.5rem 1rem' }}
+        >
+          <i className="ri-file-chart-line"></i> {t('mc_export_report')}
+        </button>
+      </div>
       <HubTabs tabs={TABS} active={tab} onChange={setTab} />
       {tab === 'peso' && <WeightTracker profile={profile} showToast={showToast} mode={mode} />}
       {tab === 'fuerza' && <StrengthLog profile={profile} showToast={showToast} />}

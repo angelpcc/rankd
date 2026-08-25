@@ -28,6 +28,7 @@ const EsquinaPage = lazy(() => import('../pages/esquina/page'));
 const MiEsquinaPage = lazy(() => import('../pages/mi-esquina/page'));
 const TimerPage = lazy(() => import('../pages/timer/page'));
 const PlanPrintPage = lazy(() => import('../pages/plan-print/page'));
+const ReportPrintPage = lazy(() => import('../pages/informe-print/page'));
 const StorePage = lazy(() => import('../pages/tienda/page'));
 const NewsPage = lazy(() => import('../pages/noticias/page'));
 const AdminPage = lazy(() => import('../pages/admin/page'));
@@ -230,6 +231,14 @@ const routes: RouteObject[] = [
     element: (
       <Suspense fallback={<LoadingSpinner />}>
         <PlanPrintPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/mi-esquina/informe/imprimir',
+    element: (
+      <Suspense fallback={<LoadingSpinner />}>
+        <ReportPrintPage />
       </Suspense>
     ),
   },

@@ -86,6 +86,7 @@ export default {
   // Pestañas de Progreso
   mc_pr_tab_weight: 'Peso',
   mc_pr_tab_strength: 'Fuerza',
+  mc_export_report: 'Exportar informe',
   // Pestañas del Ring
   mc_rg_header_title: 'Ring — tu historial de combate',
   mc_rg_header_desc: 'Sparring, análisis de combates, notas técnicas y documentos, todo en un sitio.',

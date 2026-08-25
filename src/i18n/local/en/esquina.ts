@@ -86,6 +86,7 @@ export default {
   // Progress tabs
   mc_pr_tab_weight: 'Weight',
   mc_pr_tab_strength: 'Strength',
+  mc_export_report: 'Export report',
   // Ring tabs
   mc_rg_header_title: 'Ring — your fight history',
   mc_rg_header_desc: 'Sparring, fight analysis, technique notes and documents, all in one place.',
