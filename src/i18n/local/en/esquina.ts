@@ -772,6 +772,10 @@ export default {
   mc_gk_due_on: 'We\'ll nudge you when {{date}} comes around.',
   mc_gk_save: 'Save',
   mc_gk_remove_reminder: 'Remove reminder',
+  mc_gk_brand: 'Brand',
+  mc_gk_brand_ph: 'E.g. Everlast, Venum…',
+  mc_gk_days_owned_one: 'You\'ve had this {{count}} day',
+  mc_gk_days_owned_other: 'You\'ve had this {{count}} days',
 
   // Real brands — what stands out and what to watch for
   mc_br_everlast_for: 'Easy to find and cheap to get started without spending much.',

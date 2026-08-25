@@ -49,9 +49,9 @@ const PRO_SECTIONS: SectionDef[] = [
   { id: 'agenda', labelKey: 'mc_nav_agenda', icon: 'ri-calendar-todo-line' },
   { id: 'progreso', labelKey: 'mc_nav_progress_hub', icon: 'ri-line-chart-line' },
   { id: 'ring', labelKey: 'mc_nav_ring', icon: 'ri-boxing-line' },
-  { id: 'material', labelKey: 'mc_nav_gear', icon: 'ri-t-shirt-line' },
   { id: 'nutricion', labelKey: 'mc_nav_nutrition', icon: 'ri-restaurant-line' },
   { id: 'timer', labelKey: 'mc_nav_timer', icon: 'ri-timer-flash-line' },
+  { id: 'material', labelKey: 'mc_nav_gear', icon: 'ri-t-shirt-line' },
 ];
 
 // El aficionado ve menos, pero todo lo que ve es suyo: nada de Ring ni
@@ -60,9 +60,9 @@ const HOBBY_SECTIONS: SectionDef[] = [
   { id: 'resumen', labelKey: 'mc_nav_summary', icon: 'ri-dashboard-line' },
   { id: 'agenda', labelKey: 'mc_nav_agenda', icon: 'ri-calendar-todo-line' },
   { id: 'progreso', labelKey: 'mc_nav_progress_hub', icon: 'ri-line-chart-line' },
-  { id: 'material', labelKey: 'mc_nav_gear', icon: 'ri-t-shirt-line' },
   { id: 'nutricion', labelKey: 'mc_nav_nutrition', icon: 'ri-restaurant-line' },
   { id: 'timer', labelKey: 'mc_nav_timer', icon: 'ri-timer-flash-line' },
+  { id: 'material', labelKey: 'mc_nav_gear', icon: 'ri-t-shirt-line' },
 ];
 
 export default function MiEsquinaPage() {

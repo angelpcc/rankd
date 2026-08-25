@@ -14,6 +14,7 @@ interface GearItem {
   condition: 'good' | 'replace';
   acquired_at: string | null;
   lifespan_months: number | null;
+  brand: string | null;
 }
 
 // Equipo esencial recomendado, con su vida útil orientativa (meses).
@@ -73,6 +74,14 @@ export function gearDaysUntil(item: Pick<GearItem, 'acquired_at' | 'lifespan_mon
   if (!due) return null;
   const now = new Date(); now.setHours(0, 0, 0, 0);
   return Math.round((due.getTime() - now.getTime()) / 86400000);
+}
+
+/** Días transcurridos desde la fecha de compra ("Llevas X días con este material"). */
+export function gearDaysOwned(item: Pick<GearItem, 'acquired_at'>): number | null {
+  if (!item.acquired_at) return null;
+  const start = new Date(item.acquired_at + 'T12:00:00');
+  const now = new Date(); now.setHours(12, 0, 0, 0);
+  return Math.max(0, Math.round((now.getTime() - start.getTime()) / 86400000));
 }
 
 export function gearRepState(item: Pick<GearItem, 'acquired_at' | 'lifespan_months'>): GearRepState {
@@ -137,6 +146,8 @@ export default function GearChecklist({ profile, showToast }: Props) {
   const [unavailable, setUnavailable] = useState(false);
   // Si la migración 0018 aún no está, ocultamos lo de la vida útil.
   const [lifespanReady, setLifespanReady] = useState(true);
+  // Si la migración 0034 aún no está, ocultamos el campo de marca.
+  const [brandReady, setBrandReady] = useState(true);
   const [customName, setCustomName] = useState('');
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState<GearItem | null>(null);
@@ -152,6 +163,7 @@ export default function GearChecklist({ profile, showToast }: Props) {
       ...it,
       acquired_at: it.acquired_at ?? null,
       lifespan_months: it.lifespan_months ?? null,
+      brand: it.brand ?? null,
     })));
     setLoading(false);
   }, [profile.id]);
@@ -181,7 +193,7 @@ export default function GearChecklist({ profile, showToast }: Props) {
     }
     if (res.error || !res.data) return null;
     const row = res.data as GearItem;
-    return { ...row, acquired_at: row.acquired_at ?? null, lifespan_months: row.lifespan_months ?? null };
+    return { ...row, acquired_at: row.acquired_at ?? null, lifespan_months: row.lifespan_months ?? null, brand: row.brand ?? null };
   };
 
   const toggleOwned = async (name: string) => {
@@ -224,13 +236,18 @@ export default function GearChecklist({ profile, showToast }: Props) {
     else setItems((prev) => prev.filter((i) => i.id !== item.id));
   };
 
-  // Guarda fecha de compra + vida útil (o las limpia para quitar el aviso).
-  const saveReminder = async (item: GearItem, acquired: string | null, months: number) => {
-    const patch = { acquired_at: acquired, lifespan_months: acquired ? months : null };
+  // Guarda fecha de compra + vida útil + marca (o las limpia para quitar el aviso).
+  const saveReminder = async (item: GearItem, acquired: string | null, months: number, brand: string | null) => {
+    const patch: Record<string, unknown> = { acquired_at: acquired, lifespan_months: acquired ? months : null, brand: brand || null };
     const prev = items;
-    setItems((p) => p.map((i) => i.id === item.id ? { ...i, ...patch } : i));
+    setItems((p) => p.map((i) => i.id === item.id ? { ...i, ...patch } as GearItem : i));
     setEditing(null);
-    const { error } = await supabase.from('gear_items').update(patch).eq('id', item.id);
+    let { error } = await supabase.from('gear_items').update(patch).eq('id', item.id);
+    if (error && isMissingColumn(error)) {
+      setBrandReady(false);
+      delete patch.brand;
+      ({ error } = await supabase.from('gear_items').update(patch).eq('id', item.id));
+    }
     if (error) {
       if (isMissingColumn(error)) setLifespanReady(false);
       showToast(t('mc_gk_err_update'), 'error');
@@ -333,6 +350,7 @@ export default function GearChecklist({ profile, showToast }: Props) {
               {orderedOwned.map((item) => {
                 const state = gearRepState(item);
                 const days = gearDaysUntil(item);
+                const daysOwned = gearDaysOwned(item);
                 const repChip = state === 'overdue'
                   ? { text: t('mc_gk_st_overdue'), cls: 'text-red-300 bg-red-600/12 border-red-500/35', icon: 'ri-error-warning-line' }
                   : state === 'due_soon'
@@ -347,12 +365,20 @@ export default function GearChecklist({ profile, showToast }: Props) {
                         <i className={item.condition === 'replace' ? 'ri-error-warning-line' : 'ri-checkbox-circle-line'}></i>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-white truncate">{displayName(item)}</p>
-                        {lifespanReady && repChip && (
-                          <span className={`inline-flex items-center gap-1 mt-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${repChip.cls}`}>
-                            <i className={repChip.icon}></i>{repChip.text}
-                          </span>
-                        )}
+                        <p className="text-sm font-semibold text-white truncate">
+                          {displayName(item)}
+                          {brandReady && item.brand && <span className="text-zinc-500 font-normal"> · {item.brand}</span>}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                          {lifespanReady && repChip && (
+                            <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${repChip.cls}`}>
+                              <i className={repChip.icon}></i>{repChip.text}
+                            </span>
+                          )}
+                          {daysOwned !== null && (
+                            <span className="text-[10px] text-zinc-500">{t('mc_gk_days_owned', { count: daysOwned })}</span>
+                          )}
+                        </div>
                       </div>
                       <button onClick={() => toggleCondition(item)}
                         className={`text-[11px] font-bold px-2.5 py-1 rounded-full border transition-colors cursor-pointer whitespace-nowrap ${item.condition === 'replace' ? 'bg-orange-500/12 border-orange-500/30 text-orange-400' : 'bg-white/[0.04] border-white/12 text-zinc-400 hover:text-white'}`}>
@@ -399,6 +425,7 @@ export default function GearChecklist({ profile, showToast }: Props) {
           item={editing}
           label={displayName(editing)}
           locale={locale}
+          brandReady={brandReady}
           onClose={() => setEditing(null)}
           onSave={saveReminder}
         />
@@ -407,17 +434,19 @@ export default function GearChecklist({ profile, showToast }: Props) {
   );
 }
 
-// ── Modal: desde cuándo tengo la pieza + cada cuánto recordar ──
-function ReminderModal({ item, label, locale, onClose, onSave }: {
+// ── Modal: desde cuándo tengo la pieza + cada cuánto recordar + marca ──
+function ReminderModal({ item, label, locale, brandReady, onClose, onSave }: {
   item: GearItem;
   label: string;
   locale: string;
+  brandReady: boolean;
   onClose: () => void;
-  onSave: (item: GearItem, acquired: string | null, months: number) => void;
+  onSave: (item: GearItem, acquired: string | null, months: number, brand: string | null) => void;
 }) {
   const { t } = useTranslation();
   const [acquired, setAcquired] = useState(item.acquired_at || todayISO());
   const [months, setMonths] = useState(item.lifespan_months ?? defaultMonthsFor(item.name));
+  const [brand, setBrand] = useState(item.brand || '');
 
   const due = gearDueDate({ acquired_at: acquired, lifespan_months: months });
   const dueNice = due ? due.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' }) : null;
@@ -435,6 +464,15 @@ function ReminderModal({ item, label, locale, onClose, onSave }: {
         </div>
 
         <div className="space-y-4">
+          {brandReady && (
+            <div>
+              <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_gk_brand')}</label>
+              <input value={brand} onChange={(e) => setBrand(e.target.value)} maxLength={40}
+                placeholder={t('mc_gk_brand_ph')}
+                className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#C9A84C]" />
+            </div>
+          )}
+
           <div>
             <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_gk_since')}</label>
             <input type="date" value={acquired} max={todayISO()} onChange={(e) => setAcquired(e.target.value)}
@@ -462,11 +500,11 @@ function ReminderModal({ item, label, locale, onClose, onSave }: {
           )}
 
           <div className="flex gap-2 pt-1">
-            <button onClick={() => onSave(item, acquired, months)} className="rk-btn rk-btn-primary flex-1 flex items-center justify-center gap-2" style={{ fontSize: '0.9rem' }}>
+            <button onClick={() => onSave(item, acquired, months, brand)} className="rk-btn rk-btn-primary flex-1 flex items-center justify-center gap-2" style={{ fontSize: '0.9rem' }}>
               <i className="ri-check-line"></i> {t('mc_gk_save')}
             </button>
             {item.acquired_at && (
-              <button onClick={() => onSave(item, null, months)} className="rk-btn rk-btn-ghost flex items-center gap-1.5" style={{ fontSize: '0.8rem', padding: '0 1rem' }}>
+              <button onClick={() => onSave(item, null, months, brand)} className="rk-btn rk-btn-ghost flex items-center gap-1.5" style={{ fontSize: '0.8rem', padding: '0 1rem' }}>
                 {t('mc_gk_remove_reminder')}
               </button>
             )}

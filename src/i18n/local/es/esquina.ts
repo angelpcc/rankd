@@ -772,6 +772,10 @@ export default {
   mc_gk_due_on: 'Te avisaremos cuando llegue el {{date}}.',
   mc_gk_save: 'Guardar',
   mc_gk_remove_reminder: 'Quitar aviso',
+  mc_gk_brand: 'Marca',
+  mc_gk_brand_ph: 'Ej. Everlast, Venum…',
+  mc_gk_days_owned_one: 'Llevas {{count}} día con este material',
+  mc_gk_days_owned_other: 'Llevas {{count}} días con este material',
 
   // Marcas reales — qué destaca y qué vigilar en cada una
   mc_br_everlast_for: 'Fácil de encontrar y barata para arrancar sin gastarte mucho.',
