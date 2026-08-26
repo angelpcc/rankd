@@ -294,12 +294,7 @@ export default function MiEsquinaPage() {
               )}
               <GearReplacementAlert profile={profile} onOpen={() => setSection('material')} />
 
-              {/* ── PILOTO TEMA CLARO (PROMPT_DISEÑO_CLARO_GRAFICAS) ──
-                  Envuelve las 3 cards principales del Resumen. Fondo crema, cards
-                  blancas, textos oscuros, mini gráficos Recharts integrados.
-                  Solo aplica dentro de este scope; el resto de Mi Esquina y de
-                  la app sigue con la estética oscura cinematográfica. */}
-              <div className="rk-light-scope space-y-4">
+              <div className="space-y-4">
                 {/* 1. HOY — card primaria con borde izquierdo rojo */}
                 <Reveal>
                   <TodayCard profile={profile}

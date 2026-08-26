@@ -4,9 +4,9 @@ import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable } from '@/lib/dbState';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 
-// PILOTO DE TEMA CLARO (PROMPT_DISEÑO): tres tarjetas pequeñas en fila —
-// PESO ACTUAL · ENTRENOS SEMANA · RACHA. El detalle de peso objetivo/combate
-// vive en Progreso (Peso) y en la tarjeta de "próxima pelea" (FightPrep) por
+// Tres tarjetas pequeñas en fila — PESO ACTUAL · ENTRENOS SEMANA · RACHA.
+// Card oscura estándar (rk-card). El detalle de peso objetivo/combate vive
+// en Progreso (Peso) y en la tarjeta de "próxima pelea" (FightPrep) por
 // separado, para no duplicar información en el resumen.
 
 interface Props {
@@ -48,7 +48,7 @@ export default function SummaryMetrics({ profile, weekSessions, weekTarget = 4, 
 
   // ── Card wrapper reutilizable ──
   const Card = ({ onClick, children }: { onClick?: () => void; children: React.ReactNode }) => (
-    <button onClick={onClick} className="rk-lc w-full text-left relative cursor-pointer" style={{ minHeight: 96 }}>
+    <button onClick={onClick} className="rk-card w-full text-left relative cursor-pointer" style={{ padding: '16px', minHeight: 96 }}>
       {children}
     </button>
   );
@@ -57,14 +57,14 @@ export default function SummaryMetrics({ profile, weekSessions, weekTarget = 4, 
     <div className="grid grid-cols-3 gap-3">
       {/* ─────── PESO ACTUAL ─────── */}
       <Card onClick={onOpenWeight}>
-        <p className="rk-lc-label">{t('mc_metric_weight')}</p>
+        <p className="text-[11px] font-bold tracking-[0.12em] uppercase text-zinc-500">{t('mc_metric_weight')}</p>
         {weightCurrent !== null ? (
           <>
-            <p className="rk-lc-data mt-1.5">
-              {weightCurrent}<span className="rk-lc-unit">kg</span>
+            <p className="mt-1.5" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(28px,6vw,36px)', lineHeight: 1, color: '#fff' }}>
+              {weightCurrent}<span className="text-sm text-zinc-500 ml-1">kg</span>
             </p>
             {weightDelta !== null && weightDelta !== 0 && (
-              <p className="rk-lc-meta mt-0.5" style={{ color: weightDelta < 0 ? '#16a34a' : '#c2410c', fontWeight: 600 }}>
+              <p className="mt-0.5 text-xs font-semibold" style={{ color: weightDelta < 0 ? '#4ade80' : '#fb923c' }}>
                 {weightDelta < 0 ? '▼' : '▲'} {Math.abs(weightDelta)} kg
               </p>
             )}
@@ -79,23 +79,23 @@ export default function SummaryMetrics({ profile, weekSessions, weekTarget = 4, 
             )}
           </>
         ) : (
-          <p className="rk-lc-data mt-1.5" style={{ color: 'var(--rkl-text-muted)' }}>—</p>
+          <p className="mt-1.5 text-zinc-600" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(28px,6vw,36px)' }}>—</p>
         )}
       </Card>
 
       {/* ─────── ENTRENOS SEMANA ─────── */}
       <Card onClick={onOpenActivity}>
-        <p className="rk-lc-label">{t('mc_metric_week')}</p>
-        <p className="rk-lc-data mt-1.5" style={{ color: weekSessions >= weekTarget ? '#16a34a' : 'var(--rkl-text-primary)' }}>
-          {weekSessions}<span className="rk-lc-unit">/{weekTarget}</span>
+        <p className="text-[11px] font-bold tracking-[0.12em] uppercase text-zinc-500">{t('mc_metric_week')}</p>
+        <p className="mt-1.5" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(28px,6vw,36px)', lineHeight: 1, color: weekSessions >= weekTarget ? '#4ade80' : '#fff' }}>
+          {weekSessions}<span className="text-sm text-zinc-500 ml-1">/{weekTarget}</span>
         </p>
       </Card>
 
       {/* ─────── RACHA ─────── */}
       <Card onClick={onOpenActivity}>
-        <p className="rk-lc-label">{t('mc_metric_streak')}</p>
-        <p className="rk-lc-data mt-1.5">
-          {streak}<span className="rk-lc-unit">{t(streak === 1 ? 'mc_metric_day' : 'mc_metric_days')}</span>
+        <p className="text-[11px] font-bold tracking-[0.12em] uppercase text-zinc-500">{t('mc_metric_streak')}</p>
+        <p className="mt-1.5" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(28px,6vw,36px)', lineHeight: 1, color: '#fff' }}>
+          {streak}<span className="text-sm text-zinc-500 ml-1">{t(streak === 1 ? 'mc_metric_day' : 'mc_metric_days')}</span>
         </p>
       </Card>
     </div>
