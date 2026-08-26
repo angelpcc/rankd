@@ -328,6 +328,8 @@ export default {
   mc_ft_trend_range: 'Last 8 weeks',
   mc_ft_trend_sub: 'Minutes trained per week — see your progress with perspective',
   mc_ft_form_title: 'New session',
+  mc_ft_step1_title: 'What did you train?',
+  mc_ft_step_back: 'Change type',
   mc_ft_type: 'Training type',
   mc_ft_date: 'Date',
   mc_ft_duration: 'Duration (minutes)',

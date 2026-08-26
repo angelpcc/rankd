@@ -328,6 +328,8 @@ export default {
   mc_ft_trend_range: 'Últimas 8 semanas',
   mc_ft_trend_sub: 'Minutos entrenados por semana — mira tu progreso con perspectiva',
   mc_ft_form_title: 'Nueva sesión',
+  mc_ft_step1_title: '¿Qué has entrenado?',
+  mc_ft_step_back: 'Cambiar tipo',
   mc_ft_type: 'Tipo de entrenamiento',
   mc_ft_date: 'Fecha',
   mc_ft_duration: 'Duración (minutos)',

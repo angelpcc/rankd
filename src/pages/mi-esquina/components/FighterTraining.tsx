@@ -100,6 +100,9 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showForm, setShowForm] = useState(!!initialDate);
+  // Flujo por pasos, como Fuerza: paso 1 elige el tipo, paso 2 rellena los
+  // detalles. Un solo tipo posible → tocarlo ya avanza al paso 2.
+  const [step, setStep] = useState<1 | 2>(1);
 
   const [date, setDate] = useState(initialDate || todayISO());
   const [type, setType] = useState('sparring');
@@ -108,11 +111,12 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
   const [notes, setNotes] = useState('');
 
   // Si llega un initialDate nuevo (el usuario vuelve a tocar "+" en otro día
-  // sin salir de Mi Esquina), reabre el formulario con esa fecha.
+  // sin salir de Mi Esquina), reabre el formulario con esa fecha, en el paso 1.
   useEffect(() => {
     if (!initialDate) return;
     setDate(initialDate);
     setShowForm(true);
+    setStep(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialDate]);
 
@@ -147,6 +151,7 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
       setSessions((prev) => [data, ...prev].sort((a, b) => b.session_date.localeCompare(a.session_date)));
       setNotes('');
       setShowForm(false);
+      setStep(1);
       showToast(t('mc_ft_saved'));
     }
     setSaving(false);
@@ -162,6 +167,7 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
     if (p.intensity) setIntensity(p.intensity);
     setNotes((prev) => (prev.trim() ? prev : p.notes));
     setShowForm(true);
+    setStep(p.type ? 2 : 1);
     setInterpreted(true);
   };
 
@@ -235,7 +241,7 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
         </div>
         <div className="flex items-center gap-2">
           <VoiceButton onResult={applyDictation} />
-          <button onClick={() => setShowForm(!showForm)} className={`rk-btn ${showForm ? 'rk-btn-ghost' : 'rk-btn-primary'} flex items-center gap-2`} style={{ fontSize: '0.85rem', padding: '0.7rem 1.4rem' }}>
+          <button onClick={() => { if (!showForm) setStep(1); setShowForm(!showForm); }} className={`rk-btn ${showForm ? 'rk-btn-ghost' : 'rk-btn-primary'} flex items-center gap-2`} style={{ fontSize: '0.85rem', padding: '0.7rem 1.4rem' }}>
             <i className={showForm ? 'ri-close-line' : 'ri-add-line'}></i>
             {showForm ? t('mc_ft_close') : t('mc_ft_new')}
           </button>
@@ -383,58 +389,70 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
         </Reveal>
       )}
 
-      {/* Form */}
+      {/* Form: flujo por pasos, como Fuerza — paso 1 tipo, paso 2 detalles */}
       {showForm && (
         <Reveal>
           <div className="rk-card space-y-4" style={{ padding: '22px 20px' }}>
             <div className="flex items-center justify-between gap-3 flex-wrap">
-              <h3 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>{t('mc_ft_form_title')}</h3>
-              <VoiceButton onResult={applyDictation} />
+              <h3 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>
+                {step === 1 ? t('mc_ft_step1_title') : t(typeCfg(type).labelKey)}
+              </h3>
+              {step === 1 && <VoiceButton onResult={applyDictation} />}
             </div>
             {interpreted && (
               <p className="text-[11px] text-red-400 flex items-center gap-1.5"><i className="ri-sparkling-line"></i>{t('mc_vo_interpreted')}</p>
             )}
-            <div>
-              <label className="block text-xs text-zinc-400 mb-2">{t('mc_ft_type')}</label>
+
+            {step === 1 ? (
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                 {SESSION_TYPES.map((st) => (
-                  <button key={st.value} type="button" onClick={() => setType(st.value)}
-                    className={`flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl border text-xs font-medium transition-all cursor-pointer ${type === st.value ? st.color : 'bg-white/[0.03] border-white/10 text-zinc-500 hover:border-white/25'}`}>
-                    <i className={`${st.icon} text-base`}></i>
+                  <button key={st.value} type="button" onClick={() => { setType(st.value); setStep(2); }}
+                    className={`flex flex-col items-center gap-1.5 py-3.5 px-1 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${st.color} hover:brightness-110`}
+                    style={{ minHeight: 44 }}>
+                    <i className={`${st.icon} text-xl`}></i>
                     {t(st.labelKey)}
                   </button>
                 ))}
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_ft_date')}</label>
-                <input type="date" value={date} max={todayISO()} onChange={(e) => setDate(e.target.value)} className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer" />
-              </div>
-              <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_ft_duration')}</label>
-                <input type="number" min="5" max="600" step="5" value={duration} onChange={(e) => setDuration(e.target.value)} className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder="60" />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-400 mb-2">{t('mc_ft_intensity')}</label>
-              <div className="flex gap-2">
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <button key={n} type="button" onClick={() => setIntensity(n)}
-                    className={`flex-1 py-2 rounded-lg border text-sm font-bold transition-all cursor-pointer ${intensity >= n ? 'bg-red-600/20 border-red-500/40 text-red-400' : 'bg-white/[0.03] border-white/10 text-zinc-600 hover:border-white/25'}`}>
-                    <i className="ri-fire-fill"></i>
-                  </button>
-                ))}
-              </div>
-              <p className="text-[11px] text-zinc-500 mt-1.5">{t(`mc_ft_int_${intensity}`)}</p>
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_ft_notes')}</label>
-              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 resize-none" placeholder={t('mc_ft_notes_ph')} />
-            </div>
-            <button onClick={addSession} disabled={saving} className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60" style={{ fontSize: '1rem' }}>
-              {saving ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {t('mc_saving')}</> : <><i className="ri-check-line"></i> {t('mc_ft_save')}</>}
-            </button>
+            ) : (
+              <>
+                <button onClick={() => setStep(1)} className="text-xs text-zinc-400 hover:text-white flex items-center gap-1.5 cursor-pointer -mt-1">
+                  <i className="ri-arrow-left-line"></i> {t('mc_ft_step_back')}
+                </button>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_ft_date')}</label>
+                    <input type="date" value={date} max={todayISO()} onChange={(e) => setDate(e.target.value)} className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_ft_duration')}</label>
+                    <input type="number" min="5" max="600" step="5" value={duration} onChange={(e) => setDuration(e.target.value)} className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder="60" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-zinc-400 mb-2">{t('mc_ft_intensity')}</label>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <button key={n} type="button" onClick={() => setIntensity(n)}
+                        className={`flex-1 py-2 rounded-lg border text-sm font-bold transition-all cursor-pointer ${intensity >= n ? 'bg-red-600/20 border-red-500/40 text-red-400' : 'bg-white/[0.03] border-white/10 text-zinc-600 hover:border-white/25'}`}>
+                        <i className="ri-fire-fill"></i>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-zinc-500 mt-1.5">{t(`mc_ft_int_${intensity}`)}</p>
+                </div>
+                <div>
+                  <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_ft_notes')}</label>
+                  <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 resize-none" placeholder={t('mc_ft_notes_ph')} />
+                </div>
+              </>
+            )}
+
+            {step === 2 && (
+              <button onClick={addSession} disabled={saving} className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60" style={{ fontSize: '1rem' }}>
+                {saving ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {t('mc_saving')}</> : <><i className="ri-check-line"></i> {t('mc_ft_save')}</>}
+              </button>
+            )}
           </div>
         </Reveal>
       )}
@@ -469,7 +487,7 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
               </div>
               <h3 className="rk-h3" style={{ fontSize: '1.25rem', color: '#fff' }}>{t('mc_ft_empty_title')}</h3>
               <p className="text-sm text-zinc-400 mt-2 max-w-xs mx-auto leading-relaxed">{t('mc_ft_empty_desc')}</p>
-              <button onClick={() => setShowForm(true)} className="rk-btn rk-btn-primary mt-6" style={{ fontSize: '0.9rem', padding: '0.85rem 1.8rem' }}>
+              <button onClick={() => { setStep(1); setShowForm(true); }} className="rk-btn rk-btn-primary mt-6" style={{ fontSize: '0.9rem', padding: '0.85rem 1.8rem' }}>
                 {t('mc_ft_empty_cta')}
               </button>
             </div>
