@@ -647,51 +647,123 @@ html, body {
    ══════════════════════════════════════════════════════════ */
 
 .rk-light-scope {
-  /* Paleta clara según el brief: fondo crema cálido, cards blancas,
-     textos oscuros. NO blanco puro. Se scopea con la clase para no tocar
-     el resto de la app. */
-  --rkl-bg-base: #F5F0E8;
-  --rkl-bg-card: #FFFFFF;
-  --rkl-bg-card-alt: #FAF7F2;
-  --rkl-bg-input: #F0EDE6;
-  --rkl-text-primary: #1A1A1A;
-  --rkl-text-secondary: #6B6B66;
-  --rkl-text-muted: #9B9B94;
-  --rkl-accent: #E10600;
-  --rkl-accent-soft: rgba(225, 6, 0, 0.08);
-  --rkl-data-highlight: #8A6D1F;
-  --rkl-border: rgba(0, 0, 0, 0.06);
-  --rkl-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  --rkl-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
+  /* Tokens exactos del rediseño UI/UX (ver spec). Se scopea con la clase
+     para no tocar el resto de la app (landing/admin/auth/timer/Creator
+     Studio y cualquier pantalla de Mi Esquina que aún no se haya migrado
+     siguen en oscuro sin cambios). */
+  --surface-0: #F6F3ED;
+  --surface-1: #FFFFFF;
+  --surface-2: #FAF8F4;
+  --surface-3: #F0EDE5;
+  --surface-hover: #EEEAE2;
+  --text-1: #1C1C1A;
+  --text-2: #5C5C56;
+  --text-3: #9C9C94;
+  --brand: #E10600;
+  --brand-soft: #FEF0EF;
+  --brand-dark: #B80500;
+  --data: #1C1C1A;
+  --success: #2D8A56;
+  --warning: #D4940A;
+  --danger: #DC2626;
+  --info: #4A7FBF;
+  --border-1: rgba(0, 0, 0, 0.06);
+  --border-2: rgba(0, 0, 0, 0.10);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-focus: 0 0 0 3px rgba(225, 6, 0, 0.15);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px; --space-12: 48px;
 
-  background: var(--rkl-bg-base);
-  color: var(--rkl-text-primary);
-  border-radius: 20px;
-  padding: 20px;
+  /* Alias legacy (--rkl-*): pantallas de Mi Esquina aún no migradas a las
+     clases nuevas (.t-*, .card-*) siguen usando estas — apuntan a los
+     mismos tokens de arriba para que no haya dos paletas a la vez. */
+  --rkl-bg-base: var(--surface-0);
+  --rkl-bg-card: var(--surface-1);
+  --rkl-bg-card-alt: var(--surface-2);
+  --rkl-bg-input: var(--surface-2);
+  --rkl-text-primary: var(--text-1);
+  --rkl-text-secondary: var(--text-2);
+  --rkl-text-muted: var(--text-3);
+  --rkl-accent: var(--brand);
+  --rkl-accent-soft: var(--brand-soft);
+  --rkl-data-highlight: var(--data);
+  --rkl-border: var(--border-1);
+  --rkl-shadow: var(--shadow-sm);
+  --rkl-shadow-hover: var(--shadow-md);
+
+  background: var(--surface-0);
+  color: var(--text-1);
 }
 
-/* Card blanca básica: reutilizable dentro del scope */
+/* ── Tipografía: 5 niveles, no más ── */
+.rk-light-scope .t-display { font-family: 'Bebas Neue', sans-serif; font-size: clamp(1.75rem, 5vw, 2.5rem); line-height: 1.1; letter-spacing: 0.01em; color: var(--text-1); }
+.rk-light-scope .t-heading { font-family: 'Bebas Neue', sans-serif; font-size: 1.25rem; line-height: 1.2; letter-spacing: 0.02em; color: var(--text-1); }
+.rk-light-scope .t-label { font-family: 'Barlow Condensed', sans-serif; font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); }
+.rk-light-scope .t-body { font-family: 'Barlow Condensed', sans-serif; font-size: 0.9375rem; font-weight: 400; line-height: 1.5; color: var(--text-2); }
+.rk-light-scope .t-data { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; line-height: 1; color: var(--text-1); }
+.rk-light-scope .t-data-unit { font-family: 'Barlow Condensed', sans-serif; font-size: 0.875rem; font-weight: 400; color: var(--text-3); margin-left: 2px; }
+
+/* ── Card Métrica: un dato + gráfico, layout horizontal ── */
+.rk-light-scope .card-metric {
+  background: var(--surface-1);
+  border: 1px solid var(--border-1);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: box-shadow 200ms ease, transform 200ms ease;
+  cursor: pointer;
+}
+.rk-light-scope .card-metric:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+
+/* ── Card Hero: máximo 1 por pantalla, acento lateral ── */
+.rk-light-scope .card-hero {
+  background: var(--surface-1);
+  border: 1px solid var(--border-1);
+  border-left: 3px solid var(--brand);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-md);
+}
+
+/* ── Card Plana: listas e historiales, sin sombra ── */
+.rk-light-scope .card-flat {
+  background: var(--surface-2);
+  border: 1px solid var(--border-1);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  box-shadow: none;
+}
+
+/* Card blanca básica (legacy, ver alias arriba) */
 .rk-light-scope .rk-lc {
   background: var(--rkl-bg-card);
   border: 1px solid var(--rkl-border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--rkl-shadow);
   padding: 20px;
   transition: box-shadow 0.2s ease;
 }
 .rk-light-scope .rk-lc:hover { box-shadow: var(--rkl-shadow-hover); }
 
-/* Card primaria "HOY": fondo crema con borde izquierdo rojo */
 .rk-light-scope .rk-lc-primary {
   background: var(--rkl-bg-card-alt);
   border: 1px solid var(--rkl-border);
   border-left: 3px solid var(--rkl-accent);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--rkl-shadow);
   padding: 22px;
 }
 
-/* Utilidades tipográficas del scope claro */
 .rk-light-scope .rk-lc-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--rkl-text-secondary); }
 .rk-light-scope .rk-lc-data { font-family: 'Bebas Neue', sans-serif; font-size: clamp(28px, 6vw, 36px); line-height: 1; color: var(--rkl-text-primary); letter-spacing: 0.01em; }
 .rk-light-scope .rk-lc-data-accent { color: var(--rkl-data-highlight); }
@@ -699,8 +771,6 @@ html, body {
 .rk-light-scope .rk-lc-body { font-size: 14px; color: var(--rkl-text-secondary); line-height: 1.45; }
 .rk-light-scope .rk-lc-meta { font-size: 12px; color: var(--rkl-text-muted); }
 
-/* CTA principal (rojo con glow) — mismo botón que el tema oscuro,
-   funciona bien sobre claro. */
 .rk-light-scope .rk-lc-cta {
   background: linear-gradient(135deg, #E10600, #b30500);
   color: #fff;
@@ -716,3 +786,17 @@ html, body {
 }
 .rk-light-scope .rk-lc-cta:hover { box-shadow: 0 4px 14px rgba(225, 6, 0, 0.35); }
 .rk-light-scope .rk-lc-cta:active { transform: scale(0.98); }
+
+/* ── Inputs sobre el scope claro ── */
+.rk-light-scope input, .rk-light-scope textarea, .rk-light-scope select {
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-md);
+  color: var(--text-1);
+}
+.rk-light-scope input:focus, .rk-light-scope textarea:focus, .rk-light-scope select:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: var(--shadow-focus);
+}
+.rk-light-scope input::placeholder, .rk-light-scope textarea::placeholder { color: var(--text-3); }
