@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, type Profile } from '@/lib/supabase';
 import { isMissingColumn } from '@/lib/dbState';
@@ -101,6 +101,8 @@ export default function NutritionHub({ profile, showToast, isHobby, onGoWeight }
         <p className="text-xs text-zinc-300 leading-relaxed">{t('mc_ng_safety_banner')}</p>
       </div>
 
+      <TodayMacrosSummary profile={profile} />
+
       <HubTabs tabs={TABS} active={tab} onChange={(id) => setTab(id as typeof tab)} />
 
       {/* ── DIARIO ── */}
@@ -185,6 +187,60 @@ export default function NutritionHub({ profile, showToast, isHobby, onGoWeight }
             <p className="text-[11px] text-zinc-500 leading-relaxed">{t('mc_ng_disclaimer')}</p>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+interface DayMacros { calories: number; protein: number; carbs: number; fat: number; withMacros: number; total: number }
+
+/**
+ * Resumen rápido del día, arriba de las tabs: "Hoy: X kcal | proteína | carbos
+ * | grasas". Suma real de meal_entries (migración 0036) — comidas escritas a
+ * mano sin macros cuentan en el total de comidas pero no en los gramos/kcal.
+ */
+function TodayMacrosSummary({ profile }: { profile: Profile }) {
+  const { t } = useTranslation();
+  const [data, setData] = useState<DayMacros | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const { data: rows } = await supabase.from('meal_entries')
+        .select('calories, protein_g, carbs_g, fat_g')
+        .eq('fighter_profile_id', profile.id).eq('entry_date', todayISO());
+      if (!alive) return;
+      const list = rows || [];
+      const withMacros = list.filter((r) => r.calories !== null);
+      const sum = withMacros.reduce((acc, r) => ({
+        calories: acc.calories + (r.calories || 0), protein: acc.protein + (r.protein_g || 0),
+        carbs: acc.carbs + (r.carbs_g || 0), fat: acc.fat + (r.fat_g || 0),
+      }), { calories: 0, protein: 0, carbs: 0, fat: 0 });
+      setData({ ...sum, withMacros: withMacros.length, total: list.length });
+    })();
+    return () => { alive = false; };
+  }, [profile.id]);
+
+  if (!data) return null;
+
+  return (
+    <div className="rk-card flex items-center gap-2 sm:gap-4 mb-5 overflow-x-auto" style={{ padding: '12px 16px' }}>
+      <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 flex-shrink-0">{t('mc_ng_today_summary')}</span>
+      <span className="text-sm text-white flex-shrink-0">
+        {Math.round(data.calories)} <span className="text-zinc-500 text-xs">kcal</span>
+      </span>
+      <span className="text-zinc-700 flex-shrink-0">·</span>
+      <span className="text-sm text-white flex-shrink-0">
+        {t('mc_food_photo_protein')} <span className="text-zinc-300">{Math.round(data.protein)}g</span>
+      </span>
+      <span className="text-sm text-white flex-shrink-0">
+        {t('mc_food_photo_carbs')} <span className="text-zinc-300">{Math.round(data.carbs)}g</span>
+      </span>
+      <span className="text-sm text-white flex-shrink-0">
+        {t('mc_food_photo_fat')} <span className="text-zinc-300">{Math.round(data.fat)}g</span>
+      </span>
+      {data.total > data.withMacros && (
+        <span className="text-[10px] text-zinc-600 flex-shrink-0 ml-auto whitespace-nowrap">{t('mc_ng_today_summary_partial', { n: data.withMacros, total: data.total })}</span>
       )}
     </div>
   );

@@ -9,6 +9,7 @@ import { DocumentExpiryAlert } from '@/pages/mi-esquina/components/DocumentsPane
 import TodayCard from '@/pages/mi-esquina/components/TodayCard';
 import SummaryMetrics from '@/pages/mi-esquina/components/SummaryMetrics';
 import SummaryAiLine from '@/pages/mi-esquina/components/SummaryAiLine';
+import FightPrep from '@/pages/mi-esquina/components/FightPrep';
 import PhysicalProfileCard from '@/pages/mi-esquina/components/PhysicalProfileCard';
 import AgendaHub from '@/pages/mi-esquina/components/AgendaHub';
 import ProgressHub from '@/pages/mi-esquina/components/ProgressHub';
@@ -66,6 +67,11 @@ const HOBBY_SECTIONS: SectionDef[] = [
   { id: 'material', labelKey: 'mc_nav_gear', icon: 'ri-t-shirt-line' },
 ];
 
+function todayISO(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 export default function MiEsquinaPage() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
@@ -74,6 +80,8 @@ export default function MiEsquinaPage() {
   const [section, setSection] = useState<Section>('resumen');
   // Pestaña con la que abrir un hub (Agenda/Progreso/Ring) desde un acceso rápido.
   const [pendingTab, setPendingTab] = useState<string | undefined>(undefined);
+  // Día concreto para Progreso › Actividad (llega del "+" o de un día del calendario).
+  const [pendingDate, setPendingDate] = useState<string | undefined>(undefined);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [stats, setStats] = useState({
@@ -175,8 +183,9 @@ export default function MiEsquinaPage() {
   const activeSection: Section =
     SECTIONS.some((s) => s.id === section) || EXTRA_SECTIONS.includes(section) ? section : 'resumen';
 
-  // Navega a una sección y, opcionalmente, abre un hub en una pestaña concreta.
-  const go = (s: Section, tab?: string) => { setPendingTab(tab); setSection(s); };
+  // Navega a una sección y, opcionalmente, abre un hub en una pestaña concreta
+  // (y, para Progreso › Actividad, con un día ya puesto).
+  const go = (s: Section, tab?: string, date?: string) => { setPendingTab(tab); setPendingDate(date); setSection(s); };
 
   return (
     <div className="min-h-screen text-white rk-screen-bg">
@@ -298,10 +307,10 @@ export default function MiEsquinaPage() {
                     onCreatePlan={() => go('progreso', 'objetivos')} />
                 </Reveal>
 
-                {/* 2. Métricas: Peso (línea) · Entrenamientos (barras) · Objetivo/Combate */}
+                {/* 2. Métricas: Peso actual · Entrenos semana · Racha */}
                 <Reveal delay={90}>
-                  <SummaryMetrics profile={profile} weekSessions={stats.week}
-                    onOpenAgenda={() => go('agenda', 'diario')} onOpenWeight={() => go('progreso', 'peso')} />
+                  <SummaryMetrics profile={profile} weekSessions={stats.week} streak={stats.streak}
+                    onOpenActivity={() => go('progreso', 'actividad')} onOpenWeight={() => go('progreso', 'peso')} />
                 </Reveal>
 
                 {/* 3. Plan activo (card clara con acento oro) */}
@@ -310,24 +319,39 @@ export default function MiEsquinaPage() {
                 </Reveal>
               </div>
 
+              {/* 4. Próxima pelea (PRO; no renderiza nada si no hay combate) */}
+              {!isHobby && (
+                <Reveal delay={200}>
+                  <FightPrep profile={profile} onOpenCalendar={() => go('agenda', 'plan')} />
+                </Reveal>
+              )}
+
               {/* Perfil físico incompleto (A.3): discreto, se oculta al 100% */}
               <PhysicalProfileCard profileId={profile.id} showToast={showToast} hideWhenComplete />
 
               {/* Consentimiento del gimnasio (condicional, subordinado) */}
               <GymLink profile={profile} showToast={showToast} />
+
+              {/* 6. Acción destacada: registrar lo de hoy */}
+              <button onClick={() => go('progreso', 'actividad', todayISO())}
+                className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2"
+                style={{ fontSize: '0.95rem', padding: '1rem' }}>
+                <i className="ri-add-line text-lg"></i> {t('mc_register_today')}
+              </button>
             </div>
           )}
 
           {/* ══════════ SECCIONES ══════════ */}
-          {/* Agenda: plan + diario + rutinas (R12-T0) */}
+          {/* Agenda: plan + rutinas — solo planificación y visualización */}
           {activeSection === 'agenda' && (
             <AgendaHub profile={profile} showToast={showToast} mode={mode}
-              onLogged={() => setRefreshKey((k) => k + 1)} initialTab={pendingTab} />
+              onLogged={() => setRefreshKey((k) => k + 1)} initialTab={pendingTab}
+              onGoActivity={(date) => go('progreso', 'actividad', date)} />
           )}
 
-          {/* Progreso: peso + fuerza (R12-T0) */}
+          {/* Progreso: objetivos + actividad + fuerza + peso */}
           {activeSection === 'progreso' && (
-            <ProgressHub profile={profile} showToast={showToast} mode={mode} initialTab={pendingTab} />
+            <ProgressHub profile={profile} showToast={showToast} mode={mode} initialTab={pendingTab} initialDate={pendingDate} />
           )}
 
           {/* Ring: sparring + combates + notas técnicas (R12-T0, solo competición) */}

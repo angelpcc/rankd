@@ -83,6 +83,10 @@ export default {
   mc_ag_plan: 'Plan',
   mc_ag_log: 'Log',
   mc_ag_routines: 'Routines',
+  mc_ag_fab_log: 'Log training',
+  mc_ag_day_go_activity: 'View / Log',
+  mc_ag_day_summary_planned: 'Planned',
+  mc_ag_day_summary_logged: 'Logged',
 
   // ── Real trainer's plan photo (item 8) ──
   mc_tp_title: "My trainer's plan",
@@ -107,6 +111,7 @@ export default {
   // Progress tabs
   mc_pr_tab_weight: 'Weight',
   mc_pr_tab_strength: 'Strength',
+  mc_pr_tab_activity: 'Activity',
   mc_export_report: 'Export report',
 
   // ── Settings › Notifications (item 9) ──
@@ -451,6 +456,9 @@ export default {
   mc_metric_week: 'Sessions this week',
   mc_metric_weight: 'Current weight',
   mc_metric_days: 'days',
+  mc_metric_day: 'day',
+  mc_metric_streak: 'Streak',
+  mc_register_today: 'Log today',
   mc_metric_fight: 'To the fight',
   mc_metric_to_lose: 'To your goal',
   mc_metric_to_gain: 'To your goal',
@@ -907,6 +915,8 @@ export default {
   mc_gr_tab_brands: 'Brands',
   mc_gr_tab_coach: 'Advisor',
   mc_ng_safety_banner: 'Everything in this section is guidance only and does not replace a doctor or a registered dietitian. For any medical condition, pregnancy or problem with food, see a professional.',
+  mc_ng_today_summary: 'Today',
+  mc_ng_today_summary_partial: '{{n}} of {{total}} meals with macros',
   mc_ng_log_title: 'YOUR DIET, DAY BY DAY',
   mc_ng_log_head: 'NUTRITION',
   mc_ng_log_head_2: 'COACH',

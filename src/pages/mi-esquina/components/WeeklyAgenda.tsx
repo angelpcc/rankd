@@ -1,9 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
-import { isMissingTable, isMissingColumn } from '@/lib/dbState';
-import { parseTrainingFromSpeech } from '@/lib/dictation';
-import VoiceButton from '@/components/feature/VoiceButton';
+import { isMissingTable } from '@/lib/dbState';
 import BottomSheet from '@/components/base/BottomSheet';
 
 interface Props {
@@ -11,6 +9,8 @@ interface Props {
   showToast: (msg: string, type?: 'success' | 'error') => void;
   /** 'hobby' oculta pesaje y combate. */
   mode?: 'pro' | 'hobby';
+  /** Registrar lo que se hizo vive en Progreso › Actividad, no aquí. */
+  onGoActivity: (date?: string) => void;
 }
 
 interface PlannedEvent {
@@ -82,8 +82,6 @@ const PARTS = [
 ];
 const partCfg = (v: string | null) => PARTS.find((p) => p.value === v);
 
-const INT_LABELS = ['mc_ag_int_1', 'mc_ag_int_2', 'mc_ag_int_3', 'mc_ag_int_4', 'mc_ag_int_5'];
-
 function iso(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
@@ -96,7 +94,7 @@ function mondayOf(d: Date): Date {
 }
 function addDays(d: Date, n: number): Date { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
 
-export default function WeeklyAgenda({ profile, showToast, mode = 'pro' }: Props) {
+export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoActivity }: Props) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
   const availableKinds = KINDS_BY_MODE[mode];
@@ -111,8 +109,6 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro' }: Props
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [unavailable, setUnavailable] = useState(false);
-  // Si las columnas feeling/part_of_day no existen (migración 0019 sin aplicar).
-  const [extraCols, setExtraCols] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -155,31 +151,6 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro' }: Props
     showToast(t('mc_ag_plan_saved'));
   };
 
-  const insertSession = async (payload: Omit<TrainingSession, 'id'> & { weight_kg?: number | null }) => {
-    // El peso es opcional y NO es una columna de training_sessions: si viene,
-    // se guarda aparte como un registro real en weight_entries (el mismo sitio
-    // que alimenta el control de peso y la card de Peso del Resumen), en vez
-    // de meterlo como texto suelto en las notas de la sesión.
-    const { weight_kg, ...sessionPayload } = payload;
-    let res = await supabase.from('training_sessions').insert({ fighter_profile_id: profile.id, ...sessionPayload }).select().maybeSingle();
-    if (res.error && isMissingColumn(res.error)) {
-      // La migración 0019 no está aplicada: reintenta sin los campos nuevos.
-      setExtraCols(false);
-      const { feeling: _f, part_of_day: _p, ...base } = sessionPayload;
-      void _f; void _p;
-      res = await supabase.from('training_sessions').insert({ fighter_profile_id: profile.id, ...base }).select().maybeSingle();
-    }
-    if (res.error || !res.data) { showToast(t('error_save'), 'error'); return; }
-    setSessions((s) => [res.data as TrainingSession, ...s]);
-    if (weight_kg) {
-      // Best-effort: si falla, la sesión ya se guardó igual.
-      void supabase.from('weight_entries').insert({
-        fighter_profile_id: profile.id, entry_date: sessionPayload.session_date, weight_kg,
-      });
-    }
-    showToast(t('mc_ag_session_saved'));
-  };
-
   const toggleDone = async (e: PlannedEvent) => {
     const next = !e.done;
     setPlanned((p) => p.map((x) => x.id === e.id ? { ...x, done: next } : x));
@@ -190,12 +161,6 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro' }: Props
   const removePlan = async (id: string) => {
     setPlanned((p) => p.filter((x) => x.id !== id));
     const { error } = await supabase.from('planned_events').delete().eq('id', id);
-    if (error) { showToast(t('error_save'), 'error'); load(); } else showToast(t('mc_ag_deleted'));
-  };
-
-  const removeSession = async (id: string) => {
-    setSessions((s) => s.filter((x) => x.id !== id));
-    const { error } = await supabase.from('training_sessions').delete().eq('id', id);
     if (error) { showToast(t('error_save'), 'error'); load(); } else showToast(t('mc_ag_deleted'));
   };
 
@@ -225,13 +190,11 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro' }: Props
         availableKinds={availableKinds}
         planned={plannedByDate.get(selected) || []}
         sessions={sessionsByDate.get(selected) || []}
-        extraCols={extraCols}
         onBack={closeDay}
         onToggleDone={toggleDone}
         onRemovePlan={removePlan}
-        onRemoveSession={removeSession}
         onAddPlan={insertPlan}
-        onAddSession={insertSession}
+        onGoActivity={onGoActivity}
       />
     );
   }
@@ -425,20 +388,17 @@ interface DayDetailProps {
   availableKinds: PlannedEvent['kind'][];
   planned: PlannedEvent[];
   sessions: TrainingSession[];
-  extraCols: boolean;
   onBack: () => void;
   onToggleDone: (e: PlannedEvent) => void;
   onRemovePlan: (id: string) => void;
-  onRemoveSession: (id: string) => void;
   onAddPlan: (p: Omit<PlannedEvent, 'id' | 'done'>) => Promise<void>;
-  onAddSession: (s: Omit<TrainingSession, 'id'> & { weight_kg?: number | null }) => Promise<void>;
+  onGoActivity: (date?: string) => void;
 }
 
-function DayDetail({ date, locale, mode, availableKinds, planned, sessions, extraCols, onBack, onToggleDone, onRemovePlan, onRemoveSession, onAddPlan, onAddSession }: DayDetailProps) {
+function DayDetail({ date, locale, mode, availableKinds, planned, sessions, onBack, onToggleDone, onRemovePlan, onAddPlan, onGoActivity }: DayDetailProps) {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<'plan' | 'log' | null>(null);
+  const [tab, setTab] = useState<'plan' | null>(null);
   const [savingPlan, setSavingPlan] = useState(false);
-  const [savingLog, setSavingLog] = useState(false);
   const isToday = date === todayISO();
   const isPast = date < todayISO();
   const dObj = new Date(date + 'T12:00:00');
@@ -463,19 +423,19 @@ function DayDetail({ date, locale, mode, availableKinds, planned, sessions, extr
         </div>
       </div>
 
-      {/* Acciones */}
+      {/* Acciones: planificar aquí; registrar lo que se hizo vive en Progreso › Actividad */}
       <div className="grid grid-cols-2 gap-2.5">
         <button onClick={() => setTab(tab === 'plan' ? null : 'plan')}
           className={`flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-bold transition-all cursor-pointer ${tab === 'plan' ? 'bg-red-600 border-red-600 text-white' : 'bg-white/[0.03] border-white/10 text-zinc-300 hover:border-white/25'}`}>
           <i className="ri-calendar-todo-line"></i>{t('mc_ag_add_plan')}
         </button>
-        <button onClick={() => setTab(tab === 'log' ? null : 'log')}
-          className={`flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-bold transition-all cursor-pointer ${tab === 'log' ? 'bg-green-600 border-green-600 text-white' : 'bg-white/[0.03] border-white/10 text-zinc-300 hover:border-white/25'}`}>
-          <i className="ri-check-double-line"></i>{t('mc_ag_add_session')}
+        <button onClick={() => onGoActivity(date)}
+          className="flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-bold transition-all cursor-pointer bg-white/[0.03] border-white/10 text-zinc-300 hover:border-white/25">
+          <i className="ri-check-double-line"></i>{t('mc_ag_day_go_activity')}
         </button>
       </div>
 
-      {/* Formularios: bottom sheet con botón de guardar fijo al pie */}
+      {/* Formulario de plan: bottom sheet con botón de guardar fijo al pie */}
       <BottomSheet
         open={tab === 'plan'}
         onClose={() => setTab(null)}
@@ -488,19 +448,6 @@ function DayDetail({ date, locale, mode, availableKinds, planned, sessions, extr
         }
       >
         <PlanForm date={date} mode={mode} availableKinds={availableKinds} onSubmit={onAddPlan} onDone={() => setTab(null)} onSavingChange={setSavingPlan} />
-      </BottomSheet>
-      <BottomSheet
-        open={tab === 'log'}
-        onClose={() => setTab(null)}
-        title={t('mc_ag_add_session')}
-        footer={
-          <button type="submit" form="rk-agenda-log-form" disabled={savingLog}
-            className="rk-btn w-full flex items-center justify-center gap-2 disabled:opacity-60" style={{ fontSize: '0.9rem', background: '#16a34a', color: '#fff', minHeight: 44 }}>
-            {savingLog ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <><i className="ri-check-line"></i> {t('mc_ag_save_session')}</>}
-          </button>
-        }
-      >
-        <LogForm extraCols={extraCols} onSubmit={onAddSession} date={date} onDone={() => setTab(null)} onSavingChange={setSavingLog} />
       </BottomSheet>
 
       <div className="grid lg:grid-cols-2 gap-5 items-start">
@@ -547,10 +494,11 @@ function DayDetail({ date, locale, mode, availableKinds, planned, sessions, extr
           )}
         </div>
 
-        {/* Registrado */}
+        {/* Registrado: solo visualización — registrar/editar vive en Progreso › Actividad */}
         <div>
           <p className="text-[11px] font-bold tracking-[0.22em] uppercase text-zinc-600 mb-3 flex items-center gap-2">
             <i className="ri-check-double-line text-green-400"></i>{t('mc_ag_logged')}
+            {sessions.length > 0 && <span className="text-zinc-700 normal-case tracking-normal">· {sessions.length}</span>}
           </p>
           {sessions.length === 0 ? (
             <div className="rk-card text-center text-zinc-600 text-sm" style={{ padding: '28px 16px' }}>
@@ -581,9 +529,6 @@ function DayDetail({ date, locale, mode, availableKinds, planned, sessions, extr
                           {feel && <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: feel.hex }}><i className={feel.icon}></i>{t(feel.key)}</span>}
                         </div>
                       </div>
-                      <button onClick={() => onRemoveSession(s.id)} className="w-7 h-7 flex items-center justify-center text-zinc-600 hover:text-red-400 cursor-pointer flex-shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                        <i className="ri-delete-bin-line text-sm"></i>
-                      </button>
                     </div>
                     {s.notes && <p className="text-xs text-zinc-400 mt-2 pl-2.5 border-l-2 border-white/10 leading-relaxed">{s.notes}</p>}
                   </div>
@@ -663,132 +608,3 @@ function PlanForm({ date, mode, availableKinds, onSubmit, onDone, onSavingChange
   );
 }
 
-// ────────────────────────────────────────────────────────────────────────
-function LogForm({ date, extraCols, onSubmit, onDone, onSavingChange }: {
-  date: string; extraCols: boolean;
-  onSubmit: (s: Omit<TrainingSession, 'id'> & { weight_kg?: number | null }) => Promise<void>; onDone: () => void;
-  onSavingChange: (saving: boolean) => void;
-}) {
-  const { t } = useTranslation();
-  const [type, setType] = useState('sparring');
-  const [duration, setDuration] = useState('60');
-  const [intensity, setIntensity] = useState(3);
-  const [feeling, setFeeling] = useState(0);
-  const [part, setPart] = useState<string>('');
-  const [notes, setNotes] = useState('');
-  const [interpreted, setInterpreted] = useState(false);
-  const [weight, setWeight] = useState('');
-
-  // Dictado: interpreta el lenguaje natural y PRE-RELLENA. No guarda: el
-  // peleador revisa los campos y confirma con el botón de guardar.
-  const applyDictation = (text: string) => {
-    const p = parseTrainingFromSpeech(text);
-    if (p.type) setType(p.type);
-    if (p.durationMin) setDuration(String(p.durationMin));
-    if (p.intensity) setIntensity(p.intensity);
-    if (p.feeling) setFeeling(p.feeling);
-    if (p.part) setPart(p.part);
-    setNotes((prev) => (prev.trim() ? prev : p.notes));
-    setInterpreted(true);
-  };
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    onSavingChange(true);
-    // La hora de registro ya la guarda sola `created_at` al insertar — no hace
-    // falta tocar `part_of_day` (ese campo es la franja manual mañana/tarde/
-    // noche del picker de abajo, no un reloj).
-    const w = parseFloat(weight.replace(',', '.'));
-    await onSubmit({
-      session_date: date,
-      session_type: type,
-      duration_min: duration ? parseInt(duration, 10) : null,
-      intensity,
-      feeling: feeling || null,
-      part_of_day: part || null,
-      notes: notes.trim() || null,
-      // Peso opcional: se guarda como un registro real en el control de peso
-      // (weight_entries), no como texto suelto en las notas de la sesión.
-      weight_kg: Number.isFinite(w) && w > 0 ? w : null,
-    });
-    onSavingChange(false);
-    onDone();
-  };
-
-  return (
-    <form id="rk-agenda-log-form" onSubmit={submit} className="space-y-3.5">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <p className="text-[11px] font-bold tracking-widest uppercase text-zinc-500">{t('mc_ag_log_form_title')}</p>
-        <VoiceButton onResult={applyDictation} />
-      </div>
-      {interpreted && (
-        <p className="text-[11px] text-red-400 flex items-center gap-1.5"><i className="ri-sparkling-line"></i>{t('mc_vo_interpreted')}</p>
-      )}
-      <div>
-        <label className="block text-xs text-zinc-400 mb-2">{t('mc_rt_type')}</label>
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-          {SESSION_TYPES.map((s) => (
-            <button key={s.value} type="button" onClick={() => setType(s.value)} className={`flex flex-col items-center justify-center gap-1 py-2.5 px-1 rounded-xl border text-[11px] font-medium transition-all cursor-pointer ${type === s.value ? 'text-white' : 'bg-white/[0.03] border-white/10 text-zinc-500 hover:border-white/25'}`}
-              style={type === s.value ? { background: `${s.hex}1f`, borderColor: `${s.hex}66`, color: s.hex, minHeight: 44 } : { minHeight: 44 }}>
-              <i className={`${s.icon} text-base`}></i>{t(s.key)}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_rt_duration')}</label>
-          <input type="number" min="5" max="600" step="5" inputMode="numeric" value={duration} onChange={(e) => setDuration(e.target.value)} style={{ fontSize: 16, minHeight: 44 }} className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder="60" />
-        </div>
-        <div>
-          <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_ag_part')}</label>
-          <div className="grid grid-cols-3 gap-1">
-            {PARTS.map((p) => (
-              <button key={p.value} type="button" onClick={() => setPart(part === p.value ? '' : p.value)} title={t(p.key)} style={{ minHeight: 44 }}
-                className={`rounded-lg border flex items-center justify-center transition-all cursor-pointer ${part === p.value ? 'bg-red-600/20 border-red-500/40 text-red-400' : 'bg-white/[0.03] border-white/10 text-zinc-500 hover:border-white/25'}`}>
-                <i className={p.icon}></i>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div>
-        <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_str_weight')} <span className="text-zinc-600 font-normal">({t('mc_optional')})</span></label>
-        <div className="relative">
-          <input type="number" inputMode="decimal" step="0.1" min="30" max="200" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="75.5" style={{ fontSize: 16, minHeight: 44 }} className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl pl-4 pr-10 py-2.5 focus:outline-none focus:border-red-500" />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-500">kg</span>
-        </div>
-      </div>
-      <div>
-        <label className="block text-xs text-zinc-400 mb-2">{t('mc_rt_intensity')}</label>
-        <div className="flex gap-2">
-          {[1, 2, 3, 4, 5].map((n) => (
-            <button key={n} type="button" onClick={() => setIntensity(n)} style={{ minHeight: 44 }} className={`flex-1 rounded-lg border text-sm font-bold transition-all cursor-pointer ${intensity >= n ? 'bg-red-600/20 border-red-500/40 text-red-400' : 'bg-white/[0.03] border-white/10 text-zinc-600 hover:border-white/25'}`}>
-              <i className="ri-fire-fill"></i>
-            </button>
-          ))}
-        </div>
-        <p className="text-[11px] text-zinc-500 mt-1.5">{t(INT_LABELS[intensity - 1])}</p>
-      </div>
-      {extraCols && (
-        <div>
-          <label className="block text-xs text-zinc-400 mb-2">{t('mc_ag_feeling')}</label>
-          <div className="flex gap-2">
-            {FEELINGS.map((f) => (
-              <button key={f.n} type="button" onClick={() => setFeeling(feeling === f.n ? 0 : f.n)} title={t(f.key)}
-                className={`flex-1 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${feeling === f.n ? '' : 'bg-white/[0.03] border-white/10 text-zinc-600 hover:border-white/25'}`}
-                style={feeling === f.n ? { background: `${f.hex}22`, borderColor: `${f.hex}66`, color: f.hex, minHeight: 44 } : { minHeight: 44 }}>
-                <i className={`${f.icon} text-lg`}></i>
-              </button>
-            ))}
-          </div>
-          {feeling > 0 && <p className="text-[11px] mt-1.5" style={{ color: feelingCfg(feeling)?.hex }}>{t(FEELINGS[feeling - 1].key)}</p>}
-        </div>
-      )}
-      <div>
-        <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_rt_notes')}</label>
-        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} maxLength={400} style={{ fontSize: 16 }} className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 resize-none" placeholder={t('mc_rt_notes_ph')} />
-      </div>
-    </form>
-  );
-}

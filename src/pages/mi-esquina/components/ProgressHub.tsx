@@ -5,12 +5,16 @@ import HubTabs, { HubTab } from '@/pages/mi-esquina/components/HubTabs';
 import WeightTracker from '@/pages/mi-esquina/components/WeightTracker';
 import StrengthLog from '@/pages/mi-esquina/components/StrengthLog';
 import ObjectiveWizard from '@/pages/mi-esquina/components/ObjectiveWizard';
+import FighterTraining from '@/pages/mi-esquina/components/FighterTraining';
 
 interface Props {
   profile: Profile;
   showToast: (msg: string, type?: 'success' | 'error') => void;
   mode: 'pro' | 'hobby';
   initialTab?: string;
+  /** Día concreto con el que abrir Actividad (llega del "+" o de un día del
+   * calendario en Agenda). undefined = flujo normal, sin día preseleccionado. */
+  initialDate?: string;
 }
 
 // R17: la pestaña "Objetivos" absorbe lo que antes era "Plan IA". Toda la
@@ -19,20 +23,20 @@ interface Props {
 // (fighter_goals) queda archivado por ahora — el archivo sigue en disco por
 // si más adelante se reincorpora como bloque secundario dentro de esta tab.
 //
-// Orden intencional: Objetivos primero (dónde vas), Fuerza en medio (cómo
-// trabajas) y Peso al final (la medida). Antes iba Peso primero, pero eso
-// dejaba lo importante — el plan — enterrado a la derecha.
+// Orden: Objetivos (dónde vas), Actividad (qué has hecho, registro rápido de
+// cualquier tipo de sesión), Fuerza (cargas por grupo muscular) y Peso.
 const TABS: HubTab[] = [
   { id: 'objetivos', labelKey: 'mc_nav_goals', icon: 'ri-sparkling-2-line' },
+  { id: 'actividad', labelKey: 'mc_pr_tab_activity', icon: 'ri-boxing-line' },
   { id: 'fuerza', labelKey: 'mc_pr_tab_strength', icon: 'ri-hammer-line' },
   { id: 'peso', labelKey: 'mc_pr_tab_weight', icon: 'ri-scales-2-line' },
 ];
 
 /**
- * Progreso físico: peso corporal y cargas/marcas en una sola sección. Ambos
- * son "seguir un número en el tiempo", así que van juntos con pestañas.
+ * Progreso físico: objetivo, actividad, cargas y peso corporal en una sola
+ * sección. Todo es "seguir algo en el tiempo", así que va junto con pestañas.
  */
-export default function ProgressHub({ profile, showToast, mode, initialTab }: Props) {
+export default function ProgressHub({ profile, showToast, mode, initialTab, initialDate }: Props) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<string>(initialTab || 'objetivos');
   useEffect(() => { if (initialTab) setTab(initialTab); }, [initialTab]);
@@ -50,6 +54,7 @@ export default function ProgressHub({ profile, showToast, mode, initialTab }: Pr
       </div>
       <HubTabs tabs={TABS} active={tab} onChange={setTab} />
       {tab === 'peso' && <WeightTracker profile={profile} showToast={showToast} mode={mode} />}
+      {tab === 'actividad' && <FighterTraining profile={profile} showToast={showToast} initialDate={initialTab === 'actividad' ? initialDate : undefined} />}
       {tab === 'fuerza' && <StrengthLog profile={profile} showToast={showToast} />}
       {tab === 'objetivos' && <ObjectiveWizard profile={profile} showToast={showToast} />}
     </div>

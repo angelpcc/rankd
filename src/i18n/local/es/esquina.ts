@@ -83,6 +83,10 @@ export default {
   mc_ag_plan: 'Plan',
   mc_ag_log: 'Diario',
   mc_ag_routines: 'Rutinas',
+  mc_ag_fab_log: 'Registrar entreno',
+  mc_ag_day_go_activity: 'Ver / Registrar',
+  mc_ag_day_summary_planned: 'Planificados',
+  mc_ag_day_summary_logged: 'Registrados',
 
   // ── Foto del plan del entrenador real (punto 8) ──
   mc_tp_title: 'Plan de mi entrenador',
@@ -107,6 +111,7 @@ export default {
   // Pestañas de Progreso
   mc_pr_tab_weight: 'Peso',
   mc_pr_tab_strength: 'Fuerza',
+  mc_pr_tab_activity: 'Actividad',
   mc_export_report: 'Exportar informe',
 
   // ── Ajustes › Notificaciones (punto 9) ──
@@ -451,6 +456,9 @@ export default {
   mc_metric_week: 'Entrenos semana',
   mc_metric_weight: 'Peso actual',
   mc_metric_days: 'días',
+  mc_metric_day: 'día',
+  mc_metric_streak: 'Racha',
+  mc_register_today: 'Registrar hoy',
   mc_metric_fight: 'Para el combate',
   mc_metric_to_lose: 'Para tu objetivo',
   mc_metric_to_gain: 'Para tu objetivo',
@@ -907,6 +915,8 @@ export default {
   mc_gr_tab_brands: 'Marcas',
   mc_gr_tab_coach: 'Asesor',
   mc_ng_safety_banner: 'Todo lo de esta sección es orientativo y no sustituye a un médico ni a un dietista-nutricionista colegiado. Ante cualquier patología, embarazo o problema con la comida, consulta a un profesional.',
+  mc_ng_today_summary: 'Hoy',
+  mc_ng_today_summary_partial: '{{n}} de {{total}} comidas con macros',
   mc_ng_log_title: 'TU DIETA, A DIARIO',
   mc_ng_log_head: 'COACH DE',
   mc_ng_log_head_2: 'NUTRICIÓN',

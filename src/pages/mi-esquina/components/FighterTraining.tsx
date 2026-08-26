@@ -9,6 +9,9 @@ import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer,
 interface Props {
   profile: Profile;
   showToast: (msg: string, type?: 'success' | 'error') => void;
+  /** Llega del "+" de Agenda o de un día del calendario: abre el formulario
+   * ya con esa fecha puesta. undefined = flujo normal (hoy, formulario cerrado). */
+  initialDate?: string;
 }
 
 interface TrainingSession {
@@ -90,19 +93,28 @@ function EmptyChartState({ icon, text }: { icon: string; text: string }) {
   );
 }
 
-export default function FighterTraining({ profile, showToast }: Props) {
+export default function FighterTraining({ profile, showToast, initialDate }: Props) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(!!initialDate);
 
-  const [date, setDate] = useState(todayISO());
+  const [date, setDate] = useState(initialDate || todayISO());
   const [type, setType] = useState('sparring');
   const [duration, setDuration] = useState('60');
   const [intensity, setIntensity] = useState(3);
   const [notes, setNotes] = useState('');
+
+  // Si llega un initialDate nuevo (el usuario vuelve a tocar "+" en otro día
+  // sin salir de Mi Esquina), reabre el formulario con esa fecha.
+  useEffect(() => {
+    if (!initialDate) return;
+    setDate(initialDate);
+    setShowForm(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialDate]);
 
   const load = useCallback(async () => {
     const { data } = await supabase
