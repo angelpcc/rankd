@@ -74,18 +74,24 @@ interface Props {
    * por defecto la siguiente libre en el orden mañana→tarde→noche.
    */
   slotsByDate?: Record<string, SessionSlot[]>;
+  /**
+   * Grupo con el que abrir ya elegido (viene de tocar el muñeco muscular):
+   * salta directo al paso 2 con ese bloque puesto, sin pasar por el selector
+   * de grupos. undefined = flujo normal (paso 1, elegir grupo(s) a mano).
+   */
+  initialGroup?: MuscleGroup;
 }
 
 const SLOT_ORDER: SessionSlot[] = ['morning', 'afternoon', 'evening'];
 
-export default function StrengthSessionForm({ open, onClose, saving, onSave, ownExercises, showToast, slotsByDate }: Props) {
+export default function StrengthSessionForm({ open, onClose, saving, onSave, ownExercises, showToast, slotsByDate, initialGroup }: Props) {
   const { t, i18n } = useTranslation();
   const lang: 'es' | 'en' = i18n.language === 'en' ? 'en' : 'es';
   const library = useMemo(() => libraryLabels(lang), [lang]);
 
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2>(initialGroup ? 2 : 1);
   const [date, setDate] = useState(todayISO());
-  const [blocks, setBlocks] = useState<FBlock[]>([]);
+  const [blocks, setBlocks] = useState<FBlock[]>(initialGroup ? [{ group: initialGroup, exercises: [] }] : []);
   const [freeText, setFreeText] = useState('');
   const [interpreted, setInterpreted] = useState(false);
   // Franja elegida. null = "sesión única del día" (implícito, no se pide).

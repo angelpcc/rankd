@@ -67,6 +67,7 @@ export default function StrengthLog({ profile, showToast }: Props) {
   const [unavailable, setUnavailable] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [formKey, setFormKey] = useState(0);
+  const [formInitialGroup, setFormInitialGroup] = useState<MuscleGroup | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState('');
   const [openDay, setOpenDay] = useState<string | null>(null);
@@ -74,9 +75,14 @@ export default function StrengthLog({ profile, showToast }: Props) {
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
   // Signature moment: destello full-screen cuando se bate marca personal.
   const [showPRFlash, setShowPRFlash] = useState(false);
-  // Grupo muscular seleccionado en el mapa: filtra la progresión y resalta las
-  // sesiones que lo trabajaron. null = sin filtro.
-  const [mapFilter, setMapFilter] = useState<MapGroup | null>(null);
+
+  // Abre el formulario. Desde el muñeco muscular llega con el grupo ya
+  // decidido (salta directo al paso 2); desde "Nueva sesión" llega vacío.
+  const openForm = (group?: MapGroup) => {
+    setFormInitialGroup(group);
+    setFormKey((k) => k + 1);
+    setShowForm(true);
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -207,20 +213,7 @@ export default function StrengthLog({ profile, showToast }: Props) {
     return { entries, max };
   }, [rows, groupOfRow]);
 
-  // Ejercicios del selector de progresión, filtrados por el grupo del mapa.
-  const progExercises = useMemo(() => {
-    if (!mapFilter) return exerciseList;
-    const keys = new Set(ownExercises.filter((e) => e.group === mapFilter).map((e) => e.label));
-    return exerciseList.filter(([, label]) => keys.has(label));
-  }, [exerciseList, ownExercises, mapFilter]);
-
-  // Al filtrar por un grupo, si el ejercicio de la progresión no es de ese grupo,
-  // salta al primero que sí lo sea.
-  useEffect(() => {
-    if (mapFilter && progExercises.length && !progExercises.some(([ex]) => ex === selected)) {
-      setSelected(progExercises[0][0]);
-    }
-  }, [mapFilter, progExercises, selected]);
+  const progExercises = exerciseList;
 
   // ── Progresión del ejercicio elegido: mejor peso por sesión ──
   const progression = useMemo(() => {
@@ -379,7 +372,7 @@ export default function StrengthLog({ profile, showToast }: Props) {
           </h2>
           <p className="text-zinc-400 text-sm mt-1.5 max-w-md">{t('mc_str_sub')}</p>
         </div>
-        <button onClick={() => setShowForm(true)}
+        <button onClick={() => openForm()}
           className="rk-btn rk-btn-primary flex items-center gap-2 w-full sm:w-auto justify-center" style={{ fontSize: '0.85rem', padding: '0.75rem 1.4rem' }}>
           <i className="ri-add-line"></i> {t('mc_str_new')}
         </button>
@@ -392,15 +385,14 @@ export default function StrengthLog({ profile, showToast }: Props) {
           </div>
           <p className="text-white font-bold">{t('mc_str_empty')}</p>
           <p className="text-sm text-zinc-400 mt-1.5 max-w-sm mx-auto leading-relaxed">{t('mc_str_empty_desc')}</p>
-          <button onClick={() => setShowForm(true)} className="rk-btn rk-btn-primary mt-6" style={{ fontSize: '0.85rem', padding: '0.7rem 1.6rem' }}>
+          <button onClick={() => openForm()} className="rk-btn rk-btn-primary mt-6" style={{ fontSize: '0.85rem', padding: '0.7rem 1.6rem' }}>
             {t('mc_str_new')}
           </button>
         </div>
       ) : (
         <>
-          {/* ── MAPA MUSCULAR (bloque C.3): qué has entrenado, tocable para filtrar ── */}
-          <MuscleMap status={groupStatus} selected={mapFilter}
-            onSelect={(g) => setMapFilter((cur) => (cur === g ? null : g))} />
+          {/* ── MAPA MUSCULAR: selector de grupo, abre el formulario al tocar ── */}
+          <MuscleMap status={groupStatus} onSelect={(g) => openForm(g)} />
 
           {/* ── VOLUMEN SEMANAL POR GRUPO (últimos 7 días) ──
               Solo el dato bruto, sin marcar bueno/malo. */}
@@ -430,24 +422,14 @@ export default function StrengthLog({ profile, showToast }: Props) {
 
           {/* ── HISTORIAL POR DÍAS ── */}
           <div>
-            <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-              <h3 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>{t('mc_str_history')}</h3>
-              {mapFilter && (
-                <button onClick={() => setMapFilter(null)}
-                  className="text-[11px] font-bold text-[#C9A84C] flex items-center gap-1 cursor-pointer">
-                  {t(`mc_str_mg_${mapFilter}`)} <i className="ri-close-line"></i>
-                </button>
-              )}
-            </div>
+            <h3 className="rk-h3 mb-3" style={{ fontSize: '1rem', color: '#fff' }}>{t('mc_str_history')}</h3>
             <div className="space-y-2.5">
               {sessions.map((s, i) => {
                 const isOpen = openDay === s.date;
-                const allGroupKeys = [...new Set(s.slots.flatMap((sl) => sl.groupKeys))];
-                const inFilter = !mapFilter || allGroupKeys.includes(mapFilter);
                 const hasSlots = s.slots.some((sl) => sl.slot !== null);
                 return (
                   <Reveal key={s.date} delay={Math.min(i, 6) * 40}>
-                    <div className="rk-card" style={{ padding: 0, overflow: 'hidden', opacity: inFilter ? 1 : 0.4, borderColor: mapFilter && inFilter ? 'rgba(201,168,76,0.35)' : undefined, transition: 'opacity 0.2s' }}>
+                    <div className="rk-card" style={{ padding: 0, overflow: 'hidden' }}>
                       {/* Cabecera del día */}
                       <button onClick={() => { setOpenDay(isOpen ? null : s.date); setOpenEx(null); }}
                         className="w-full text-left flex items-center gap-3 px-4 py-3.5 cursor-pointer">
@@ -633,6 +615,7 @@ export default function StrengthLog({ profile, showToast }: Props) {
         ownExercises={ownExercises}
         showToast={showToast}
         slotsByDate={slotsByDate}
+        initialGroup={formInitialGroup}
       />
 
       {/* Signature moment: destello full-screen al batir marca. Se desmonta
