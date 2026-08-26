@@ -300,6 +300,7 @@ export default {
   mc_ai_plan_save_generic: 'No se pudo guardar el plan',
   // ── Diario de entrenos (FighterTraining) — R13-T5 ──
   mc_ft_eyebrow: 'Tu diario',
+  mc_ft_pending_today: 'Pendiente hoy',
   mc_ft_title: 'Diario de',
   mc_ft_title_2: 'entrenos',
   mc_ft_sub: 'Registra tus sesiones, mantén la disciplina y observa tu progreso semana a semana.',
@@ -482,6 +483,10 @@ export default {
   mc_rt_name: 'Nombre de la rutina',
   mc_rt_name_ph: 'Ej: Saco + comba de martes',
   mc_rt_type: 'Tipo',
+  mc_rt_muscle_group: 'Grupo muscular',
+  mc_rt_days: 'Días de la semana',
+  mc_rt_days_hint: 'Si marcas días, la rutina aparecerá como pendiente en Actividad hasta que registres algo que encaje ese día.',
+  mc_wd_mon: 'L', mc_wd_tue: 'M', mc_wd_wed: 'X', mc_wd_thu: 'J', mc_wd_fri: 'V', mc_wd_sat: 'S', mc_wd_sun: 'D',
   mc_rt_duration: 'Duración (min)',
   mc_rt_intensity: 'Intensidad',
   mc_rt_notes: 'Notas',

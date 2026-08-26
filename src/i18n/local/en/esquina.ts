@@ -300,6 +300,7 @@ export default {
   mc_ai_plan_save_generic: 'Couldn’t save the plan',
   // ── Training diary (FighterTraining) — R13-T5 ──
   mc_ft_eyebrow: 'Your diary',
+  mc_ft_pending_today: 'Pending today',
   mc_ft_title: 'Training',
   mc_ft_title_2: 'diary',
   mc_ft_sub: 'Log your sessions, keep the discipline and watch your progress week by week.',
@@ -482,6 +483,10 @@ export default {
   mc_rt_name: 'Routine name',
   mc_rt_name_ph: 'E.g. Tuesday bag + rope',
   mc_rt_type: 'Type',
+  mc_rt_muscle_group: 'Muscle group',
+  mc_rt_days: 'Days of the week',
+  mc_rt_days_hint: 'If you set days, the routine shows as pending in Activity until you log something that matches that day.',
+  mc_wd_mon: 'M', mc_wd_tue: 'T', mc_wd_wed: 'W', mc_wd_thu: 'T', mc_wd_fri: 'F', mc_wd_sat: 'S', mc_wd_sun: 'S',
   mc_rt_duration: 'Duration (min)',
   mc_rt_intensity: 'Intensity',
   mc_rt_notes: 'Notes',

@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
-import { isMissingTable } from '@/lib/dbState';
+import { isMissingTable, isMissingColumn } from '@/lib/dbState';
+import { MUSCLE_GROUPS } from '../lib/exercises';
 import BottomSheet from '@/components/base/BottomSheet';
 
 interface Props {
@@ -21,7 +22,16 @@ interface Template {
   intensity: number;
   notes: string | null;
   use_count: number;
+  days_of_week: number[] | null;
+  muscle_group: string | null;
 }
+
+// 0=domingo..6=sábado (Date.getDay()), mostrados en orden L-D.
+const WEEKDAYS = [
+  { n: 1, key: 'mc_wd_mon' }, { n: 2, key: 'mc_wd_tue' }, { n: 3, key: 'mc_wd_wed' },
+  { n: 4, key: 'mc_wd_thu' }, { n: 5, key: 'mc_wd_fri' }, { n: 6, key: 'mc_wd_sat' }, { n: 0, key: 'mc_wd_sun' },
+];
+function todayWeekday(): number { return new Date().getDay(); }
 
 // Mismos tipos que el diario de entrenos, para que lo registrado encaje.
 const TYPES = [
@@ -60,6 +70,10 @@ export default function QuickRoutines({ profile, showToast, compact, onLogged }:
   const [duration, setDuration] = useState('60');
   const [intensity, setIntensity] = useState(3);
   const [notes, setNotes] = useState('');
+  const [days, setDays] = useState<number[]>([]);
+  const [muscleGroup, setMuscleGroup] = useState<string>('');
+  // Si days_of_week/muscle_group aún no existen (migración 0040 sin aplicar).
+  const [scheduleReady, setScheduleReady] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -79,19 +93,28 @@ export default function QuickRoutines({ profile, showToast, compact, onLogged }:
   const create = async () => {
     if (!name.trim()) { showToast(t('mc_rt_name'), 'error'); return; }
     setSaving(true);
-    const { data, error } = await supabase.from('workout_templates').insert({
+    const full = {
       fighter_profile_id: profile.id,
       name: name.trim(),
       session_type: type,
       duration_min: duration ? parseInt(duration, 10) : null,
       intensity,
       notes: notes.trim() || null,
-    }).select().maybeSingle();
+      days_of_week: days.length > 0 ? days : null,
+      muscle_group: type === 'fuerza' && muscleGroup ? muscleGroup : null,
+    };
+    let { data, error } = await supabase.from('workout_templates').insert(full).select().maybeSingle();
+    if (error && isMissingColumn(error)) {
+      setScheduleReady(false);
+      const { days_of_week: _d, muscle_group: _m, ...base } = full;
+      void _d; void _m;
+      ({ data, error } = await supabase.from('workout_templates').insert(base).select().maybeSingle());
+    }
     setSaving(false);
     if (error || !data) { showToast(t('error_save'), 'error'); return; }
     setItems((prev) => [data as Template, ...prev]);
     setShowForm(false);
-    setName(''); setNotes(''); setDuration('60'); setIntensity(3); setType('tecnica');
+    setName(''); setNotes(''); setDuration('60'); setIntensity(3); setType('tecnica'); setDays([]); setMuscleGroup('');
     showToast(t('mc_rt_created'));
   };
 
@@ -215,6 +238,7 @@ export default function QuickRoutines({ profile, showToast, compact, onLogged }:
                     <p className="text-base font-bold text-white leading-snug">{tpl.name}</p>
                     <p className="text-xs text-zinc-500 mt-0.5">
                       {t(cfg.key)}
+                      {tpl.muscle_group ? ` · ${t(`mc_str_mg_${tpl.muscle_group}`, tpl.muscle_group)}` : ''}
                       {tpl.duration_min ? ` · ${tpl.duration_min} min` : ''}
                       {` · ${'🔥'.repeat(Math.max(1, Math.min(5, tpl.intensity)))}`}
                     </p>
@@ -224,6 +248,16 @@ export default function QuickRoutines({ profile, showToast, compact, onLogged }:
                     <i className="ri-delete-bin-line"></i>
                   </button>
                 </div>
+
+                {tpl.days_of_week && tpl.days_of_week.length > 0 && (
+                  <div className="flex gap-1 mt-3">
+                    {WEEKDAYS.map((wd) => (
+                      <span key={wd.n} className={`w-6 h-6 flex items-center justify-center rounded-md text-[10px] font-bold ${tpl.days_of_week!.includes(wd.n) ? 'bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30' : 'text-zinc-700'}`}>
+                        {t(wd.key)}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 {tpl.notes && <p className="text-xs text-zinc-400 mt-3 leading-relaxed">{tpl.notes}</p>}
 
@@ -286,6 +320,37 @@ export default function QuickRoutines({ profile, showToast, compact, onLogged }:
               ))}
             </div>
           </div>
+
+          {type === 'fuerza' && (
+            <div>
+              <label className="block text-sm text-zinc-400 mb-2">{t('mc_rt_muscle_group')} <span className="text-zinc-600">({t('mc_optional')})</span></label>
+              <div className="flex flex-wrap gap-1.5">
+                {MUSCLE_GROUPS.map((g) => (
+                  <button key={g} onClick={() => setMuscleGroup(muscleGroup === g ? '' : g)}
+                    className={`px-3 py-1.5 rounded-full border text-xs font-semibold cursor-pointer transition-colors ${muscleGroup === g ? 'bg-red-600 border-red-600 text-white' : 'bg-white/[0.02] border-white/10 text-zinc-400 hover:border-white/25'}`}
+                    style={{ minHeight: 34 }}>
+                    {t(`mc_str_mg_${g}`, g)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {scheduleReady && (
+            <div>
+              <label className="block text-sm text-zinc-400 mb-2">{t('mc_rt_days')} <span className="text-zinc-600">({t('mc_optional')})</span></label>
+              <div className="flex gap-1.5">
+                {WEEKDAYS.map((wd) => (
+                  <button key={wd.n} onClick={() => setDays((prev) => prev.includes(wd.n) ? prev.filter((d) => d !== wd.n) : [...prev, wd.n])}
+                    className={`flex-1 py-2.5 rounded-lg border text-xs font-bold cursor-pointer transition-all ${days.includes(wd.n) ? 'bg-[#C9A84C] border-[#C9A84C] text-zinc-900' : 'bg-white/[0.02] border-white/10 text-zinc-500 hover:border-white/25'}`}
+                    style={{ minHeight: 40 }}>
+                    {t(wd.key)}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-zinc-600 mt-1.5">{t('mc_rt_days_hint')}</p>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>

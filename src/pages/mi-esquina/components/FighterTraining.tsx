@@ -132,6 +132,46 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
     setLoading(false);
   }, [profile.id]);
 
+  // ── Rutinas pendientes de hoy ──
+  // Una rutina con días asignados que incluyan el de hoy, y para la que
+  // todavía no hay nada registrado hoy que encaje (por grupo muscular si la
+  // rutina es de fuerza, si no por tipo de sesión). Se recalcula solo: en
+  // cuanto se registra algo que encaja, deja de listarse — no hay "marcar
+  // hecho" a mano.
+  const [pendingRoutines, setPendingRoutines] = useState<{ id: string; name: string; session_type: string; muscle_group: string | null; duration_min: number | null; intensity: number; notes: string | null }[]>([]);
+  const loadPending = useCallback(async () => {
+    const todayDow = new Date().getDay();
+    const { data: routines, error } = await supabase
+      .from('workout_templates').select('*').eq('fighter_profile_id', profile.id);
+    if (error || !routines) { setPendingRoutines([]); return; }
+    const todays = (routines as { id: string; name: string; session_type: string; muscle_group: string | null; duration_min: number | null; intensity: number; notes: string | null; days_of_week: number[] | null }[])
+      .filter((r) => r.days_of_week && r.days_of_week.includes(todayDow));
+    if (todays.length === 0) { setPendingRoutines([]); return; }
+
+    const today = todayISO();
+    const loggedTypesToday = new Set(sessions.filter((s) => s.session_date === today).map((s) => s.session_type));
+    const muscleGroupRoutines = todays.filter((r) => r.muscle_group);
+    let loggedGroupsToday = new Set<string>();
+    if (muscleGroupRoutines.length > 0) {
+      const { data: sets } = await supabase.from('strength_sets').select('muscle_group')
+        .eq('fighter_profile_id', profile.id).eq('session_date', today);
+      loggedGroupsToday = new Set((sets || []).map((s: { muscle_group: string | null }) => s.muscle_group).filter(Boolean) as string[]);
+    }
+    setPendingRoutines(todays.filter((r) => r.muscle_group ? !loggedGroupsToday.has(r.muscle_group) : !loggedTypesToday.has(r.session_type)));
+  }, [profile.id, sessions]);
+
+  useEffect(() => { loadPending(); }, [loadPending]);
+
+  const logRoutine = async (r: { session_type: string; duration_min: number | null; intensity: number; notes: string | null }) => {
+    const { data, error } = await supabase.from('training_sessions').insert({
+      fighter_profile_id: profile.id, session_date: todayISO(), session_type: r.session_type,
+      duration_min: r.duration_min, intensity: r.intensity, notes: r.notes,
+    }).select().maybeSingle();
+    if (error || !data) { showToast(t('error_save'), 'error'); return; }
+    setSessions((prev) => [data, ...prev]);
+    showToast(t('mc_ft_saved'));
+  };
+
   useEffect(() => { load(); }, [load]);
 
   const addSession = async () => {
@@ -247,6 +287,33 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
           </button>
         </div>
       </div>
+
+      {/* Rutinas pendientes de hoy: desaparece sola en cuanto registras algo que encaja */}
+      {pendingRoutines.length > 0 && (
+        <Reveal>
+          <div className="rk-card" style={{ padding: '14px 18px', borderColor: 'rgba(201,168,76,0.3)' }}>
+            <p className="text-[11px] font-bold tracking-[0.16em] uppercase text-[#C9A84C] mb-2.5 flex items-center gap-1.5">
+              <i className="ri-time-line"></i>{t('mc_ft_pending_today')}
+            </p>
+            <div className="space-y-2">
+              {pendingRoutines.map((r) => (
+                <div key={r.id} className="flex items-center gap-3">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#C9A84C] flex-shrink-0" />
+                  <span className="flex-1 min-w-0 text-sm text-zinc-200 truncate">
+                    {r.name}
+                    {r.muscle_group && <span className="text-zinc-500"> · {t(`mc_str_mg_${r.muscle_group}`, r.muscle_group)}</span>}
+                  </span>
+                  {!r.muscle_group && (
+                    <button onClick={() => logRoutine(r)} className="text-[11px] font-bold text-[#C9A84C] bg-[#C9A84C]/10 border border-[#C9A84C]/30 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-[#C9A84C]/15 transition-colors flex-shrink-0">
+                      {t('mc_rt_log')}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </Reveal>
+      )}
 
       {/* Racha — protagonista */}
       <Reveal>
