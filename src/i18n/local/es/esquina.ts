@@ -266,6 +266,19 @@ export default {
   mc_meal_saved: 'Comida registrada',
   mc_meal_frequent_title: 'Frecuentes',
   mc_meal_frequent_add: 'Añadir al diario',
+
+  // ── Buscador de platos comunes (punto 14) ──
+  mc_food_picker_title: 'Platos comunes',
+  mc_food_picker_search: 'Buscar un alimento…',
+  mc_food_picker_empty: 'No hay ningún alimento con ese nombre.',
+  mc_food_picker_grams: 'Cantidad',
+  mc_food_picker_back: 'Atrás',
+  mc_food_picker_add: 'Añadir al diario',
+  mc_food_cat_protein: 'Proteínas',
+  mc_food_cat_carb: 'Carbohidratos',
+  mc_food_cat_fat: 'Grasas',
+  mc_food_cat_veggie: 'Verduras',
+  mc_food_cat_snack: 'Snacks',
   mc_meal_unavailable_title: 'Diario de comidas en camino',
   mc_meal_unavailable_desc: 'Se activará en cuanto se cree la tabla en el servidor.',
   // ── Coach IA (SectionCoach) — R13-T5 ──

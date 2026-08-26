@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
+import { isMissingColumn } from '@/lib/dbState';
 import VoiceButton from '@/components/feature/VoiceButton';
+import CommonFoodPicker, { type PickedFood } from '@/pages/mi-esquina/components/CommonFoodPicker';
 
 interface Props {
   profile: Profile;
@@ -44,6 +46,7 @@ export default function MealLog({ profile, showToast }: Props) {
   const [type, setType] = useState('comida');
   const [desc, setDesc] = useState('');
   const [saving, setSaving] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
   // Comidas frecuentes: se calculan sobre los últimos 60 días (agrupando por
   // texto normalizado, contando repeticiones). Solo aparecen si hay ≥3.
   const [frequent, setFrequent] = useState<string[]>([]);
@@ -93,12 +96,34 @@ export default function MealLog({ profile, showToast }: Props) {
 
   useEffect(() => { loadFrequent(); }, [loadFrequent]);
 
-  const insertMeal = async (description: string, mealType: string): Promise<Meal | null> => {
-    const { data, error } = await supabase.from('meal_entries')
-      .insert({ fighter_profile_id: profile.id, entry_date: todayISO(), meal_type: mealType, description })
-      .select('id, entry_date, meal_type, description, created_at').maybeSingle();
+  const insertMeal = async (
+    description: string, mealType: string,
+    macros?: { calories: number; protein_g: number; carbs_g: number; fat_g: number },
+  ): Promise<Meal | null> => {
+    const full = { fighter_profile_id: profile.id, entry_date: todayISO(), meal_type: mealType, description, ...macros };
+    let { data, error } = await supabase.from('meal_entries')
+      .insert(full).select('id, entry_date, meal_type, description, created_at').maybeSingle();
+    if (error && macros && isMissingColumn(error)) {
+      ({ data, error } = await supabase.from('meal_entries')
+        .insert({ fighter_profile_id: profile.id, entry_date: todayISO(), meal_type: mealType, description })
+        .select('id, entry_date, meal_type, description, created_at').maybeSingle());
+    }
     if (error || !data) return null;
     return data as Meal;
+  };
+
+  const addFromPicker = async (food: PickedFood) => {
+    if (saving) return;
+    setSaving(true);
+    const meal = await insertMeal(food.description, type, {
+      calories: food.calories, protein_g: food.protein_g, carbs_g: food.carbs_g, fat_g: food.fat_g,
+    });
+    if (!meal) { showToast(t('error_save'), 'error'); setSaving(false); return; }
+    setMeals((prev) => [meal, ...prev]);
+    showToast(t('mc_meal_saved'));
+    setSaving(false);
+    setShowPicker(false);
+    loadFrequent();
   };
 
   const add = async () => {
@@ -194,11 +219,17 @@ export default function MealLog({ profile, showToast }: Props) {
         <input value={desc} onChange={(e) => setDesc(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') add(); }}
           className="flex-1 bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-green-500"
           placeholder={t('mc_meal_ph')} />
+        <button onClick={() => setShowPicker(true)} aria-label={t('mc_food_picker_title')}
+          className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl bg-white/[0.04] border border-white/10 text-zinc-300 hover:border-white/25 hover:text-white transition-colors cursor-pointer">
+          <i className="ri-search-line"></i>
+        </button>
         <VoiceButton onResult={(txt) => setDesc((prev) => (prev.trim() ? prev + ' ' + txt : txt))} compact />
         <button onClick={add} disabled={saving || !desc.trim()} className="rk-btn rk-btn-primary flex items-center disabled:opacity-50" style={{ padding: '0 1.1rem', fontSize: '0.95rem' }}>
           {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <i className="ri-add-line"></i>}
         </button>
       </div>
+
+      {showPicker && <CommonFoodPicker onPick={addFromPicker} onClose={() => setShowPicker(false)} />}
 
       {/* Histórico agrupado por día, en timeline vertical */}
       {grouped.length === 0 ? (

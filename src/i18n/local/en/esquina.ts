@@ -266,6 +266,19 @@ export default {
   mc_meal_saved: 'Meal logged',
   mc_meal_frequent_title: 'Frequent',
   mc_meal_frequent_add: 'Add to diary',
+
+  // ── Common foods picker (item 14) ──
+  mc_food_picker_title: 'Common foods',
+  mc_food_picker_search: 'Search a food…',
+  mc_food_picker_empty: 'No food matches that name.',
+  mc_food_picker_grams: 'Amount',
+  mc_food_picker_back: 'Back',
+  mc_food_picker_add: 'Add to diary',
+  mc_food_cat_protein: 'Protein',
+  mc_food_cat_carb: 'Carbs',
+  mc_food_cat_fat: 'Fat',
+  mc_food_cat_veggie: 'Veggies',
+  mc_food_cat_snack: 'Snacks',
   mc_meal_unavailable_title: 'Meal diary on the way',
   mc_meal_unavailable_desc: 'It will turn on once the table is created on the server.',
   // ── AI coach (SectionCoach) — R13-T5 ──
