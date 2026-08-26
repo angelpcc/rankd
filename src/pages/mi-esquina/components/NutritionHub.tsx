@@ -7,6 +7,7 @@ import MealLog from '@/pages/mi-esquina/components/MealLog';
 import FoodPhotoAnalyzer from '@/pages/mi-esquina/components/FoodPhotoAnalyzer';
 import type { NutritionAnalysis } from '@/services/nutritionAnalysis';
 import NutritionTracker from '@/pages/mi-esquina/components/NutritionTracker';
+import SupplementTracker from '@/pages/mi-esquina/components/SupplementTracker';
 import SectionCoach from '@/pages/mi-esquina/components/SectionCoach';
 
 function todayISO(): string {
@@ -48,12 +49,13 @@ interface NutritionGuideItem { icon: string; t: string; b: string }
  */
 export default function NutritionHub({ profile, showToast, isHobby, onGoWeight }: Props) {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<'diario' | 'foto' | 'agua' | 'coach' | 'guia'>('diario');
+  const [tab, setTab] = useState<'diario' | 'foto' | 'agua' | 'suplementos' | 'coach' | 'guia'>('diario');
 
   const TABS: HubTab[] = [
     { id: 'diario', labelKey: 'mc_ng_tab_diary', icon: 'ri-restaurant-line' },
     { id: 'foto', labelKey: 'mc_ng_tab_photo', icon: 'ri-camera-line' },
     { id: 'agua', labelKey: 'mc_ng_tab_water', icon: 'ri-drop-line' },
+    { id: 'suplementos', labelKey: 'mc_ng_tab_supplements', icon: 'ri-capsule-line' },
     { id: 'coach', labelKey: 'mc_ng_tab_coach', icon: 'ri-sparkling-2-line' },
     { id: 'guia', labelKey: 'mc_ng_tab_guide', icon: 'ri-book-open-line' },
   ];
@@ -140,6 +142,11 @@ export default function NutritionHub({ profile, showToast, isHobby, onGoWeight }
       {/* ── AGUA ── */}
       {tab === 'agua' && (
         <div className="mt-6"><NutritionTracker profile={profile} showToast={showToast} onGoWeight={onGoWeight} /></div>
+      )}
+
+      {/* ── SUPLEMENTOS ── */}
+      {tab === 'suplementos' && (
+        <div className="mt-6"><SupplementTracker profile={profile} showToast={showToast} /></div>
       )}
 
       {/* ── COACH IA ── */}
