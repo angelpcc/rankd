@@ -1,18 +1,33 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { supabase } from '@/lib/supabase';
 import BottomSheet from '@/components/base/BottomSheet';
 import VoiceButton from '@/components/feature/VoiceButton';
 import { parseStrengthSessionFromSpeech } from '@/lib/dictation';
-import { MUSCLE_GROUPS, exercisesByGroup, libraryLabels, muscleGroupOf, type MuscleGroup } from '../lib/exercises';
+import {
+  MUSCLE_GROUPS, exercisesByGroup, libraryLabels, muscleGroupOf,
+  weightModeOf, trackingModeOf, usesBar, type MuscleGroup, type WeightMode, type TrackingMode,
+} from '../lib/exercises';
 import { hasTechnique } from '../lib/exerciseTechnique';
 import ExerciseTechniqueCard from './ExerciseTechniqueCard';
+import PlateCalculator from './PlateCalculator';
 
 // ── Sesión construida que se devuelve al padre para guardar ──
-// reps = valor bajo/fijo (obligatorio); repsMax = valor alto del rango
-// (opcional, undefined = número fijo). El input acepta "8" o "8-10".
+// reps = valor bajo/fijo; repsMax = tope del rango (undefined = fijo). En
+// tracking_mode 'time'/'distance', `reps` guarda segundos / metros. `weight`
+// puede ser 0 (peso corporal, o series sin peso).
 export interface BuiltSet { reps: number; weight: number; repsMax?: number }
-export interface BuiltExercise { label: string; sets: BuiltSet[] }
+export interface BuiltExercise { label: string; sets: BuiltSet[]; weightMode?: WeightMode; trackingMode?: TrackingMode }
 export interface BuiltBlock { group: MuscleGroup; exercises: BuiltExercise[] }
+
+function weightLabelKey(mode: WeightMode): string {
+  switch (mode) {
+    case 'per_side': return 'mc_str_wlabel_per_side';
+    case 'per_dumbbell': return 'mc_str_wlabel_per_dumbbell';
+    case 'bodyweight': return 'mc_str_wlabel_bodyweight';
+    default: return 'mc_str_wlabel_total';
+  }
+}
 export type SessionSlot = 'morning' | 'afternoon' | 'evening';
 // slot = null cuando es la única sesión del día (no molestamos al usuario con
 // la franja); solo pedimos franja cuando ya hay otra sesión guardada ese día.
@@ -67,6 +82,8 @@ interface Props {
   onSave: (session: BuiltSession) => void;
   /** Ejercicios que el usuario ya ha registrado, para sugerir en su grupo. */
   ownExercises: { label: string; group: MuscleGroup | 'other' }[];
+  /** Para sugerir peso/series del último registro de cada ejercicio. */
+  fighterProfileId: string;
   showToast: (msg: string, type?: 'success' | 'error') => void;
   /**
    * Franjas ya usadas por día (YYYY-MM-DD → slots ocupadas). Cuando este
@@ -84,7 +101,7 @@ interface Props {
 
 const SLOT_ORDER: SessionSlot[] = ['morning', 'afternoon', 'evening'];
 
-export default function StrengthSessionForm({ open, onClose, saving, onSave, ownExercises, showToast, slotsByDate, initialGroup }: Props) {
+export default function StrengthSessionForm({ open, onClose, saving, onSave, ownExercises, fighterProfileId, showToast, slotsByDate, initialGroup }: Props) {
   const { t, i18n } = useTranslation();
   const lang: 'es' | 'en' = i18n.language === 'en' ? 'en' : 'es';
   const library = useMemo(() => libraryLabels(lang), [lang]);
@@ -96,6 +113,36 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
   const [interpreted, setInterpreted] = useState(false);
   // Franja elegida. null = "sesión única del día" (implícito, no se pide).
   const [slot, setSlot] = useState<SessionSlot | null>(null);
+  const [plateFor, setPlateFor] = useState<{ group: MuscleGroup; id: string; si: number } | null>(null);
+  const [histByEx, setHistByEx] = useState<Record<string, string>>({});
+
+  // Última vez que se registró un ejercicio: pre-rellena y muestra "Última vez…".
+  const applyHistory = async (group: MuscleGroup, id: string, name: string) => {
+    const key = norm(name);
+    if (!key) return;
+    const { data } = await supabase.from('strength_sets')
+      .select('session_date, reps, reps_max, weight_kg')
+      .eq('fighter_profile_id', fighterProfileId).eq('exercise', key)
+      .order('session_date', { ascending: false }).limit(20);
+    const rows = (data || []) as { session_date: string; reps: number; reps_max: number | null; weight_kg: number }[];
+    if (rows.length === 0) return;
+    const lastDate = rows[0].session_date;
+    const last = rows.filter((r) => r.session_date === lastDate);
+    const tm = trackingModeOf(name);
+    const w = Math.max(...last.map((r) => Number(r.weight_kg) || 0));
+    const primary = tm === 'reps'
+      ? (last[0].reps_max && last[0].reps_max > last[0].reps ? `${last[0].reps}-${last[0].reps_max}` : String(last[0].reps))
+      : String(last[0].reps);
+    setBlocks((prev) => prev.map((b) => b.group === group
+      ? { ...b, exercises: b.exercises.map((e) => e.id === id
+          ? { ...e, sets: Array.from({ length: Math.max(1, last.length) }, () => ({ reps: primary, weight: w > 0 ? String(w) : '' })) }
+          : e) } : b));
+    const days = Math.floor((Date.now() - new Date(lastDate + 'T12:00:00').getTime()) / 86400000);
+    const ago = days <= 0 ? t('mc_str_today') : days === 1 ? t('mc_str_yesterday') : t('mc_str_days_ago', { n: days });
+    const unit = tm === 'time' ? ` ${t('mc_str_unit_sec')}` : tm === 'distance' ? ` ${t('mc_str_unit_m')}` : '';
+    const detail = `${last.length}×${primary}${unit}${w > 0 ? ` · ${w} kg` : ''} · ${ago}`;
+    setHistByEx((prev) => ({ ...prev, [id]: t('mc_str_last_time_detail', { detail }) }));
+  };
 
   // Franjas ya usadas ese día. Si hay alguna, mostramos el selector de franja
   // y proponemos por defecto la siguiente libre.
@@ -213,16 +260,24 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
       for (const e of b.exercises) {
         const label = e.label.trim();
         if (!label) continue;
+        const tm = trackingModeOf(label);
+        const wm = weightModeOf(label);
         const sets: BuiltSet[] = [];
         for (const s of e.sets) {
-          const parsed = parseRepsInput(s.reps);
-          const weight = parseFloat(s.weight.replace(',', '.'));
-          if (!parsed || !(weight > 0)) continue;
-          sets.push(parsed.repsMax !== undefined
-            ? { reps: parsed.reps, repsMax: parsed.repsMax, weight }
-            : { reps: parsed.reps, weight });
+          const weight = parseFloat(s.weight.replace(',', '.')) || 0;
+          if (tm === 'reps') {
+            const parsed = parseRepsInput(s.reps);
+            if (!parsed) continue;
+            sets.push(parsed.repsMax !== undefined
+              ? { reps: parsed.reps, repsMax: parsed.repsMax, weight }
+              : { reps: parsed.reps, weight });
+          } else {
+            const v = parseInt(s.reps, 10);
+            if (!v || v <= 0) continue;
+            sets.push({ reps: v, weight });
+          }
         }
-        if (sets.length > 0) exercises.push({ label, sets });
+        if (sets.length > 0) exercises.push({ label, sets, weightMode: wm, trackingMode: tm });
       }
       if (exercises.length > 0) built.push({ group: b.group, exercises });
     }
@@ -244,6 +299,7 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
   };
 
   return (
+    <>
     <BottomSheet
       open={open}
       onClose={handleClose}
@@ -355,16 +411,22 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
               <p className="text-[11px] font-bold tracking-[0.18em] uppercase text-red-400 mb-2.5">{t(`mc_str_mg_${b.group}`)}</p>
 
               <div className="space-y-3">
-                {b.exercises.map((e) => (
+                {b.exercises.map((e) => {
+                  const tm: TrackingMode = e.label ? trackingModeOf(e.label) : 'reps';
+                  const wm: WeightMode = e.label ? weightModeOf(e.label) : 'total';
+                  const showBar = !!e.label && usesBar(e.label) && wm === 'total';
+                  const primaryLabel = tm === 'time' ? t('mc_str_field_seconds') : tm === 'distance' ? t('mc_str_field_meters') : t('mc_str_reps');
+                  const weightOptional = wm === 'bodyweight' || tm !== 'reps';
+                  return (
                   <div key={e.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-3.5">
                     {/* Nombre del ejercicio + info + eliminar */}
                     <div className="flex items-center gap-2">
                       <input value={e.label}
                         onChange={(ev) => patchExercise(b.group, e.id, { label: ev.target.value, query: ev.target.value, open: true })}
                         onFocus={() => patchExercise(b.group, e.id, { open: true })}
+                        onBlur={() => { if (e.label.trim()) applyHistory(b.group, e.id, e.label.trim()); }}
                         placeholder={t('mc_str_pick_exercise')} maxLength={50} style={{ fontSize: 16, minHeight: 44 }}
                         className="flex-1 min-w-0 bg-white/[0.04] border border-white/10 text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-500" />
-                      {/* Ficha de técnica: solo si el ejercicio la tiene (PROMPT_4·B3) */}
                       {hasTechnique(e.label) && (
                         <button type="button" onClick={() => patchExercise(b.group, e.id, { techOpen: !e.techOpen, open: false })}
                           aria-label={t('mc_ex_tech_toggle')} title={t('mc_ex_tech_toggle')}
@@ -377,9 +439,7 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
                         <i className="ri-delete-bin-line"></i>
                       </button>
                     </div>
-                    {/* Panel de ficha desplegable (en línea, no navega) */}
                     {e.techOpen && <ExerciseTechniqueCard name={e.label} />}
-                    {/* Sugerencias del grupo (en línea, para no recortarse en el sheet) */}
                     {e.open && (() => {
                       const sug = suggestFor(b.group, e.query || e.label);
                       if (sug.length === 0) return null;
@@ -387,7 +447,7 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
                         <div className="mt-1.5 rounded-xl border border-white/10 bg-white/[0.02] p-1.5 max-h-40 overflow-y-auto">
                           {sug.map((c) => (
                             <button key={c} onMouseDown={(ev) => ev.preventDefault()}
-                              onClick={() => patchExercise(b.group, e.id, { label: c, open: false })}
+                              onClick={() => { patchExercise(b.group, e.id, { label: c, open: false }); applyHistory(b.group, e.id, c); }}
                               className="w-full text-left text-sm text-zinc-300 hover:text-white hover:bg-white/[0.05] px-3 py-2 rounded-lg cursor-pointer flex items-center gap-2">
                               <i className="ri-search-line text-xs text-zinc-600"></i>{c}
                             </button>
@@ -396,31 +456,40 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
                       );
                     })()}
 
-                    {/* Series: reps + kg */}
+                    {histByEx[e.id] && <p className="text-[11px] text-zinc-500 mt-2">{histByEx[e.id]}</p>}
+
+                    {/* Series: primario (reps / seg / m) + peso (según modo) */}
                     <div className="mt-3 space-y-2">
                       <div className="flex items-center gap-1.5 px-1">
                         <span className="w-6 flex-shrink-0" />
-                        <span className="flex-1 text-[10px] font-bold uppercase tracking-wider text-zinc-600 text-center">{t('mc_str_reps')}</span>
-                        <span className="flex-1 text-[10px] font-bold uppercase tracking-wider text-zinc-600 text-center">{t('mc_str_weight')}</span>
+                        <span className="flex-1 text-[10px] font-bold uppercase tracking-wider text-zinc-600 text-center">{primaryLabel}</span>
+                        <span className="flex-1 text-[10px] font-bold uppercase tracking-wider text-zinc-600 text-center">
+                          {t(weightLabelKey(wm))}{weightOptional ? ` (${t('mc_optional')})` : ''}
+                        </span>
                         {e.sets.length > 1 && <span className="w-8 flex-shrink-0" />}
                       </div>
                       {e.sets.map((s, si) => {
-                        // Marca el input en rojo si el valor no parsea (ni "8"
-                        // ni "8-10"). Vacío se considera pendiente, no error.
-                        const repsInvalid = s.reps.trim() !== '' && !parseRepsInput(s.reps);
+                        const repsInvalid = tm === 'reps' && s.reps.trim() !== '' && !parseRepsInput(s.reps);
                         return (
                         <div key={si} className="flex items-center gap-1.5">
                           <span className="w-6 flex-shrink-0 text-center text-[11px] font-bold text-zinc-500">{si + 1}</span>
-                          <input value={s.reps} inputMode="text" placeholder="8-10" style={{ fontSize: 16, minHeight: 44 }}
-                            aria-invalid={repsInvalid || undefined}
-                            aria-label={t('mc_str_reps')}
+                          <input value={s.reps} inputMode={tm === 'reps' ? 'text' : 'decimal'}
+                            placeholder={tm === 'reps' ? '8-10' : tm === 'time' ? '45' : '20'} style={{ fontSize: 16, minHeight: 44 }}
+                            aria-invalid={repsInvalid || undefined} aria-label={primaryLabel}
                             onChange={(ev) => patchSet(b.group, e.id, si, { reps: ev.target.value })}
                             className={`flex-1 min-w-0 bg-white/[0.04] border text-white text-center rounded-xl px-2 py-2.5 focus:outline-none ${repsInvalid ? 'border-red-500/70 focus:border-red-500' : 'border-white/10 focus:border-red-500'}`} />
-                          <div className="flex-1 min-w-0 relative">
+                          <div className="flex-1 min-w-0 relative flex items-center gap-1">
                             <input value={s.weight} inputMode="decimal" placeholder="0" style={{ fontSize: 16, minHeight: 44 }}
                               onChange={(ev) => patchSet(b.group, e.id, si, { weight: ev.target.value })}
-                              className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl pl-3 pr-9 py-2.5 focus:outline-none focus:border-red-500" />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-zinc-500">kg</span>
+                              className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl pl-3 pr-8 py-2.5 focus:outline-none focus:border-red-500" />
+                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-zinc-500 pointer-events-none">kg</span>
+                            {showBar && (
+                              <button type="button" onClick={() => setPlateFor({ group: b.group, id: e.id, si })}
+                                aria-label={t('mc_plc_title')} title={t('mc_plc_title')}
+                                className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg text-zinc-500 hover:text-white cursor-pointer">
+                                <i className="ri-calculator-line"></i>
+                              </button>
+                            )}
                           </div>
                           {e.sets.length > 1 && (
                             <button onClick={() => removeSet(b.group, e.id, si)} aria-label={t('mc_str_remove_set')}
@@ -437,7 +506,8 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
                       </button>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
 
                 <button onClick={() => addExercise(b.group)} style={{ minHeight: 46 }}
                   className="w-full flex items-center justify-center gap-2 text-sm font-bold text-red-300 bg-red-600/[0.08] border border-red-500/25 hover:border-red-500/50 rounded-xl cursor-pointer transition-colors">
@@ -449,5 +519,11 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
         </div>
       )}
     </BottomSheet>
+    <PlateCalculator
+      open={!!plateFor}
+      onClose={() => setPlateFor(null)}
+      onUse={(total) => { if (plateFor) patchSet(plateFor.group, plateFor.id, plateFor.si, { weight: String(total) }); }}
+    />
+    </>
   );
 }

@@ -2,7 +2,11 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable, isMissingColumn } from '@/lib/dbState';
-import { MUSCLE_GROUPS, muscleGroupOf, type MuscleGroup } from '../lib/exercises';
+import {
+  MUSCLE_GROUPS, muscleGroupOf, weightModeOf, trackingModeOf,
+  type MuscleGroup, type WeightMode, type TrackingMode,
+} from '../lib/exercises';
+import { fmtWeight, fmtSetCount, fmtSetValue } from '../lib/dayPlan';
 import { reconcileDayTicks } from '../lib/planTicks';
 import Reveal from '@/components/base/Reveal';
 import MuscleMap, { type MapGroup, type TrainState } from './MuscleMap';
@@ -25,6 +29,8 @@ interface StrengthSet {
   weight_kg: number;
   muscle_group: string | null;
   session_slot: SessionSlot | null;
+  weight_mode: string | null;
+  tracking_mode: string | null;
   created_at: string;
 }
 
@@ -37,12 +43,31 @@ function todayISO(): string {
 }
 const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
 
-/** Muestra las repeticiones: "8" (fijas) o "8–10" (rango, datos antiguos). */
-function fmtReps(reps: number, repsMax: number | null | undefined): string {
-  return repsMax && repsMax > reps ? `${reps}–${repsMax}` : String(reps);
+// Modos del ejercicio: se leen de las filas guardadas y, si son antiguas y no
+// los traen, se derivan del nombre con la biblioteca.
+function exModes(label: string, sets: StrengthSet[]): { wm: WeightMode; tm: TrackingMode } {
+  const wm = (sets.find((s) => s.weight_mode)?.weight_mode as WeightMode) || weightModeOf(label);
+  const tm = (sets.find((s) => s.tracking_mode)?.tracking_mode as TrackingMode) || trackingModeOf(label);
+  return { wm, tm };
 }
 
-interface SessExercise { exercise: string; label: string; sets: StrengthSet[] }
+interface SessExercise { exercise: string; label: string; sets: StrengthSet[]; wm: WeightMode; tm: TrackingMode }
+
+/** Etiqueta de "volumen" del grupo según lo que aplica: kg (reps+peso), segundos
+ * (time), metros (distance) o repeticiones (reps sin peso). */
+function groupVolumeLabel(g: { exercises: SessExercise[]; volume: number }, t: (k: string, o?: Record<string, unknown>) => string, locale: string): string {
+  if (g.volume > 0) return `${g.volume.toLocaleString(locale)} kg`;
+  let sec = 0, m = 0, reps = 0;
+  g.exercises.forEach((ex) => ex.sets.forEach((s) => {
+    if (ex.tm === 'time') sec += s.reps;
+    else if (ex.tm === 'distance') m += s.reps;
+    else reps += s.reps;
+  }));
+  if (sec > 0) return `${sec} ${t('mc_str_unit_sec')}`;
+  if (m > 0) return `${m} ${t('mc_str_unit_m')}`;
+  if (reps > 0) return `${reps} ${t('mc_str_unit_reps')}`;
+  return '—';
+}
 interface SessGroup { group: GroupKey; exercises: SessExercise[]; volume: number }
 // Doble sesión por día: cada día tiene una o varias franjas (mañana/tarde/
 // noche o "única" cuando slot=null). Cada franja tiene sus grupos y volumen.
@@ -133,10 +158,18 @@ export default function StrengthLog({ profile, showToast }: Props) {
         const gsets = byGroup.get(g)!;
         const byEx = new Map<string, StrengthSet[]>();
         gsets.forEach((r) => { const l = byEx.get(r.exercise) || []; l.push(r); byEx.set(r.exercise, l); });
-        const exercises: SessExercise[] = [...byEx.entries()].map(([ex, es]) => ({
-          exercise: ex, label: es[0].exercise_label, sets: [...es].sort((a, b) => a.set_number - b.set_number),
-        }));
-        const volume = Math.round(gsets.reduce((a, r) => a + Number(r.weight_kg) * r.reps, 0));
+        const exercises: SessExercise[] = [...byEx.entries()].map(([ex, es]) => {
+          const sorted = [...es].sort((a, b) => a.set_number - b.set_number);
+          const { wm, tm } = exModes(sorted[0].exercise_label, sorted);
+          return { exercise: ex, label: sorted[0].exercise_label, sets: sorted, wm, tm };
+        });
+        // El "volumen en kg" solo tiene sentido en reps con peso. En otros modos
+        // no se calcula aquí (se muestra otra cosa en el render).
+        const volume = Math.round(gsets.reduce((a, r) => {
+          if (r.tracking_mode && r.tracking_mode !== 'reps') return a;
+          if (r.weight_mode === 'bodyweight') return a;
+          return a + Number(r.weight_kg) * r.reps;
+        }, 0));
         return { group: g, exercises, volume };
       });
     };
@@ -271,6 +304,8 @@ export default function StrengthLog({ profile, showToast }: Props) {
         weight_kg: s.weight,
         muscle_group: b.group,
         session_slot: session.slot,
+        weight_mode: e.weightMode ?? 'total',
+        tracking_mode: e.trackingMode ?? 'reps',
       }))),
     );
     if (base.length === 0) return;
@@ -283,7 +318,10 @@ export default function StrengthLog({ profile, showToast }: Props) {
       const cur = bestByExercise.get(r.exercise) ?? 0;
       if (Number(r.weight_kg) > cur) bestByExercise.set(r.exercise, Number(r.weight_kg));
     });
+    // Solo cuenta PR en modo reps con peso: en tiempo/distancia/peso corporal
+    // no hay "más peso que la última vez".
     const isPR = base.some((s) => {
+      if (s.tracking_mode !== 'reps' || s.weight_mode === 'bodyweight') return false;
       const prev = bestByExercise.get(s.exercise);
       return prev !== undefined && prev > 0 && s.weight_kg > prev;
     });
@@ -295,13 +333,13 @@ export default function StrengthLog({ profile, showToast }: Props) {
     // se guarda igual (grupo derivado del nombre, rango como fijo, sin franja).
     let { data, error } = await supabase.from('strength_sets').insert(base).select();
     if (isMissingColumn(error)) {
-      const noExtras = base.map(({ muscle_group, reps_max, session_slot, ...r }) => r);
+      const noExtras = base.map(({ muscle_group, reps_max, session_slot, weight_mode, tracking_mode, ...r }) => r);
       ({ data, error } = await supabase.from('strength_sets').insert(noExtras).select());
     }
     setSaving(false);
     if (error || !data) { showToast(t('error_save'), 'error'); return; }
 
-    const inserted = (data as StrengthSet[]).map((r) => ({ ...r, reps_max: r.reps_max ?? null, muscle_group: r.muscle_group ?? null, session_slot: r.session_slot ?? null }));
+    const inserted = (data as StrengthSet[]).map((r) => ({ ...r, reps_max: r.reps_max ?? null, muscle_group: r.muscle_group ?? null, session_slot: r.session_slot ?? null, weight_mode: r.weight_mode ?? null, tracking_mode: r.tracking_mode ?? null }));
     setRows((prev) => [...inserted, ...prev]);
     setShowForm(false);
     setFormKey((k) => k + 1);
@@ -469,13 +507,18 @@ export default function StrengthLog({ profile, showToast }: Props) {
                                   const exOpen = openEx === `${s.date}|${ex.exercise}`;
                                   const maxW = Math.max(...ex.sets.map((x) => Number(x.weight_kg)));
                                   const hist = exOpen ? historyOf(ex.exercise) : [];
+                                  const first = ex.sets[0];
+                                  const summary = [
+                                    fmtSetCount(ex.sets.length, { repsMin: first.reps, repsMax: first.reps_max ?? undefined, value: first.reps, trackingMode: ex.tm }, t),
+                                    fmtWeight(maxW, ex.wm, t),
+                                  ].filter(Boolean).join(' · ');
                                   return (
                                     <div key={ex.exercise}>
                                       <button onClick={() => setOpenEx(exOpen ? null : `${s.date}|${ex.exercise}`)}
                                         className="w-full flex items-center gap-3 py-1.5 text-left cursor-pointer group">
                                         <span className="flex-1 min-w-0 text-sm text-zinc-200 truncate group-hover:text-white">{ex.label}</span>
                                         <span className="text-sm font-semibold text-zinc-300 flex-shrink-0" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-                                          {ex.sets.length}×{fmtReps(ex.sets[0].reps, ex.sets[0].reps_max)} <span className="text-zinc-600">@</span> {maxW} kg
+                                          {summary}
                                         </span>
                                         <i className={`ri-arrow-down-s-line text-xs text-zinc-600 flex-shrink-0 transition-transform ${exOpen ? 'rotate-180' : ''}`}></i>
                                       </button>
@@ -485,7 +528,10 @@ export default function StrengthLog({ profile, showToast }: Props) {
                                           <div className="flex flex-wrap gap-1.5">
                                             {ex.sets.map((st) => (
                                               <span key={st.id} className="text-[11px] font-semibold text-zinc-300 bg-white/[0.05] border border-white/10 px-2 py-1 rounded-lg">
-                                                {fmtReps(st.reps, st.reps_max)} × {Number(st.weight_kg)} kg
+                                                {[
+                                                  fmtSetValue({ repsMin: st.reps, repsMax: st.reps_max ?? undefined, value: st.reps, trackingMode: ex.tm }, t),
+                                                  fmtWeight(Number(st.weight_kg), ex.wm, t),
+                                                ].filter(Boolean).join(' · ')}
                                               </span>
                                             ))}
                                           </div>
@@ -506,7 +552,9 @@ export default function StrengthLog({ profile, showToast }: Props) {
                                   );
                                 })}
                               </div>
-                              <p className="text-[11px] text-zinc-600 mt-1.5">{t('mc_str_vol_group', { group: t(`mc_str_mg_${g.group}`) })}: {g.volume.toLocaleString(locale)} kg</p>
+                              <p className="text-[11px] text-zinc-600 mt-1.5">
+                                {t('mc_str_vol_group', { group: t(`mc_str_mg_${g.group}`) })}: {groupVolumeLabel(g, t, locale)}
+                              </p>
                             </div>
                           ))}
                             </div>
@@ -600,6 +648,7 @@ export default function StrengthLog({ profile, showToast }: Props) {
         saving={saving}
         onSave={saveSession}
         ownExercises={ownExercises}
+        fighterProfileId={profile.id}
         showToast={showToast}
         slotsByDate={slotsByDate}
         initialGroup={formInitialGroup}

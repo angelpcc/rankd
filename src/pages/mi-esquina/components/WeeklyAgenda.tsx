@@ -3,11 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable } from '@/lib/dbState';
 import BottomSheet from '@/components/base/BottomSheet';
-import { MUSCLE_GROUPS } from '../lib/exercises';
+import StrengthPlanBuilder from './StrengthPlanBuilder';
 import {
   type DayPlanItem, type DayPlanKind, type StrengthPayload, type ActivityPayload,
-  type MealPayload, type SupplementPayload, type NotePayload, type MealSlot,
-  KIND_ORDER, KIND_META, ACTIVITY_KINDS, MEAL_SLOTS, activityKindCfg, summarizeItem, isoOf,
+  type MealPayload, type SupplementPayload, type NotePayload, type MealSlot, type ExerciseSpec,
+  KIND_ORDER, KIND_META, ACTIVITY_KINDS, MEAL_SLOTS, activityKindCfg, summarizeItem, exerciseLines,
+  computePace, paceLabel, paceToSec, isoOf,
 } from '../lib/dayPlan';
 
 interface Props {
@@ -54,6 +55,8 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
   const [unavailable, setUnavailable] = useState(false);
 
   const [sheetFor, setSheetFor] = useState<{ date: string; kind?: DayPlanKind } | null>(null);
+  // Fuerza usa su propio planificador en detalle (grupos → ejercicios → series).
+  const [strengthSheet, setStrengthSheet] = useState<{ date: string } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -124,6 +127,27 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
     if (error) { showToast(t('error_save'), 'error'); load(); } else showToast(t('mc_ag_item_removed'));
   };
 
+  // Sheets de planificación, compartidos por las vistas Día y Semana.
+  const planSheets = (
+    <>
+      <AddItemSheet
+        open={!!sheetFor}
+        initialKind={sheetFor?.kind}
+        onClose={() => setSheetFor(null)}
+        onSubmit={async (kind, payload) => { if (sheetFor) await addItem(sheetFor.date, kind, payload); setSheetFor(null); }}
+      />
+      <StrengthPlanBuilder
+        open={!!strengthSheet}
+        fighterProfileId={profile.id}
+        onClose={() => setStrengthSheet(null)}
+        onSave={async ({ groups, exercises }) => {
+          if (strengthSheet) await addItem(strengthSheet.date, 'strength', { groups, exercises });
+          setStrengthSheet(null);
+        }}
+      />
+    </>
+  );
+
   if (loading) {
     return <div className="flex items-center justify-center py-24"><div className="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div></div>;
   }
@@ -176,19 +200,14 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
             mode={mode}
             onPrev={() => setDayISO(iso(addDays(new Date(dayISO + 'T12:00:00'), -1)))}
             onNext={() => setDayISO(iso(addDays(new Date(dayISO + 'T12:00:00'), 1)))}
-            onAdd={(kind) => setSheetFor({ date: dayISO, kind })}
+            onAdd={(kind) => (kind === 'strength' ? setStrengthSheet({ date: dayISO }) : setSheetFor({ date: dayISO, kind }))}
             onRemove={removeItem}
-            onPlanThisDay={() => setSheetFor({ date: dayISO, kind: 'strength' })}
+            onPlanThisDay={() => setStrengthSheet({ date: dayISO })}
             onPlanWeek={onGoPlanificar ? () => onGoPlanificar(dayISO) : undefined}
             onGoActivity={() => onGoActivity(dayISO)}
           />
         </div>
-        <AddItemSheet
-          open={!!sheetFor}
-          initialKind={sheetFor?.kind}
-          onClose={() => setSheetFor(null)}
-          onSubmit={async (kind, payload) => { if (sheetFor) await addItem(sheetFor.date, kind, payload); setSheetFor(null); }}
-        />
+        {planSheets}
       </>
     );
   }
@@ -269,12 +288,7 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
 
           <WeekLegend t={t} mode={mode} />
         </div>
-        <AddItemSheet
-          open={!!sheetFor}
-          initialKind={sheetFor?.kind}
-          onClose={() => setSheetFor(null)}
-          onSubmit={async (kind, payload) => { if (sheetFor) await addItem(sheetFor.date, kind, payload); setSheetFor(null); }}
-        />
+        {planSheets}
       </>
     );
   }
@@ -516,14 +530,23 @@ function DayItemRow({ item, onRemove }: { item: DayPlanItem; onRemove: () => voi
 
   let main = '';
   let sub: string | null = null;
+  let exLines: string[] = [];
   if (item.kind === 'strength') {
     const p = item.payload as StrengthPayload;
     main = (p.groups || []).map((g) => t(`mc_str_mg_${g}`, { defaultValue: g })).join(' + ') || t('mc_dp_kind_strength');
-    sub = [p.exercises, p.note].filter(Boolean).join(' · ') || null;
+    exLines = exerciseLines(p.exercises, t);
+    if (p.note) sub = p.note;
   } else if (item.kind === 'activity') {
     const p = item.payload as ActivityPayload;
     main = t(activityKindCfg(p.kind).labelKey);
-    sub = [p.duration_min ? `${p.duration_min} min` : null, p.note].filter(Boolean).join(' · ') || null;
+    const bits: string[] = [];
+    if (p.duration_min) bits.push(`${p.duration_min} min`);
+    if (p.distance_km) bits.push(`${p.distance_km} km`);
+    if (p.meters) bits.push(`${p.meters} m`);
+    if (p.rounds) bits.push(t('mc_av_rounds_short', { n: p.rounds }));
+    if (p.pace_sec_per_km) bits.push(`${paceLabel(p.pace_sec_per_km)} /km`);
+    if (p.note) bits.push(p.note);
+    sub = bits.join(' · ') || null;
   } else if (item.kind === 'meal') {
     const p = item.payload as MealPayload;
     main = t(`mc_dp_slot_${p.slot}`, { defaultValue: p.slot });
@@ -537,28 +560,45 @@ function DayItemRow({ item, onRemove }: { item: DayPlanItem; onRemove: () => voi
   }
 
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-white/[0.07] bg-white/[0.02] px-3 py-2.5 group">
-      {tickable ? (
-        <span className="w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0"
-          style={{ borderColor: done ? '#22c55e' : 'rgba(255,255,255,0.2)', background: done ? '#22c55e' : 'transparent' }}>
-          {done && <i className="ri-check-line text-white text-xs"></i>}
-        </span>
-      ) : (
-        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: KIND_META[item.kind].hex }} />
-      )}
-      <div className="flex-1 min-w-0">
-        <p className={`text-sm font-semibold ${done ? 'text-zinc-500 line-through' : 'text-white'}`}>{main}</p>
-        {sub && <p className="text-[11px] text-zinc-500 truncate">{sub}</p>}
+    <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] px-3 py-2.5 group">
+      <div className="flex items-center gap-3">
+        {tickable ? (
+          <span className="w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0"
+            style={{ borderColor: done ? '#22c55e' : 'rgba(255,255,255,0.2)', background: done ? '#22c55e' : 'transparent' }}>
+            {done && <i className="ri-check-line text-white text-xs"></i>}
+          </span>
+        ) : (
+          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: KIND_META[item.kind].hex }} />
+        )}
+        <div className="flex-1 min-w-0">
+          <p className={`text-sm font-semibold ${done ? 'text-zinc-500 line-through' : 'text-white'}`}>{main}</p>
+          {sub && <p className="text-[11px] text-zinc-500 truncate">{sub}</p>}
+        </div>
+        {tickable && (
+          <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${done ? 'text-green-500' : 'text-zinc-600'}`}>
+            {done ? t('mc_ag_block_done') : t('mc_ag_block_pending')}
+          </span>
+        )}
+        <button onClick={onRemove} aria-label={t('mc_pl_line_remove')}
+          className="w-7 h-7 flex items-center justify-center text-zinc-600 hover:text-red-400 cursor-pointer flex-shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+          <i className="ri-delete-bin-line text-sm"></i>
+        </button>
       </div>
-      {tickable && (
-        <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${done ? 'text-green-500' : 'text-zinc-600'}`}>
-          {done ? t('mc_ag_block_done') : t('mc_ag_block_pending')}
-        </span>
+      {exLines.length > 0 && (
+        <div className="mt-2 pl-8 space-y-0.5">
+          {exLines.map((line, i) => {
+            const dot = line.lastIndexOf(' · ');
+            const name = dot > 0 ? line.slice(0, dot) : line;
+            const detail = dot > 0 ? line.slice(dot + 3) : '';
+            return (
+              <div key={i} className="flex items-baseline gap-2 text-[11px]">
+                <span className={`flex-1 min-w-0 truncate ${done ? 'text-zinc-600' : 'text-zinc-300'}`}>{name}</span>
+                {detail && <span className="text-zinc-500 flex-shrink-0" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>{detail}</span>}
+              </div>
+            );
+          })}
+        </div>
       )}
-      <button onClick={onRemove} aria-label={t('mc_pl_line_remove')}
-        className="w-7 h-7 flex items-center justify-center text-zinc-600 hover:text-red-400 cursor-pointer flex-shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-        <i className="ri-delete-bin-line text-sm"></i>
-      </button>
     </div>
   );
 }
@@ -571,11 +611,16 @@ function AddItemSheet({ open, initialKind, onClose, onSubmit }: {
   onSubmit: (kind: DayPlanKind, payload: DayPlanItem['payload']) => Promise<void>;
 }) {
   const { t } = useTranslation();
-  const [kind, setKind] = useState<DayPlanKind>(initialKind || 'strength');
-  const [groups, setGroups] = useState<string[]>([]);
-  const [exercises, setExercises] = useState('');
+  // Fuerza tiene su propio planificador en detalle: aquí no aparece.
+  const KINDS = KIND_ORDER.filter((k) => k !== 'strength');
+  const [kind, setKind] = useState<DayPlanKind>(initialKind && initialKind !== 'strength' ? initialKind : 'activity');
   const [actKind, setActKind] = useState(ACTIVITY_KINDS[0].value);
   const [duration, setDuration] = useState('');
+  const [distanceKm, setDistanceKm] = useState('');
+  const [pace, setPace] = useState('');
+  const [meters, setMeters] = useState('');
+  const [rounds, setRounds] = useState('');
+  const [roundDur, setRoundDur] = useState('');
   const [slot, setSlot] = useState<MealSlot>('comida');
   const [mealText, setMealText] = useState('');
   const [suppName, setSuppName] = useState('');
@@ -585,13 +630,17 @@ function AddItemSheet({ open, initialKind, onClose, onSubmit }: {
 
   useEffect(() => {
     if (!open) return;
-    setKind(initialKind || 'strength');
-    setGroups([]); setExercises(''); setActKind(ACTIVITY_KINDS[0].value); setDuration('');
-    setSlot('comida'); setMealText(''); setSuppName(''); setSuppTime(''); setNoteText('');
+    setKind(initialKind && initialKind !== 'strength' ? initialKind : 'activity');
+    setActKind(ACTIVITY_KINDS[0].value); setDuration(''); setDistanceKm(''); setPace(''); setMeters('');
+    setRounds(''); setRoundDur(''); setSlot('comida'); setMealText(''); setSuppName(''); setSuppTime(''); setNoteText('');
   }, [open, initialKind]);
 
+  const actCfg = activityKindCfg(actKind);
+  // Ritmo previsto: se calcula de duración/distancia y es editable.
+  const autoPace = computePace(parseFloat(duration) || undefined, parseFloat(distanceKm) || undefined);
+  const shownPace = pace || (autoPace ? paceLabel(autoPace) : '');
+
   const valid =
-    kind === 'strength' ? groups.length > 0 :
     kind === 'activity' ? true :
     kind === 'meal' ? mealText.trim().length > 0 :
     kind === 'supplement' ? suppName.trim().length > 0 :
@@ -601,10 +650,18 @@ function AddItemSheet({ open, initialKind, onClose, onSubmit }: {
     if (!valid) return;
     setSaving(true);
     let payload: DayPlanItem['payload'];
-    if (kind === 'strength') {
-      payload = { groups, ...(exercises.trim() ? { exercises: exercises.trim() } : {}) };
-    } else if (kind === 'activity') {
-      payload = { kind: actKind, ...(duration ? { duration_min: parseInt(duration, 10) } : {}) };
+    if (kind === 'activity') {
+      const p: ActivityPayload = { kind: actKind };
+      if (duration) p.duration_min = parseInt(duration, 10);
+      if (actCfg.fields.includes('distance_km') && distanceKm) p.distance_km = parseFloat(distanceKm.replace(',', '.'));
+      if (actCfg.fields.includes('pace')) {
+        const secs = pace ? paceToSec(pace) : autoPace;
+        if (secs) p.pace_sec_per_km = secs;
+      }
+      if (actCfg.fields.includes('meters') && meters) p.meters = parseInt(meters, 10);
+      if (actCfg.fields.includes('rounds') && rounds) p.rounds = parseInt(rounds, 10);
+      if (actCfg.fields.includes('round_duration') && roundDur) p.round_duration_sec = parseInt(roundDur, 10);
+      payload = p;
     } else if (kind === 'meal') {
       payload = { slot, text: mealText.trim() };
     } else if (kind === 'supplement') {
@@ -627,8 +684,8 @@ function AddItemSheet({ open, initialKind, onClose, onSubmit }: {
       <div className="space-y-4">
         <div>
           <label className="block text-sm text-zinc-400 mb-2">{t('mc_dp_form_kind')}</label>
-          <div className="grid grid-cols-3 gap-1.5">
-            {KIND_ORDER.map((k) => (
+          <div className="grid grid-cols-4 gap-1.5">
+            {KINDS.map((k) => (
               <button key={k} onClick={() => setKind(k)}
                 className={`flex flex-col items-center gap-1 py-2.5 rounded-xl border text-[11px] font-semibold transition-all cursor-pointer ${kind === k ? 'border-white/30' : 'border-white/10 hover:border-white/20'}`}
                 style={{ background: kind === k ? `${KIND_META[k].hex}18` : 'rgba(255,255,255,0.02)', minHeight: 44 }}>
@@ -638,28 +695,6 @@ function AddItemSheet({ open, initialKind, onClose, onSubmit }: {
             ))}
           </div>
         </div>
-
-        {kind === 'strength' && (
-          <>
-            <div>
-              <label className="block text-sm text-zinc-400 mb-2">{t('mc_dp_form_groups')} <span className="text-zinc-600">· {t('mc_dp_form_groups_hint')}</span></label>
-              <div className="flex flex-wrap gap-1.5">
-                {MUSCLE_GROUPS.map((g) => (
-                  <button key={g} onClick={() => setGroups((p) => p.includes(g) ? p.filter((x) => x !== g) : [...p, g])}
-                    className={`px-3 py-1.5 rounded-full border text-xs font-semibold cursor-pointer transition-colors ${groups.includes(g) ? 'bg-red-600 border-red-600 text-white' : 'bg-white/[0.02] border-white/10 text-zinc-400 hover:border-white/25'}`}
-                    style={{ minHeight: 34 }}>
-                    {t(`mc_str_mg_${g}`, { defaultValue: g })}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm text-zinc-400 mb-1.5">{t('mc_dp_form_exercises')} <span className="text-zinc-600">({t('mc_optional')})</span></label>
-              <input value={exercises} onChange={(e) => setExercises(e.target.value)} maxLength={200} placeholder={t('mc_dp_form_exercises_ph')}
-                style={{ fontSize: 16, minHeight: 44 }} className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" />
-            </div>
-          </>
-        )}
 
         {kind === 'activity' && (
           <>
@@ -676,11 +711,49 @@ function AddItemSheet({ open, initialKind, onClose, onSubmit }: {
                 ))}
               </div>
             </div>
-            <div>
-              <label className="block text-sm text-zinc-400 mb-1.5">{t('mc_dp_form_duration')} <span className="text-zinc-600">({t('mc_optional')})</span></label>
-              <input value={duration} onChange={(e) => setDuration(e.target.value)} inputMode="numeric" type="number" min="5" max="600"
-                style={{ fontSize: 16, minHeight: 44 }} className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" />
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <label className="block text-sm text-zinc-400 mb-1.5">{t('mc_dp_form_duration')} <span className="text-zinc-600">({t('mc_optional')})</span></label>
+                <input value={duration} onChange={(e) => setDuration(e.target.value)} inputMode="decimal" type="number" min="1" max="600"
+                  style={{ fontSize: 16, minHeight: 44 }} className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" />
+              </div>
+              {actCfg.fields.includes('distance_km') && (
+                <div>
+                  <label className="block text-sm text-zinc-400 mb-1.5">{t('mc_av_field_km')}</label>
+                  <input value={distanceKm} onChange={(e) => setDistanceKm(e.target.value)} inputMode="decimal" type="number" min="0" step="0.1"
+                    style={{ fontSize: 16, minHeight: 44 }} className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" />
+                </div>
+              )}
+              {actCfg.fields.includes('meters') && (
+                <div>
+                  <label className="block text-sm text-zinc-400 mb-1.5">{t('mc_av_field_meters')}</label>
+                  <input value={meters} onChange={(e) => setMeters(e.target.value)} inputMode="decimal" type="number" min="0" step="25"
+                    style={{ fontSize: 16, minHeight: 44 }} className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" />
+                </div>
+              )}
+              {actCfg.fields.includes('rounds') && (
+                <div>
+                  <label className="block text-sm text-zinc-400 mb-1.5">{t('mc_av_field_rounds')}</label>
+                  <input value={rounds} onChange={(e) => setRounds(e.target.value)} inputMode="decimal" type="number" min="1" max="30"
+                    style={{ fontSize: 16, minHeight: 44 }} className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" />
+                </div>
+              )}
+              {actCfg.fields.includes('round_duration') && (
+                <div>
+                  <label className="block text-sm text-zinc-400 mb-1.5">{t('mc_av_field_round_dur')} <span className="text-zinc-600">({t('mc_optional')})</span></label>
+                  <input value={roundDur} onChange={(e) => setRoundDur(e.target.value)} inputMode="decimal" type="number" min="10" max="600" step="10"
+                    style={{ fontSize: 16, minHeight: 44 }} className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" />
+                </div>
+              )}
             </div>
+            {actCfg.fields.includes('pace') && (
+              <div>
+                <label className="block text-sm text-zinc-400 mb-1.5">{t('mc_av_field_pace')} <span className="text-zinc-600">({t('mc_optional')})</span></label>
+                <input value={pace} onChange={(e) => setPace(e.target.value)} inputMode="text" placeholder={autoPace ? paceLabel(autoPace) : '5:30'}
+                  style={{ fontSize: 16, minHeight: 44 }} className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" />
+                {shownPace && <p className="text-[11px] text-zinc-500 mt-1">{t('mc_av_pace_auto', { pace: shownPace })}</p>}
+              </div>
+            )}
           </>
         )}
 

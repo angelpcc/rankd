@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable } from '@/lib/dbState';
-import { type DayPlanItem, type StrengthPayload, type ActivityPayload, activityKindCfg, KIND_META } from '../lib/dayPlan';
+import { type DayPlanItem, type StrengthPayload, type ActivityPayload, activityKindCfg, exerciseLines, KIND_META } from '../lib/dayPlan';
 
 // Card "HOY" — el elemento PRINCIPAL del Resumen de Mi Esquina.
 // Card oscura estándar con acento rojo (borde izquierdo 3px). Muestra lo
@@ -44,11 +44,12 @@ export default function TodayCard({ profile, onStart, onCreatePlan }: Props) {
         const list = ((rows || []) as Pick<DayPlanItem, 'kind' | 'payload'>[]).map((r): TrainToday => {
           if (r.kind === 'strength') {
             const p = r.payload as StrengthPayload;
+            const exLine = exerciseLines(p.exercises, t).join(' · ');
             return {
               icon: KIND_META.strength.icon,
               title: (p.groups || []).map((g) => t(`mc_str_mg_${g}`, { defaultValue: g })).join(' + ') || t('mc_dp_kind_strength'),
               typeLabelKey: 'mc_dp_kind_strength',
-              note: p.exercises || p.note || null,
+              note: exLine || p.note || null,
             };
           }
           const p = r.payload as ActivityPayload;

@@ -170,9 +170,9 @@ export default function NutritionHub({ profile, showToast, isHobby, onGoWeight }
             </h2>
             <p className="rk-body-14 mt-1">{t('mc_ng_sub')}</p>
           </header>
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 gap-4 items-stretch">
             {NUTRITION_GUIDE.map((n) => (
-              <div key={n.t} className="rk-card" style={{ padding: 20 }}>
+              <div key={n.t} className="rk-card h-full" style={{ padding: 20 }}>
                 <div className="flex items-center gap-3 mb-2.5">
                   <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-green-500/10 border border-green-500/25 text-green-400">
                     <i className={`${n.icon} text-lg`} />

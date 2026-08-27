@@ -5,7 +5,7 @@ export default {
   op_eyebrow: 'ADVISOR',
   op_title: 'Your goal,',
   op_title_2: 'your plan',
-  op_sub: 'Tell me what you\'re aiming for and I\'ll build a weekly plan of training, cardio and nutrition tailored to you. I look at what you already have in the app.',
+  op_sub: 'Not sure what to do? Tell me your situation and I propose a plan.',
 
   // ── Coming soon (no API key) ──
   op_soon_title: 'ADVISOR',

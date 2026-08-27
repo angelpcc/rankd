@@ -394,9 +394,9 @@ function SavedTemplates({ profile, showToast, weekStart, onApplied }: {
           <p className="text-sm text-zinc-400 mt-1.5 max-w-sm mx-auto leading-relaxed">{t('mc_pl_tpl_empty_desc')}</p>
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 gap-3">
+        <div className="grid sm:grid-cols-2 gap-3 items-stretch">
           {items.map((tpl) => (
-            <div key={tpl.id} className="rk-card group flex flex-col" style={{ padding: '16px 18px' }}>
+            <div key={tpl.id} className="rk-card group flex flex-col h-full" style={{ padding: '16px 18px' }}>
               <div className="flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-base font-bold text-white leading-snug">{tpl.name}</p>
@@ -422,7 +422,7 @@ function SavedTemplates({ profile, showToast, weekStart, onApplied }: {
                 </div>
               )}
 
-              <div className="flex items-center gap-3 mt-4 pt-3 border-t border-white/[0.06]">
+              <div className="flex items-center gap-3 mt-auto pt-3 border-t border-white/[0.06]">
                 <span className="text-[11px] text-zinc-600 flex-1">
                   {tpl.use_count === 0
                     ? t('mc_pl_tpl_never')

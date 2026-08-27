@@ -271,6 +271,9 @@ export default {
   mc_meal_saved: 'Comida registrada',
   mc_meal_frequent_title: 'Frecuentes',
   mc_meal_frequent_add: 'Añadir al diario',
+  mc_meal_slot_empty: 'Nada en {{slot}} todavía hoy.',
+  mc_meal_slot_total: '{{slot}} · {{n}} entradas',
+  mc_meal_past_days: 'Días anteriores',
 
   // ── Buscador de platos comunes (punto 14) ──
   mc_food_picker_title: 'Platos comunes',
@@ -1317,7 +1320,7 @@ export default {
   mc_pl_eyebrow: 'PLANIFICAR',
   mc_pl_title: 'Tu semana,',
   mc_pl_title_2: 'a tu manera',
-  mc_pl_sub: 'Escribe o dicta lo que vas a hacer y lo reparto por días. Revisas y confirmas antes de que entre en tu agenda.',
+  mc_pl_sub: 'Ya sabes qué vas a hacer. Escríbelo o dítalo y lo reparto por días.',
   mc_pl_input_label: 'Escribe o dicta tu semana',
   mc_pl_input_ph: 'Ej: Lunes hombro y espalda, tres series de todo. Martes correr media hora. Miércoles descanso. Toda la semana pollo y arroz de comida, y por la noche algo ligero. Creatina cada día y proteína después de entrenar. El viernes cena fuera.',
   mc_pl_btn: 'Planificar',
@@ -1381,4 +1384,58 @@ export default {
 
   // ── Asesor (antes Objetivos) ──
   mc_nav_advisor: 'Asesor',
+
+  // ═══════════════════════════════════════════════════════════════
+  // Ronda 2026-08: Actividad por tipo + fuerza en detalle
+  // ═══════════════════════════════════════════════════════════════
+
+  // ── Actividad: campos por tipo ──
+  mc_av_field_km: 'Distancia (km)',
+  mc_av_field_meters: 'Metros',
+  mc_av_field_rounds: 'Asaltos',
+  mc_av_field_round_dur: 'Duración de asalto (s)',
+  mc_av_field_pace: 'Ritmo (min/km)',
+  mc_av_pace_auto: 'Ritmo: {{pace}} /km',
+  mc_av_unit_rounds: 'asaltos',
+  mc_av_chart_distance: 'Distancia por sesión',
+  mc_av_chart_meters: 'Metros por sesión',
+  mc_av_chart_rounds: 'Asaltos por sesión',
+  mc_av_chart_minutes: 'Duración por sesión',
+  mc_av_stat_month_km: 'Km este mes',
+  mc_av_stat_best_pace: 'Mejor ritmo',
+  mc_av_stat_month_m: 'Metros este mes',
+  mc_av_stat_best_swim: 'Mejor sesión',
+  mc_av_stat_month_rounds: 'Asaltos este mes',
+
+  // ── Fuerza: modos de peso y medición ──
+  mc_str_wlabel_total: 'Peso (kg)',
+  mc_str_wlabel_per_side: 'Peso por lado (kg)',
+  mc_str_wlabel_per_dumbbell: 'Peso por mancuerna (kg)',
+  mc_str_wlabel_bodyweight: 'Lastre (kg)',
+  mc_str_field_seconds: 'Segundos',
+  mc_str_field_meters: 'Metros',
+  mc_str_unit_sec: 's',
+  mc_str_unit_m: 'm',
+  mc_str_unit_reps: 'reps',
+  mc_str_wt_total: '{{n}} kg',
+  mc_str_wt_per_side: '{{n}} kg/lado',
+  mc_str_wt_per_dumbbell: '{{n}} kg/mancuerna',
+  mc_str_wt_bw: 'peso corporal',
+  mc_str_wt_bw_load: '+{{n}} kg lastre',
+  mc_str_last_time_detail: 'Última vez: {{detail}}',
+
+  // ── Planificar fuerza en detalle ──
+  mc_dp_str_title: 'Planificar fuerza',
+  mc_dp_str_step2: 'Ejercicios previstos',
+
+  // ── Calculadora de discos ──
+  mc_plc_title: 'Calculadora de discos',
+  mc_plc_bar: 'Barra',
+  mc_plc_bar_label: 'Barra',
+  mc_plc_bar_other: 'Otra',
+  mc_plc_plates_label: 'Discos (por lado)',
+  mc_plc_per_side: 'Por lado',
+  mc_plc_clear: 'Vaciar',
+  mc_plc_total: 'Total:',
+  mc_plc_use: 'Usar {{n}} kg',
 };

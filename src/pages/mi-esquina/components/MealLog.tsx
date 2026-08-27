@@ -15,6 +15,7 @@ interface Meal {
   entry_date: string;
   meal_type: string;
   description: string;
+  calories?: number | null;
   created_at?: string;
 }
 
@@ -157,9 +158,19 @@ export default function MealLog({ profile, showToast }: Props) {
     loadFrequent();
   };
 
-  const grouped = useMemo(() => {
+  // Lo registrado HOY en la franja seleccionada (paso 4 del flujo).
+  const todayInSlot = useMemo(
+    () => meals.filter((m) => m.entry_date === todayISO() && m.meal_type === type),
+    [meals, type],
+  );
+
+  // Histórico de días anteriores (sin hoy), agrupado por día — va en un
+  // desplegable para no ocupar la pantalla al entrar.
+  const [showPast, setShowPast] = useState(false);
+  const pastDays = useMemo(() => {
     const map = new Map<string, Meal[]>();
-    meals.forEach((m) => { const arr = map.get(m.entry_date) || []; arr.push(m); map.set(m.entry_date, arr); });
+    meals.filter((m) => m.entry_date !== todayISO())
+      .forEach((m) => { const arr = map.get(m.entry_date) || []; arr.push(m); map.set(m.entry_date, arr); });
     return Array.from(map.entries());
   }, [meals]);
 
@@ -181,6 +192,31 @@ export default function MealLog({ profile, showToast }: Props) {
     );
   }
 
+  const row = (m: Meal, withDot = false) => {
+    const cfg = typeCfg(m.meal_type);
+    const time = m.created_at ? new Date(m.created_at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }) : null;
+    return (
+      <div key={m.id} className="relative group">
+        {withDot && <span className="absolute -left-4 top-2 w-2 h-2 rounded-full ring-4 ring-[#0B0B0B]" style={{ background: cfg.color }} />}
+        <div className="flex items-center gap-2.5 rounded-xl border border-white/[0.07] bg-white/[0.02] px-3 py-2.5">
+          <div className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg" style={{ background: `${cfg.color}1f`, color: cfg.color }}>
+            <i className={`${cfg.icon} text-sm`}></i>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wide capitalize" style={{ color: cfg.color }}>{t(cfg.labelKey)}</span>
+              {time && <span className="text-[10px] text-zinc-600">· {time}</span>}
+            </div>
+            <p className="text-sm text-zinc-200 truncate">{m.description}</p>
+          </div>
+          <button onClick={() => remove(m.id)} className="w-6 h-6 flex-shrink-0 flex items-center justify-center text-zinc-600 hover:text-red-400 cursor-pointer opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+            <i className="ri-close-line text-sm"></i>
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="rk-card" style={{ padding: '20px 20px' }}>
       <div className="flex items-center justify-between mb-3">
@@ -188,15 +224,23 @@ export default function MealLog({ profile, showToast }: Props) {
         <i className="ri-book-2-line text-green-400"></i>
       </div>
 
-      {/* Frecuentes: aparecen solo si el usuario ya repite comidas.
-          Un toque las añade a la franja seleccionada; luego puede editarlas. */}
+      {/* 1. Franjas — bien visibles */}
+      <div className="grid grid-cols-4 gap-1.5 mb-3">
+        {MEAL_TYPES.map((mt) => (
+          <button key={mt.value} onClick={() => setType(mt.value)}
+            className={`flex flex-col items-center gap-1 py-2 rounded-xl border text-[11px] font-bold transition-colors cursor-pointer ${type === mt.value ? 'bg-green-500/15 border-green-500/40 text-green-300' : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:border-white/25'}`}
+            style={{ minHeight: 44 }}>
+            <i className={mt.icon}></i>{t(mt.labelKey)}
+          </button>
+        ))}
+      </div>
+
+      {/* 2. Frecuentes (solo si el usuario ya repite comidas) */}
       {frequent.length > 0 && (
-        <div className="mb-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500 mb-1.5">{t('mc_meal_frequent_title')}</p>
+        <div className="mb-3">
           <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
             {frequent.map((f) => (
-              <button key={f} onClick={() => addFromFrequent(f)} disabled={saving}
-                title={t('mc_meal_frequent_add')}
+              <button key={f} onClick={() => addFromFrequent(f)} disabled={saving} title={t('mc_meal_frequent_add')}
                 className="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold text-zinc-200 bg-green-500/10 border border-green-500/25 hover:bg-green-500/15 hover:border-green-500/50 px-3 py-1.5 rounded-full cursor-pointer disabled:opacity-50 transition-colors whitespace-nowrap">
                 <i className="ri-add-line text-xs text-green-400"></i>
                 <span className="max-w-[180px] truncate">{f}</span>
@@ -206,68 +250,58 @@ export default function MealLog({ profile, showToast }: Props) {
         </div>
       )}
 
-      {/* Añadir */}
-      <div className="flex flex-wrap gap-1.5 mb-2">
-        {MEAL_TYPES.map((mt) => (
-          <button key={mt.value} onClick={() => setType(mt.value)}
-            className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg border transition-colors cursor-pointer ${type === mt.value ? 'bg-green-500/15 border-green-500/35 text-green-300' : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:border-white/25'}`}>
-            <i className={mt.icon}></i>{t(mt.labelKey)}
-          </button>
-        ))}
-      </div>
+      {/* 3. Entrada + buscador + micro + añadir */}
       <div className="flex gap-2">
         <input value={desc} onChange={(e) => setDesc(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') add(); }}
-          className="flex-1 bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-green-500"
-          placeholder={t('mc_meal_ph')} />
+          className="flex-1 min-w-0 bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-green-500"
+          style={{ fontSize: 16, minHeight: 44 }} placeholder={t('mc_meal_ph')} />
         <button onClick={() => setShowPicker(true)} aria-label={t('mc_food_picker_title')}
-          className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl bg-white/[0.04] border border-white/10 text-zinc-300 hover:border-white/25 hover:text-white transition-colors cursor-pointer">
+          className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-xl bg-white/[0.04] border border-white/10 text-zinc-300 hover:border-white/25 hover:text-white transition-colors cursor-pointer">
           <i className="ri-search-line"></i>
         </button>
         <VoiceButton onResult={(txt) => setDesc((prev) => (prev.trim() ? prev + ' ' + txt : txt))} compact />
-        <button onClick={add} disabled={saving || !desc.trim()} className="rk-btn rk-btn-primary flex items-center disabled:opacity-50" style={{ padding: '0 1.1rem', fontSize: '0.95rem' }}>
+        <button onClick={add} disabled={saving || !desc.trim()} className="rk-btn rk-btn-primary flex items-center disabled:opacity-50" style={{ padding: '0 1.1rem', fontSize: '0.95rem', minHeight: 44 }}>
           {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <i className="ri-add-line"></i>}
         </button>
       </div>
 
       {showPicker && <CommonFoodPicker onPick={addFromPicker} onClose={() => setShowPicker(false)} />}
 
-      {/* Histórico agrupado por día, en timeline vertical */}
-      {grouped.length === 0 ? (
-        <p className="text-xs text-zinc-500 mt-4 text-center py-4">{t('mc_meal_empty')}</p>
-      ) : (
-        <div className="mt-4 space-y-5">
-          {grouped.slice(0, 6).map(([date, dayMeals]) => (
-            <div key={date}>
-              <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-2 capitalize">{label(date)}</p>
-              <div className="relative pl-4 space-y-2.5">
-                <div className="absolute left-[3px] top-1.5 bottom-1.5 w-px bg-white/[0.08]" />
-                {dayMeals.map((m) => {
-                  const cfg = typeCfg(m.meal_type);
-                  const time = m.created_at ? new Date(m.created_at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }) : null;
-                  return (
-                    <div key={m.id} className="relative group">
-                      <span className="absolute -left-4 top-2 w-2 h-2 rounded-full ring-4 ring-[#0B0B0B]" style={{ background: cfg.color }} />
-                      <div className="flex items-center gap-2.5 rounded-xl border border-white/[0.07] bg-white/[0.02] px-3 py-2.5">
-                        <div className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg" style={{ background: `${cfg.color}1f`, color: cfg.color }}>
-                          <i className={`${cfg.icon} text-sm`}></i>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-bold uppercase tracking-wide capitalize" style={{ color: cfg.color }}>{t(cfg.labelKey)}</span>
-                            {time && <span className="text-[10px] text-zinc-600">· {time}</span>}
-                          </div>
-                          <p className="text-sm text-zinc-200 truncate">{m.description}</p>
-                        </div>
-                        <button onClick={() => remove(m.id)} className="w-6 h-6 flex-shrink-0 flex items-center justify-center text-zinc-600 hover:text-red-400 cursor-pointer opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                          <i className="ri-close-line text-sm"></i>
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+      {/* 4. Lo registrado HOY en esta franja + 5. total de la franja */}
+      <div className="mt-4">
+        {todayInSlot.length === 0 ? (
+          <p className="text-xs text-zinc-500 text-center py-4">{t('mc_meal_slot_empty', { slot: t(typeCfg(type).labelKey).toLowerCase() })}</p>
+        ) : (
+          <div className="space-y-2">
+            {todayInSlot.map((m) => row(m))}
+            <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider text-right pt-1">
+              {t('mc_meal_slot_total', { slot: t(typeCfg(type).labelKey), n: todayInSlot.length })}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Días anteriores — colapsado por defecto */}
+      {pastDays.length > 0 && (
+        <div className="mt-4 pt-3 border-t border-white/[0.06]">
+          <button onClick={() => setShowPast((v) => !v)}
+            className="w-full flex items-center justify-between text-xs font-semibold text-zinc-400 hover:text-white cursor-pointer">
+            <span>{t('mc_meal_past_days')}</span>
+            <i className={`ri-arrow-down-s-line transition-transform ${showPast ? 'rotate-180' : ''}`}></i>
+          </button>
+          {showPast && (
+            <div className="mt-3 space-y-5">
+              {pastDays.slice(0, 6).map(([date, dayMeals]) => (
+                <div key={date}>
+                  <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-2 capitalize">{label(date)}</p>
+                  <div className="relative pl-4 space-y-2.5">
+                    <div className="absolute left-[3px] top-1.5 bottom-1.5 w-px bg-white/[0.08]" />
+                    {dayMeals.map((m) => row(m, true))}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       )}
     </div>

@@ -271,6 +271,9 @@ export default {
   mc_meal_saved: 'Meal logged',
   mc_meal_frequent_title: 'Frequent',
   mc_meal_frequent_add: 'Add to diary',
+  mc_meal_slot_empty: 'Nothing for {{slot}} yet today.',
+  mc_meal_slot_total: '{{slot}} · {{n}} entries',
+  mc_meal_past_days: 'Earlier days',
 
   // ── Common foods picker (item 14) ──
   mc_food_picker_title: 'Common foods',
@@ -1317,7 +1320,7 @@ export default {
   mc_pl_eyebrow: 'PLAN',
   mc_pl_title: 'Your week,',
   mc_pl_title_2: 'your way',
-  mc_pl_sub: 'Write or dictate what you are going to do and I spread it across the days. You review and confirm before it enters your agenda.',
+  mc_pl_sub: 'You already know what you are going to do. Write it or dictate it and I spread it across the days.',
   mc_pl_input_label: 'Write or dictate your week',
   mc_pl_input_ph: 'e.g. Monday shoulders and back, three sets of everything. Tuesday run half an hour. Wednesday rest. All week chicken and rice for lunch, something light at night. Creatine every day and protein after training. Friday eating out.',
   mc_pl_btn: 'Plan it',
@@ -1381,4 +1384,58 @@ export default {
 
   // ── Advisor (formerly Goals) ──
   mc_nav_advisor: 'Advisor',
+
+  // ═══════════════════════════════════════════════════════════════
+  // 2026-08 round: activity by type + strength in detail
+  // ═══════════════════════════════════════════════════════════════
+
+  // ── Activity: fields per type ──
+  mc_av_field_km: 'Distance (km)',
+  mc_av_field_meters: 'Metres',
+  mc_av_field_rounds: 'Rounds',
+  mc_av_field_round_dur: 'Round length (s)',
+  mc_av_field_pace: 'Pace (min/km)',
+  mc_av_pace_auto: 'Pace: {{pace}} /km',
+  mc_av_unit_rounds: 'rounds',
+  mc_av_chart_distance: 'Distance per session',
+  mc_av_chart_meters: 'Metres per session',
+  mc_av_chart_rounds: 'Rounds per session',
+  mc_av_chart_minutes: 'Duration per session',
+  mc_av_stat_month_km: 'Km this month',
+  mc_av_stat_best_pace: 'Best pace',
+  mc_av_stat_month_m: 'Metres this month',
+  mc_av_stat_best_swim: 'Best session',
+  mc_av_stat_month_rounds: 'Rounds this month',
+
+  // ── Strength: weight and tracking modes ──
+  mc_str_wlabel_total: 'Weight (kg)',
+  mc_str_wlabel_per_side: 'Weight per side (kg)',
+  mc_str_wlabel_per_dumbbell: 'Weight per dumbbell (kg)',
+  mc_str_wlabel_bodyweight: 'Added weight (kg)',
+  mc_str_field_seconds: 'Seconds',
+  mc_str_field_meters: 'Metres',
+  mc_str_unit_sec: 's',
+  mc_str_unit_m: 'm',
+  mc_str_unit_reps: 'reps',
+  mc_str_wt_total: '{{n}} kg',
+  mc_str_wt_per_side: '{{n}} kg/side',
+  mc_str_wt_per_dumbbell: '{{n}} kg/dumbbell',
+  mc_str_wt_bw: 'bodyweight',
+  mc_str_wt_bw_load: '+{{n}} kg added',
+  mc_str_last_time_detail: 'Last time: {{detail}}',
+
+  // ── Plan strength in detail ──
+  mc_dp_str_title: 'Plan strength',
+  mc_dp_str_step2: 'Planned exercises',
+
+  // ── Plate calculator ──
+  mc_plc_title: 'Plate calculator',
+  mc_plc_bar: 'Bar',
+  mc_plc_bar_label: 'Bar',
+  mc_plc_bar_other: 'Other',
+  mc_plc_plates_label: 'Plates (per side)',
+  mc_plc_per_side: 'Per side',
+  mc_plc_clear: 'Clear',
+  mc_plc_total: 'Total:',
+  mc_plc_use: 'Use {{n}} kg',
 };
