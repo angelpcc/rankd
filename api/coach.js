@@ -126,6 +126,7 @@ function fighterContext(p = {}) {
   if (p.weeklyMinutes) lines.push(`- Volumen de entreno esta semana: ${p.weeklyMinutes} min`);
   if (Array.isArray(p.goals) && p.goals.length) lines.push(`- Metas con fecha límite: ${p.goals.join('; ')}`);
   if (p.recovery) lines.push(`- Cómo llega esta semana: ${p.recovery}`);
+  if (p.snapshot) lines.push(`- Lo que ya tiene en la app (planificado y registrado):\n${String(p.snapshot).slice(0, 1400)}`);
   return lines.length
     ? `Perfil del peleador (úsalo SIEMPRE para personalizar tu respuesta):\n${lines.join('\n')}`
     : 'Perfil del peleador: sin datos todavía. Pregunta lo esencial (disciplina, nivel, peso y objetivo) antes de dar un plan.';

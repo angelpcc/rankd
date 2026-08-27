@@ -19,8 +19,15 @@ interface Props {
  */
 export default function HubTabs({ tabs, active, onChange }: Props) {
   const { t } = useTranslation();
+  // Fade en los bordes: pista visual de que hay más pestañas al hacer scroll
+  // horizontal en móvil. La máscara no afecta al layout ni a los toques.
+  const fade =
+    'linear-gradient(to right, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%)';
   return (
-    <div className="overflow-x-auto -mx-1 px-1 mb-6">
+    <div
+      className="overflow-x-auto -mx-1 px-1 mb-6"
+      style={{ WebkitMaskImage: fade, maskImage: fade }}
+    >
       <div className="inline-flex gap-1 p-1 rounded-2xl bg-zinc-900/70 border border-zinc-800 min-w-max">
         {tabs.map((tab) => {
           const on = tab.id === active;

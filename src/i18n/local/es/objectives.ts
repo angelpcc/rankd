@@ -2,13 +2,13 @@
 // Prefijo op_ ("objective plan").
 export default {
   // ── Cabecera ──
-  op_eyebrow: 'PLAN AUTOMATIZADO',
+  op_eyebrow: 'ASESOR',
   op_title: 'Tu objetivo,',
   op_title_2: 'tu plan',
-  op_sub: 'Dime a qué apuntas y te monto un plan semanal de entrenamiento, cardio y nutrición hecho a tu medida.',
+  op_sub: 'Cuéntame a qué apuntas y te monto un plan semanal de entrenamiento, cardio y nutrición hecho a tu medida. Miro lo que ya tienes en la app.',
 
   // ── Muy pronto (sin API key) ──
-  op_soon_title: 'PLAN AUTOMATIZADO',
+  op_soon_title: 'ASESOR',
   op_soon_desc: 'En cuanto activemos el sistema automatizado podrás pedir un plan completo (entreno + cardio + nutrición) por tu objetivo, ajustarlo con tus palabras y añadirlo a tu Agenda de un toque.',
   op_soon_tag: 'muy pronto',
 

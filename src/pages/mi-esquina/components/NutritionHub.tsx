@@ -49,14 +49,14 @@ interface NutritionGuideItem { icon: string; t: string; b: string }
  */
 export default function NutritionHub({ profile, showToast, isHobby, onGoWeight }: Props) {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<'diario' | 'foto' | 'agua' | 'suplementos' | 'coach' | 'guia'>('diario');
+  const [tab, setTab] = useState<'diario' | 'foto' | 'agua' | 'suplementos' | 'advisor' | 'guia'>('diario');
 
   const TABS: HubTab[] = [
     { id: 'diario', labelKey: 'mc_ng_tab_diary', icon: 'ri-restaurant-line' },
     { id: 'foto', labelKey: 'mc_ng_tab_photo', icon: 'ri-camera-line' },
     { id: 'agua', labelKey: 'mc_ng_tab_water', icon: 'ri-drop-line' },
     { id: 'suplementos', labelKey: 'mc_ng_tab_supplements', icon: 'ri-capsule-line' },
-    { id: 'coach', labelKey: 'mc_ng_tab_coach', icon: 'ri-sparkling-2-line' },
+    { id: 'advisor', labelKey: 'mc_ng_tab_advisor', icon: 'ri-compass-3-line' },
     { id: 'guia', labelKey: 'mc_ng_tab_guide', icon: 'ri-book-open-line' },
   ];
 
@@ -96,13 +96,7 @@ export default function NutritionHub({ profile, showToast, isHobby, onGoWeight }
 
   return (
     <div className="max-w-4xl">
-      {/* Aviso sanitario permanente: FUERA de tabs para que no se pueda
-          ocultar por accidente. Es una condición de uso, no un contenido. */}
-      <div className="flex items-start gap-3 rounded-2xl border border-[#C9A84C]/30 bg-[#C9A84C]/[0.07] px-4 py-3.5 mb-5">
-        <i className="ri-heart-pulse-line text-[#C9A84C] text-lg mt-0.5 flex-shrink-0" />
-        <p className="text-xs text-zinc-300 leading-relaxed">{t('mc_ng_safety_banner')}</p>
-      </div>
-
+      {/* Resumen del día — SIEMPRE arriba del todo, compacto en una línea. */}
       <TodayMacrosSummary profile={profile} />
 
       <HubTabs tabs={TABS} active={tab} onChange={(id) => setTab(id as typeof tab)} />
@@ -149,8 +143,8 @@ export default function NutritionHub({ profile, showToast, isHobby, onGoWeight }
         <div className="mt-6"><SupplementTracker profile={profile} showToast={showToast} /></div>
       )}
 
-      {/* ── COACH IA ── */}
-      {tab === 'coach' && (
+      {/* ── ASESOR ── */}
+      {tab === 'advisor' && (
         <div className="mt-6">
           <SectionCoach
             section="nutrition"
@@ -195,6 +189,13 @@ export default function NutritionHub({ profile, showToast, isHobby, onGoWeight }
           </div>
         </div>
       )}
+
+      {/* Aviso sanitario — al FINAL y compacto: siempre visible pero sin ocupar
+          media pantalla al entrar. Es una condición de uso, no un contenido. */}
+      <p className="text-[11px] text-zinc-600 leading-relaxed flex items-start gap-1.5 mt-8 pt-4 border-t border-white/[0.06]">
+        <i className="ri-heart-pulse-line text-[#C9A84C] mt-0.5 flex-shrink-0" />
+        {t('mc_ng_safety_banner')}
+      </p>
     </div>
   );
 }

@@ -26,8 +26,8 @@ interface Props {
 // Orden: Objetivos (dónde vas), Actividad (qué has hecho, registro rápido de
 // cualquier tipo de sesión), Fuerza (cargas por grupo muscular) y Peso.
 const TABS: HubTab[] = [
-  { id: 'objetivos', labelKey: 'mc_nav_goals', icon: 'ri-sparkling-2-line' },
-  { id: 'actividad', labelKey: 'mc_pr_tab_activity', icon: 'ri-boxing-line' },
+  { id: 'objetivos', labelKey: 'mc_nav_advisor', icon: 'ri-compass-3-line' },
+  { id: 'actividad', labelKey: 'mc_pr_tab_activity', icon: 'ri-run-line' },
   { id: 'fuerza', labelKey: 'mc_pr_tab_strength', icon: 'ri-hammer-line' },
   { id: 'peso', labelKey: 'mc_pr_tab_weight', icon: 'ri-scales-2-line' },
 ];

@@ -2,23 +2,11 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable } from '@/lib/dbState';
+import { type DayPlanItem, KIND_META, KIND_ORDER, summarizeItem } from '../lib/dayPlan';
 
 interface Props {
   profile: Profile;
 }
-
-interface Ev {
-  event_date: string;
-  session_type: string | null;
-  title: string;
-  time: string | null;
-  notes: string | null;
-}
-
-const SESSION_ICONS: Record<string, string> = {
-  sparring: 'ri-boxing-line', tecnica: 'ri-focus-3-line', fuerza: 'ri-hammer-line',
-  cardio: 'ri-run-line', flexibilidad: 'ri-yoga-line', recuperacion: 'ri-heart-pulse-line',
-};
 
 function iso(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -27,14 +15,13 @@ function addDays(d: Date, n: number): Date { const x = new Date(d); x.setDate(x.
 
 /**
  * Vista de un vistazo de los próximos 7 días: círculos por día (rojo si hay
- * entreno planificado, pulsante si es hoy) + hasta 3 próximos entrenamientos
- * en compacto. Complementa a WeeklyAgenda (el planificador completo), no lo
- * sustituye.
+ * algo planificado, pulsante si es hoy) + hasta 3 próximos elementos del plan.
+ * Lee day_plan_items. Complementa a WeeklyAgenda (el calendario completo).
  */
 export default function AgendaWeekStrip({ profile }: Props) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
-  const [events, setEvents] = useState<Ev[]>([]);
+  const [items, setItems] = useState<DayPlanItem[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const todayISO = iso(today);
@@ -42,30 +29,32 @@ export default function AgendaWeekStrip({ profile }: Props) {
 
   useEffect(() => {
     let alive = true;
-    supabase.from('planned_events').select('event_date, session_type, title, time, notes')
+    supabase.from('day_plan_items').select('*')
       .eq('fighter_profile_id', profile.id)
-      .eq('kind', 'training')
-      .gte('event_date', todayISO)
-      .lte('event_date', iso(days[6]))
-      .order('event_date', { ascending: true })
+      .gte('plan_date', todayISO)
+      .lte('plan_date', iso(days[6]))
+      .order('plan_date', { ascending: true })
       .then(({ data, error }) => {
         if (!alive || isMissingTable(error)) return;
-        setEvents((data || []) as Ev[]);
+        setItems((data || []) as DayPlanItem[]);
       });
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile.id]);
 
-  const byDate = new Map<string, Ev[]>();
-  events.forEach((e) => { const l = byDate.get(e.event_date) || []; l.push(e); byDate.set(e.event_date, l); });
+  const byDate = new Map<string, DayPlanItem[]>();
+  items.forEach((e) => { const l = byDate.get(e.plan_date) || []; l.push(e); byDate.set(e.plan_date, l); });
+  for (const list of byDate.values()) list.sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind));
 
-  const upcoming = events.slice(0, 3);
+  const upcoming = [...items].sort((a, b) => a.plan_date.localeCompare(b.plan_date)).slice(0, 3);
   const dayLabel = (d: Date) => d.toLocaleDateString(locale, { weekday: 'narrow' }).toUpperCase();
   const relLabel = (dateISO: string) => {
     if (dateISO === todayISO) return t('mc_today');
     if (dateISO === iso(addDays(today, 1))) return t('mc_cal_tomorrow');
     return new Date(dateISO + 'T12:00:00').toLocaleDateString(locale, { weekday: 'short', day: 'numeric' });
   };
+
+  if (items.length === 0) return null;
 
   return (
     <div className="rk-card" style={{ padding: '16px 18px', transform: 'none' }}>
@@ -94,11 +83,10 @@ export default function AgendaWeekStrip({ profile }: Props) {
             <p className="text-xs text-zinc-600">{t('mc_aws_free_day')}</p>
           ) : (
             <div className="space-y-1.5">
-              {(byDate.get(expanded) || []).map((e, i) => (
-                <div key={i} className="flex items-center gap-2 text-xs text-zinc-300">
-                  <i className={`${SESSION_ICONS[e.session_type || ''] || 'ri-boxing-line'} text-red-400`}></i>
-                  <span className="font-semibold">{e.title}</span>
-                  {e.time && <span className="text-zinc-600">· {e.time}</span>}
+              {(byDate.get(expanded) || []).map((e) => (
+                <div key={e.id} className="flex items-center gap-2 text-xs text-zinc-300">
+                  <i className={KIND_META[e.kind].icon} style={{ color: KIND_META[e.kind].hex }}></i>
+                  <span className="font-semibold truncate">{summarizeItem(e, t)}</span>
                 </div>
               ))}
             </div>
@@ -109,12 +97,11 @@ export default function AgendaWeekStrip({ profile }: Props) {
       {upcoming.length > 0 && (
         <div className="mt-4 pt-4 border-t border-white/[0.06] space-y-1">
           <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 mb-2">{t('mc_aws_upcoming')}</p>
-          {upcoming.map((e, i) => (
-            <div key={i} className="group flex items-center gap-2.5 text-xs py-1">
-              <i className={`${SESSION_ICONS[e.session_type || ''] || 'ri-boxing-line'} text-red-400 flex-shrink-0`}></i>
-              <span className="font-semibold text-zinc-200 truncate">{e.title}</span>
-              <span className="text-zinc-600 flex-shrink-0">· {relLabel(e.event_date)}{e.time ? ` ${e.time}` : ''}</span>
-              {e.notes && <span className="text-zinc-600 truncate opacity-0 group-hover:opacity-100 transition-opacity hidden sm:inline">— {e.notes}</span>}
+          {upcoming.map((e) => (
+            <div key={e.id} className="group flex items-center gap-2.5 text-xs py-1">
+              <i className={`${KIND_META[e.kind].icon} flex-shrink-0`} style={{ color: KIND_META[e.kind].hex }}></i>
+              <span className="font-semibold text-zinc-200 truncate">{summarizeItem(e, t)}</span>
+              <span className="text-zinc-600 flex-shrink-0">· {relLabel(e.plan_date)}</span>
             </div>
           ))}
         </div>

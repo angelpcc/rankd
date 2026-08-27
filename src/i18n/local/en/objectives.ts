@@ -2,13 +2,13 @@
 // Prefix op_ ("objective plan").
 export default {
   // ── Header ──
-  op_eyebrow: 'AUTOMATED PLAN',
+  op_eyebrow: 'ADVISOR',
   op_title: 'Your goal,',
   op_title_2: 'your plan',
-  op_sub: 'Tell me what you\'re aiming for and I\'ll build a weekly plan of training, cardio and nutrition tailored to you.',
+  op_sub: 'Tell me what you\'re aiming for and I\'ll build a weekly plan of training, cardio and nutrition tailored to you. I look at what you already have in the app.',
 
   // ── Coming soon (no API key) ──
-  op_soon_title: 'AUTOMATED PLAN',
+  op_soon_title: 'ADVISOR',
   op_soon_desc: 'Once we turn the automated system on, you\'ll be able to ask for a full plan (training + cardio + nutrition) built around your goal, adjust it in plain words and add it to your Agenda with a tap.',
   op_soon_tag: 'coming soon',
 

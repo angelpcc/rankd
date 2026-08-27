@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
+import { isMissingTable } from '@/lib/dbState';
 import { useAuth } from '@/hooks/useAuth';
 import { useSEO } from '@/hooks/useSEO';
 import ShareProgress from '@/pages/mi-esquina/components/ShareProgress';
@@ -109,11 +110,22 @@ export default function MiEsquinaPage() {
   useEffect(() => {
     if (!profile?.id) return;
     const load = async () => {
-      const { data } = await supabase
-        .from('training_sessions')
-        .select('session_date, duration_min')
-        .eq('fighter_profile_id', profile.id);
-      if (!data) return;
+      // "Sesiones" del Resumen = actividad no-fuerza (activity_sessions) +
+      // días con registro de fuerza (strength_sets). training_sessions ya no
+      // manda aquí, pero si la migración 0043 aún no está se usa como respaldo
+      // para no dejar el Resumen a cero durante la ventana de migración.
+      const [actRes, strRes] = await Promise.all([
+        supabase.from('activity_sessions').select('session_date, duration_min').eq('fighter_profile_id', profile.id),
+        supabase.from('strength_sets').select('session_date').eq('fighter_profile_id', profile.id),
+      ]);
+      const actRows = isMissingTable(actRes.error)
+        ? ((await supabase.from('training_sessions').select('session_date, duration_min').eq('fighter_profile_id', profile.id)).data || [])
+        : (actRes.data || []);
+      const strDates = Array.from(new Set(((strRes.data || []) as { session_date: string }[]).map((s) => s.session_date)));
+      const data: { session_date: string; duration_min: number | null }[] = [
+        ...(actRows as { session_date: string; duration_min: number | null }[]),
+        ...strDates.map((d) => ({ session_date: d, duration_min: null as number | null })),
+      ];
       const now = new Date();
       const day = now.getDay() === 0 ? 6 : now.getDay() - 1;
       const weekStart = new Date(now);

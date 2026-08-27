@@ -50,7 +50,7 @@ const NUM_WORDS: Record<string, number> = {
   half: 0.5, an: 1, a: 1, one: 1, two: 2, three: 3, four: 4,
 };
 
-function parseDuration(raw: string): number | undefined {
+export function parseDuration(raw: string): number | undefined {
   const s = norm(raw);
   // Frases hechas (con o sin artículo): "hora y media", "hora y cuarto".
   if (/hora\s+y\s+media|hour\s+and\s+a\s+half/.test(s)) return 90;
@@ -242,4 +242,255 @@ export function parseTrainingFromSpeech(text: string): ParsedTraining {
   else if (has(s, FEEL_GOOD)) out.feeling = 5;
 
   return out;
+}
+
+// ── Dictado / escritura de un PLAN DE SEMANA (Planificar, Tarea 2) ──
+//
+// "Esta semana: lunes hombro y espalda, tres series de todo. Martes correr
+//  media hora. Miércoles descanso. Toda la semana pollo y arroz de comida, y
+//  por la noche algo ligero. Tomo creatina cada día y proteína después de
+//  entrenar. El viernes cena fuera."
+//
+//   → una línea por (día × bloque): strength / activity / meal / supplement / note
+//
+// Determinista, en el navegador, sin IA. El resultado SIEMPRE pasa por una
+// pantalla de revisión editable antes de guardar — nunca se agenda directo.
+
+export type WeekPlanKind = 'strength' | 'activity' | 'meal' | 'supplement' | 'note';
+
+export interface WeekPlanLine {
+  /** Date.getDay(): 0=domingo … 6=sábado. */
+  day: number;
+  kind: WeekPlanKind;
+  /** payload equivalente al de day_plan_items según kind. */
+  payload:
+    | { groups: string[]; note?: string }
+    | { kind: string; duration_min?: number; note?: string }
+    | { slot: 'desayuno' | 'comida' | 'cena' | 'snack'; text: string }
+    | { name: string; time?: string }
+    | { text: string };
+  /** Texto original del fragmento, para mostrarlo en la revisión. */
+  raw: string;
+}
+
+// Días de la semana → Date.getDay(). Raíces sin acento.
+const DAY_WORDS: { day: number; words: string[] }[] = [
+  { day: 1, words: ['lunes', 'monday'] },
+  { day: 2, words: ['martes', 'tuesday'] },
+  { day: 3, words: ['miercoles', 'wednesday'] },
+  { day: 4, words: ['jueves', 'thursday'] },
+  { day: 5, words: ['viernes', 'friday'] },
+  { day: 6, words: ['sabado', 'saturday'] },
+  { day: 0, words: ['domingo', 'sunday'] },
+];
+const ALL_WEEK = [0, 1, 2, 3, 4, 5, 6];
+const EVERY_DAY_WORDS = ['toda la semana', 'cada dia', 'todos los dias', 'a diario', 'every day', 'all week', 'daily'];
+
+// Grupo muscular ← palabras (clave = MuscleGroup de exercises.ts).
+const MG_WORDS: { group: string; words: string[] }[] = [
+  { group: 'back', words: ['espalda', 'dorsal', 'dorsales', 'back', 'lats'] },
+  { group: 'chest', words: ['pecho', 'pectoral', 'pectorales', 'chest'] },
+  { group: 'shoulders', words: ['hombro', 'hombros', 'deltoide', 'deltoides', 'shoulder', 'shoulders', 'delts'] },
+  { group: 'biceps', words: ['biceps', 'bicep'] },
+  { group: 'triceps', words: ['triceps', 'tricep'] },
+  { group: 'legs', words: ['pierna', 'piernas', 'cuadriceps', 'femoral', 'gluteo', 'gluteos', 'gemelos', 'sentadilla', 'leg', 'legs', 'quads', 'glutes'] },
+  { group: 'core', words: ['core', 'abdomen', 'abdominales', 'abdominal', 'abs'] },
+  { group: 'power', words: ['potencia', 'pliometria', 'explosivo', 'power'] },
+  { group: 'full_body', words: ['full body', 'cuerpo entero', 'todo el cuerpo', 'fullbody'] },
+];
+
+// Actividad no-fuerza ← palabras (value de ACTIVITY_KINDS).
+const ACT_WORDS: { kind: string; words: string[] }[] = [
+  { kind: 'correr', words: ['correr', 'carrera', 'trotar', 'footing', 'rodaje', 'run', 'running', 'jog'] },
+  { kind: 'boxeo', words: ['boxeo', 'sparring', 'guanteo', 'saco', 'manoplas', 'sombra', 'boxing', 'spar', 'bag work'] },
+  { kind: 'bici', words: ['bici', 'bicicleta', 'ciclismo', 'rodillo', 'bike', 'cycling', 'spinning'] },
+  { kind: 'natacion', words: ['natacion', 'nadar', 'piscina', 'swim', 'swimming', 'pool'] },
+  { kind: 'cuerda', words: ['comba', 'cuerda', 'saltar a la comba', 'rope', 'jump rope', 'skipping'] },
+];
+
+// Suplementos ← palabras (se guarda el nombre tal cual detectado).
+const SUPP_WORDS: { name: string; words: string[] }[] = [
+  { name: 'Creatina', words: ['creatina', 'creatine'] },
+  { name: 'Proteína', words: ['proteina', 'whey', 'batido de proteina', 'protein'] },
+  { name: 'Cafeína', words: ['cafeina', 'caffeine'] },
+  { name: 'Pre-entreno', words: ['pre entreno', 'preentreno', 'pre-entreno', 'preworkout', 'pre-workout'] },
+  { name: 'BCAA', words: ['bcaa', 'bcaas'] },
+  { name: 'Glutamina', words: ['glutamina', 'glutamine'] },
+  { name: 'Magnesio', words: ['magnesio', 'magnesium'] },
+  { name: 'Omega 3', words: ['omega 3', 'omega3', 'omega-3', 'aceite de pescado', 'fish oil'] },
+  { name: 'Multivitamínico', words: ['multivitaminico', 'multivitamina', 'multivitamin'] },
+  { name: 'Vitamina D', words: ['vitamina d', 'vitamin d'] },
+  { name: 'ZMA', words: ['zma'] },
+  { name: 'Beta-alanina', words: ['beta alanina', 'beta-alanina', 'beta alanine'] },
+  { name: 'Colágeno', words: ['colageno', 'collagen'] },
+  { name: 'Melatonina', words: ['melatonina', 'melatonin'] },
+];
+
+const FOOD_HINT = ['pollo', 'arroz', 'pasta', 'pescado', 'carne', 'ensalada', 'verdura', 'huevos', 'atun', 'ternera',
+  'avena', 'fruta', 'patata', 'legumbres', 'lentejas', 'garbanzos', 'tortilla', 'yogur', 'queso', 'pan',
+  'chicken', 'rice', 'fish', 'salad', 'oats', 'eggs', 'meat', 'pasta', 'comer', 'comida', 'cena', 'desayuno',
+  'plato', 'menu', 'dieta', 'ligero', 'ligera'];
+const REST_WORDS = ['descanso', 'descansar', 'libre', 'rest', 'day off', 'off'];
+
+function findDays(seg: string): number[] {
+  if (EVERY_DAY_WORDS.some((w) => seg.includes(w))) return [...ALL_WEEK];
+  const days = new Set<number>();
+  for (const { day, words } of DAY_WORDS) if (has(seg, words)) days.add(day);
+  return [...days];
+}
+
+/** Grupos musculares (claves de exercises.ts) mencionados en un texto libre. */
+export function detectMuscleGroups(text: string): string[] {
+  const s = norm(text);
+  return MG_WORDS.filter((g) => has(s, g.words)).map((g) => g.group);
+}
+
+/** Tipo de actividad no-fuerza más cercano a un texto libre (o null). */
+export function detectActivityKind(text: string): string | null {
+  const s = norm(text);
+  return ACT_WORDS.find((a) => has(s, a.words))?.kind ?? null;
+}
+
+function mealSlot(seg: string): 'desayuno' | 'comida' | 'cena' | 'snack' {
+  if (/desayun/.test(seg) || seg.includes('breakfast') || /por la manana/.test(seg)) return 'desayuno';
+  if (/\bcena\b|cenar|por la noche|de noche|night|dinner/.test(seg)) return 'cena';
+  if (/snack|merienda|media manana|tentempie/.test(seg)) return 'snack';
+  return 'comida';
+}
+
+// Días con y sin acento, para limpiar el texto de la revisión (el día ya
+// se muestra aparte en un selector).
+const DAY_STRIP = 'lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|monday|tuesday|wednesday|thursday|friday|saturday|sunday';
+
+// Limpia un fragmento para mostrarlo: quita el día del principio y conectores.
+function cleanRaw(raw: string): string {
+  return raw
+    .trim()
+    .replace(/^\s*(?:esta semana|this week)[\s,:]*/i, '')
+    .replace(new RegExp(`^\\s*(?:el|los|este|esta|the|on|tengo|hago)\\s+`, 'i'), '')
+    .replace(new RegExp(`^\\s*(?:y\\s+)?(?:el|los)?\\s*(?:${DAY_STRIP})\\b[\\s,]*`, 'i'), '')
+    .replace(new RegExp(`^\\s*(?:el|los|este|esta|the|on|tengo|hago)\\s+`, 'i'), '')
+    .trim();
+}
+
+/**
+ * Interpreta un plan de semana escrito o dictado. `weekStartsMonday` no cambia
+ * nada aquí (devolvemos Date.getDay()); el llamador mapea cada `day` a la fecha
+ * de la semana que esté editando.
+ */
+export function parseWeekPlanFromSpeech(text: string): WeekPlanLine[] {
+  const lines: WeekPlanLine[] = [];
+  // Frases por punto / salto de línea / punto y coma / dos puntos.
+  const sentences = text.split(/[.\n;:]+/).map((x) => x.trim()).filter(Boolean);
+
+  let lastDays: number[] = [];
+
+  for (const sentence of sentences) {
+    const sNorm = norm(sentence);
+    const sentenceDays = findDays(sNorm);
+    // Sub-fragmentos por coma; el día detectado en la frase vale para todos.
+    const clauses = sentence.split(/,|\by\b(?=\s+(?:por|el|los|cada|toda|de noche|de dia))/i)
+      .map((x) => x.trim()).filter(Boolean);
+
+    let producedStrengthIdx = -1;
+
+    clauses.forEach((clause, ci) => {
+      const c = norm(clause);
+      let days = ci === 0 ? sentenceDays : (findDays(c).length ? findDays(c) : sentenceDays);
+      if (days.length === 0) days = lastDays;
+      // Un fragmento de detalle ("tres series de todo") sin día ni patrón se
+      // pega como nota al bloque de fuerza que acabamos de crear en la frase.
+      const looksLikeDetail = ci > 0 && findDays(c).length === 0;
+
+      // 1. Fuerza. La nota se compone SOLO de los fragmentos de detalle
+      //    posteriores ("tres series de todo"), no de esta cláusula.
+      const groups = MG_WORDS.filter((g) => has(c, g.words)).map((g) => g.group);
+      if (groups.length > 0) {
+        (days.length ? days : lastDays).forEach((d) => lines.push({
+          day: d, kind: 'strength', payload: { groups }, raw: cleanRaw(clause),
+        }));
+        producedStrengthIdx = lines.length - 1;
+        lastDays = days.length ? days : lastDays;
+        return;
+      }
+
+      // 2. Actividad
+      const act = ACT_WORDS.find((a) => has(c, a.words));
+      if (act) {
+        const dur = parseDuration(clause);
+        (days.length ? days : lastDays).forEach((d) => lines.push({
+          day: d, kind: 'activity',
+          payload: { kind: act.kind, ...(dur && dur >= 5 && dur <= 600 ? { duration_min: dur } : {}) },
+          raw: cleanRaw(clause),
+        }));
+        lastDays = days.length ? days : lastDays;
+        return;
+      }
+
+      // 3. Suplemento
+      const supps = SUPP_WORDS.filter((sp) => has(c, sp.words));
+      if (supps.length > 0) {
+        const target = EVERY_DAY_WORDS.some((w) => c.includes(w)) || days.length === 0 ? ALL_WEEK : days;
+        supps.forEach((sp) => target.forEach((d) => lines.push({
+          day: d, kind: 'supplement', payload: { name: sp.name }, raw: cleanRaw(clause),
+        })));
+        lastDays = target;
+        return;
+      }
+
+      // 4. Descanso / "cena fuera" / detalle → nota
+      if (has(c, REST_WORDS) || /fuera|out\b/.test(c)) {
+        (days.length ? days : lastDays).forEach((d) => lines.push({
+          day: d, kind: 'note', payload: { text: cleanRaw(clause) || clause.trim() }, raw: cleanRaw(clause),
+        }));
+        lastDays = days.length ? days : lastDays;
+        return;
+      }
+
+      // 5. Comida
+      if (has(c, FOOD_HINT)) {
+        const slot = mealSlot(c);
+        const text2 = cleanRaw(clause)
+          .replace(/\b(de (comida|comer|cena|cenar|desayuno)|por la (noche|ma[ñn]ana)|para (comer|cenar|desayunar))\b/gi, '')
+          .replace(/\b(toda la semana|todos los d[ií]as|cada d[ií]a|a diario|all week|every day|daily)\b/gi, '')
+          .replace(/^\s*(?:y|and|,)\s*/i, '').replace(/\s+/g, ' ').trim();
+        const target = EVERY_DAY_WORDS.some((w) => c.includes(w)) ? ALL_WEEK : (days.length ? days : lastDays);
+        target.forEach((d) => lines.push({
+          day: d, kind: 'meal', payload: { slot, text: text2 || clause.trim() }, raw: cleanRaw(clause),
+        }));
+        lastDays = target;
+        return;
+      }
+
+      // 6. Detalle sin patrón → nota del bloque de fuerza previo, si lo hay
+      if (looksLikeDetail && producedStrengthIdx >= 0) {
+        const detail = clause.trim();
+        // Pega la nota a TODAS las líneas de fuerza recién creadas en esta frase.
+        for (let k = producedStrengthIdx; k < lines.length; k++) {
+          if (lines[k].kind === 'strength') {
+            const p = lines[k].payload as { groups: string[]; note?: string };
+            p.note = p.note ? `${p.note} · ${detail}` : detail;
+          }
+        }
+        return;
+      }
+
+      // 7. Con día explícito pero sin patrón reconocible → nota
+      if (days.length > 0 && clause.trim().length > 2) {
+        days.forEach((d) => lines.push({
+          day: d, kind: 'note', payload: { text: cleanRaw(clause) || clause.trim() }, raw: cleanRaw(clause),
+        }));
+        lastDays = days;
+      }
+    });
+  }
+
+  // Dedupe exacto (mismo día + kind + payload serializado).
+  const seen = new Set<string>();
+  return lines.filter((l) => {
+    const key = `${l.day}|${l.kind}|${JSON.stringify(l.payload)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }

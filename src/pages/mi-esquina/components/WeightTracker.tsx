@@ -71,8 +71,10 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
     let weightRes = weightRes0;
     if (weightRes.error && isMissingColumn(weightRes.error)) {
       setRecordedReady(false);
+      // Fallback sin recorded_at (migración 0035 sin aplicar): mismo shape,
+      // recorded_at queda undefined y la UI oculta la hora.
       weightRes = await supabase.from('weight_entries').select('id, weight_kg, entry_date, note')
-        .eq('fighter_profile_id', profile.id).order('entry_date', { ascending: false }).limit(400);
+        .eq('fighter_profile_id', profile.id).order('entry_date', { ascending: false }).limit(400) as typeof weightRes0;
     }
     if (isMissingTable(weightRes.error)) { setUnavailable(true); setLoading(false); return; }
     setWeights((weightRes.data || []) as WeightEntry[]);

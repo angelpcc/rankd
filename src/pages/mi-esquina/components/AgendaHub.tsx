@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Profile } from '@/lib/supabase';
 import HubTabs, { HubTab } from '@/pages/mi-esquina/components/HubTabs';
 import WeeklyAgenda from '@/pages/mi-esquina/components/WeeklyAgenda';
-import QuickRoutines from '@/pages/mi-esquina/components/QuickRoutines';
+import PlanificarPanel from '@/pages/mi-esquina/components/PlanificarPanel';
 import AgendaWeekStrip from '@/pages/mi-esquina/components/AgendaWeekStrip';
 import FightPrep from '@/pages/mi-esquina/components/FightPrep';
 import TrainerPlanUpload from '@/pages/mi-esquina/components/TrainerPlanUpload';
@@ -17,26 +17,27 @@ interface Props {
   onLogged?: () => void;
   /** Pestaña con la que abrir (para accesos rápidos del resumen). */
   initialTab?: string;
-  /** Registrar actividad vive en Progreso › Actividad. Agenda solo planifica
-   * y visualiza: el "+" flotante y "Ver / Registrar" de un día saltan allí,
-   * opcionalmente con una fecha concreta ya puesta. */
+  /** Registrar actividad vive en Progreso › Actividad. */
   onGoActivity: (date?: string) => void;
 }
 
 const TABS: HubTab[] = [
   { id: 'plan', labelKey: 'mc_ag_plan', icon: 'ri-calendar-todo-line' },
-  { id: 'rutinas', labelKey: 'mc_ag_routines', icon: 'ri-repeat-line' },
+  { id: 'planificar', labelKey: 'mc_ag_routines', icon: 'ri-magic-line' },
 ];
 
+// Compatibilidad: accesos rápidos antiguos apuntaban a 'rutinas'.
+const normalizeTab = (id?: string) => (id === 'rutinas' ? 'planificar' : id || 'plan');
+
 /**
- * Agenda de Mi Esquina: Calendario + Rutinas. Solo planificación y
- * visualización — registrar lo que de verdad se hizo vive en
- * Progreso › Actividad (ver onGoActivity).
+ * Agenda de Mi Esquina: Calendario (ve lo planificado) + Planificar (lo
+ * escribes o dictas y se reparte por días). Registrar lo que de verdad se
+ * hizo vive en Progreso › Actividad (ver onGoActivity).
  */
 export default function AgendaHub({ profile, showToast, mode, onLogged, initialTab, onGoActivity }: Props) {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<string>(initialTab || 'plan');
-  useEffect(() => { if (initialTab) setTab(initialTab); }, [initialTab]);
+  const [tab, setTab] = useState<string>(normalizeTab(initialTab));
+  useEffect(() => { if (initialTab) setTab(normalizeTab(initialTab)); }, [initialTab]);
 
   return (
     <div className="max-w-4xl space-y-5 relative">
@@ -51,8 +52,11 @@ export default function AgendaHub({ profile, showToast, mode, onLogged, initialT
       )}
       <HubTabs tabs={TABS} active={tab} onChange={setTab} />
       {tab === 'plan' && <TrainerPlanUpload profile={profile} showToast={showToast} />}
-      {tab === 'plan' && <WeeklyAgenda profile={profile} showToast={showToast} mode={mode} onGoActivity={onGoActivity} />}
-      {tab === 'rutinas' && <QuickRoutines profile={profile} showToast={showToast} onLogged={onLogged} />}
+      {tab === 'plan' && (
+        <WeeklyAgenda profile={profile} showToast={showToast} mode={mode}
+          onGoActivity={onGoActivity} onGoPlanificar={() => setTab('planificar')} />
+      )}
+      {tab === 'planificar' && <PlanificarPanel profile={profile} showToast={showToast} onLogged={onLogged} />}
 
       {/* Flotante: registrar entreno salta a Progreso › Actividad */}
       {tab === 'plan' && (

@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
-import { isMissingTable, isMissingColumn } from '@/lib/dbState';
+import { isMissingTable } from '@/lib/dbState';
+import { detectMuscleGroups, detectActivityKind, parseDuration } from '@/lib/dictation';
 
 /**
  * Plan IA por objetivo (Mi Esquina › Progreso › Objetivos).
@@ -200,6 +201,78 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
     })();
   }, [profile.id, profile.full_name]);
 
+  // Radiografía de lo que el peleador YA tiene en la app: plan de los próximos
+  // días, actividad y fuerza de las últimas semanas, evolución del peso y
+  // registro de nutrición. Se pasa al Asesor como texto para que responda
+  // sobre datos reales ("¿entreno demasiado pecho?", "reajusta esta semana").
+  const [snapshot, setSnapshot] = useState<string>('');
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const d30 = new Date(today); d30.setDate(d30.getDate() - 30);
+      const in21 = new Date(today); in21.setDate(in21.getDate() + 21);
+      const [plan, acts, sets, weights, meals] = await Promise.all([
+        supabase.from('day_plan_items').select('plan_date, kind, payload, completed')
+          .eq('fighter_profile_id', profile.id).gte('plan_date', iso(today)).lte('plan_date', iso(in21)).order('plan_date'),
+        supabase.from('activity_sessions').select('kind, duration_min, session_date')
+          .eq('fighter_profile_id', profile.id).gte('session_date', iso(d30)),
+        supabase.from('strength_sets').select('muscle_group, session_date')
+          .eq('fighter_profile_id', profile.id).gte('session_date', iso(d30)),
+        supabase.from('weight_entries').select('weight_kg, entry_date')
+          .eq('fighter_profile_id', profile.id).order('entry_date', { ascending: false }).limit(8),
+        supabase.from('meal_entries').select('entry_date')
+          .eq('fighter_profile_id', profile.id).gte('entry_date', iso(new Date(today.getTime() - 7 * 864e5))),
+      ]);
+      if (!alive) return;
+      const parts: string[] = [];
+
+      const planRows = (plan.data || []) as { plan_date: string; kind: string; payload: Record<string, unknown>; completed: boolean }[];
+      if (planRows.length) {
+        const byDate = new Map<string, string[]>();
+        planRows.forEach((r) => {
+          const p = r.payload || {};
+          const label = r.kind === 'strength' ? `fuerza (${(Array.isArray(p.groups) ? p.groups : []).join(', ') || 's/g'})`
+            : r.kind === 'activity' ? `${p.kind || 'actividad'}${p.duration_min ? ` ${p.duration_min}min` : ''}`
+            : r.kind === 'meal' ? `comida: ${String(p.text || '').slice(0, 40)}`
+            : r.kind === 'supplement' ? `supl.: ${p.name || ''}` : `nota: ${String(p.text || '').slice(0, 40)}`;
+          const l = byDate.get(r.plan_date) || []; l.push(label + (r.completed ? ' ✓' : '')); byDate.set(r.plan_date, l);
+        });
+        parts.push('Plan de los próximos días:\n' + [...byDate.entries()].map(([d, l]) => `  ${d}: ${l.join(' · ')}`).join('\n'));
+      }
+
+      const actRows = (acts.data || []) as { kind: string; duration_min: number }[];
+      if (actRows.length) {
+        const agg = new Map<string, { n: number; min: number }>();
+        actRows.forEach((r) => { const a = agg.get(r.kind) || { n: 0, min: 0 }; a.n++; a.min += r.duration_min || 0; agg.set(r.kind, a); });
+        parts.push('Actividad últimos 30 días: ' + [...agg.entries()].map(([k, v]) => `${k} ${v.n}x (${v.min}min)`).join(', '));
+      }
+
+      const setRows = (sets.data || []) as { muscle_group: string | null }[];
+      if (setRows.length) {
+        const freq = new Map<string, number>();
+        setRows.forEach((r) => { const g = r.muscle_group || 'otro'; freq.set(g, (freq.get(g) || 0) + 1); });
+        parts.push('Fuerza últimos 30 días (series por grupo): ' + [...freq.entries()].sort((a, b) => b[1] - a[1]).map(([g, n]) => `${g} ${n}`).join(', '));
+      }
+
+      const wRows = (weights.data || []) as { weight_kg: number; entry_date: string }[];
+      if (wRows.length >= 2) {
+        const last = wRows[0], first = wRows[wRows.length - 1];
+        const delta = (Number(last.weight_kg) - Number(first.weight_kg)).toFixed(1);
+        parts.push(`Peso: ${last.weight_kg} kg (${Number(delta) >= 0 ? '+' : ''}${delta} kg en ${wRows.length} registros)`);
+      } else if (wRows.length === 1) {
+        parts.push(`Peso: ${wRows[0].weight_kg} kg`);
+      }
+
+      const mealRows = (meals.data || []) as unknown[];
+      if (mealRows.length) parts.push(`Nutrición: ${mealRows.length} comidas registradas en 7 días`);
+
+      setSnapshot(parts.join('\n'));
+    })();
+    return () => { alive = false; };
+  }, [profile.id]);
+
   // ── Scroll suave a un bloque cuando aparece ──
   useEffect(() => {
     if (creating && objective.trim() && questionsRef.current) {
@@ -236,7 +309,7 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
         },
         body: JSON.stringify({
           objectivePlan: { objective: obj, answers: ans, previous, adjustments: adjustText },
-          profile: physical,
+          profile: { ...physical, snapshot: snapshot || undefined },
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -256,7 +329,7 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
       showToast(t('op_err_generic'), 'error');
     }
     setGenerating(false);
-  }, [physical, showToast, t]);
+  }, [physical, snapshot, showToast, t]);
 
   const canGenerate = objective.trim().length > 0 && !generating;
   const applyAdjustments = () => {
@@ -286,35 +359,34 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
       }).select().maybeSingle();
       if (saveErr || !saved) { showToast(t('op_saved_none'), 'error'); setSavingAgenda(false); return; }
 
-      // 3. Volcar días futuros a planned_events (source='ai' cuando exista la col).
+      // 3. Volcar los días del plan a day_plan_items (source='advisor') —
+      //    mismo destino que Planificar. Cada día se descompone en bloques:
+      //    entreno → fuerza (grupos detectados) o nota; cardio → actividad;
+      //    nutrición → comida; notas → observación.
       const scheduled = computeDayOffsets(plan.weeks);
-      const rows = scheduled
-        .filter((s) => s.day.training || s.day.cardio)
-        .map((s) => {
-          const bits: string[] = [];
-          if (s.day.training) bits.push(`Entreno: ${s.day.training}`);
-          if (s.day.cardio) bits.push(`Cardio: ${s.day.cardio}`);
-          if (s.day.nutrition) bits.push(`Nutrición: ${s.day.nutrition}`);
-          if (s.day.notes) bits.push(`Nota: ${s.day.notes}`);
-          return {
-            fighter_profile_id: profile.id,
-            event_date: isoFromOffset(s.offset),
-            kind: 'training',
-            session_type: s.day.training ? 'tecnica' : 'cardio',
-            title: (plan.plan_name || 'Plan de entrenamiento').slice(0, 80),
-            time: null,
-            notes: bits.join(' · ').slice(0, 500) || null,
-            done: false,
-            source: 'ai',
-          };
-        });
-      if (rows.length > 0) {
-        let ins = await supabase.from('planned_events').insert(rows);
-        if (ins.error && isMissingColumn(ins.error)) {
-          const bare = rows.map((r) => { const c = { ...r } as Record<string, unknown>; delete c.source; return c; });
-          ins = await supabase.from('planned_events').insert(bare);
+      const rows: Array<{ fighter_profile_id: string; plan_date: string; kind: string; payload: Record<string, unknown>; source: string }> = [];
+      scheduled.forEach((s) => {
+        const plan_date = isoFromOffset(s.offset);
+        const base = { fighter_profile_id: profile.id, plan_date, source: 'advisor' };
+        if (s.day.training) {
+          const groups = detectMuscleGroups(s.day.training);
+          rows.push({ ...base, kind: groups.length ? 'strength' : 'note',
+            payload: groups.length ? { groups, exercises: s.day.training.slice(0, 200) } : { text: s.day.training.slice(0, 280) } });
         }
-        if (ins.error) { showToast(t('op_saved_none'), 'error'); setSavingAgenda(false); return; }
+        if (s.day.cardio) {
+          rows.push({ ...base, kind: 'activity',
+            payload: { kind: detectActivityKind(s.day.cardio) || 'correr', duration_min: parseDuration(s.day.cardio), note: s.day.cardio.slice(0, 200) } });
+        }
+        if (s.day.nutrition) {
+          rows.push({ ...base, kind: 'meal', payload: { slot: 'comida', text: s.day.nutrition.slice(0, 200) } });
+        }
+        if (s.day.notes) {
+          rows.push({ ...base, kind: 'note', payload: { text: s.day.notes.slice(0, 280) } });
+        }
+      });
+      if (rows.length > 0) {
+        const ins = await supabase.from('day_plan_items').insert(rows);
+        if (ins.error && !isMissingTable(ins.error)) { showToast(t('op_saved_none'), 'error'); setSavingAgenda(false); return; }
       }
 
       showToast(t('op_saved_agenda', { n: rows.length }), 'success');
