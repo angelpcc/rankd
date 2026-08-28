@@ -1,0 +1,23 @@
+<svg width="800" height="560" viewBox="0 0 800 560" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="800" y2="560" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0f1512"/><stop offset="1" stop-color="#090c0b"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(560 130) scale(450)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#34d399" stop-opacity="0.2"/><stop offset="1" stop-color="#34d399" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="46" height="46" patternUnits="userSpaceOnUse">
+      <path d="M46 0H0V46" stroke="#ffffff" stroke-opacity="0.025"/>
+    </pattern>
+  </defs>
+  <rect width="800" height="560" fill="url(#bg)"/>
+  <rect width="800" height="560" fill="url(#grid)"/>
+  <rect width="800" height="560" fill="url(#glow)"/>
+  <!-- ondas lentas -->
+  <g stroke="#34d399" fill="none" stroke-linecap="round">
+    <path d="M40 320c90-70 180-70 270 0s180 70 270 0 180-70 220-30" stroke-opacity="0.4" stroke-width="4"/>
+    <path d="M40 390c90-60 180-60 270 0s180 60 270 0 180-60 220-24" stroke-opacity="0.18" stroke-width="3"/>
+  </g>
+  <!-- watermark: media luna -->
+  <path d="M520 250a120 120 0 10120 170 96 96 0 01-120-170z" fill="#ffffff" fill-opacity="0.04" transform="translate(120 20) scale(1.3)"/>
+</svg>

@@ -9,6 +9,7 @@ import type { NutritionAnalysis } from '@/services/nutritionAnalysis';
 import NutritionTracker from '@/pages/mi-esquina/components/NutritionTracker';
 import SupplementTracker from '@/pages/mi-esquina/components/SupplementTracker';
 import SectionCoach from '@/pages/mi-esquina/components/SectionCoach';
+import SectionHero from '@/pages/mi-esquina/components/SectionHero';
 
 function todayISO(): string {
   const d = new Date();
@@ -96,7 +97,12 @@ export default function NutritionHub({ profile, showToast, isHobby, onGoWeight }
 
   return (
     <div className="max-w-4xl">
-      {/* Resumen del día — SIEMPRE arriba del todo, compacto en una línea. */}
+      <div className="mb-5">
+        <SectionHero kind="nutrition" eyebrow={t('mc_ng_eyebrow')}
+          title={t('mc_ng_hero_title')} subtitle={t('mc_ng_hero_sub')} />
+      </div>
+
+      {/* Resumen del día — compacto en una línea. */}
       <TodayMacrosSummary profile={profile} />
 
       <HubTabs tabs={TABS} active={tab} onChange={(id) => setTab(id as typeof tab)} />

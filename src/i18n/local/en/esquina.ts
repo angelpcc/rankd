@@ -473,6 +473,11 @@ export default {
   mc_metric_goal_empty: 'Set your weight goal',
   mc_greeting: 'Hi, {{name}}',
   mc_week_completed: '{{done}} of {{total}} done this week',
+  mc_str_hero_sub: '{{n}} sessions logged',
+  mc_av_hero_sub: '{{n}} activities logged',
+  mc_ag_hero_sub: '{{n}} items planned this week',
+  mc_ng_hero_title: 'Nutrition',
+  mc_ng_hero_sub: 'Log what you eat and track your macros',
   mc_ai_line_label: 'Your active plan',
   // ── Muscle map (Strength) ──
   mc_str_map_title: 'What you trained',

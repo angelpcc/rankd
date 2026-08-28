@@ -1,0 +1,27 @@
+<svg width="800" height="560" viewBox="0 0 800 560" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="800" y2="560" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#111713"/><stop offset="1" stop-color="#0a0d0b"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(600 120) scale(430)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22c55e" stop-opacity="0.26"/><stop offset="1" stop-color="#22c55e" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="46" height="46" patternUnits="userSpaceOnUse">
+      <path d="M46 0H0V46" stroke="#ffffff" stroke-opacity="0.03"/>
+    </pattern>
+  </defs>
+  <rect width="800" height="560" fill="url(#bg)"/>
+  <rect width="800" height="560" fill="url(#grid)"/>
+  <rect width="800" height="560" fill="url(#glow)"/>
+  <!-- estelas de movimiento -->
+  <g stroke="#22c55e" stroke-linecap="round" fill="none">
+    <path d="M120 360c120-40 240-40 360-140s260-80 200 60" stroke-opacity="0.45" stroke-width="4"/>
+    <path d="M90 420c140-30 280-20 400-120s280-40 200 40" stroke-opacity="0.22" stroke-width="3"/>
+  </g>
+  <g fill="#22c55e">
+    <circle cx="120" cy="360" r="7" fill-opacity="0.7"/>
+    <circle cx="680" cy="200" r="5" fill-opacity="0.5"/>
+  </g>
+  <!-- watermark: rayo -->
+  <path d="M470 250l-120 130h80l-40 120 150-170h-80z" fill="#ffffff" fill-opacity="0.045" transform="translate(180 30) scale(1.7)"/>
+</svg>

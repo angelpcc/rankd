@@ -4,6 +4,7 @@ import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable } from '@/lib/dbState';
 import BottomSheet from '@/components/base/BottomSheet';
 import StrengthPlanBuilder from './StrengthPlanBuilder';
+import SectionHero from './SectionHero';
 import {
   type DayPlanItem, type DayPlanKind, type StrengthPayload, type ActivityPayload,
   type MealPayload, type SupplementPayload, type NotePayload, type MealSlot, type ExerciseSpec,
@@ -164,15 +165,16 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
     );
   }
 
-  // ══════════ CABECERA con selector Día · Semana · Mes ══════════
+  // ══════════ CABECERA hero + selector Día · Semana · Mes ══════════
+  const weekPlanned = (() => {
+    const ws = iso(weekStart); const we = iso(addDays(weekStart, 6));
+    return items.filter((i) => i.plan_date >= ws && i.plan_date <= we).length;
+  })();
   const header = (
-    <div className="flex items-end justify-between gap-3 flex-wrap">
-      <div>
-        <p className="rk-label" style={{ letterSpacing: '0.16em' }}>{t('mc_ag_eyebrow')}</p>
-        <h2 className="rk-screen-title mt-1">
-          {t('mc_ag_title')} {t('mc_ag_title_2')}
-        </h2>
-      </div>
+    <div className="space-y-3">
+      <SectionHero kind="agenda" eyebrow={t('mc_ag_eyebrow')}
+        title={`${t('mc_ag_title')} ${t('mc_ag_title_2')}`}
+        subtitle={weekPlanned ? t('mc_ag_hero_sub', { n: weekPlanned }) : t('mc_ag_sub')} />
       <div className="flex gap-1.5">
         {(['day', 'week', 'month'] as const).map((v) => (
           <button key={v} onClick={() => { if (v === 'day') setDayISO((d) => d || todayISO()); setView(v); }}

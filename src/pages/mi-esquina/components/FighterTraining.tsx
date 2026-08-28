@@ -6,6 +6,7 @@ import Reveal from '@/components/base/Reveal';
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ACTIVITY_KINDS, activityKindCfg, computePace, paceLabel, paceToSec, todayISO } from '../lib/dayPlan';
 import { reconcileDayTicks } from '../lib/planTicks';
+import SectionHero from './SectionHero';
 
 interface Props {
   profile: Profile;
@@ -247,20 +248,14 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
 
   return (
     <div className="rk-blocks max-w-4xl">
-      <div className="flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <p className="rk-label" style={{ letterSpacing: '0.16em' }}>{t('mc_av_eyebrow')}</p>
-          <h2 className="rk-screen-title mt-1">
-            {t('mc_av_title')} {t('mc_av_title_2')}
-          </h2>
-        </div>
-        <button onClick={() => { if (!showForm) setStep(1); setShowForm(!showForm); }}
-          className={showForm ? 'rk-nav-btn flex items-center gap-2' : 'rk-cta flex items-center gap-2'}
-          style={{ fontSize: 15, padding: '10px 18px', minHeight: 44 }}>
-          <i className={showForm ? 'ri-close-line' : 'ri-add-line'}></i>
-          {showForm ? t('mc_av_close') : t('mc_av_new')}
-        </button>
-      </div>
+      <SectionHero kind="activity" eyebrow={t('mc_av_eyebrow')}
+        title={`${t('mc_av_title')} ${t('mc_av_title_2')}`}
+        subtitle={sessions.length ? t('mc_av_hero_sub', { n: sessions.length }) : t('mc_av_sub')}
+        action={{
+          label: showForm ? t('mc_av_close') : t('mc_av_new'),
+          icon: showForm ? 'ri-close-line' : 'ri-add-line',
+          onClick: () => { if (!showForm) setStep(1); setShowForm(!showForm); },
+        }} />
 
       {/* ── Formulario en 2 pasos ── */}
       {showForm && (

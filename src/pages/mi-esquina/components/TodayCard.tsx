@@ -87,9 +87,11 @@ export default function TodayCard({ profile, onStart, onCreatePlan }: Props) {
   // ── Estado 1: hay entreno hoy ──
   if (main) {
     const extra = training.length - 1;
+    const isStrength = main.typeLabelKey === 'mc_dp_kind_strength';
     return (
       <PhotoCard
         primary
+        image={isStrength ? '/images/hero-strength.svg' : '/images/hero-activity.svg'}
         icon={main.icon}
         chips={<>{pill(t(main.typeLabelKey))}{extra > 0 && pill(`+${extra}`, true)}</>}
         title={main.title.toUpperCase()}
@@ -107,6 +109,7 @@ export default function TodayCard({ profile, onStart, onCreatePlan }: Props) {
   if (hasPlan) {
     return (
       <PhotoCard
+        image="/images/hero-rest.svg"
         icon="ri-heart-pulse-line"
         chips={pill(t('mc_hoy_eyebrow'))}
         title={t('mc_hoy_rest_title').toUpperCase()}
@@ -119,6 +122,7 @@ export default function TodayCard({ profile, onStart, onCreatePlan }: Props) {
   return (
     <PhotoCard
       primary
+      image="/images/hero-plan.svg"
       icon="ri-sparkling-2-line"
       chips={pill(t('mc_hoy_eyebrow'))}
       title={t('mc_hoy_noplan_title').toUpperCase()}

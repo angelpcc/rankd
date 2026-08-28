@@ -8,6 +8,7 @@ import {
 } from '../lib/exercises';
 import { fmtWeight, fmtSetCount, fmtSetValue } from '../lib/dayPlan';
 import { reconcileDayTicks } from '../lib/planTicks';
+import SectionHero from './SectionHero';
 import Reveal from '@/components/base/Reveal';
 import MuscleMap, { type MapGroup, type TrainState } from './MuscleMap';
 import StrengthSessionForm, { type BuiltSession, type SessionSlot } from './StrengthSessionForm';
@@ -388,18 +389,11 @@ export default function StrengthLog({ profile, showToast }: Props) {
 
   return (
     <div className="rk-blocks max-w-3xl">
-      {/* Cabecera */}
-      <div className="flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <p className="rk-label" style={{ color: 'var(--t-3)', letterSpacing: '0.16em' }}>{t('mc_str_eyebrow')}</p>
-          <h2 className="rk-screen-title mt-1">
-            {t('mc_str_title')} {t('mc_str_title_2')}
-          </h2>
-        </div>
-        <button onClick={() => openForm()} className="rk-cta flex items-center gap-2" style={{ fontSize: 15, padding: '10px 18px' }}>
-          <i className="ri-add-line"></i> {t('mc_str_new')}
-        </button>
-      </div>
+      {/* Cabecera hero */}
+      <SectionHero kind="strength" eyebrow={t('mc_str_eyebrow')}
+        title={`${t('mc_str_title')} ${t('mc_str_title_2')}`}
+        subtitle={rows.length ? t('mc_str_hero_sub', { n: sessions.length }) : undefined}
+        action={{ label: t('mc_str_new'), icon: 'ri-add-line', onClick: () => openForm() }} />
 
       {rows.length === 0 ? (
         <div className="rk-card text-center" style={{ padding: '48px 28px' }}>

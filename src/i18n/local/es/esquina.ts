@@ -473,6 +473,11 @@ export default {
   mc_metric_goal_empty: 'Fija tu objetivo de peso',
   mc_greeting: 'Hola, {{name}}',
   mc_week_completed: '{{done}} de {{total}} completados esta semana',
+  mc_str_hero_sub: '{{n}} sesiones registradas',
+  mc_av_hero_sub: '{{n}} actividades registradas',
+  mc_ag_hero_sub: '{{n}} elementos planificados esta semana',
+  mc_ng_hero_title: 'Nutrición',
+  mc_ng_hero_sub: 'Registra lo que comes y controla tus macros',
   mc_ai_line_label: 'Tu plan activo',
   // ── Mapa muscular (Fuerza) ──
   mc_str_map_title: 'Qué has entrenado',
