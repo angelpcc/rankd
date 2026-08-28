@@ -129,6 +129,8 @@ export default {
   // Pestañas del Ring
   mc_rg_header_title: 'Ring — tu historial de combate',
   mc_rg_header_desc: 'Sparring, análisis de combates, notas técnicas y documentos, todo en un sitio.',
+  mc_rg_eyebrow: 'TU MATERIAL DE PELEA',
+  mc_rg_hero_title: 'EL RING',
   mc_rg_sparring: 'Sparring',
   mc_rg_fights: 'Combates',
   mc_rg_notes: 'Técnica',

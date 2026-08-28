@@ -106,6 +106,9 @@ export default function OpportunitiesPage() {
       {/* Hero cinematográfico */}
       <div className="relative bg-zinc-950 pt-24 sm:pt-28 pb-10 sm:pb-16 px-4 overflow-hidden">
         {/* BG decorativo */}
+        {/* Foto de fondo (Unsplash, licencia libre, uso comercial) + oscurecido para legibilidad */}
+        <img src="/images/correr-2.webp" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ opacity: 0.18, objectPosition: 'center 30%' }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(9,9,11,0.84) 0%, rgba(9,9,11,0.6) 45%, rgba(9,9,11,0.96) 100%)' }} />
         <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 70% 50%, rgba(225,6,0,0.10) 0%, transparent 55%)' }} />
         <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: 'linear-gradient(90deg, #E10600 0%, rgba(225,6,0,0.4) 50%, transparent 100%)' }} />
 

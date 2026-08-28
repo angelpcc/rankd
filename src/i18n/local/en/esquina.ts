@@ -129,6 +129,8 @@ export default {
   // Ring tabs
   mc_rg_header_title: 'Ring — your fight history',
   mc_rg_header_desc: 'Sparring, fight analysis, technique notes and documents, all in one place.',
+  mc_rg_eyebrow: 'YOUR FIGHT MATERIAL',
+  mc_rg_hero_title: 'THE RING',
   mc_rg_sparring: 'Sparring',
   mc_rg_fights: 'Fights',
   mc_rg_notes: 'Technique',

@@ -124,6 +124,9 @@ export default function PromotorasPage() {
 
       {/* Hero */}
       <div className="relative overflow-hidden rk-grid-bg" style={{ background: '#050505', paddingTop: 'calc(60px + env(safe-area-inset-top,0px))' }}>
+        {/* Foto de fondo (Unsplash, licencia libre, uso comercial) + oscurecido para legibilidad */}
+        <img src="/images/evento.webp" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ opacity: 0.19, objectPosition: 'center 55%' }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(5,5,5,0.83) 0%, rgba(5,5,5,0.6) 45%, rgba(5,5,5,0.96) 100%)' }} />
         <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 74% 42%, rgba(225,6,0,0.15) 0%, transparent 56%)' }} />
         <div className="rk-topline" />
         <span aria-hidden="true" className="pointer-events-none select-none absolute -right-6 bottom-0 hidden md:block" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(110px,15vw,220px)', lineHeight: 0.7, color: 'transparent', WebkitTextStroke: '1px rgba(255,255,255,0.04)' }}>CLUBS</span>

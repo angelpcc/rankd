@@ -6,6 +6,7 @@ import SparringLog from '@/pages/mi-esquina/components/SparringLog';
 import FightAnalysis from '@/pages/mi-esquina/components/FightAnalysis';
 import TechniqueNotes from '@/pages/mi-esquina/components/TechniqueNotes';
 import DocumentsPanel from '@/pages/mi-esquina/components/DocumentsPanel';
+import SectionHero from '@/pages/mi-esquina/components/SectionHero';
 import Reveal from '@/components/base/Reveal';
 
 interface Props {
@@ -36,15 +37,8 @@ export default function RingHub({ profile, showToast, initialTab }: Props) {
   return (
     <div className="max-w-4xl space-y-5">
       <Reveal>
-        <div className="flex items-center gap-3.5">
-          <div className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-2xl bg-red-600/12 border border-red-500/25 text-red-400">
-            <i className="ri-boxing-line text-xl"></i>
-          </div>
-          <div className="min-w-0">
-            <h2 className="rk-h3" style={{ fontSize: '1.15rem', color: '#fff' }}>{t('mc_rg_header_title')}</h2>
-            <p className="text-xs text-zinc-400 mt-0.5">{t('mc_rg_header_desc')}</p>
-          </div>
-        </div>
+        <SectionHero kind="ring" eyebrow={t('mc_rg_eyebrow')}
+          title={t('mc_rg_hero_title')} subtitle={t('mc_rg_header_desc')} />
       </Reveal>
       <HubTabs tabs={TABS} active={tab} onChange={setTab} />
       {tab === 'sparring' && <SparringLog profile={profile} showToast={showToast} />}

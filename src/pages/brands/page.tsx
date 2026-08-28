@@ -125,6 +125,9 @@ export default function BrandsPage() {
 
       {/* ── HERO ── */}
       <section className="relative pt-24 pb-16 bg-[#0B0B0B] overflow-hidden rk-grid-bg">
+        {/* Foto de fondo (Unsplash, licencia libre, uso comercial) + oscurecido para legibilidad */}
+        <img src="/images/marca.webp" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ opacity: 0.16, objectPosition: 'center 40%' }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(11,11,11,0.85) 0%, rgba(11,11,11,0.62) 45%, rgba(11,11,11,0.97) 100%)' }} />
         <div className="absolute inset-0">
           <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 74% 45%, rgba(225,6,0,0.16) 0%, transparent 55%)' }} />
           <div className="absolute top-0 right-0 w-1/2 h-full" style={{ background: 'radial-gradient(ellipse at 100% 0%, rgba(201,168,76,0.07) 0%, transparent 60%)' }} />

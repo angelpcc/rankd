@@ -183,6 +183,9 @@ export default function NewsPage() {
 
       {/* ══════ CABECERA ══════ */}
       <section className="relative pb-7 overflow-hidden" style={{ paddingTop: 'calc(7rem + env(safe-area-inset-top, 0px))' }}>
+        {/* Foto de fondo (Unsplash, licencia libre, uso comercial) + oscurecido para legibilidad */}
+        <img src="/images/silueta.webp" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ opacity: 0.16, objectPosition: 'center 30%' }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(5,5,5,0.8) 0%, rgba(5,5,5,0.6) 45%, rgba(5,5,5,0.97) 100%)' }} />
         <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(225,6,0,0.11) 0%, transparent 55%)' }} />
         <div className="absolute inset-0 rk-grid-bg pointer-events-none opacity-40" />
         <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: 'linear-gradient(90deg, transparent, #E10600 50%, transparent)' }} />

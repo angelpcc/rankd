@@ -335,6 +335,9 @@ export default function BrandDashboard({ profile }: Props) {
             <div className="space-y-6 max-w-5xl">
               {/* Hero cinematográfico con acento oro (identidad de marca) */}
               <div className="rk-card relative overflow-hidden anim-fade-up" style={{ padding: 0, transform: 'none' }}>
+                {/* Foto de fondo (Unsplash, licencia libre, uso comercial) + oscurecido para legibilidad */}
+                <img src="/images/marca.webp" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ opacity: 0.12, objectPosition: 'center 45%' }} />
+                <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(115deg, rgba(10,10,11,0.9) 0%, rgba(10,10,11,0.72) 55%, rgba(10,10,11,0.92) 100%)' }} />
                 <div className="rk-glow-red" style={{ width: 340, height: 340, top: -160, right: -80, borderRadius: '50%', background: 'radial-gradient(circle, rgba(201,168,76,0.16) 0%, transparent 68%)' }} />
                 <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(115deg, rgba(201,168,76,0.10) 0%, transparent 42%)' }} />
                 <div className="relative flex items-center gap-4 sm:gap-5 p-5 sm:p-7">

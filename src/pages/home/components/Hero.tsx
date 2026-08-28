@@ -2,8 +2,9 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useEffect, useRef, useState } from 'react';
 
-const HERO_IMG =
-  'https://oqsobiykaaqelgfjgsor.supabase.co/storage/v1/object/public/images/0b31c269-e57b-4544-9db5-89b290862f50.png';
+// Foto de portada (Unsplash, licencia libre, uso comercial sin atribución),
+// WebP optimizado y servida desde el propio dominio.
+const HERO_IMG = '/images/hero.webp';
 
 export default function Hero() {
   const navigate = useNavigate();

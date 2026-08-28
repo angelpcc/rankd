@@ -1,17 +1,20 @@
 import PhotoCard from '@/components/base/PhotoCard';
 
 // Cabecera "hero" de cada sección de Mi Esquina: mismo tratamiento que la card
-// HOY del Resumen (fondo a sangre + degradado + título encima) pero adaptado a
-// cada sección — imagen, icono y color propios. El fondo diseñado de PhotoCard
-// se usa si el SVG no carga.
+// HOY del Resumen (foto a sangre + degradado + título encima) pero adaptado a
+// cada sección — foto e icono propios. Si la foto no carga, PhotoCard pinta su
+// fondo diseñado (degradado + retícula + glow + icono fantasma).
 
-export type HeroKind = 'strength' | 'activity' | 'agenda' | 'nutrition';
+export type HeroKind = 'strength' | 'activity' | 'agenda' | 'nutrition' | 'ring';
 
+// Fotos reales (Unsplash, licencia libre, uso comercial sin atribución) en
+// WebP optimizado. Si una foto no carga, PhotoCard pinta su fondo diseñado.
 const HERO: Record<HeroKind, { image: string; icon: string }> = {
-  strength:  { image: '/images/hero-strength.svg',  icon: 'ri-hammer-line' },
-  activity:  { image: '/images/hero-activity.svg',  icon: 'ri-run-line' },
-  agenda:    { image: '/images/hero-agenda.svg',    icon: 'ri-calendar-todo-line' },
-  nutrition: { image: '/images/hero-nutrition.svg', icon: 'ri-restaurant-2-line' },
+  strength:  { image: '/images/fuerza.webp',    icon: 'ri-hammer-line' },
+  activity:  { image: '/images/correr.webp',    icon: 'ri-run-line' },
+  agenda:    { image: '/images/silueta.webp',   icon: 'ri-calendar-todo-line' },
+  nutrition: { image: '/images/nutricion.webp', icon: 'ri-restaurant-2-line' },
+  ring:      { image: '/images/sparring.webp',  icon: 'ri-boxing-line' },
 };
 
 interface Props {

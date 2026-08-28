@@ -10,6 +10,7 @@ import NutritionTracker from '@/pages/mi-esquina/components/NutritionTracker';
 import SupplementTracker from '@/pages/mi-esquina/components/SupplementTracker';
 import SectionCoach from '@/pages/mi-esquina/components/SectionCoach';
 import SectionHero from '@/pages/mi-esquina/components/SectionHero';
+import PhotoCard from '@/components/base/PhotoCard';
 
 function todayISO(): string {
   const d = new Date();
@@ -169,13 +170,14 @@ export default function NutritionHub({ profile, showToast, isHobby, onGoWeight }
       {/* ── GUÍA ── */}
       {tab === 'guia' && (
         <div className="space-y-8 mt-6">
-          <header>
-            <p className="rk-eyebrow">{t('mc_ng_eyebrow')}</p>
-            <h2 className="rk-h3" style={{ fontSize: '1.15rem', color: '#fff', margin: '4px 0 0' }}>
-              {t('mc_ng_title')} <span className="rk-red-glow">{t('mc_ng_title_2')}</span>
-            </h2>
-            <p className="rk-body-14 mt-1">{t('mc_ng_sub')}</p>
-          </header>
+          <PhotoCard
+            image="/images/comida.webp"
+            icon="ri-restaurant-2-line"
+            aspect="21 / 8"
+            chips={<span style={{ background: 'rgba(255,255,255,0.1)', color: 'var(--t-1)', borderRadius: 'var(--r-pill)', padding: '4px 12px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{t('mc_ng_eyebrow')}</span>}
+            title={`${t('mc_ng_title')} ${t('mc_ng_title_2')}`.toUpperCase()}
+            subtitle={t('mc_ng_sub')}
+          />
           <div className="grid sm:grid-cols-2 gap-4 items-stretch">
             {NUTRITION_GUIDE.map((n) => (
               <div key={n.t} className="rk-card h-full" style={{ padding: 20 }}>

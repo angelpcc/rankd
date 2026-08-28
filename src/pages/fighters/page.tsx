@@ -311,6 +311,9 @@ export default function FightersDirectoryPage() {
       <div className="pt-16">
         {/* Hero */}
         <div className="relative bg-[#050505] overflow-hidden rk-grid-bg">
+          {/* Foto de fondo (Unsplash, licencia libre, uso comercial) + oscurecido para legibilidad */}
+          <img src="/images/guantes.webp" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ opacity: 0.2, objectPosition: 'center 35%' }} />
+          <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(5,5,5,0.8) 0%, rgba(5,5,5,0.55) 45%, rgba(5,5,5,0.97) 100%)' }} />
           <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 72% 45%, rgba(225,6,0,0.16) 0%, transparent 55%)' }} />
           <div className="absolute top-0 right-0 w-1/2 h-full" style={{ background: 'radial-gradient(ellipse at 100% 0%, rgba(201,168,76,0.06) 0%, transparent 60%)' }} />
           <div className="absolute inset-0" style={{ maskImage: 'linear-gradient(to bottom, black, transparent)', WebkitMaskImage: 'linear-gradient(to bottom, black, transparent)' }} />

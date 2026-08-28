@@ -9,8 +9,9 @@ import { type DayPlanItem, type StrengthPayload, type ActivityPayload, activityK
 // sangre (imagen o fondo diseñado) con el degradado de legibilidad y el texto
 // encima. Tres estados: hay entreno hoy / descanso / sin plan.
 //
-// Para poner fotos reales: dejar los WebP en public/images/ (fuerza.webp,
-// correr.webp, boxeo.webp, descanso.webp…) y pasar `image={IMG[...]}` abajo.
+// Fotos reales (Unsplash, licencia libre) para entreno de fuerza y actividad;
+// descanso y "sin plan" usan SVG diseñado (hero-rest / hero-plan) porque no
+// hay foto que encaje mejor que la ilustración para esos estados.
 
 interface Props {
   profile: Profile;
@@ -91,7 +92,7 @@ export default function TodayCard({ profile, onStart, onCreatePlan }: Props) {
     return (
       <PhotoCard
         primary
-        image={isStrength ? '/images/hero-strength.svg' : '/images/hero-activity.svg'}
+        image={isStrength ? '/images/fuerza.webp' : '/images/correr.webp'}
         icon={main.icon}
         chips={<>{pill(t(main.typeLabelKey))}{extra > 0 && pill(`+${extra}`, true)}</>}
         title={main.title.toUpperCase()}
