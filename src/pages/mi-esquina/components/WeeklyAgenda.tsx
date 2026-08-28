@@ -166,18 +166,17 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
 
   // ══════════ CABECERA con selector Día · Semana · Mes ══════════
   const header = (
-    <div className="flex items-start justify-between gap-3 flex-wrap">
+    <div className="flex items-end justify-between gap-3 flex-wrap">
       <div>
-        <p className="rk-eyebrow">{t('mc_ag_eyebrow')}</p>
-        <h2 className="rk-h2" style={{ fontSize: 'clamp(1.8rem,4vw,2.4rem)', color: '#fff', margin: '4px 0 0' }}>
-          {t('mc_ag_title')} <span className="rk-red-glow">{t('mc_ag_title_2')}</span>
+        <p className="rk-label" style={{ letterSpacing: '0.16em' }}>{t('mc_ag_eyebrow')}</p>
+        <h2 className="rk-screen-title mt-1">
+          {t('mc_ag_title')} {t('mc_ag_title_2')}
         </h2>
-        <p className="text-zinc-400 text-sm mt-1.5 max-w-md">{t('mc_ag_sub')}</p>
       </div>
-      <div className="flex bg-white/[0.04] border border-white/10 rounded-xl p-1">
+      <div className="flex gap-1.5">
         {(['day', 'week', 'month'] as const).map((v) => (
           <button key={v} onClick={() => { if (v === 'day') setDayISO((d) => d || todayISO()); setView(v); }}
-            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer ${view === v ? 'bg-red-600 text-white' : 'text-zinc-400 hover:text-white'}`}>
+            className={`rk-nav-btn text-xs font-bold ${view === v ? 'is-active' : ''}`} style={{ padding: '8px 14px' }}>
             {v === 'day' ? t('mc_ag_view_day') : v === 'week' ? t('mc_ag_view_week') : t('mc_ag_view_month')}
           </button>
         ))}

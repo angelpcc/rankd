@@ -195,6 +195,29 @@ body::before {
   /* Curvas */
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* ── Sistema visual 2026-08 · superficies por capas, acento disciplinado ──
+     El rojo se usa POCO y siempre en algo accionable; el oro solo en dato/logro. */
+  --s-0: #0A0A0B;   /* fondo de página */
+  --s-1: #141416;   /* card estándar */
+  --s-2: #1C1C1F;   /* card elevada / input */
+  --s-3: #26262A;   /* borde de elemento interactivo */
+
+  --t-1: rgba(255,255,255,0.95);  /* títulos y datos */
+  --t-2: rgba(255,255,255,0.62);  /* cuerpo */
+  --t-3: rgba(255,255,255,0.38);  /* metadata */
+
+  --accent: #E10600;
+  --accent-dim: rgba(225,6,0,0.12);
+  --accent-glow: 0 0 24px rgba(225,6,0,0.28);
+  --gold: #C9A84C;
+
+  --r-card: 20px;
+  --r-cta: 14px;
+  --r-pill: 999px;
+
+  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-8: 32px;
 }
 
 /* ── TIPOGRAFÍA ── */
@@ -231,25 +254,34 @@ body::before {
 }
 .rk-pill-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--rk-gold); box-shadow: 0 0 10px var(--rk-gold); flex-shrink: 0; }
 
-/* ── SUPERFICIES ── */
+/* ── SUPERFICIES ──
+   Card plana sobre --s-1 con borde --s-3. Sin degradado de vidrio ni
+   backdrop-filter (era lo que hacía que todas las cards se vieran iguales).
+   Hover discreto: solo el borde. La sombra queda reservada a .card-primary. */
 .rk-card {
-  background: linear-gradient(160deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.015) 100%);
-  border: 1px solid var(--rk-line);
-  border-radius: 18px;
-  backdrop-filter: blur(14px);
-  transition: transform 0.45s var(--ease-out), border-color 0.35s ease, box-shadow 0.45s ease;
+  background: var(--s-1);
+  border: 1px solid var(--s-3);
+  border-radius: var(--r-card);
+  transition: border-color 0.3s ease;
 }
 .rk-card:hover {
-  transform: translateY(-5px);
-  border-color: rgba(225, 6, 0, 0.35);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(225, 6, 0, 0.1);
+  border-color: rgba(255, 255, 255, 0.22);
 }
+/* --s-2 para inputs y cards anidadas dentro de otra card */
+.rk-surface-2 {
+  background: var(--s-2);
+  border: 1px solid var(--s-3);
+  border-radius: var(--r-cta);
+}
+/* Utilidades de ritmo: 12px entre cards, 32px entre bloques distintos */
+.rk-stack > * + * { margin-top: var(--sp-3); }
+.rk-blocks > * + * { margin-top: var(--sp-8); }
 
 /* ── BOTONES ── */
 .rk-btn {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 1.15rem; letter-spacing: 0.16em;
-  padding: 1rem 2.3rem; border-radius: 11px;
+  padding: 1rem 2.3rem; border-radius: var(--r-cta);
   border: none; cursor: pointer;
   transition: transform 0.3s var(--ease-out), box-shadow 0.3s ease, background 0.3s ease;
   position: relative; overflow: hidden;
@@ -501,8 +533,8 @@ html, body {
    objetivo de peso, próximo combate). Borde degradado rojo→oro con glow rojo. */
 .card-primary {
   position: relative;
-  background: #0f0f0f;
-  border-radius: 16px;
+  background: var(--s-1);
+  border-radius: var(--r-card);
   box-shadow:
     0 0 24px rgba(225, 6, 0, 0.15),
     0 8px 24px rgba(0, 0, 0, 0.4);
@@ -571,43 +603,58 @@ html, body {
    .rk-btn-primary/ghost (v2, decorativos con letter-spacing amplio); están
    pensados para acciones dentro de formularios y controles funcionales. */
 .rk-cta {
-  border-radius: 6px;
-  background: linear-gradient(135deg, #E10600 0%, #b30500 100%);
-  box-shadow: 0 0 20px rgba(225, 6, 0, 0.35);
+  border-radius: var(--r-cta);
+  background: var(--accent);
+  box-shadow: var(--accent-glow);
   color: #fff;
-  font-family: 'Barlow Condensed', sans-serif;
-  font-weight: 600;
-  padding: 0.75rem 1.5rem;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 17px;
+  letter-spacing: 0.04em;
+  padding: 16px 24px;
   border: none;
   cursor: pointer;
   transition: transform 0.2s var(--ease-out), box-shadow 0.2s ease;
 }
 .rk-cta:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 0 28px rgba(225, 6, 0, 0.5);
+  box-shadow: 0 0 30px rgba(225, 6, 0, 0.45);
 }
 .rk-cta:disabled { opacity: 0.55; cursor: not-allowed; }
 
+/* Navegación / tabs / cancelar: pill, sin glow. Es lo que distingue
+   "navegación" de "acción" (que va con radio --r-cta + glow). */
 .rk-nav-btn {
-  border-radius: 20px;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.7);
+  border-radius: var(--r-pill);
+  background: var(--s-2);
+  border: 1px solid var(--s-3);
+  color: var(--t-2);
   font-family: 'Barlow Condensed', sans-serif;
-  padding: 0.5rem 1.25rem;
+  padding: 10px 18px;
   cursor: pointer;
   transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
 }
 .rk-nav-btn:hover {
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.04);
+  color: var(--t-1);
+  border-color: rgba(255, 255, 255, 0.28);
 }
 .rk-nav-btn.is-active {
   color: #fff;
-  background: rgba(225, 6, 0, 0.14);
-  border-color: rgba(225, 6, 0, 0.5);
+  background: var(--accent);
+  border-color: transparent;
 }
+
+/* ── Escala tipográfica — jerarquía explícita ── */
+.rk-screen-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(28px, 7vw, 40px);
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: var(--t-1);
+}
+.rk-num { font-family: 'Bebas Neue', sans-serif; font-size: 32px; line-height: 1; color: var(--t-1); }
+.rk-num-gold { font-family: 'Bebas Neue', sans-serif; font-size: 32px; line-height: 1; color: var(--gold); }
+.rk-label { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--t-3); }
 
 /* ── SECCIÓN COMPACTA ──
    Padding vertical contenido para las secciones de la home, más apretado

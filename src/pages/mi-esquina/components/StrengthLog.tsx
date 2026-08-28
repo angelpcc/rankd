@@ -387,18 +387,16 @@ export default function StrengthLog({ profile, showToast }: Props) {
   const groupLabels = (keys: GroupKey[]) => keys.map((g) => t(`mc_str_mg_${g}`)).join(' + ');
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="rk-blocks max-w-3xl">
       {/* Cabecera */}
-      <div className="flex items-start justify-between gap-3 flex-wrap">
+      <div className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <p className="rk-eyebrow">{t('mc_str_eyebrow')}</p>
-          <h2 className="rk-h2" style={{ fontSize: 'clamp(1.8rem,4vw,2.4rem)', color: '#fff', margin: '4px 0 0' }}>
-            {t('mc_str_title')} <span className="rk-red-glow">{t('mc_str_title_2')}</span>
+          <p className="rk-label" style={{ color: 'var(--t-3)', letterSpacing: '0.16em' }}>{t('mc_str_eyebrow')}</p>
+          <h2 className="rk-screen-title mt-1">
+            {t('mc_str_title')} {t('mc_str_title_2')}
           </h2>
-          <p className="text-zinc-400 text-sm mt-1.5 max-w-md">{t('mc_str_sub')}</p>
         </div>
-        <button onClick={() => openForm()}
-          className="rk-btn rk-btn-primary flex items-center gap-2 w-full sm:w-auto justify-center" style={{ fontSize: '0.85rem', padding: '0.75rem 1.4rem' }}>
+        <button onClick={() => openForm()} className="rk-cta flex items-center gap-2" style={{ fontSize: 15, padding: '10px 18px' }}>
           <i className="ri-add-line"></i> {t('mc_str_new')}
         </button>
       </div>
@@ -422,22 +420,21 @@ export default function StrengthLog({ profile, showToast }: Props) {
           {/* ── VOLUMEN SEMANAL POR GRUPO (últimos 7 días) ──
               Solo el dato bruto, sin marcar bueno/malo. */}
           {rows.length > 0 && (
-            <div className="rk-card" style={{ padding: '18px 20px' }}>
-              <p className="text-[11px] font-bold tracking-[0.2em] uppercase text-zinc-500 mb-3">{t('mc_str_wk_vol_title')}</p>
-              <div className="space-y-1.5">
+            <div className="rk-card" style={{ padding: 20 }}>
+              <p className="rk-label mb-3">{t('mc_str_wk_vol_title')}</p>
+              <div className="space-y-2">
                 {weekSetsByGroup.entries.map(([g, n]) => {
                   const pct = n === 0 ? 0 : Math.round((n / weekSetsByGroup.max) * 100);
                   const zero = n === 0;
                   return (
                     <div key={g} className="flex items-center gap-3">
-                      <span className={`w-20 flex-shrink-0 text-xs font-semibold ${zero ? 'text-zinc-600' : 'text-white'}`}>{t(`mc_str_mg_${g}`)}</span>
-                      <span className="w-12 flex-shrink-0 text-xs font-bold text-right" style={{ color: zero ? 'rgba(255,255,255,0.35)' : '#C9A84C', fontFamily: "'Barlow Condensed', sans-serif" }}>
+                      <span className="w-20 flex-shrink-0 text-xs font-semibold" style={{ color: zero ? 'var(--t-3)' : 'var(--t-2)' }}>{t(`mc_str_mg_${g}`)}</span>
+                      <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'var(--s-3)' }}>
+                        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: zero ? 'transparent' : 'var(--accent)' }} />
+                      </div>
+                      <span className="w-8 flex-shrink-0 text-right" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 16, color: zero ? 'var(--t-3)' : 'var(--gold)' }}>
                         {n}
                       </span>
-                      <span className="text-[10px] text-zinc-500 flex-shrink-0">{t('mc_str_wk_vol_series')}</span>
-                      <div className="flex-1 h-2 rounded-full bg-white/[0.04] overflow-hidden">
-                        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: zero ? 'transparent' : 'linear-gradient(90deg, #E10600, #C9A84C)' }} />
-                      </div>
                     </div>
                   );
                 })}
@@ -447,8 +444,8 @@ export default function StrengthLog({ profile, showToast }: Props) {
 
           {/* ── HISTORIAL POR DÍAS ── */}
           <div>
-            <h3 className="rk-h3 mb-3" style={{ fontSize: '1rem', color: '#fff' }}>{t('mc_str_history')}</h3>
-            <div className="space-y-2.5">
+            <h3 className="rk-label mb-3">{t('mc_str_history')}</h3>
+            <div className="rk-stack">
               {sessions.map((s, i) => {
                 const isOpen = openDay === s.date;
                 const hasSlots = s.slots.some((sl) => sl.slot !== null);

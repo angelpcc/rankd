@@ -57,35 +57,40 @@ export default function AgendaWeekStrip({ profile }: Props) {
   if (items.length === 0) return null;
 
   return (
-    <div className="rk-card" style={{ padding: '16px 18px', transform: 'none' }}>
-      <div className="flex items-center justify-between gap-2">
+    <div className="rk-card" style={{ padding: 18 }}>
+      <div className="flex items-start justify-between gap-1">
         {days.map((d) => {
           const dISO = iso(d);
           const has = (byDate.get(dISO) || []).length > 0;
           const isToday = dISO === todayISO;
+          const numColor = isToday ? 'var(--accent)' : has ? 'var(--t-1)' : 'var(--t-3)';
           return (
             <button key={dISO} onClick={() => setExpanded((cur) => cur === dISO ? null : dISO)}
-              className="flex flex-col items-center gap-1.5 cursor-pointer group flex-1">
-              <span className="text-[9px] font-bold text-zinc-600 uppercase">{dayLabel(d)}</span>
-              <span className={`relative w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all ${expanded === dISO ? 'ring-2 ring-white/40' : ''}`}
-                style={has ? { background: '#E10600', color: '#fff' } : { background: 'rgba(255,255,255,0.05)', color: '#71717a' }}>
-                {isToday && <span className="absolute inset-0 rounded-full anim-pulse-glow" style={{ boxShadow: `0 0 0 2px ${has ? '#E10600' : 'rgba(255,255,255,0.25)'}` }} />}
+              className="flex flex-col items-center gap-1.5 cursor-pointer flex-1 min-w-0">
+              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--t-3)' }}>{dayLabel(d)}</span>
+              <span className="flex items-center justify-center"
+                style={{
+                  fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, lineHeight: 1,
+                  width: 30, height: 30, borderRadius: '50%', color: numColor,
+                  border: isToday ? '2px dashed var(--accent)' : expanded === dISO ? '2px solid var(--s-3)' : '2px solid transparent',
+                }}>
                 {d.getDate()}
               </span>
+              <span style={{ width: 4, height: 4, borderRadius: '50%', background: has && !isToday ? 'var(--accent)' : 'transparent' }} />
             </button>
           );
         })}
       </div>
 
       {expanded && (
-        <div className="mt-4 pt-4 border-t border-white/[0.06] anim-scale-in">
+        <div className="mt-4 pt-4 anim-scale-in" style={{ borderTop: '1px solid var(--s-3)' }}>
           {(byDate.get(expanded) || []).length === 0 ? (
-            <p className="text-xs text-zinc-600">{t('mc_aws_free_day')}</p>
+            <p className="text-xs" style={{ color: 'var(--t-3)' }}>{t('mc_aws_free_day')}</p>
           ) : (
             <div className="space-y-1.5">
               {(byDate.get(expanded) || []).map((e) => (
-                <div key={e.id} className="flex items-center gap-2 text-xs text-zinc-300">
-                  <i className={KIND_META[e.kind].icon} style={{ color: KIND_META[e.kind].hex }}></i>
+                <div key={e.id} className="flex items-center gap-2 text-xs" style={{ color: 'var(--t-2)' }}>
+                  <i className={KIND_META[e.kind].icon} style={{ color: 'var(--t-3)' }}></i>
                   <span className="font-semibold truncate">{summarizeItem(e, t)}</span>
                 </div>
               ))}
@@ -95,13 +100,13 @@ export default function AgendaWeekStrip({ profile }: Props) {
       )}
 
       {upcoming.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-white/[0.06] space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 mb-2">{t('mc_aws_upcoming')}</p>
+        <div className="mt-4 pt-4 space-y-1" style={{ borderTop: '1px solid var(--s-3)' }}>
+          <p className="rk-label mb-2">{t('mc_aws_upcoming')}</p>
           {upcoming.map((e) => (
-            <div key={e.id} className="group flex items-center gap-2.5 text-xs py-1">
-              <i className={`${KIND_META[e.kind].icon} flex-shrink-0`} style={{ color: KIND_META[e.kind].hex }}></i>
-              <span className="font-semibold text-zinc-200 truncate">{summarizeItem(e, t)}</span>
-              <span className="text-zinc-600 flex-shrink-0">· {relLabel(e.plan_date)}</span>
+            <div key={e.id} className="flex items-center gap-2.5 text-xs py-1">
+              <i className={`${KIND_META[e.kind].icon} flex-shrink-0`} style={{ color: 'var(--t-3)' }}></i>
+              <span className="font-semibold truncate" style={{ color: 'var(--t-1)' }}>{summarizeItem(e, t)}</span>
+              <span className="flex-shrink-0" style={{ color: 'var(--t-3)' }}>· {relLabel(e.plan_date)}</span>
             </div>
           ))}
         </div>

@@ -2,14 +2,15 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable } from '@/lib/dbState';
+import PhotoCard from '@/components/base/PhotoCard';
 import { type DayPlanItem, type StrengthPayload, type ActivityPayload, activityKindCfg, exerciseLines, KIND_META } from '../lib/dayPlan';
 
-// Card "HOY" — el elemento PRINCIPAL del Resumen de Mi Esquina.
-// Card oscura estándar con acento rojo (borde izquierdo 3px). Muestra lo
-// que toca hoy:
-//   · Hay entreno planificado hoy  → título del día + tipo + CTA "Empezar".
-//   · Plan activo pero hoy descansa → mensaje de descanso + movilidad.
-//   · Sin plan                      → "Crea tu plan".
+// Card "HOY" — el elemento PRINCIPAL del Resumen. Es una PhotoCard: fondo a
+// sangre (imagen o fondo diseñado) con el degradado de legibilidad y el texto
+// encima. Tres estados: hay entreno hoy / descanso / sin plan.
+//
+// Para poner fotos reales: dejar los WebP en public/images/ (fuerza.webp,
+// correr.webp, boxeo.webp, descanso.webp…) y pasar `image={IMG[...]}` abajo.
 
 interface Props {
   profile: Profile;
@@ -66,79 +67,67 @@ export default function TodayCard({ profile, onStart, onCreatePlan }: Props) {
 
   if (loading) {
     return (
-      <div className="rk-card" style={{ padding: 22, borderLeft: '3px solid #E10600', minHeight: 128, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="rk-card" style={{ minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div className="w-6 h-6 border-2 border-[#E10600] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
+  const pill = (text: string, gold = false) => (
+    <span style={{
+      background: gold ? 'rgba(201,168,76,0.16)' : 'var(--accent)',
+      color: gold ? 'var(--gold)' : '#fff',
+      borderRadius: 'var(--r-pill)', padding: '4px 12px', fontSize: 12, fontWeight: 700,
+      textTransform: 'uppercase', letterSpacing: '0.04em',
+    }}>{text}</span>
+  );
+
   const main = training[0];
 
   // ── Estado 1: hay entreno hoy ──
   if (main) {
-    const title = main.title.toUpperCase();
     const extra = training.length - 1;
     return (
-      <div className="rk-card" style={{ padding: 22, borderLeft: '3px solid #E10600' }}>
-        <p className="text-[11px] font-bold tracking-[0.16em] uppercase text-red-500">{t('mc_hoy_eyebrow')}</p>
-        <div className="flex items-start gap-4 mt-2 flex-wrap sm:flex-nowrap">
-          <div className="w-14 h-14 flex-shrink-0 flex items-center justify-center rounded-2xl bg-red-600/10 border border-red-500/25 text-red-500">
-            <i className={`${main.icon} text-2xl`}></i>
-          </div>
-          <div className="flex-1 min-w-0">
-            <h2 className="text-white" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(1.6rem,5vw,2.1rem)', lineHeight: 1, letterSpacing: '0.01em' }}>{title}</h2>
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/[0.05] border border-white/10 text-zinc-400">
-                {t(main.typeLabelKey)}
-              </span>
-              {extra > 0 && (
-                <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-[#C9A84C]/10 border border-[#C9A84C]/28 text-[#C9A84C]">+{extra}</span>
-              )}
-            </div>
-            {main.note && <p className="text-sm text-zinc-400 mt-2" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{main.note}</p>}
-          </div>
-        </div>
-        <button onClick={onStart} className="rk-btn rk-btn-primary w-full sm:w-auto mt-4 flex items-center justify-center gap-2" style={{ fontSize: '0.9rem', padding: '0.85rem 1.6rem' }}>
-          <i className="ri-play-fill"></i> {t('mc_hoy_start')}
-        </button>
-      </div>
+      <PhotoCard
+        primary
+        icon={main.icon}
+        chips={<>{pill(t(main.typeLabelKey))}{extra > 0 && pill(`+${extra}`, true)}</>}
+        title={main.title.toUpperCase()}
+        subtitle={main.note || undefined}
+        footer={
+          <button onClick={onStart} className="rk-nav-btn inline-flex items-center gap-2" style={{ background: 'rgba(255,255,255,0.1)' }}>
+            <i className="ri-play-fill"></i> {t('mc_hoy_start')}
+          </button>
+        }
+      />
     );
   }
 
   // ── Estado 2: plan activo pero hoy descansa ──
   if (hasPlan) {
     return (
-      <div className="rk-card" style={{ padding: 22, borderLeft: '3px solid #E10600' }}>
-        <div className="flex items-start gap-4">
-          <div className="w-14 h-14 flex-shrink-0 flex items-center justify-center rounded-2xl bg-green-500/10 border border-green-500/25 text-green-500">
-            <i className="ri-heart-pulse-line text-2xl"></i>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[11px] font-bold tracking-[0.16em] uppercase text-green-500">{t('mc_hoy_eyebrow')}</p>
-            <h2 className="text-white mt-1" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(1.4rem,4.5vw,1.85rem)', lineHeight: 1.05 }}>{t('mc_hoy_rest_title')}</h2>
-            <p className="text-sm text-zinc-400 mt-1.5">{t('mc_hoy_rest_desc')}</p>
-          </div>
-        </div>
-      </div>
+      <PhotoCard
+        icon="ri-heart-pulse-line"
+        chips={pill(t('mc_hoy_eyebrow'))}
+        title={t('mc_hoy_rest_title').toUpperCase()}
+        subtitle={t('mc_hoy_rest_desc')}
+      />
     );
   }
 
   // ── Estado 3: sin plan ──
   return (
-    <div className="rk-card" style={{ padding: 22, borderLeft: '3px solid #E10600' }}>
-      <div className="flex items-start gap-4 flex-wrap sm:flex-nowrap">
-        <div className="w-14 h-14 flex-shrink-0 flex items-center justify-center rounded-2xl bg-red-600/10 border border-red-500/25 text-red-500">
-          <i className="ri-sparkling-2-line text-2xl"></i>
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-[11px] font-bold tracking-[0.16em] uppercase text-red-500">{t('mc_hoy_eyebrow')}</p>
-          <h2 className="text-white mt-1" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(1.4rem,4.5vw,1.85rem)', lineHeight: 1.05 }}>{t('mc_hoy_noplan_title')}</h2>
-          <p className="text-sm text-zinc-400 mt-1.5">{t('mc_hoy_noplan_desc')}</p>
-        </div>
-        <button onClick={onCreatePlan} className="rk-btn rk-btn-primary w-full sm:w-auto flex-shrink-0 flex items-center justify-center gap-2" style={{ fontSize: '0.9rem', padding: '0.85rem 1.6rem' }}>
+    <PhotoCard
+      primary
+      icon="ri-sparkling-2-line"
+      chips={pill(t('mc_hoy_eyebrow'))}
+      title={t('mc_hoy_noplan_title').toUpperCase()}
+      subtitle={t('mc_hoy_noplan_desc')}
+      footer={
+        <button onClick={onCreatePlan} className="rk-nav-btn inline-flex items-center gap-2" style={{ background: 'rgba(255,255,255,0.1)' }}>
           <i className="ri-add-line"></i> {t('mc_hoy_create')}
         </button>
-      </div>
-    </div>
+      }
+    />
   );
 }

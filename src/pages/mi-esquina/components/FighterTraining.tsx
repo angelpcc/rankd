@@ -246,16 +246,17 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
   const numCls = 'w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500';
 
   return (
-    <div className="space-y-5 max-w-4xl">
-      <div className="flex items-start justify-between gap-3 flex-wrap">
+    <div className="rk-blocks max-w-4xl">
+      <div className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <p className="rk-eyebrow">{t('mc_av_eyebrow')}</p>
-          <h2 className="rk-h2" style={{ fontSize: 'clamp(1.8rem,4vw,2.4rem)', color: '#fff', margin: '4px 0 0' }}>
-            {t('mc_av_title')} <span className="rk-red-glow">{t('mc_av_title_2')}</span>
+          <p className="rk-label" style={{ letterSpacing: '0.16em' }}>{t('mc_av_eyebrow')}</p>
+          <h2 className="rk-screen-title mt-1">
+            {t('mc_av_title')} {t('mc_av_title_2')}
           </h2>
         </div>
         <button onClick={() => { if (!showForm) setStep(1); setShowForm(!showForm); }}
-          className={`rk-btn ${showForm ? 'rk-btn-ghost' : 'rk-btn-primary'} flex items-center gap-2`} style={{ fontSize: '0.85rem', padding: '0.7rem 1.4rem', minHeight: 44 }}>
+          className={showForm ? 'rk-nav-btn flex items-center gap-2' : 'rk-cta flex items-center gap-2'}
+          style={{ fontSize: 15, padding: '10px 18px', minHeight: 44 }}>
           <i className={showForm ? 'ri-close-line' : 'ri-add-line'}></i>
           {showForm ? t('mc_av_close') : t('mc_av_new')}
         </button>
@@ -382,9 +383,9 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
                 </div>
                 <div className="grid grid-cols-3 gap-2 mt-4 items-stretch">
                   {statCards.map((s) => (
-                    <div key={s.l} className="rk-card text-center h-full flex flex-col justify-center" style={{ padding: '12px 8px', transform: 'none' }}>
-                      <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(20px,4.5vw,26px)', lineHeight: 1, color: '#fff', margin: 0 }}>{s.v}</p>
-                      <p className="rk-body" style={{ fontSize: '0.6rem', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 5 }}>{s.l}</p>
+                    <div key={s.l} className="text-center h-full flex flex-col justify-center" style={{ background: 'var(--s-2)', border: '1px solid var(--s-3)', borderRadius: 'var(--r-cta)', padding: '14px 8px' }}>
+                      <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(20px,4.5vw,26px)', lineHeight: 1, color: 'var(--t-1)', margin: 0 }}>{s.v}</p>
+                      <p className="rk-label" style={{ fontSize: 10, marginTop: 5 }}>{s.l}</p>
                     </div>
                   ))}
                 </div>

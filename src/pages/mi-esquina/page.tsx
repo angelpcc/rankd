@@ -10,6 +10,7 @@ import { DocumentExpiryAlert } from '@/pages/mi-esquina/components/DocumentsPane
 import TodayCard from '@/pages/mi-esquina/components/TodayCard';
 import SummaryMetrics from '@/pages/mi-esquina/components/SummaryMetrics';
 import SummaryAiLine from '@/pages/mi-esquina/components/SummaryAiLine';
+import WeekStrip from '@/pages/mi-esquina/components/WeekStrip';
 import FightPrep from '@/pages/mi-esquina/components/FightPrep';
 import PhysicalProfileCard from '@/pages/mi-esquina/components/PhysicalProfileCard';
 import AgendaHub from '@/pages/mi-esquina/components/AgendaHub';
@@ -88,6 +89,7 @@ export default function MiEsquinaPage() {
   const [stats, setStats] = useState({
     total: 0, week: 0, weekMin: 0, todayLogged: false, streak: 0, lastWeekMin: 0,
     last7: [] as { key: string; min: number; today: boolean }[],
+    weekActiveDates: new Set<string>(),
   });
   // Se incrementa al registrar algo, para que el resumen semanal se recalcule
   const [refreshKey, setRefreshKey] = useState(0);
@@ -154,11 +156,14 @@ export default function MiEsquinaPage() {
         });
       }
 
+      const weekActiveDates = new Set(week.map((s) => s.session_date));
+
       setStats({
         total: data.length,
         week: week.length,
         weekMin: week.reduce((a, s) => a + (s.duration_min || 0), 0),
         lastWeekMin: lastWeek.reduce((a, s) => a + (s.duration_min || 0), 0),
+        weekActiveDates,
         todayLogged,
         streak,
         last7,
@@ -299,50 +304,62 @@ export default function MiEsquinaPage() {
 
           {/* ══════════ RESUMEN ══════════ */}
           {activeSection === 'resumen' && (
-            <div className="space-y-6 max-w-3xl">
-              {/* Alertas y elementos auxiliares — mantienen su estilo actual */}
-              {!isHobby && (
-                <DocumentExpiryAlert profile={profile} onOpen={() => go('ring', 'documentos')} />
-              )}
-              <GearReplacementAlert profile={profile} onOpen={() => setSection('material')} />
-
-              <div className="space-y-4">
-                {/* 1. HOY — card primaria con borde izquierdo rojo */}
-                <Reveal>
-                  <TodayCard profile={profile}
-                    onStart={() => go('agenda', 'plan')}
-                    onCreatePlan={() => go('progreso', 'objetivos')} />
-                </Reveal>
-
-                {/* 2. Métricas: Peso actual · Entrenos semana · Racha */}
-                <Reveal delay={90}>
-                  <SummaryMetrics profile={profile} weekSessions={stats.week} streak={stats.streak}
-                    onOpenActivity={() => go('progreso', 'actividad')} onOpenWeight={() => go('progreso', 'peso')} />
-                </Reveal>
-
-                {/* 3. Plan activo (card clara con acento oro) */}
-                <Reveal delay={160}>
-                  <SummaryAiLine profile={profile} onOpen={() => go('progreso', 'objetivos')} />
-                </Reveal>
+            <div className="rk-blocks max-w-3xl">
+              {/* Saludo */}
+              <div>
+                <h1 className="rk-screen-title" style={{ fontSize: 'clamp(24px,6vw,32px)' }}>
+                  {t('mc_greeting', { name: firstName })}
+                </h1>
+                <p className="mt-1" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, color: 'var(--t-3)' }}>
+                  {isHobby ? t('mc_hb_consistency_desc') : t('mc_sum_sub_pro')}
+                </p>
               </div>
 
-              {/* 4. Próxima pelea (PRO; no renderiza nada si no hay combate) */}
+              {/* Alertas condicionales (se ocultan solas si no aplican) */}
+              <div className="rk-stack">
+                {!isHobby && <DocumentExpiryAlert profile={profile} onOpen={() => go('ring', 'documentos')} />}
+                <GearReplacementAlert profile={profile} onOpen={() => setSection('material')} />
+              </div>
+
+              {/* Tira de semana */}
+              <div className="rk-card" style={{ padding: 18 }}>
+                <WeekStrip activeDates={stats.weekActiveDates} done={stats.week} total={4}
+                  onDayClick={() => go('agenda', 'plan')} />
+              </div>
+
+              {/* HOY — PhotoCard, elemento principal */}
+              <Reveal>
+                <TodayCard profile={profile}
+                  onStart={() => go('agenda', 'plan')}
+                  onCreatePlan={() => go('progreso', 'objetivos')} />
+              </Reveal>
+
+              {/* Métricas 2×2 */}
+              <Reveal delay={80}>
+                <SummaryMetrics profile={profile} weekSessions={stats.week} streak={stats.streak}
+                  onOpenActivity={() => go('progreso', 'actividad')} onOpenWeight={() => go('progreso', 'peso')} />
+              </Reveal>
+
+              {/* Plan activo */}
+              <Reveal delay={160}>
+                <SummaryAiLine profile={profile} onOpen={() => go('progreso', 'objetivos')} />
+              </Reveal>
+
+              {/* Próxima pelea (PRO; null si no hay combate) */}
               {!isHobby && (
                 <Reveal delay={200}>
                   <FightPrep profile={profile} onOpenCalendar={() => go('agenda', 'plan')} />
                 </Reveal>
               )}
 
-              {/* Perfil físico incompleto (A.3): discreto, se oculta al 100% */}
-              <PhysicalProfileCard profileId={profile.id} showToast={showToast} hideWhenComplete />
+              <div className="rk-stack">
+                <PhysicalProfileCard profileId={profile.id} showToast={showToast} hideWhenComplete />
+                <GymLink profile={profile} showToast={showToast} />
+              </div>
 
-              {/* Consentimiento del gimnasio (condicional, subordinado) */}
-              <GymLink profile={profile} showToast={showToast} />
-
-              {/* 6. Acción destacada: registrar lo de hoy */}
+              {/* Único CTA rojo de la pantalla: registrar lo de hoy */}
               <button onClick={() => go('progreso', 'actividad', todayISO())}
-                className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2"
-                style={{ fontSize: '0.95rem', padding: '1rem' }}>
+                className="rk-cta w-full flex items-center justify-center gap-2">
                 <i className="ri-add-line text-lg"></i> {t('mc_register_today')}
               </button>
             </div>

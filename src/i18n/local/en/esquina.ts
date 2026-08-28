@@ -469,6 +469,10 @@ export default {
   mc_metric_to_lose: 'To your goal',
   mc_metric_to_gain: 'To your goal',
   mc_metric_goal: 'Weight goal',
+  mc_metric_goal_togo: '{{n}} kg to goal',
+  mc_metric_goal_empty: 'Set your weight goal',
+  mc_greeting: 'Hi, {{name}}',
+  mc_week_completed: '{{done}} of {{total}} done this week',
   mc_ai_line_label: 'Your active plan',
   // ── Muscle map (Strength) ──
   mc_str_map_title: 'What you trained',
