@@ -33,6 +33,15 @@ export type SessionSlot = 'morning' | 'afternoon' | 'evening';
 // la franja); solo pedimos franja cuando ya hay otra sesión guardada ese día.
 export interface BuiltSession { date: string; blocks: BuiltBlock[]; slot: SessionSlot | null }
 
+// ── Editar una sesión ya guardada ──
+// El padre reconstruye esto desde las filas de strength_sets de un día+franja y
+// lo pasa como `initialSession`: el formulario abre en el paso 2, pre-relleno,
+// y al guardar el padre reemplaza las filas (no crea una sesión nueva).
+export interface EditSessionSet { reps: string; weight: string }
+export interface EditSessionExercise { label: string; sets: EditSessionSet[] }
+export interface EditSessionBlock { group: MuscleGroup; exercises: EditSessionExercise[] }
+export interface EditSession { date: string; slot: SessionSlot | null; blocks: EditSessionBlock[] }
+
 /**
  * Parsea el valor del input de reps.
  * Acepta:
@@ -97,22 +106,42 @@ interface Props {
    * de grupos. undefined = flujo normal (paso 1, elegir grupo(s) a mano).
    */
   initialGroup?: MuscleGroup;
+  /**
+   * Sesión existente a editar (día+franja). Abre en el paso 2 con todo
+   * pre-relleno; al guardar, el padre reemplaza las filas en vez de crear una
+   * sesión nueva. undefined = alta normal.
+   */
+  initialSession?: EditSession;
 }
 
 const SLOT_ORDER: SessionSlot[] = ['morning', 'afternoon', 'evening'];
 
-export default function StrengthSessionForm({ open, onClose, saving, onSave, ownExercises, fighterProfileId, showToast, slotsByDate, initialGroup }: Props) {
+const uidLocal = () => Math.random().toString(36).slice(2, 9);
+function blocksFromEdit(s: EditSession): FBlock[] {
+  return s.blocks.map((b) => ({
+    group: b.group,
+    exercises: b.exercises.map((e) => ({
+      id: uidLocal(), label: e.label, query: '', open: false,
+      sets: e.sets.map((st) => ({ reps: st.reps, weight: st.weight })),
+    })),
+  }));
+}
+
+export default function StrengthSessionForm({ open, onClose, saving, onSave, ownExercises, fighterProfileId, showToast, slotsByDate, initialGroup, initialSession }: Props) {
   const { t, i18n } = useTranslation();
   const lang: 'es' | 'en' = i18n.language === 'en' ? 'en' : 'es';
   const library = useMemo(() => libraryLabels(lang), [lang]);
 
-  const [step, setStep] = useState<1 | 2>(initialGroup ? 2 : 1);
-  const [date, setDate] = useState(todayISO());
-  const [blocks, setBlocks] = useState<FBlock[]>(initialGroup ? [{ group: initialGroup, exercises: [] }] : []);
+  const [step, setStep] = useState<1 | 2>(initialSession || initialGroup ? 2 : 1);
+  const [date, setDate] = useState(initialSession?.date ?? todayISO());
+  const [blocks, setBlocks] = useState<FBlock[]>(
+    initialSession ? blocksFromEdit(initialSession)
+      : initialGroup ? [{ group: initialGroup, exercises: [] }] : [],
+  );
   const [freeText, setFreeText] = useState('');
   const [interpreted, setInterpreted] = useState(false);
   // Franja elegida. null = "sesión única del día" (implícito, no se pide).
-  const [slot, setSlot] = useState<SessionSlot | null>(null);
+  const [slot, setSlot] = useState<SessionSlot | null>(initialSession?.slot ?? null);
   const [plateFor, setPlateFor] = useState<{ group: MuscleGroup; id: string; si: number } | null>(null);
   const [histByEx, setHistByEx] = useState<Record<string, string>>({});
 
@@ -150,9 +179,10 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
   const dayHasSession = usedSlots.length > 0;
   const nextFreeSlot: SessionSlot = SLOT_ORDER.find((s) => !usedSlots.includes(s)) || 'evening';
   // Al abrir la sesión (o cambiar el día), si el día ya tiene sesión, elegimos
-  // la próxima franja libre. Si no, dejamos null (no se pide franja).
+  // la próxima franja libre. Si no, dejamos null (no se pide franja). Al editar
+  // respetamos la franja original (initialSession.slot) y no la tocamos.
   useMemo(() => {
-    if (!open) return;
+    if (!open || initialSession) return;
     setSlot(dayHasSession ? nextFreeSlot : null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, date, dayHasSession]);
@@ -303,7 +333,7 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
     <BottomSheet
       open={open}
       onClose={handleClose}
-      title={step === 1 ? t('mc_str_new') : t('mc_str_step2_title')}
+      title={initialSession ? t('mc_str_edit_session') : step === 1 ? t('mc_str_new') : t('mc_str_step2_title')}
       footer={
         step === 1 ? (
           <button onClick={goStep2} disabled={blocks.length === 0} style={{ minHeight: 48 }}
@@ -315,7 +345,9 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
             className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60">
             {saving
               ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {t('mc_saving')}</>
-              : <><i className="ri-save-line"></i> {t('mc_str_save_session')}{totalExercises > 0 ? ` (${totalExercises})` : ''}</>}
+              : initialSession
+                ? <><i className="ri-save-line"></i> {t('mc_str_save_changes')}</>
+                : <><i className="ri-save-line"></i> {t('mc_str_save_session')}{totalExercises > 0 ? ` (${totalExercises})` : ''}</>}
           </button>
         )
       }

@@ -71,6 +71,8 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
   const [showForm, setShowForm] = useState(!!initialDate);
   const [step, setStep] = useState<1 | 2>(1);
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
+  // id de la sesión que se está editando (null = alta nueva).
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [date, setDate] = useState(initialDate || todayISO());
   const [kind, setKind] = useState('correr');
@@ -115,6 +117,26 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
     setDuration('30'); setDistanceKm(''); setPace(''); setMeters(''); setRounds(''); setRoundDur(''); setNote('');
   };
 
+  // Cierra el formulario y limpia el modo edición.
+  const closeForm = () => { setShowForm(false); setStep(1); setEditingId(null); resetForm(); };
+
+  // Abre el formulario con una sesión existente cargada (paso 2, pre-relleno).
+  const openEdit = (s: ActSession) => {
+    setConfirmDel(null);
+    setKind(s.kind);
+    setDate(s.session_date);
+    setDuration(String(s.duration_min ?? ''));
+    setDistanceKm(s.distance_km != null ? String(s.distance_km) : '');
+    setPace(s.pace_sec_per_km ? paceLabel(Number(s.pace_sec_per_km)) : '');
+    setMeters(s.meters != null ? String(s.meters) : '');
+    setRounds(s.rounds != null ? String(s.rounds) : '');
+    setRoundDur(s.round_duration_sec != null ? String(s.round_duration_sec) : '');
+    setNote(s.note ?? '');
+    setEditingId(s.id);
+    setStep(2);
+    setShowForm(true);
+  };
+
   const addSession = async () => {
     if (saving) return;
     const mins = parseInt(duration, 10);
@@ -134,6 +156,29 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
         ? (pace ? paceToSec(pace) : autoPace) || null
         : null,
     };
+
+    // ── Edición: UPDATE de la fila existente (no crea una nueva) ──
+    if (editingId) {
+      const oldDate = sessions.find((x) => x.id === editingId)?.session_date;
+      const { fighter_profile_id, ...patch } = full;
+      void fighter_profile_id;
+      let { data, error } = await supabase.from('activity_sessions').update(patch).eq('id', editingId).select().maybeSingle();
+      if (error && isMissingColumn(error)) {
+        const bare = { session_date: date, kind, duration_min: mins, rounds: full.rounds, note: full.note };
+        ({ data, error } = await supabase.from('activity_sessions').update(bare).eq('id', editingId).select().maybeSingle());
+      }
+      if (error || !data) { showToast(t('error_save'), 'error'); setSaving(false); return; }
+      setSessions((prev) => prev.map((x) => (x.id === editingId ? (data as ActSession) : x))
+        .sort((a, b) => b.session_date.localeCompare(a.session_date)));
+      setSelectedType(kind);
+      closeForm();
+      setSaving(false);
+      showToast(t('mc_av_updated'));
+      if (oldDate && oldDate !== date) void reconcileDayTicks(profile.id, oldDate);
+      void reconcileDayTicks(profile.id, date);
+      return;
+    }
+
     let { data, error } = await supabase.from('activity_sessions').insert(full).select().maybeSingle();
     if (error && isMissingColumn(error)) {
       const bare = {
@@ -245,6 +290,7 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
 
   const selCfg = selectedType ? activityKindCfg(selectedType) : null;
   const numCls = 'w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500';
+  const optText = t('mc_optional');
 
   return (
     <div className="rk-blocks max-w-4xl">
@@ -254,7 +300,7 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
         action={{
           label: showForm ? t('mc_av_close') : t('mc_av_new'),
           icon: showForm ? 'ri-close-line' : 'ri-add-line',
-          onClick: () => { if (!showForm) setStep(1); setShowForm(!showForm); },
+          onClick: () => { if (showForm) closeForm(); else { setEditingId(null); resetForm(); setStep(1); setShowForm(true); } },
         }} />
 
       {/* ── Formulario en 2 pasos ── */}
@@ -262,7 +308,7 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
         <Reveal>
           <div className="rk-card space-y-4" style={{ padding: '22px 20px' }}>
             <h3 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>
-              {step === 1 ? t('mc_av_step1_title') : t(cfg.labelKey)}
+              {editingId ? t('mc_av_edit_title') : step === 1 ? t('mc_av_step1_title') : t(cfg.labelKey)}
             </h3>
 
             {step === 1 ? (
@@ -281,63 +327,59 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
                 <button onClick={() => setStep(1)} className="text-xs text-zinc-400 hover:text-white flex items-center gap-1.5 cursor-pointer -mt-1">
                   <i className="ri-arrow-left-line"></i> {t('mc_av_step_back')}
                 </button>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_av_date')}</label>
+                {/* Un solo grid: todos los campos con el mismo ancho y altura.
+                    Los pares relacionados van en la misma fila; un campo suelto
+                    ocupa el ancho completo (wide). ActField alinea los inputs
+                    abajo (mt-auto) aunque una etiqueta ocupe dos líneas. */}
+                <div className="grid grid-cols-2 gap-3 items-stretch">
+                  <ActField label={t('mc_av_date')}>
                     <input type="date" value={date} max={todayISO()} onChange={(e) => setDate(e.target.value)}
                       className={`${numCls} cursor-pointer [color-scheme:dark]`} style={{ fontSize: 16, minHeight: 44 }} />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_av_duration')}</label>
+                  </ActField>
+                  <ActField label={t('mc_av_duration')}>
                     <input inputMode="decimal" type="number" min="1" max="600" step="5" value={duration} onChange={(e) => setDuration(e.target.value)}
                       className={numCls} style={{ fontSize: 16, minHeight: 44 }} placeholder="30" />
-                  </div>
+                  </ActField>
                   {cfg.fields.includes('distance_km') && (
-                    <div>
-                      <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_av_field_km')}</label>
+                    <ActField label={t('mc_av_field_km')} wide={!cfg.fields.includes('pace')}>
                       <input inputMode="decimal" type="number" min="0" step="0.1" value={distanceKm} onChange={(e) => setDistanceKm(e.target.value)}
                         className={numCls} style={{ fontSize: 16, minHeight: 44 }} placeholder="5" />
-                    </div>
+                    </ActField>
+                  )}
+                  {cfg.fields.includes('pace') && (
+                    <ActField label={t('mc_av_field_pace')} hint={optText}>
+                      <input inputMode="text" value={pace} onChange={(e) => setPace(e.target.value)}
+                        className={numCls} style={{ fontSize: 16, minHeight: 44 }} placeholder={autoPace ? paceLabel(autoPace) : '5:30'} />
+                    </ActField>
                   )}
                   {cfg.fields.includes('meters') && (
-                    <div>
-                      <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_av_field_meters')}</label>
+                    <ActField label={t('mc_av_field_meters')} wide>
                       <input inputMode="decimal" type="number" min="0" step="25" value={meters} onChange={(e) => setMeters(e.target.value)}
                         className={numCls} style={{ fontSize: 16, minHeight: 44 }} placeholder="1500" />
-                    </div>
+                    </ActField>
                   )}
                   {cfg.fields.includes('rounds') && (
-                    <div>
-                      <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_av_field_rounds')}</label>
+                    <ActField label={t('mc_av_field_rounds')}>
                       <input inputMode="decimal" type="number" min="1" max="30" value={rounds} onChange={(e) => setRounds(e.target.value)}
                         className={numCls} style={{ fontSize: 16, minHeight: 44 }} placeholder="6" />
-                    </div>
+                    </ActField>
                   )}
                   {cfg.fields.includes('round_duration') && (
-                    <div>
-                      <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_av_field_round_dur')} <span className="text-zinc-600">({t('mc_optional')})</span></label>
+                    <ActField label={t('mc_av_field_round_dur')} hint={optText}>
                       <input inputMode="decimal" type="number" min="10" max="600" step="10" value={roundDur} onChange={(e) => setRoundDur(e.target.value)}
                         className={numCls} style={{ fontSize: 16, minHeight: 44 }} placeholder="180" />
-                    </div>
+                    </ActField>
                   )}
+                  <ActField label={t('mc_av_note')} wide>
+                    <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2}
+                      className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 resize-none" placeholder={t('mc_av_note_ph')} />
+                  </ActField>
                 </div>
-
-                {cfg.fields.includes('pace') && (
-                  <div>
-                    <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_av_field_pace')} <span className="text-zinc-600">({t('mc_optional')})</span></label>
-                    <input inputMode="text" value={pace} onChange={(e) => setPace(e.target.value)}
-                      className={numCls} style={{ fontSize: 16, minHeight: 44 }} placeholder={autoPace ? paceLabel(autoPace) : '5:30'} />
-                    {shownPace && <p className="text-[11px] text-zinc-500 mt-1">{t('mc_av_pace_auto', { pace: shownPace })}</p>}
-                  </div>
+                {cfg.fields.includes('pace') && shownPace && (
+                  <p className="text-[11px] text-zinc-500 -mt-1">{t('mc_av_pace_auto', { pace: shownPace })}</p>
                 )}
-
-                <div>
-                  <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_av_note')}</label>
-                  <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2}
-                    className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 resize-none" placeholder={t('mc_av_note_ph')} />
-                </div>
                 <button onClick={addSession} disabled={saving} className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60" style={{ fontSize: '1rem', minHeight: 48 }}>
-                  {saving ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {t('mc_saving')}</> : <><i className="ri-check-line"></i> {t('mc_av_save')}</>}
+                  {saving ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {t('mc_saving')}</> : <><i className="ri-check-line"></i> {editingId ? t('mc_av_save_changes') : t('mc_av_save')}</>}
                 </button>
               </>
             )}
@@ -443,10 +485,16 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
                         <button onClick={() => setConfirmDel(null)} className="text-[11px] text-zinc-400 px-1.5 cursor-pointer">{t('mc_cancel')}</button>
                       </div>
                     ) : (
-                      <button onClick={() => setConfirmDel(s.id)} aria-label={t('mc_delete')}
-                        className="w-8 h-8 flex items-center justify-center text-zinc-600 hover:text-red-400 cursor-pointer opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0">
-                        <i className="ri-delete-bin-line"></i>
-                      </button>
+                      <div className="flex items-center flex-shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => openEdit(s)} aria-label={t('mc_edit')}
+                          className="w-8 h-8 flex items-center justify-center text-zinc-600 hover:text-white cursor-pointer">
+                          <i className="ri-pencil-line"></i>
+                        </button>
+                        <button onClick={() => setConfirmDel(s.id)} aria-label={t('mc_delete')}
+                          className="w-8 h-8 flex items-center justify-center text-zinc-600 hover:text-red-400 cursor-pointer">
+                          <i className="ri-delete-bin-line"></i>
+                        </button>
+                      </div>
                     )}
                   </div>
                 </Reveal>
@@ -476,4 +524,19 @@ function sessionSummary(s: ActSession, t: (k: string, o?: Record<string, unknown
   if (s.rounds) bits.push(t('mc_av_rounds_short', { n: s.rounds }));
   bits.push(new Date(s.session_date + 'T12:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'long' }));
   return bits.join(' · ');
+}
+
+// Campo del formulario de actividad con altura de etiqueta consistente: el
+// wrapper del input lleva mt-auto, así todos los inputs de una fila del grid
+// quedan alineados abajo aunque una etiqueta ocupe dos líneas (p. ej. el
+// "(opcional)"). Módulo aparte para no remontar al re-renderizar el formulario.
+function ActField({ label, hint, wide, children }: { label: string; hint?: string; wide?: boolean; children: React.ReactNode }) {
+  return (
+    <div className={`flex flex-col ${wide ? 'col-span-2' : ''}`}>
+      <label className="block text-xs text-zinc-400 mb-1.5 leading-tight">
+        {label}{hint && <span className="text-zinc-600"> ({hint})</span>}
+      </label>
+      <div className="mt-auto">{children}</div>
+    </div>
+  );
 }

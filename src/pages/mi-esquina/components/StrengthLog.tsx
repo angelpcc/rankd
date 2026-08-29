@@ -11,7 +11,7 @@ import { reconcileDayTicks } from '../lib/planTicks';
 import SectionHero from './SectionHero';
 import Reveal from '@/components/base/Reveal';
 import MuscleMap, { type MapGroup, type TrainState } from './MuscleMap';
-import StrengthSessionForm, { type BuiltSession, type SessionSlot } from './StrengthSessionForm';
+import StrengthSessionForm, { type BuiltSession, type SessionSlot, type EditSession } from './StrengthSessionForm';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 interface Props {
@@ -95,6 +95,10 @@ export default function StrengthLog({ profile, showToast }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [formKey, setFormKey] = useState(0);
   const [formInitialGroup, setFormInitialGroup] = useState<MuscleGroup | undefined>(undefined);
+  // Edición de una sesión ya guardada: editCtx = qué día+franja se está
+  // editando (para borrar sus filas al guardar); editData = lo que pinta el form.
+  const [editCtx, setEditCtx] = useState<{ date: string; slot: SessionSlot | null } | null>(null);
+  const [editData, setEditData] = useState<EditSession | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState('');
   const [openDay, setOpenDay] = useState<string | null>(null);
@@ -106,6 +110,8 @@ export default function StrengthLog({ profile, showToast }: Props) {
   // Abre el formulario. Desde el muñeco muscular llega con el grupo ya
   // decidido (salta directo al paso 2); desde "Nueva sesión" llega vacío.
   const openForm = (group?: MapGroup) => {
+    setEditCtx(null);
+    setEditData(undefined);
     setFormInitialGroup(group);
     setFormKey((k) => k + 1);
     setShowForm(true);
@@ -289,6 +295,43 @@ export default function StrengthLog({ profile, showToast }: Props) {
   };
 
 
+  // Reconstruye una sesión guardada (día + franja) para editarla en el
+  // formulario. Los ejercicios libres que no casan con la biblioteca caen a
+  // "full_body" (el form necesita un grupo válido, sin 'other').
+  const openEdit = (date: string, slot: SessionSlot | null) => {
+    const slotRows = rows.filter((r) => r.session_date === date && (r.session_slot ?? null) === slot);
+    if (slotRows.length === 0) return;
+    const mgOf = (r: StrengthSet): MuscleGroup =>
+      (r.muscle_group && (MUSCLE_GROUPS as string[]).includes(r.muscle_group)
+        ? (r.muscle_group as MuscleGroup)
+        : (muscleGroupOf(r.exercise_label) || 'full_body'));
+    const byGroup = new Map<MuscleGroup, Map<string, StrengthSet[]>>();
+    slotRows.forEach((r) => {
+      const g = mgOf(r);
+      if (!byGroup.has(g)) byGroup.set(g, new Map());
+      const byEx = byGroup.get(g)!;
+      byEx.set(r.exercise, [...(byEx.get(r.exercise) || []), r]);
+    });
+    const blocks = MUSCLE_GROUPS.filter((g) => byGroup.has(g)).map((g) => ({
+      group: g,
+      exercises: [...byGroup.get(g)!.values()].map((sets) => {
+        const sorted = [...sets].sort((a, b) => a.set_number - b.set_number);
+        return {
+          label: sorted[0].exercise_label,
+          sets: sorted.map((r) => ({
+            reps: r.reps_max && r.reps_max > r.reps ? `${r.reps}-${r.reps_max}` : String(r.reps),
+            weight: Number(r.weight_kg) > 0 ? String(Number(r.weight_kg)) : '',
+          })),
+        };
+      }),
+    }));
+    setEditCtx({ date, slot });
+    setEditData({ date, slot, blocks });
+    setFormInitialGroup(undefined);
+    setFormKey((k) => k + 1);
+    setShowForm(true);
+  };
+
   const saveSession = async (session: BuiltSession) => {
     // reps_max = null cuando la serie es "8" (fijo); = 10 cuando es "8-10".
     // Solo se envía si la fila NEW lo trae; la degradación por si la
@@ -310,6 +353,35 @@ export default function StrengthLog({ profile, showToast }: Props) {
       }))),
     );
     if (base.length === 0) return;
+
+    // ── Edición: se reemplazan las filas de la sesión original ──
+    // Se borran las de editCtx (día+franja de partida) y se insertan las nuevas
+    // en session.date/slot (que el usuario puede haber cambiado en el form).
+    if (editCtx) {
+      const oldIds = rows
+        .filter((r) => r.session_date === editCtx.date && (r.session_slot ?? null) === editCtx.slot)
+        .map((r) => r.id);
+      setSaving(true);
+      const del = await supabase.from('strength_sets').delete().in('id', oldIds);
+      if (del.error) { setSaving(false); showToast(t('error_save'), 'error'); return; }
+      let ins = await supabase.from('strength_sets').insert(base).select();
+      if (isMissingColumn(ins.error)) {
+        const noExtras = base.map(({ muscle_group, reps_max, session_slot, weight_mode, tracking_mode, ...r }) => r);
+        ins = await supabase.from('strength_sets').insert(noExtras).select();
+      }
+      setSaving(false);
+      if (ins.error || !ins.data) { showToast(t('error_save'), 'error'); load(); return; }
+      const inserted = (ins.data as StrengthSet[]).map((r) => ({ ...r, reps_max: r.reps_max ?? null, muscle_group: r.muscle_group ?? null, session_slot: r.session_slot ?? null, weight_mode: r.weight_mode ?? null, tracking_mode: r.tracking_mode ?? null }));
+      setRows((prev) => [...inserted, ...prev.filter((r) => !oldIds.includes(r.id))]);
+      setShowForm(false);
+      setFormKey((k) => k + 1);
+      setEditCtx(null);
+      setEditData(undefined);
+      showToast(t('mc_str_session_updated'));
+      void reconcileDayTicks(profile.id, editCtx.date);
+      if (session.date !== editCtx.date) void reconcileDayTicks(profile.id, session.date);
+      return;
+    }
 
     // ── Detección de récord personal antes de insertar ──
     // Se compara cada peso nuevo con el máximo histórico del mismo ejercicio.
@@ -548,6 +620,11 @@ export default function StrengthLog({ profile, showToast }: Props) {
                               </p>
                             </div>
                           ))}
+                              {/* Editar esta sesión (día + franja) */}
+                              <button onClick={() => openEdit(s.date, sl.slot)}
+                                className="text-xs text-zinc-500 hover:text-white flex items-center gap-1.5 cursor-pointer transition-colors pt-1">
+                                <i className="ri-pencil-line"></i>{t('mc_str_edit_session')}
+                              </button>
                             </div>
                           ))}
 
@@ -631,11 +708,12 @@ export default function StrengthLog({ profile, showToast }: Props) {
         </>
       )}
 
-      {/* Formulario de registro (3 pasos). key = remonta y limpia tras guardar. */}
+      {/* Formulario de registro (3 pasos). key = remonta y limpia tras guardar.
+          Con initialSession abre en modo edición (paso 2, pre-relleno). */}
       <StrengthSessionForm
         key={formKey}
         open={showForm}
-        onClose={() => setShowForm(false)}
+        onClose={() => { setShowForm(false); setEditCtx(null); setEditData(undefined); }}
         saving={saving}
         onSave={saveSession}
         ownExercises={ownExercises}
@@ -643,6 +721,7 @@ export default function StrengthLog({ profile, showToast }: Props) {
         showToast={showToast}
         slotsByDate={slotsByDate}
         initialGroup={formInitialGroup}
+        initialSession={editData}
       />
 
       {/* Signature moment: destello full-screen al batir marca. Se desmonta
