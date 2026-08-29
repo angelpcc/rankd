@@ -6,10 +6,13 @@ import {
 } from '../lib/session';
 import { roundComboParts } from '../lib/combos';
 import { timerSounds } from '../lib/sounds';
+import type { TimerMode } from '../lib/rincon';
 import SessionTimeline from './SessionTimeline';
 import CombosLibrary from './CombosLibrary';
 
 interface Props {
+  mode: TimerMode;
+  onMode: (m: TimerMode) => void;
   config: TimerConfig;
   onConfig: (next: TimerConfig) => void;
   onStart: () => void;
@@ -31,7 +34,7 @@ const WARN_OPTIONS = [0, 3, 5, 10, 15];
 
 export default function TimerSetup(props: Props) {
   const {
-    config, onConfig, onStart, onBack, discipline, presets,
+    mode, onMode, config, onConfig, onStart, onBack, discipline, presets,
     onSavePreset, onDeletePreset, customCombos, onSaveCustom, onDeleteCustom,
     aiAvailable, aiChecking, onAiGenerate, showToast,
   } = props;
@@ -89,13 +92,23 @@ export default function TimerSetup(props: Props) {
 
   return (
     <div className="min-h-screen bg-[#070707] text-white rk-safe-top">
-      {/* Barra superior */}
+      {/* Barra superior con el selector de modo */}
       <div className="sticky top-0 z-30 bg-[#070707]/92 backdrop-blur border-b border-white/8 rk-safe-top">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          <button onClick={onBack} className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white cursor-pointer">
-            <i className="ri-arrow-left-line text-lg"></i>{t('tm_back')}
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
+          <button onClick={onBack} className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white cursor-pointer flex-shrink-0">
+            <i className="ri-arrow-left-line text-lg"></i><span className="hidden sm:inline">{t('tm_back')}</span>
           </button>
-          <div className="flex items-center gap-2 text-xs text-zinc-500">
+          <div className="flex items-center rounded-full bg-white/[0.05] border border-white/10 p-0.5 text-xs font-bold">
+            <button onClick={() => onMode('classic')}
+              className={`px-3 py-1.5 rounded-full cursor-pointer transition-colors ${mode === 'classic' ? 'bg-white text-black' : 'text-zinc-400 hover:text-white'}`}>
+              {t('tm_rc_mode_classic')}
+            </button>
+            <button onClick={() => onMode('rincon')}
+              className={`px-3 py-1.5 rounded-full cursor-pointer transition-colors ${mode === 'rincon' ? 'bg-red-600 text-white' : 'text-zinc-400 hover:text-white'}`}>
+              {t('tm_rc_mode_rincon')}
+            </button>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-zinc-500 flex-shrink-0">
             <i className="ri-time-line"></i>{fmtLong(totalSessionSeconds(config))}
           </div>
         </div>
