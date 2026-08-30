@@ -181,6 +181,11 @@ export default function StrengthSummary({ profile, onEnter, onGoAsesor }: Props)
         )}
       </Reveal>
 
+      {/* ── ENTRAR AL NIVEL 2 ── (tras la card destacada: visible nada más entrar) */}
+      <button onClick={() => onEnter()} className="rk-cta w-full flex items-center justify-center gap-2">
+        <i className="ri-hammer-line text-lg" />{t('mc_strs_enter')}
+      </button>
+
       {/* ── VOLUMEN SEMANAL ── */}
       {weekByGroup.total > 0 && (
         <div className="rk-card" style={{ padding: 20 }}>
@@ -202,11 +207,6 @@ export default function StrengthSummary({ profile, onEnter, onGoAsesor }: Props)
           </div>
         </div>
       )}
-
-      {/* ── ENTRAR AL NIVEL 2 ── (antes del historial: visible sin bajar del todo) */}
-      <button onClick={() => onEnter()} className="rk-cta w-full flex items-center justify-center gap-2">
-        <i className="ri-hammer-line text-lg" />{t('mc_strs_enter')}
-      </button>
 
       {/* ── ÚLTIMAS SESIONES ── */}
       {recent.length > 0 && (
