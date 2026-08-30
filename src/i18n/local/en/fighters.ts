@@ -8,6 +8,16 @@ export default {
   fd_fighter_one: 'fighter',
   fd_fighter_other: 'fighters',
 
+  // "Featured" zone
+  fd_featured: 'FEATURED',
+  fd_featured_sub: 'Profiles to watch',
+  fd_reason_verified: 'Verified',
+  fd_reason_record: 'Best record',
+  fd_reason_available: 'Available',
+  fd_reason_new: 'Just joined',
+  fd_reason_kos: 'Big puncher',
+  fd_reason_top: 'Featured',
+
   // Quick shortcuts
   fd_available_now: 'Available now',
   fd_most_wins: 'Most wins',

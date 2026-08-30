@@ -8,6 +8,16 @@ export default {
   fd_fighter_one: 'peleador',
   fd_fighter_other: 'peleadores',
 
+  // Zona "Destacados"
+  fd_featured: 'DESTACADOS',
+  fd_featured_sub: 'Perfiles a seguir',
+  fd_reason_verified: 'Verificado',
+  fd_reason_record: 'Mejor récord',
+  fd_reason_available: 'Disponible',
+  fd_reason_new: 'Recién llegado',
+  fd_reason_kos: 'Pega fuerte',
+  fd_reason_top: 'Destacado',
+
   // Atajos rápidos
   fd_available_now: 'Disponibles ahora',
   fd_most_wins: 'Más victorias',

@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSEO } from '@/hooks/useSEO';
 import FighterCard from './components/FighterCard';
 import FightersFilters, { Filters } from './components/FightersFilters';
+import FeaturedFighters from './components/FeaturedFighters';
 
 interface FighterWithProfile {
   fighter: Fighter;
@@ -340,6 +341,15 @@ export default function FightersDirectoryPage() {
             </div>
           </div>
         </div>
+
+        {/* Destacados — zona a seguir, distinta del grid (regla: nada de scroll plano).
+            Se oculta si el usuario filtra o busca (el país autodetectado NO cuenta:
+            es un valor por defecto, no una elección). */}
+        {!loading && data.length > 0 && !filters.search && sortBy === 'recent'
+          && !filters.discipline && !filters.weightClass && !filters.expLevel
+          && !filters.available && !filters.hasSocial && !filters.popularity && (
+          <FeaturedFighters items={data} />
+        )}
 
         {/* Búsqueda sticky — siempre visible al scrollear (D.1) */}
         {!loading && data.length > 0 && (

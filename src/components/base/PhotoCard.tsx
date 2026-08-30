@@ -12,6 +12,8 @@ interface Props {
   onClick?: () => void;
   /** CSS aspect-ratio. Por defecto '16 / 11'. */
   aspect?: string;
+  /** object-position de la imagen de fondo (p. ej. 'center top' para retratos). */
+  objectPosition?: string;
   /** Contenido fijo al pie (CTA). */
   footer?: React.ReactNode;
   /** Sombra + glow (solo para la card principal de una pantalla). */
@@ -28,7 +30,7 @@ const LEGIBILITY =
  * Sin imagen (o si la imagen falla) pinta un fondo diseñado — nunca un hueco.
  */
 export default function PhotoCard({
-  image, chips, title, subtitle, icon, onClick, aspect = '16 / 11', footer, primary, className = '',
+  image, chips, title, subtitle, icon, onClick, aspect = '16 / 11', objectPosition, footer, primary, className = '',
 }: Props) {
   const [imgOk, setImgOk] = useState(true);
   const showImage = !!image && imgOk;
@@ -51,7 +53,7 @@ export default function PhotoCard({
     >
       {/* Fondo (capa absoluta detrás del contenido en flujo) */}
       {showImage ? (
-        <img src={image} alt="" onError={() => setImgOk(false)} className="absolute inset-0 w-full h-full object-cover" />
+        <img src={image} alt="" onError={() => setImgOk(false)} className="absolute inset-0 w-full h-full object-cover" style={objectPosition ? { objectPosition } : undefined} />
       ) : (
         <div className="absolute inset-0" style={{ background: 'linear-gradient(150deg, var(--s-1) 0%, #0d0d0d 100%)' }}>
           <div className="absolute inset-0 rk-grid-bg" style={{ opacity: 0.4 }} />
