@@ -1,25 +1,82 @@
 -- ============================================================
 -- RANKD · Mi Esquina · Biblioteca de suplementos ampliada (PROMPT 1 · parte B)
 --
---   1. common_supplements gana `benefits` (jsonb, lista de frases cortas) y
---      `timing` (texto llano del momento típico de toma). Se re-siembra el
---      catálogo con descripción en lenguaje llano — sin dosis ni indicaciones
---      médicas. El disclaimer es texto fijo en la app, no una columna.
---   2. user_supplements gana `slot` = la "franja" elegida al añadirlo a la
---      rutina (manana | con_comidas | post_entreno | antes_dormir | otro).
---      `time_of_day` se mantiene: guarda una hora representativa de la franja
---      o la hora libre cuando slot = 'otro'.
+-- AUTOCONTENIDA: incluye de forma idempotente lo que hacía 0041_supplements.sql
+-- (por si nunca se aplicó) + las columnas nuevas de esta ronda. Se puede
+-- ejecutar sola, esté 0041 aplicada o no. Todo con if-not-exists / on-conflict
+-- / drop-policy-if-exists, así que re-ejecutarla es seguro.
 --
--- Cómo aplicar: Supabase Dashboard → SQL Editor → Run. Idempotente.
+--   1. common_supplements → catálogo compartido (no por usuario). Gana
+--      `benefits` (jsonb, lista de frases cortas) y `timing` (texto llano del
+--      momento típico de toma). Descripción en lenguaje llano — sin dosis ni
+--      indicaciones médicas. El disclaimer es texto fijo en la app.
+--   2. user_supplements → los que toma el peleador. Gana `slot` = la "franja"
+--      elegida al añadirlo a la rutina (manana | con_comidas | post_entreno |
+--      antes_dormir | otro). `time_of_day` guarda una hora representativa de la
+--      franja, o la hora libre cuando slot = 'otro'.
+--
+-- Cómo aplicar: Supabase Dashboard → SQL Editor → Run.
+-- Convención: fighter_profile_id = profiles.id = auth.uid()
 -- ============================================================
 
+-- ── 1. Catálogo compartido ──
+create table if not exists public.common_supplements (
+  id          uuid primary key default gen_random_uuid(),
+  name        text not null unique,
+  -- protein | creatine | preworkout | amino | vitamin | mineral | omega | other
+  category    text not null check (category in ('protein', 'creatine', 'preworkout', 'amino', 'vitamin', 'mineral', 'omega', 'other')),
+  description text
+);
+
+-- Columnas nuevas de esta ronda (aditivas).
 alter table public.common_supplements add column if not exists benefits jsonb;
 alter table public.common_supplements add column if not exists timing text;
 
+alter table public.common_supplements enable row level security;
+
+drop policy if exists "read common_supplements" on public.common_supplements;
+create policy "read common_supplements" on public.common_supplements
+  for select to authenticated using (true);
+
+-- ── 2. Suplementos del usuario ──
+create table if not exists public.user_supplements (
+  id                  uuid primary key default gen_random_uuid(),
+  fighter_profile_id  uuid not null references public.profiles(id) on delete cascade,
+  supplement_id       uuid references public.common_supplements(id) on delete set null,
+  custom_name         text,
+  time_of_day         time,
+  notes               text,
+  created_at          timestamptz not null default now(),
+  constraint user_supplements_has_name check (supplement_id is not null or custom_name is not null)
+);
+
 alter table public.user_supplements add column if not exists slot text;
 
--- Re-siembra (upsert por nombre). Categorías del enum de 0041; la app las
--- agrupa en rendimiento / recuperación / salud / otro para el filtro.
+create index if not exists user_supplements_owner_idx
+  on public.user_supplements (fighter_profile_id, time_of_day);
+
+alter table public.user_supplements enable row level security;
+
+drop policy if exists "own user_supplements" on public.user_supplements;
+create policy "own user_supplements" on public.user_supplements
+  for all using (auth.uid() = fighter_profile_id) with check (auth.uid() = fighter_profile_id);
+
+-- ── 3. Semilla base (de 0041, por si no se aplicó) ──
+insert into public.common_supplements (name, category, description) values
+  ('Proteína vegana', 'protein', 'Alternativa vegetal a la whey'),
+  ('Caseína', 'protein', 'Liberación lenta, habitual antes de dormir'),
+  ('Pre-entreno (mezcla)', 'preworkout', 'Cafeína + otros estimulantes combinados'),
+  ('Citrulina malato', 'preworkout', 'Bombeo y resistencia'),
+  ('EAA', 'amino', 'Aminoácidos esenciales completos'),
+  ('Complejo B', 'vitamin', 'Energía y sistema nervioso'),
+  ('ZMA', 'mineral', 'Zinc + magnesio + B6, habitual antes de dormir'),
+  ('Electrolitos', 'mineral', 'Hidratación en sesiones largas o con corte de peso'),
+  ('Ashwagandha', 'other', 'Estrés y recuperación hormonal'),
+  ('Cúrcuma', 'other', 'Antiinflamatorio natural'),
+  ('Probióticos', 'other', 'Salud digestiva')
+on conflict (name) do nothing;
+
+-- ── 4. Re-siembra ampliada (17 comunes) con función en lenguaje llano ──
 insert into public.common_supplements (name, category, description, benefits, timing) values
   ('Creatina monohidrato', 'creatine',
    'El suplemento de rendimiento más estudiado que existe.',
