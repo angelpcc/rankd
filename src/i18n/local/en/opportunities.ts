@@ -41,6 +41,13 @@ export default {
 
   // Opportunities page leftovers
   opp_eyebrow: 'Opportunities',
+  // Featured + urgency grouping
+  opp_featured: 'MOST URGENT',
+  opp_no_date: 'Date TBC',
+  opp_grp_week: 'This week',
+  opp_grp_month: 'This month',
+  opp_grp_later: 'Later on',
+  opp_grp_nodate: 'No set date',
   opp_toast_sent: 'Application sent successfully!',
   opp_toast_error: 'Something went wrong applying. Please try again.',
   opp_see_all: 'See all opportunities',

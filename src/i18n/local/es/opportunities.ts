@@ -41,6 +41,13 @@ export default {
 
   // Restos de la página de oportunidades
   opp_eyebrow: 'Oportunidades',
+  // Destacada + agrupación por urgencia
+  opp_featured: 'MÁS URGENTE',
+  opp_no_date: 'Fecha por confirmar',
+  opp_grp_week: 'Esta semana',
+  opp_grp_month: 'Este mes',
+  opp_grp_later: 'Más adelante',
+  opp_grp_nodate: 'Sin fecha concreta',
   opp_toast_sent: '¡Postulación enviada correctamente!',
   opp_toast_error: 'Error al postularse. Inténtalo de nuevo.',
   opp_see_all: 'Ver todas las oportunidades',

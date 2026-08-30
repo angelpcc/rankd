@@ -10,7 +10,13 @@ import Footer from '@/pages/home/components/Footer';
 import OpportunityCard from './components/OpportunityCard';
 import OpportunitiesFilters from './components/OpportunitiesFilters';
 import ApplyModal from './components/ApplyModal';
+import FeaturedOpportunity from './components/FeaturedOpportunity';
 import { isSponsorshipType } from './components/OpportunityCard';
+
+function daysUntil(d?: string | null): number | null {
+  if (!d) return null;
+  return Math.ceil((new Date(d + 'T12:00:00').getTime() - Date.now()) / 86400000);
+}
 
 export default function OpportunitiesPage() {
   useSEO({
@@ -98,6 +104,32 @@ export default function OpportunitiesPage() {
   // "Sin resultados" y "todavía no hay nada publicado" son cosas distintas
   // y merecen mensajes distintos.
   const hasFilters = !!(filterType || filterDiscipline || filterWeight || filterLocation || search);
+
+  // ── Destacada + agrupación por urgencia (B.2: nada de lista cronológica plana) ──
+  // Solo en la vista por defecto (sin filtros/búsqueda). Con filtros, grid plano.
+  const dated = [...filtered]
+    .filter((o) => o.event_date && (daysUntil(o.event_date) ?? -1) >= 0)
+    .sort((a, b) => (a.event_date || '').localeCompare(b.event_date || ''));
+  const featured = !hasFilters && dated.length > 0 ? dated[0] : null;
+  const rest = featured ? filtered.filter((o) => o.id !== featured.id) : filtered;
+  const grouped = !hasFilters && dated.length >= 5;
+
+  const GROUPS: { key: string; labelKey: string; test: (n: number | null) => boolean }[] = [
+    { key: 'week', labelKey: 'opp_grp_week', test: (n) => n !== null && n >= 0 && n <= 7 },
+    { key: 'month', labelKey: 'opp_grp_month', test: (n) => n !== null && n > 7 && n <= 31 },
+    { key: 'later', labelKey: 'opp_grp_later', test: (n) => n !== null && n > 31 },
+    { key: 'nodate', labelKey: 'opp_grp_nodate', test: (n) => n === null },
+  ];
+  const restSorted = [...rest].sort((a, b) => {
+    const na = daysUntil(a.event_date), nb = daysUntil(b.event_date);
+    if (na === null && nb === null) return 0;
+    if (na === null) return 1;
+    if (nb === null) return -1;
+    return na - nb;
+  });
+  const groups = GROUPS
+    .map((g) => ({ ...g, items: restSorted.filter((o) => g.test(daysUntil(o.event_date))) }))
+    .filter((g) => g.items.length > 0);
 
   return (
     <div className="min-h-screen bg-[#070707]">
@@ -243,27 +275,70 @@ export default function OpportunitiesPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-            {filtered.map((opp) => {
+          (() => {
+            const renderCard = (opp: Opportunity & { publisher?: Profile }) => {
               const isSponsorship = isSponsorshipType(opp.type);
               const canApplyToThis = !!user && profile?.user_type === 'fighter' && !isSponsorship;
+              const onApply = () => {
+                if (!user) { navigate('/auth'); return; }
+                if (isSponsorship && profile?.user_type === 'fighter') return;
+                setSelectedOpp(opp);
+              };
               return (
                 <OpportunityCard
                   key={opp.id}
                   opportunity={opp}
-                  publisher={(opp as Opportunity & { publisher?: Profile }).publisher}
+                  publisher={opp.publisher}
                   isApplied={appliedIds.has(opp.id)}
                   canApply={canApplyToThis}
                   userType={profile?.user_type ?? null}
-                  onApply={() => {
-                    if (!user) { navigate('/auth'); return; }
-                    if (isSponsorship && profile?.user_type === 'fighter') return;
-                    setSelectedOpp(opp);
-                  }}
+                  onApply={onApply}
                 />
               );
-            })}
-          </div>
+            };
+            return (
+              <>
+                {/* Destacada: la de fecha más próxima */}
+                {featured && (() => {
+                  const isSp = isSponsorshipType(featured.type);
+                  return (
+                    <FeaturedOpportunity
+                      opportunity={featured}
+                      publisher={(featured as Opportunity & { publisher?: Profile }).publisher}
+                      isApplied={appliedIds.has(featured.id)}
+                      canApply={!!user && profile?.user_type === 'fighter' && !isSp}
+                      onApply={() => {
+                        if (!user) { navigate('/auth'); return; }
+                        if (isSp && profile?.user_type === 'fighter') return;
+                        setSelectedOpp(featured);
+                      }}
+                    />
+                  );
+                })()}
+
+                {grouped ? (
+                  <div className="space-y-8">
+                    {groups.map((g) => (
+                      <div key={g.key}>
+                        <div className="flex items-center gap-3 mb-3">
+                          <h3 className="text-sm font-bold text-white uppercase tracking-wider">{t(g.labelKey)}</h3>
+                          <span className="text-xs text-zinc-500">{g.items.length}</span>
+                          <span className="flex-1 h-px bg-white/[0.07]" />
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+                          {g.items.map((opp) => renderCard(opp as Opportunity & { publisher?: Profile }))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+                    {rest.map((opp) => renderCard(opp as Opportunity & { publisher?: Profile }))}
+                  </div>
+                )}
+              </>
+            );
+          })()
         )}
       </div>
 
