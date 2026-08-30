@@ -14,7 +14,10 @@ import WeekStrip from '@/pages/mi-esquina/components/WeekStrip';
 import FightPrep from '@/pages/mi-esquina/components/FightPrep';
 import PhysicalProfileCard from '@/pages/mi-esquina/components/PhysicalProfileCard';
 import AgendaHub from '@/pages/mi-esquina/components/AgendaHub';
-import ProgressHub from '@/pages/mi-esquina/components/ProgressHub';
+import WeightTracker from '@/pages/mi-esquina/components/WeightTracker';
+import FuerzaSection from '@/pages/mi-esquina/components/FuerzaSection';
+import FighterTraining from '@/pages/mi-esquina/components/FighterTraining';
+import ObjectiveWizard from '@/pages/mi-esquina/components/ObjectiveWizard';
 import RingHub from '@/pages/mi-esquina/components/RingHub';
 import { GearReplacementAlert } from '@/pages/mi-esquina/components/GearChecklist';
 import GymLink from '@/pages/mi-esquina/components/GymLink';
@@ -33,9 +36,16 @@ import SettingsModal from '@/pages/mi-esquina/components/SettingsModal';
 // R17: Coach IA como sección propia se retiró — la IA vive DENTRO de cada
 // bloque (nutrición, material, objetivos), donde ya trae contexto de lo que
 // el peleador está haciendo. Un asistente genérico duplicaba entradas.
+//
+// PROMPT 1 (dos niveles): "Progreso" deja de existir como contenedor. Sus
+// sub-pestañas (Peso, Fuerza, Actividad) pasan a ser entradas de primer nivel,
+// y "Objetivos" pasa a ser el "Asesor" de primer nivel. Fuerza y Nutrición
+// siguen ahora el patrón resumen (nivel 1) → pantalla de trabajo (nivel 2).
 type Section =
-  | 'resumen' | 'agenda' | 'progreso' | 'ring' | 'objetivos' | 'documentos'
-  | 'compartir' | 'material' | 'nutricion' | 'timer';
+  | 'resumen' | 'agenda' | 'peso' | 'fuerza' | 'actividad' | 'asesor'
+  | 'ring' | 'documentos' | 'compartir' | 'material' | 'nutricion' | 'timer'
+  // Alias heredados de "Progreso" — se remapean para no romper enlaces viejos.
+  | 'progreso' | 'objetivos';
 
 interface SectionDef { id: Section; labelKey: string; icon: string }
 
@@ -43,30 +53,40 @@ interface SectionDef { id: Section; labelKey: string; icon: string }
 // siguen siendo destinos válidos que deben renderizarse.
 const EXTRA_SECTIONS: Section[] = ['compartir'];
 
+// Enlaces viejos ("progreso", "objetivos") → sección aplanada equivalente.
+const SECTION_ALIAS: Partial<Record<Section, Section>> = {
+  progreso: 'fuerza',
+  objetivos: 'asesor',
+};
+
 // ── Qué ve cada perfil ──
 // El que compite lo tiene TODO: el Ring (sparring, combates y libreta técnica)
 // es suyo, y la Agenda y el Peso van enfocados al combate.
-// R15-B7: menos categorías de primer nivel. Objetivos pasa a ser subsección de
-// Progreso y Documentos de Ring; así la barra es más corta y agrupada.
 const PRO_SECTIONS: SectionDef[] = [
   { id: 'resumen', labelKey: 'mc_nav_summary', icon: 'ri-dashboard-line' },
   { id: 'agenda', labelKey: 'mc_nav_agenda', icon: 'ri-calendar-todo-line' },
-  { id: 'progreso', labelKey: 'mc_nav_progress_hub', icon: 'ri-line-chart-line' },
-  { id: 'ring', labelKey: 'mc_nav_ring', icon: 'ri-boxing-line' },
+  { id: 'peso', labelKey: 'mc_pr_tab_weight', icon: 'ri-scales-2-line' },
+  { id: 'fuerza', labelKey: 'mc_pr_tab_strength', icon: 'ri-hammer-line' },
+  { id: 'actividad', labelKey: 'mc_pr_tab_activity', icon: 'ri-run-line' },
   { id: 'nutricion', labelKey: 'mc_nav_nutrition', icon: 'ri-restaurant-line' },
-  { id: 'timer', labelKey: 'mc_nav_timer', icon: 'ri-timer-flash-line' },
+  { id: 'asesor', labelKey: 'mc_nav_advisor', icon: 'ri-compass-3-line' },
+  { id: 'ring', labelKey: 'mc_nav_ring', icon: 'ri-boxing-line' },
   { id: 'material', labelKey: 'mc_nav_gear', icon: 'ri-t-shirt-line' },
+  { id: 'timer', labelKey: 'mc_nav_timer', icon: 'ri-timer-flash-line' },
 ];
 
 // El aficionado ve menos, pero todo lo que ve es suyo: nada de Ring ni
-// documentos de competición, que solo serían ruido. Objetivos vive en Progreso.
+// documentos de competición, que solo serían ruido.
 const HOBBY_SECTIONS: SectionDef[] = [
   { id: 'resumen', labelKey: 'mc_nav_summary', icon: 'ri-dashboard-line' },
   { id: 'agenda', labelKey: 'mc_nav_agenda', icon: 'ri-calendar-todo-line' },
-  { id: 'progreso', labelKey: 'mc_nav_progress_hub', icon: 'ri-line-chart-line' },
+  { id: 'peso', labelKey: 'mc_pr_tab_weight', icon: 'ri-scales-2-line' },
+  { id: 'fuerza', labelKey: 'mc_pr_tab_strength', icon: 'ri-hammer-line' },
+  { id: 'actividad', labelKey: 'mc_pr_tab_activity', icon: 'ri-run-line' },
   { id: 'nutricion', labelKey: 'mc_nav_nutrition', icon: 'ri-restaurant-line' },
-  { id: 'timer', labelKey: 'mc_nav_timer', icon: 'ri-timer-flash-line' },
+  { id: 'asesor', labelKey: 'mc_nav_advisor', icon: 'ri-compass-3-line' },
   { id: 'material', labelKey: 'mc_nav_gear', icon: 'ri-t-shirt-line' },
+  { id: 'timer', labelKey: 'mc_nav_timer', icon: 'ri-timer-flash-line' },
 ];
 
 function todayISO(): string {
@@ -194,15 +214,19 @@ export default function MiEsquinaPage() {
   const SECTIONS = isHobby ? HOBBY_SECTIONS : PRO_SECTIONS;
   const firstName = (profile.full_name || '').split(' ')[0] || 'RANKD';
 
+  // Enlaces viejos ("progreso"/"objetivos") → sección aplanada.
+  const resolved: Section = SECTION_ALIAS[section] ?? section;
   // Si el perfil cambia de modo, una sección que ya no existe dejaría la
   // pantalla en blanco: en ese caso volvemos al resumen. Las EXTRA_SECTIONS
   // (compartir) no están en la barra pero siguen siendo destinos válidos.
   const activeSection: Section =
-    SECTIONS.some((s) => s.id === section) || EXTRA_SECTIONS.includes(section) ? section : 'resumen';
+    SECTIONS.some((s) => s.id === resolved) || EXTRA_SECTIONS.includes(resolved) ? resolved : 'resumen';
 
   // Navega a una sección y, opcionalmente, abre un hub en una pestaña concreta
-  // (y, para Progreso › Actividad, con un día ya puesto).
-  const go = (s: Section, tab?: string, date?: string) => { setPendingTab(tab); setPendingDate(date); setSection(s); };
+  // (y, para Actividad, con un día ya puesto).
+  const go = (s: Section, tab?: string, date?: string) => {
+    setPendingTab(tab); setPendingDate(date); setSection(SECTION_ALIAS[s] ?? s);
+  };
 
   return (
     <div className="min-h-screen text-white rk-screen-bg">
@@ -331,18 +355,18 @@ export default function MiEsquinaPage() {
               <Reveal>
                 <TodayCard profile={profile}
                   onStart={() => go('agenda', 'plan')}
-                  onCreatePlan={() => go('progreso', 'objetivos')} />
+                  onCreatePlan={() => go('asesor')} />
               </Reveal>
 
               {/* Métricas 2×2 */}
               <Reveal delay={80}>
                 <SummaryMetrics profile={profile} weekSessions={stats.week} streak={stats.streak}
-                  onOpenActivity={() => go('progreso', 'actividad')} onOpenWeight={() => go('progreso', 'peso')} />
+                  onOpenActivity={() => go('actividad')} onOpenWeight={() => go('peso')} />
               </Reveal>
 
               {/* Plan activo */}
               <Reveal delay={160}>
-                <SummaryAiLine profile={profile} onOpen={() => go('progreso', 'objetivos')} />
+                <SummaryAiLine profile={profile} onOpen={() => go('asesor')} />
               </Reveal>
 
               {/* Próxima pelea (PRO; null si no hay combate) */}
@@ -358,9 +382,18 @@ export default function MiEsquinaPage() {
               </div>
 
               {/* Único CTA rojo de la pantalla: registrar lo de hoy */}
-              <button onClick={() => go('progreso', 'actividad', todayISO())}
+              <button onClick={() => go('actividad', undefined, todayISO())}
                 className="rk-cta w-full flex items-center justify-center gap-2">
                 <i className="ri-add-line text-lg"></i> {t('mc_register_today')}
+              </button>
+
+              {/* Informe de progreso exportable (antes vivía en Progreso) */}
+              <button
+                onClick={() => window.open('/mi-esquina/informe/imprimir', '_blank', 'noopener')}
+                className="rk-btn rk-btn-ghost w-full flex items-center justify-center gap-1.5"
+                style={{ fontSize: '0.78rem', padding: '0.55rem 1rem' }}
+              >
+                <i className="ri-file-chart-line"></i> {t('mc_export_report')}
               </button>
             </div>
           )}
@@ -370,12 +403,27 @@ export default function MiEsquinaPage() {
           {activeSection === 'agenda' && (
             <AgendaHub profile={profile} showToast={showToast} mode={mode}
               onLogged={() => setRefreshKey((k) => k + 1)} initialTab={pendingTab}
-              onGoActivity={(date) => go('progreso', 'actividad', date)} />
+              onGoActivity={(date) => go('actividad', undefined, date)} />
           )}
 
-          {/* Progreso: objetivos + actividad + fuerza + peso */}
-          {activeSection === 'progreso' && (
-            <ProgressHub profile={profile} showToast={showToast} mode={mode} initialTab={pendingTab} initialDate={pendingDate} />
+          {/* Peso — sin patrón de dos niveles (se mantiene tal cual) */}
+          {activeSection === 'peso' && (
+            <WeightTracker profile={profile} showToast={showToast} mode={mode} />
+          )}
+
+          {/* Fuerza — resumen (nivel 1) → pantalla de trabajo (nivel 2) */}
+          {activeSection === 'fuerza' && (
+            <FuerzaSection profile={profile} showToast={showToast} onGoAsesor={() => go('asesor')} />
+          )}
+
+          {/* Actividad — sin patrón de dos niveles (se mantiene tal cual) */}
+          {activeSection === 'actividad' && (
+            <FighterTraining profile={profile} showToast={showToast} initialDate={pendingDate} />
+          )}
+
+          {/* Asesor — antes "Progreso › Objetivos" */}
+          {activeSection === 'asesor' && (
+            <ObjectiveWizard profile={profile} showToast={showToast} />
           )}
 
           {/* Ring: sparring + combates + notas técnicas (R12-T0, solo competición) */}
@@ -385,19 +433,15 @@ export default function MiEsquinaPage() {
 
           {activeSection === 'compartir' && <ShareProgress profile={profile} mode={mode} showToast={showToast} />}
 
-          {/* R17: bloque "Coach IA" retirado. El coach de entrenamiento se
-              accede ahora desde Progreso › Objetivos, con contexto del plan
-              en curso. Nutrición y Material siguen teniendo su IA dentro. */}
-
           {/* ══ MATERIAL ══ (R17b: sección por pestañas dentro de GearHub) */}
           {activeSection === 'material' && (
             <GearHub profile={profile} showToast={showToast} mode={mode} />
           )}
 
-          {/* ══ NUTRICIÓN ══ (R17b: sección por pestañas dentro de NutritionHub) */}
+          {/* ══ NUTRICIÓN ══ — resumen (nivel 1) → pantalla de trabajo (nivel 2) */}
           {activeSection === 'nutricion' && (
             <NutritionHub profile={profile} showToast={showToast} isHobby={isHobby}
-              onGoWeight={() => go('progreso', 'peso')} />
+              onGoWeight={() => go('peso')} />
           )}
         </main>
       </div>

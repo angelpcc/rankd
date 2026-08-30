@@ -17,6 +17,14 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 interface Props {
   profile: Profile;
   showToast: (msg: string, type?: 'success' | 'error') => void;
+  /** El mapa muscular y el volumen semanal viven en el nivel 1 (resumen). */
+  hideSummaryBlocks?: boolean;
+  /** Oculta la lista de historial por días (tiene su propia pestaña). */
+  hideHistory?: boolean;
+  /** Oculta el CTA de "nueva sesión" (vista de solo lectura / historial). */
+  hideRegisterCta?: boolean;
+  /** Enlace opcional "ver historial completo" cuando hideHistory. */
+  onSeeHistory?: () => void;
 }
 
 interface StrengthSet {
@@ -85,7 +93,7 @@ function slotKey(s: SessionSlot | null): string { return s || '_none'; }
  * días agrupado por grupo muscular con su volumen, y la progresión por ejercicio.
  * Sigue guardando UNA FILA POR SERIE en strength_sets; nada se almacena derivado.
  */
-export default function StrengthLog({ profile, showToast }: Props) {
+export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hideHistory, hideRegisterCta, onSeeHistory }: Props) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
 
@@ -465,7 +473,7 @@ export default function StrengthLog({ profile, showToast }: Props) {
       <SectionHero kind="strength" eyebrow={t('mc_str_eyebrow')}
         title={`${t('mc_str_title')} ${t('mc_str_title_2')}`}
         subtitle={rows.length ? t('mc_str_hero_sub', { n: sessions.length }) : undefined}
-        action={{ label: t('mc_str_new'), icon: 'ri-add-line', onClick: () => openForm() }} />
+        action={hideRegisterCta ? undefined : { label: t('mc_str_new'), icon: 'ri-add-line', onClick: () => openForm() }} />
 
       {rows.length === 0 ? (
         <div className="rk-card text-center" style={{ padding: '48px 28px' }}>
@@ -474,18 +482,20 @@ export default function StrengthLog({ profile, showToast }: Props) {
           </div>
           <p className="text-white font-bold">{t('mc_str_empty')}</p>
           <p className="text-sm text-zinc-400 mt-1.5 max-w-sm mx-auto leading-relaxed">{t('mc_str_empty_desc')}</p>
-          <button onClick={() => openForm()} className="rk-btn rk-btn-primary mt-6" style={{ fontSize: '0.85rem', padding: '0.7rem 1.6rem' }}>
-            {t('mc_str_new')}
-          </button>
+          {!hideRegisterCta && (
+            <button onClick={() => openForm()} className="rk-btn rk-btn-primary mt-6" style={{ fontSize: '0.85rem', padding: '0.7rem 1.6rem' }}>
+              {t('mc_str_new')}
+            </button>
+          )}
         </div>
       ) : (
         <>
           {/* ── MAPA MUSCULAR: selector de grupo, abre el formulario al tocar ── */}
-          <MuscleMap status={groupStatus} onSelect={(g) => openForm(g)} />
+          {!hideSummaryBlocks && <MuscleMap status={groupStatus} onSelect={(g) => openForm(g)} />}
 
           {/* ── VOLUMEN SEMANAL POR GRUPO (últimos 7 días) ──
               Solo el dato bruto, sin marcar bueno/malo. */}
-          {rows.length > 0 && (
+          {!hideSummaryBlocks && rows.length > 0 && (
             <div className="rk-card" style={{ padding: 20 }}>
               <p className="rk-label mb-3">{t('mc_str_wk_vol_title')}</p>
               <div className="space-y-2">
@@ -509,6 +519,7 @@ export default function StrengthLog({ profile, showToast }: Props) {
           )}
 
           {/* ── HISTORIAL POR DÍAS ── */}
+          {!hideHistory && (
           <div>
             <h3 className="rk-label mb-3">{t('mc_str_history')}</h3>
             <div className="rk-stack">
@@ -651,6 +662,14 @@ export default function StrengthLog({ profile, showToast }: Props) {
               })}
             </div>
           </div>
+          )}
+
+          {hideHistory && onSeeHistory && (
+            <button onClick={onSeeHistory}
+              className="text-xs text-zinc-400 hover:text-white cursor-pointer inline-flex items-center gap-1.5">
+              <i className="ri-history-line" />{t('mc_strs_see_all')}
+            </button>
+          )}
 
           {/* ── PROGRESIÓN ── (card primaria: 1 por pantalla) */}
           <div className="card-primary" style={{ padding: '22px' }}>

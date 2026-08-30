@@ -8,8 +8,8 @@ import FoodPhotoAnalyzer from '@/pages/mi-esquina/components/FoodPhotoAnalyzer';
 import type { NutritionAnalysis } from '@/services/nutritionAnalysis';
 import NutritionTracker from '@/pages/mi-esquina/components/NutritionTracker';
 import SupplementTracker from '@/pages/mi-esquina/components/SupplementTracker';
-import SectionCoach from '@/pages/mi-esquina/components/SectionCoach';
 import SectionHero from '@/pages/mi-esquina/components/SectionHero';
+import NutritionSummary from '@/pages/mi-esquina/components/NutritionSummary';
 import PhotoCard from '@/components/base/PhotoCard';
 
 function todayISO(): string {
@@ -36,31 +36,32 @@ interface Props {
 interface NutritionGuideItem { icon: string; t: string; b: string }
 
 /**
- * Nutrición dividida en pestañas (R17b). Antes era scroll infinito hacia
- * abajo con todos los bloques apilados; ahora cada apartado vive en su
- * propia tab para que se navegue como Progreso. El aviso sanitario queda
- * FUERA de las tabs — siempre visible arriba, no es un contenido que se
- * elija ver, es una condición de uso.
- *
- * Tabs:
- *  - Diario     · MealLog + puente a control de peso al final
- *  - Foto       · FoodPhotoAnalyzer (gated "muy pronto" sin API key)
- *  - Agua       · NutritionTracker (contador de hidratación)
- *  - Coach IA   · SectionCoach de nutrición (gated "muy pronto")
- *  - Guía       · tarjetas informativas + disclaimer
+ * Nutrición en dos niveles (PROMPT 1):
+ *  · Nivel 1 (resumen): NutritionSummary — anillos de macros, barra de
+ *    calorías segmentada y diario del día compacto. Un botón entra al nivel 2.
+ *  · Nivel 2 (pantalla de trabajo): pestañas Diario · Foto · Agua ·
+ *    Suplementos · Guía. El aviso sanitario queda FUERA de las tabs.
+ * El "Asesor" de nutrición se retiró: ahora es una sección de primer nivel.
  */
 export default function NutritionHub({ profile, showToast, isHobby, onGoWeight }: Props) {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<'diario' | 'foto' | 'agua' | 'suplementos' | 'advisor' | 'guia'>('diario');
+  // PROMPT 1 — dos niveles: 'summary' = resumen (anillos de macros + diario
+  // compacto), 'work' = pantalla de trabajo con pestañas. El Asesor de
+  // nutrición se retiró de aquí: ahora hay una sección "Asesor" de primer nivel.
+  const [view, setView] = useState<'summary' | 'work'>('summary');
+  const [tab, setTab] = useState<'diario' | 'foto' | 'agua' | 'suplementos' | 'guia'>('diario');
 
   const TABS: HubTab[] = [
     { id: 'diario', labelKey: 'mc_ng_tab_diary', icon: 'ri-restaurant-line' },
     { id: 'foto', labelKey: 'mc_ng_tab_photo', icon: 'ri-camera-line' },
     { id: 'agua', labelKey: 'mc_ng_tab_water', icon: 'ri-drop-line' },
     { id: 'suplementos', labelKey: 'mc_ng_tab_supplements', icon: 'ri-capsule-line' },
-    { id: 'advisor', labelKey: 'mc_ng_tab_advisor', icon: 'ri-compass-3-line' },
     { id: 'guia', labelKey: 'mc_ng_tab_guide', icon: 'ri-book-open-line' },
   ];
+
+  if (view === 'summary') {
+    return <NutritionSummary profile={profile} onEnter={() => setView('work')} />;
+  }
 
   // La guía informativa se calcula igual que en la implementación anterior:
   // el bloque de "peso" se bifurca por perfil (competición vs aficionado).
@@ -98,6 +99,11 @@ export default function NutritionHub({ profile, showToast, isHobby, onGoWeight }
 
   return (
     <div className="max-w-4xl">
+      <button onClick={() => setView('summary')}
+        className="text-xs text-zinc-400 hover:text-white cursor-pointer inline-flex items-center gap-1.5 mb-4">
+        <i className="ri-arrow-left-line" />{t('mc_ns_back_summary')}
+      </button>
+
       <div className="mb-5">
         <SectionHero kind="nutrition" eyebrow={t('mc_ng_eyebrow')}
           title={t('mc_ng_hero_title')} subtitle={t('mc_ng_hero_sub')} />
@@ -148,23 +154,6 @@ export default function NutritionHub({ profile, showToast, isHobby, onGoWeight }
       {/* ── SUPLEMENTOS ── */}
       {tab === 'suplementos' && (
         <div className="mt-6"><SupplementTracker profile={profile} showToast={showToast} /></div>
-      )}
-
-      {/* ── ASESOR ── */}
-      {tab === 'advisor' && (
-        <div className="mt-6">
-          <SectionCoach
-            section="nutrition"
-            profile={profile}
-            showToast={showToast}
-            accent="sky"
-            title={t('mc_ng_coach_title')}
-            intro={isHobby ? t('mc_ng_coach_intro_hobby') : t('mc_ng_coach_intro_pro')}
-            suggestions={isHobby
-              ? [t('mc_ng_sug_hobby_1'), t('mc_ng_sug_hobby_2'), t('mc_ng_sug_hobby_3')]
-              : [t('mc_ng_sug_pro_1'), t('mc_ng_sug_pro_2'), t('mc_ng_sug_pro_3')]}
-          />
-        </div>
       )}
 
       {/* ── GUÍA ── */}
