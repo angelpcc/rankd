@@ -423,7 +423,8 @@ export default function MiEsquinaPage() {
 
           {/* Asesor — antes "Progreso › Objetivos" */}
           {activeSection === 'asesor' && (
-            <ObjectiveWizard profile={profile} showToast={showToast} />
+            <ObjectiveWizard profile={profile} showToast={showToast}
+              onGoPlan={() => go('agenda', 'planificar')} />
           )}
 
           {/* Ring: sparring + combates + notas técnicas (R12-T0, solo competición) */}

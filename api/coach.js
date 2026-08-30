@@ -350,6 +350,21 @@ function sanitize(messages) {
 // responde 503 y la sonda GET marca available=false, así que el front enseña
 // "disponible pronto"). Reusa la cuota de IA (falla cerrado) para no gastar sin
 // control cuando se active.
+// ── Importar rutina desde foto (PROMPT 1 · parte B · tarea 8a) ──
+// Lee la foto de un plan de entrenamiento (papel, pizarra, captura de móvil) y
+// lo estructura en el MISMO formato que el plan por objetivo, para que fluya
+// por la misma pantalla de revisión y guardado.
+const ROUTINE_PHOTO_SYSTEM = `Eres el entrenador de IA de RANKD. Te paso una FOTO del plan de entrenamiento de un peleador (puede ser un papel escrito a mano, una pizarra de gimnasio, una captura de una app o un mensaje). Tu trabajo es LEERLO y estructurarlo, sin inventar nada.
+
+Reglas:
+- Transcribe SOLO lo que se ve en la imagen. Si un día no aparece, va con todo a null.
+- Si la foto cubre una sola semana, devuelve 1 semana. Si cubre varias, devuélvelas todas (máx. 8).
+- Ordena los días LUNES→DOMINGO dentro de cada semana. Si la foto usa "Día 1, Día 2..." mapea Día 1 = Lunes.
+- Cada campo (training/cardio/nutrition/notes) es CORTO, 1-2 líneas. Mete en "training" lo que sea entrenamiento de fuerza/técnica/sparring; en "cardio" lo que sea carrera/bici/comba aparte; en "nutrition" solo si la foto trae pautas de comida; en "notes" avisos o aclaraciones.
+- Si la imagen no es un plan de entrenamiento o es ilegible, devuelve weeks: [].
+- "plan_name": un título corto ("Rutina importada" si no hay nombre en la foto). "summary": 1 frase de qué es. "disclaimer": recuerda que es una transcripción y que ante dudas consulte con quien se lo dio o con un profesional.
+- Idioma: español.`;
+
 const FOOD_PHOTO_SYSTEM = `Eres un asistente nutricional especializado en deportes de combate. Analizas una foto de comida y das una estimación orientativa de sus macros.
 
 Reglas:
@@ -538,7 +553,10 @@ export default async function handler(req, res) {
     return res.status(503).json({ error: 'not_configured', message: 'La IA aún no está configurada en el servidor.' });
   }
 
-  const { section, profile, messages, extract, timerCombos, foodPhoto, creatorStudio, objectivePlan } = req.body || {};
+  const { section, profile, messages, extract, timerCombos, foodPhoto, routinePhoto, creatorStudio, objectivePlan } = req.body || {};
+  // Modos "estructurados": no usan `section` ni una conversación `messages`,
+  // devuelven JSON validado. No deben pasar por las guardas de chat de abajo.
+  const structuredMode = !!(objectivePlan || foodPhoto || routinePhoto);
 
   // ── CREATOR STUDIO: solo admin, gasto contabilizado aparte de las cuotas
   //    de Mi Esquina (section:'creator-studio' en ai_usage) ──
@@ -588,10 +606,10 @@ export default async function handler(req, res) {
     }
   }
   const buildSystem = SYSTEMS[section];
-  if (!buildSystem) return res.status(400).json({ error: 'Sección de IA no válida' });
+  if (!structuredMode && !buildSystem) return res.status(400).json({ error: 'Sección de IA no válida' });
 
   const clean = sanitize(messages);
-  if (clean.length === 0 || clean[0].role !== 'user') {
+  if (!structuredMode && (clean.length === 0 || clean[0].role !== 'user')) {
     return res.status(400).json({ error: 'La conversación debe empezar por el usuario' });
   }
 
@@ -683,6 +701,45 @@ export default async function handler(req, res) {
     } catch (err) {
       const status = err?.status === 429 ? 429 : 500;
       return res.status(status).json({ error: 'ia_error', message: status === 429 ? 'La IA está saturada, prueba en un momento.' : 'No se pudo analizar la foto.' });
+    }
+  }
+
+  // ── MODO IMPORTAR RUTINA: foto de un plan → plan estructurado ──
+  // Devuelve el mismo formato que el plan por objetivo (weeks/days) para pasar
+  // por la misma pantalla de revisión. Cuenta como 1 turno (section='training').
+  if (routinePhoto) {
+    const { imageBase64, mediaType } = routinePhoto || {};
+    if (!imageBase64 || !ALLOWED_IMAGE_TYPES.includes(mediaType)) {
+      return res.status(400).json({ error: 'bad_image', message: 'Formato de imagen no válido. Usa JPEG, PNG o WebP.' });
+    }
+    if (imageBase64.length > 7_000_000) {
+      return res.status(413).json({ error: 'image_too_large', message: 'La foto debe pesar menos de 5MB.' });
+    }
+    try {
+      const response = await anthropic.messages.create({
+        model: MODEL,
+        max_tokens: 4000,
+        system: ROUTINE_PHOTO_SYSTEM,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: mediaType, data: imageBase64 } },
+            { type: 'text', text: 'Lee este plan de entrenamiento y devuélvelo estructurado. No inventes nada que no esté en la foto.' },
+          ],
+        }],
+        output_config: { format: { type: 'json_schema', name: 'plan_objetivo', schema: OBJECTIVE_PLAN_SCHEMA } },
+      });
+      const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
+      let plan;
+      try { plan = JSON.parse(text); } catch { plan = null; }
+      await recordUsage(gate.db, gate.user.id, 'training', 'chat', response.usage);
+      if (!plan || !Array.isArray(plan.weeks) || plan.weeks.length === 0) {
+        return res.status(422).json({ error: 'no_plan', message: 'No he podido leer un plan en esa foto. Prueba con una imagen más nítida o mételo a mano.' });
+      }
+      return res.status(200).json({ plan, usage: response.usage });
+    } catch (err) {
+      const status = err?.status === 429 ? 429 : 500;
+      return res.status(status).json({ error: 'ia_error', message: status === 429 ? 'La IA está saturada, prueba en un momento.' : 'No se pudo leer la foto.' });
     }
   }
 

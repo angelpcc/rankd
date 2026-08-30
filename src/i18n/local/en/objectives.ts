@@ -91,6 +91,37 @@ export default {
   op_err_generate: 'Couldn\'t generate the plan. Try being more specific about the goal.',
   op_err_quota_out: 'You\'ve used up your automated system credits for this month.',
   op_err_generic: 'Something went wrong. Try again in a moment.',
+  op_err_import: "Couldn't read the photo. Try a sharper image or enter it by hand.",
+  op_img_err_type: 'Use a JPG, PNG or WebP image.',
+  op_img_err_size: 'The image must be under 5 MB.',
+
+  // ── Advisor flows (PROMPT 1 · part B · task 8) ──
+  op_flow_back: 'Back',
+  op_flow_adjust: 'Adjust my plan',
+  op_flow_import: 'Import routine (photo)',
+  op_flow_manual: 'Plan by hand',
+  op_ai_off_note: 'The automated system is paused. Meanwhile you can create or adjust your plan by hand from Agenda › Plan.',
+  op_adjust_ask_title: 'What do you want to adjust?',
+  op_adjust_ask_ph: 'e.g. less time this week; switch Thursday to legs; drop Saturdays…',
+  op_adjust_ask_cta: 'Propose changes',
+  op_import_desc: "Upload or take a photo of your routine (from your coach, a class, wherever). I'll read it and turn it into your plan — but you review it first.",
+  op_import_camera: 'Take photo',
+  op_import_upload: 'Upload image',
+  op_import_analyzing: 'Reading the routine…',
+  op_import_manual_hint: 'Rather enter it yourself?',
+  op_applied_toast: 'Changes applied to your plan',
+
+  // ── Review screen (accept per day or all) ──
+  op_rev_adjust_title: 'Review the changes',
+  op_rev_import_title: 'Review the imported routine',
+  op_rev_new: 'New',
+  op_rev_changed: 'Changed',
+  op_rev_no_changes: 'The proposal changes nothing vs your current plan.',
+  op_rev_count: '{{n}} days change · {{accepted}} selected',
+  op_rev_apply_day: 'Apply',
+  op_rev_was: 'Before',
+  op_rev_discard: 'Discard',
+  op_rev_apply: 'Apply ({{n}})',
 
   op_disclaimer_prefix: 'Note:',
   // ── Plan render (B.5): day kinds + week summary ──

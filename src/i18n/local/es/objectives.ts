@@ -91,6 +91,37 @@ export default {
   op_err_generate: 'No he podido generar el plan. Prueba a especificar más el objetivo.',
   op_err_quota_out: 'Has agotado tus consultas del sistema automatizado de este mes.',
   op_err_generic: 'Algo ha fallado. Prueba en un momento.',
+  op_err_import: 'No se pudo leer la foto. Prueba con una imagen más nítida o mételo a mano.',
+  op_img_err_type: 'Usa una imagen JPG, PNG o WebP.',
+  op_img_err_size: 'La imagen debe pesar menos de 5 MB.',
+
+  // ── Flujos del Asesor (PROMPT 1 · parte B · tarea 8) ──
+  op_flow_back: 'Volver',
+  op_flow_adjust: 'Ajustar mi plan',
+  op_flow_import: 'Importar rutina (foto)',
+  op_flow_manual: 'Planificar a mano',
+  op_ai_off_note: 'El sistema automatizado está en pausa. Mientras tanto puedes crear o ajustar tu plan a mano desde Agenda › Planificar.',
+  op_adjust_ask_title: '¿Qué quieres ajustar?',
+  op_adjust_ask_ph: 'Ej: esta semana tengo menos tiempo; cambia el jueves a piernas; quita los sábados…',
+  op_adjust_ask_cta: 'Proponer cambios',
+  op_import_desc: 'Sube o haz una foto de tu rutina (de tu entrenador, de una clase, de donde sea). La leo y la paso a tu plan, pero primero la revisas.',
+  op_import_camera: 'Hacer foto',
+  op_import_upload: 'Subir imagen',
+  op_import_analyzing: 'Leyendo la rutina…',
+  op_import_manual_hint: '¿Prefieres meterla tú?',
+  op_applied_toast: 'Cambios aplicados a tu plan',
+
+  // ── Pantalla de revisión (aceptar cambios por día o todos) ──
+  op_rev_adjust_title: 'Revisa los cambios',
+  op_rev_import_title: 'Revisa la rutina importada',
+  op_rev_new: 'Nuevo',
+  op_rev_changed: 'Cambia',
+  op_rev_no_changes: 'La propuesta no cambia nada respecto a tu plan actual.',
+  op_rev_count: '{{n}} días cambian · {{accepted}} seleccionados',
+  op_rev_apply_day: 'Aplicar',
+  op_rev_was: 'Antes',
+  op_rev_discard: 'Descartar',
+  op_rev_apply: 'Aplicar ({{n}})',
 
   op_disclaimer_prefix: 'Aviso:',
   // ── Render del plan (B.5): tipos de día + resumen de semana ──

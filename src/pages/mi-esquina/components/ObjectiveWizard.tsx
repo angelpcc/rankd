@@ -3,6 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable } from '@/lib/dbState';
 import { detectMuscleGroups, detectActivityKind, parseDuration } from '@/lib/dictation';
+import VoiceButton from '@/components/feature/VoiceButton';
+import AdjustPlanReview from './AdjustPlanReview';
+import { analyzeRoutinePhoto } from '@/services/routineImport';
 
 /**
  * Plan IA por objetivo (Mi Esquina › Progreso › Objetivos).
@@ -25,6 +28,19 @@ import { detectMuscleGroups, detectActivityKind, parseDuration } from '@/lib/dic
 interface Props {
   profile: Profile;
   showToast: (msg: string, type?: 'success' | 'error') => void;
+  /** Ir a Agenda › Planificar (crear/ajustar el plan a mano). */
+  onGoPlan?: () => void;
+}
+
+const IMG_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const IMG_MAX = 5 * 1024 * 1024;
+function fileToB64(file: File): Promise<string> {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result || '').split(',')[1] || '');
+    r.onerror = () => rej(new Error('read'));
+    r.readAsDataURL(file);
+  });
 }
 
 interface Answers {
@@ -95,9 +111,21 @@ const DAY_KEYS: Record<string, string> = {
   Jueves: 'op_day_thursday', Viernes: 'op_day_friday', 'Sábado': 'op_day_saturday', Domingo: 'op_day_sunday',
 };
 
-export default function ObjectiveWizard({ profile, showToast }: Props) {
+export default function ObjectiveWizard({ profile, showToast, onGoPlan }: Props) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
+
+  // ── Flujos del Asesor (PROMPT 1 · parte B · tarea 8) ──
+  // 'idle' = vista normal; 'adjust' = ajustar el plan activo con tus palabras;
+  // 'import' = importar una rutina desde foto. Ambos terminan en una pantalla
+  // de revisión (proposal) antes de aplicar nada.
+  const [flow, setFlow] = useState<'idle' | 'adjust' | 'import'>('idle');
+  const [adjustAsk, setAdjustAsk] = useState('');
+  const [proposal, setProposal] = useState<Plan | null>(null);
+  const [flowBusy, setFlowBusy] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const photoRef = useRef<HTMLInputElement | null>(null);
+  const cameraRef = useRef<HTMLInputElement | null>(null);
 
   // Gating IA
   const [checking, setChecking] = useState(true);
@@ -337,33 +365,77 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
     void generate(objective || activePlan?.objective_text || '', answers, plan, adjustments.trim());
   };
 
-  // ── Guardar plan + volcar días futuros a la Agenda ──
-  const saveToAgenda = useCallback(async () => {
-    if (!plan || savingAgenda) return;
-    setSavingAgenda(true);
+  // ── Tarea 8c: ajustar el plan ACTIVO con tus palabras → propuesta a revisar ──
+  const requestAdjust = async () => {
+    if (!activePlan || !adjustAsk.trim() || flowBusy) return;
+    setFlowBusy(true);
     try {
-      // 1. Archivar cualquier plan activo anterior.
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/coach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
+        body: JSON.stringify({
+          objectivePlan: {
+            objective: activePlan.objective_text, answers: activePlan.answers_json,
+            previous: activePlan.plan_json, adjustments: adjustAsk.trim(),
+          },
+          profile: { ...physical, snapshot: snapshot || undefined },
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 429 && data?.error === 'quota_reached') { showToast(t('op_err_quota_out'), 'error'); return; }
+      if (!res.ok || !data?.plan) { showToast(data?.message || t('op_err_generate'), 'error'); return; }
+      setProposal(data.plan as Plan);
+    } catch {
+      showToast(t('op_err_generic'), 'error');
+    } finally {
+      setFlowBusy(false);
+    }
+  };
+
+  // ── Tarea 8a: importar una rutina desde foto → propuesta a revisar ──
+  const requestImport = async (file: File) => {
+    if (flowBusy) return;
+    if (!IMG_TYPES.includes(file.type)) { showToast(t('op_img_err_type'), 'error'); return; }
+    if (file.size > IMG_MAX) { showToast(t('op_img_err_size'), 'error'); return; }
+    setFlowBusy(true);
+    try {
+      const b64 = await fileToB64(file);
+      const r = await analyzeRoutinePhoto(b64, file.type);
+      if (r.plan) setProposal(r.plan as unknown as Plan);
+      else showToast(r.error || t('op_err_import'), 'error');
+    } catch {
+      showToast(t('op_err_generic'), 'error');
+    } finally {
+      setFlowBusy(false);
+    }
+  };
+
+  const closeFlow = () => { setFlow('idle'); setProposal(null); setAdjustAsk(''); };
+
+  // ── Guardar un plan como activo + volcar días futuros a la Agenda ──
+  // Compartido por: crear un plan, aplicar un ajuste (tarea 8c) y aplicar una
+  // rutina importada (tarea 8a). Archiva el plan activo, inserta el nuevo y
+  // descompone sus días en day_plan_items (source='advisor'). Devuelve el
+  // DBPlan guardado o null.
+  const applyPlan = useCallback(async (planToSave: Plan, objText: string, ans: Answers): Promise<DBPlan | null> => {
+    try {
       if (activePlan) {
         await supabase.from('objective_plans').update({ status: 'archived', updated_at: new Date().toISOString() })
           .eq('id', activePlan.id);
       }
-      // 2. Guardar el nuevo plan como activo. Version+1 si venimos de un refine.
       const version = (activePlan?.version || 0) + 1;
       const { data: saved, error: saveErr } = await supabase.from('objective_plans').insert({
         fighter_profile_id: profile.id,
-        objective_text: objective || activePlan?.objective_text || '',
-        answers_json: answers,
-        plan_json: plan,
+        objective_text: objText || '',
+        answers_json: ans,
+        plan_json: planToSave,
         version,
         status: 'active',
       }).select().maybeSingle();
-      if (saveErr || !saved) { showToast(t('op_saved_none'), 'error'); setSavingAgenda(false); return; }
+      if (saveErr || !saved) { showToast(t('op_saved_none'), 'error'); return null; }
 
-      // 3. Volcar los días del plan a day_plan_items (source='advisor') —
-      //    mismo destino que Planificar. Cada día se descompone en bloques:
-      //    entreno → fuerza (grupos detectados) o nota; cardio → actividad;
-      //    nutrición → comida; notas → observación.
-      const scheduled = computeDayOffsets(plan.weeks);
+      const scheduled = computeDayOffsets(planToSave.weeks);
       const rows: Array<{ fighter_profile_id: string; plan_date: string; kind: string; payload: Record<string, unknown>; source: string }> = [];
       scheduled.forEach((s) => {
         const plan_date = isoFromOffset(s.offset);
@@ -386,21 +458,43 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
       });
       if (rows.length > 0) {
         const ins = await supabase.from('day_plan_items').insert(rows);
-        if (ins.error && !isMissingTable(ins.error)) { showToast(t('op_saved_none'), 'error'); setSavingAgenda(false); return; }
+        if (ins.error && !isMissingTable(ins.error)) { showToast(t('op_saved_none'), 'error'); return null; }
       }
-
       showToast(t('op_saved_agenda', { n: rows.length }), 'success');
-      setActivePlan(saved as DBPlan);
-      setPlan(null);
-      setObjective('');
-      setAnswers({});
-      setAdjustments('');
-      setCreating(false);
+      return saved as DBPlan;
     } catch {
       showToast(t('op_saved_none'), 'error');
+      return null;
+    }
+  }, [activePlan, profile.id, showToast, t]);
+
+  const saveToAgenda = useCallback(async () => {
+    if (!plan || savingAgenda) return;
+    setSavingAgenda(true);
+    const saved = await applyPlan(plan, objective || activePlan?.objective_text || '', answers);
+    if (saved) {
+      setActivePlan(saved);
+      setPlan(null); setObjective(''); setAnswers({}); setAdjustments(''); setCreating(false);
     }
     setSavingAgenda(false);
-  }, [plan, activePlan, profile.id, objective, answers, savingAgenda, showToast, t]);
+  }, [plan, savingAgenda, applyPlan, objective, activePlan, answers]);
+
+  // ── Aplicar la propuesta de ajuste / importación (tras revisión) ──
+  const applyProposal = async (merged: Plan) => {
+    if (applying) return;
+    setApplying(true);
+    const saved = await applyPlan(
+      merged,
+      activePlan?.objective_text || objective || t('op_flow_import'),
+      activePlan?.answers_json || {},
+    );
+    setApplying(false);
+    if (saved) {
+      setActivePlan(saved);
+      setProposal(null); setFlow('idle'); setAdjustAsk('');
+      showToast(t('op_applied_toast'));
+    }
+  };
 
   const archivePlan = async () => {
     if (!activePlan) return;
@@ -428,8 +522,10 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
     );
   }
 
-  // Muy pronto (sin API key)
-  if (notConfigured) {
+  // Muy pronto (sin API key) — si NO hay plan activo, esta es toda la pantalla,
+  // pero con salida a planificar a mano. Con plan activo se cae al render normal
+  // (se puede ver/archivar/imprimir el plan; los flujos de IA salen gateados).
+  if (notConfigured && !activePlan) {
     return (
       <div className="rk-card relative overflow-hidden text-center" style={{ padding: '44px 26px' }}>
         <div className="rk-glow-red" style={{ width: 220, height: 220, top: -90, right: -70, borderRadius: '50%' }} />
@@ -442,6 +538,11 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
           </span>
           <h3 className="rk-h3" style={{ fontSize: '1.3rem', color: '#fff' }}>{t('op_soon_title')}</h3>
           <p className="text-sm text-zinc-400 mt-2.5 leading-relaxed max-w-sm mx-auto">{t('op_soon_desc')}</p>
+          {onGoPlan && (
+            <button onClick={onGoPlan} className="rk-cta mt-6" style={{ fontSize: '0.9rem', padding: '0.8rem 1.5rem' }}>
+              <i className="ri-calendar-todo-line mr-1.5" />{t('op_flow_manual')}
+            </button>
+          )}
         </div>
       </div>
     );
@@ -474,6 +575,78 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
         <p className="text-zinc-400 text-sm mt-1.5 max-w-md">{t('op_sub')}</p>
       </div>
 
+      {/* ══ FLUJOS: ajustar / importar (tarea 8) ══ */}
+      {flow !== 'idle' && (
+        <div className="space-y-5">
+          <button onClick={closeFlow} className="text-xs text-zinc-400 hover:text-white cursor-pointer inline-flex items-center gap-1.5">
+            <i className="ri-arrow-left-line" />{t('op_flow_back')}
+          </button>
+
+          {proposal ? (
+            <AdjustPlanReview
+              current={activePlan?.plan_json || null}
+              proposed={proposal}
+              applying={applying}
+              mode={flow === 'import' ? 'import' : 'adjust'}
+              onApply={applyProposal}
+              onDiscard={() => setProposal(null)}
+            />
+          ) : notConfigured ? (
+            <div className="rk-card" style={{ padding: 22 }}>
+              <span className="inline-block text-[10px] font-bold uppercase tracking-[0.18em] px-2.5 py-1 rounded-full bg-[#C9A84C]/12 text-[#C9A84C] mb-3">{t('op_soon_tag')}</span>
+              <p className="text-sm text-zinc-300 leading-relaxed">{t('op_ai_off_note')}</p>
+              {onGoPlan && (
+                <button onClick={onGoPlan} className="rk-nav-btn text-sm mt-4 inline-flex items-center gap-1.5">
+                  <i className="ri-calendar-todo-line" />{t('op_flow_manual')}
+                </button>
+              )}
+            </div>
+          ) : flow === 'adjust' ? (
+            <div className="rk-card space-y-3" style={{ padding: 22 }}>
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-sm font-bold text-white">{t('op_adjust_ask_title')}</label>
+                <VoiceButton onResult={(txt) => setAdjustAsk(txt)} />
+              </div>
+              <textarea value={adjustAsk} onChange={(e) => setAdjustAsk(e.target.value)} rows={3} maxLength={400}
+                placeholder={t('op_adjust_ask_ph')} style={{ fontSize: 16 }}
+                className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-500 resize-none" />
+              <div className="flex justify-end">
+                <button onClick={requestAdjust} disabled={!adjustAsk.trim() || flowBusy} className="rk-cta text-sm disabled:opacity-50">
+                  {flowBusy
+                    ? <><span className="inline-block w-3 h-3 border-2 border-white/40 border-t-transparent rounded-full animate-spin mr-2" />{t('op_step2_generating')}</>
+                    : <><i className="ri-sparkling-2-line mr-1" />{t('op_adjust_ask_cta')}</>}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="rk-card space-y-3" style={{ padding: 22 }}>
+              <p className="text-sm text-zinc-300 leading-relaxed">{t('op_import_desc')}</p>
+              <input ref={cameraRef} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) void requestImport(f); e.target.value = ''; }} />
+              <input ref={photoRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+                onChange={(e) => { const f = e.target.files?.[0]; if (f) void requestImport(f); e.target.value = ''; }} />
+              <div className="grid grid-cols-2 gap-3">
+                <button onClick={() => cameraRef.current?.click()} disabled={flowBusy}
+                  className="flex items-center justify-center gap-2 py-3 rounded-xl border border-white/10 bg-white/[0.03] text-sm font-semibold text-zinc-200 hover:border-white/25 cursor-pointer disabled:opacity-45">
+                  <i className="ri-camera-line" />{t('op_import_camera')}
+                </button>
+                <button onClick={() => photoRef.current?.click()} disabled={flowBusy}
+                  className="flex items-center justify-center gap-2 py-3 rounded-xl border border-white/10 bg-white/[0.03] text-sm font-semibold text-zinc-200 hover:border-white/25 cursor-pointer disabled:opacity-45">
+                  <i className="ri-image-add-line" />{t('op_import_upload')}
+                </button>
+              </div>
+              {flowBusy && (
+                <p className="text-xs text-zinc-400 flex items-center gap-2">
+                  <span className="inline-block w-3.5 h-3.5 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />{t('op_import_analyzing')}
+                </p>
+              )}
+              {onGoPlan && <p className="text-[11px] text-zinc-600">{t('op_import_manual_hint')} <button onClick={onGoPlan} className="text-zinc-400 hover:text-white underline cursor-pointer">{t('op_flow_manual')}</button></p>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {flow === 'idle' && (<>
       {/* Plan activo (si existe y no estamos creando) */}
       {showActivePlan && (
         <ActivePlanView
@@ -484,6 +657,9 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
           onArchive={archivePlan}
           confirmReset={confirmReset}
           onCancelReset={() => setConfirmReset(false)}
+          onAdjust={() => setFlow('adjust')}
+          onImport={() => setFlow('import')}
+          aiOff={notConfigured}
         />
       )}
 
@@ -494,9 +670,14 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
             <i className="ri-sparkling-2-line text-2xl" />
           </div>
           <p className="rk-title-card" style={{ marginBottom: 10 }}>{t('op_no_active')}</p>
-          <button onClick={startNew} className="rk-cta" style={{ marginTop: 14, fontSize: '0.95rem', padding: '0.85rem 1.6rem' }}>
-            <i className="ri-add-line mr-1" /> {t('op_start_over')}
-          </button>
+          <div className="flex flex-wrap gap-2 justify-center mt-4">
+            <button onClick={startNew} className="rk-cta" style={{ fontSize: '0.95rem', padding: '0.85rem 1.6rem' }}>
+              <i className="ri-add-line mr-1" /> {t('op_start_over')}
+            </button>
+            <button onClick={() => setFlow('import')} className="rk-nav-btn text-sm">
+              <i className="ri-image-add-line mr-1" />{t('op_flow_import')}
+            </button>
+          </div>
         </div>
       )}
 
@@ -582,6 +763,7 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
           )}
         </>
       )}
+      </>)}
     </div>
   );
 }
@@ -589,11 +771,12 @@ export default function ObjectiveWizard({ profile, showToast }: Props) {
 // ────────── SUBCOMPONENTES ──────────
 
 function ActivePlanView({
-  plan, activePlan, locale, onStartNew, onArchive, confirmReset, onCancelReset,
+  plan, activePlan, locale, onStartNew, onArchive, confirmReset, onCancelReset, onAdjust, onImport, aiOff,
 }: {
   plan: Plan; activePlan: DBPlan; locale: string;
   onStartNew: () => void; onArchive: () => void;
   confirmReset: boolean; onCancelReset: () => void;
+  onAdjust: () => void; onImport: () => void; aiOff: boolean;
 }) {
   const { t } = useTranslation();
   const created = new Date(activePlan.created_at).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
@@ -607,6 +790,19 @@ function ActivePlanView({
         <p className="rk-body-14 mt-1.5">{plan.summary}</p>
         <p className="rk-meta mt-2">{t('op_created_at', { date: created })}</p>
       </div>
+
+      {/* Flujos sobre el plan activo (tarea 8) */}
+      <div className="grid grid-cols-2 gap-2">
+        <button onClick={onAdjust}
+          className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/12 bg-white/[0.03] text-sm font-semibold text-zinc-200 hover:border-white/25 cursor-pointer">
+          <i className="ri-equalizer-line text-[#C9A84C]" />{t('op_flow_adjust')}
+        </button>
+        <button onClick={onImport}
+          className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-white/12 bg-white/[0.03] text-sm font-semibold text-zinc-200 hover:border-white/25 cursor-pointer">
+          <i className="ri-image-add-line text-[#C9A84C]" />{t('op_flow_import')}
+        </button>
+      </div>
+      {aiOff && <p className="text-[11px] text-zinc-600">{t('op_ai_off_note')}</p>}
 
       <PlanWeeksRender plan={plan} />
 
