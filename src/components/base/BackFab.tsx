@@ -19,7 +19,10 @@ export default function BackFab() {
 
   // En la portada no tiene sentido volver atrás
   const isHome = location.pathname === '/' || location.pathname === '/beta';
-  if (isHome || !canGoBack) return null;
+  // Mi Esquina y el temporizador ya llevan su propia flecha de volver en la
+  // cabecera: no duplicamos con una flotante encima (una por pantalla).
+  const hasHeaderBack = location.pathname.startsWith('/mi-esquina');
+  if (isHome || hasHeaderBack || !canGoBack) return null;
 
   return (
     <button

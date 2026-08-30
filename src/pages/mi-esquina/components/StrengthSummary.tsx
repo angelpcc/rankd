@@ -203,6 +203,11 @@ export default function StrengthSummary({ profile, onEnter, onGoAsesor }: Props)
         </div>
       )}
 
+      {/* ── ENTRAR AL NIVEL 2 ── (antes del historial: visible sin bajar del todo) */}
+      <button onClick={() => onEnter()} className="rk-cta w-full flex items-center justify-center gap-2">
+        <i className="ri-hammer-line text-lg" />{t('mc_strs_enter')}
+      </button>
+
       {/* ── ÚLTIMAS SESIONES ── */}
       {recent.length > 0 && (
         <div>
@@ -228,11 +233,6 @@ export default function StrengthSummary({ profile, onEnter, onGoAsesor }: Props)
           </div>
         </div>
       )}
-
-      {/* ── ENTRAR AL NIVEL 2 ── */}
-      <button onClick={() => onEnter()} className="rk-cta w-full flex items-center justify-center gap-2">
-        <i className="ri-hammer-line text-lg" />{t('mc_strs_enter')}
-      </button>
     </div>
   );
 }

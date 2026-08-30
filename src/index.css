@@ -448,10 +448,13 @@ html, body {
 }
 
 /* ── BOTÓN VOLVER FLOTANTE (solo en app instalada) ── */
+/* El offset inferior deja libre la barra de navegación inferior de los
+   dashboards (~56px + safe-area) para no tapar el botón "Inicio". Es un
+   único valor: la posición es la misma en todas las pantallas. */
 .rk-back-fab {
   position: fixed;
   left: 16px;
-  bottom: calc(18px + var(--safe-bottom));
+  bottom: calc(76px + var(--safe-bottom));
   z-index: 9998;
   width: 46px; height: 46px;
   display: none;

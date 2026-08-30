@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable, isMissingColumn } from '@/lib/dbState';
 import Reveal from '@/components/base/Reveal';
+import SegmentedProgress from '@/components/base/SegmentedProgress';
 import WeightCutPlanner from '@/pages/mi-esquina/components/WeightCutPlanner';
 import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
@@ -186,6 +187,9 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
     return Math.max(0, Math.min(100, Math.round(((currentWeight - start) / total) * 100)));
   }, [currentWeight, targetWeight, weights]);
 
+  // 10 tramos = pasos de 10 % hacia el objetivo, para la barra segmentada.
+  const goalSeg = goalPct === null ? null : { total: 10, done: Math.max(0, Math.min(10, Math.round(goalPct / 10))) };
+
   const daysToWeighIn = useMemo(() => {
     if (!weighInDate) return null;
     return Math.round((new Date(weighInDate + 'T12:00:00').getTime() - new Date().setHours(0, 0, 0, 0)) / 86400000);
@@ -251,66 +255,44 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
         </button>
       </div>
 
-      {/* Tarjetas resumen */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="rk-card" style={{ padding: '18px 16px' }}>
-          <p className="text-[11px] text-zinc-500 uppercase tracking-wider">{t('mc_w_current')}</p>
-          <div className="flex items-end gap-2 mt-1">
-            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 38, lineHeight: 0.9, color: '#fff' }}>{currentWeight ?? '—'}</span>
-            {currentWeight !== null && <span className="text-xs text-zinc-500 mb-1.5">kg</span>}
-          </div>
-          {weightTrend !== null && weightTrend !== 0 && (
-            <p className={`text-xs font-bold mt-1 flex items-center gap-0.5 ${weightTrend < 0 ? 'text-green-400' : 'text-orange-400'}`}>
-              <i className={weightTrend < 0 ? 'ri-arrow-down-line' : 'ri-arrow-up-line'}></i>{Math.abs(weightTrend)} kg
-            </p>
-          )}
-        </div>
-
-        <div className="rk-card" style={{ padding: '18px 16px' }}>
-          <p className="text-[11px] text-zinc-500 uppercase tracking-wider">{isPro ? t('mc_w_category_target') : t('mc_w_target')}</p>
-          <div className="flex items-end gap-2 mt-1">
-            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 38, lineHeight: 0.9, color: targetWeight ? '#C9A84C' : 'rgba(255,255,255,0.3)' }}>{targetWeight ?? '—'}</span>
-            {targetWeight !== null && <span className="text-xs text-zinc-500 mb-1.5">kg</span>}
-          </div>
-          {isPro && classLabel
-            ? <p className="text-xs text-[#C9A84C] mt-1 font-semibold truncate">{classLabel}</p>
-            : toTarget !== null && (
-              <p className={`text-xs font-bold mt-1 ${Math.abs(toTarget) < 0.1 ? 'text-green-400' : 'text-orange-400'}`}>
-                {Math.abs(toTarget) < 0.1 ? t('mc_w_on_weight') : toTarget > 0 ? t('mc_w_over', { n: toTarget }) : t('mc_w_under', { n: Math.abs(toTarget) })}
-              </p>
-            )}
-          {goalPct !== null && (
-            <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden mt-2">
-              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${goalPct}%`, background: goalPct >= 50 ? '#4ade80' : '#fb923c' }} />
+      {/* ── CARD PRINCIPAL: peso actual + progreso hacia el objetivo ── */}
+      <div className="card-primary" style={{ padding: 22 }}>
+        {currentWeight !== null ? (
+          <>
+            <p className="rk-label" style={{ marginBottom: 6 }}>{t('mc_w_current')}</p>
+            <div className="flex items-end gap-2">
+              <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 40, lineHeight: 0.85, color: '#fff' }}>{currentWeight}</span>
+              <span className="text-sm text-zinc-500 mb-1">kg</span>
+              {weightTrend !== null && weightTrend !== 0 && (
+                <span className={`text-xs font-bold mb-1.5 inline-flex items-center gap-0.5 ${weightTrend < 0 ? 'text-green-400' : 'text-orange-400'}`}>
+                  <i className={weightTrend < 0 ? 'ri-arrow-down-line' : 'ri-arrow-up-line'}></i>{Math.abs(weightTrend)}
+                </span>
+              )}
             </div>
-          )}
-        </div>
-
-        <div className="rk-card" style={{ padding: '18px 16px' }}>
-          <p className="text-[11px] text-zinc-500 uppercase tracking-wider">{t('mc_w_change')}</p>
-          <div className="flex items-end gap-2 mt-1">
-            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 38, lineHeight: 0.9, color: rangeStats ? (rangeStats.delta <= 0 ? '#4ade80' : '#fb923c') : 'rgba(255,255,255,0.3)' }}>
-              {rangeStats ? `${rangeStats.delta > 0 ? '+' : ''}${rangeStats.delta}` : '—'}
-            </span>
-            {rangeStats && <span className="text-xs text-zinc-500 mb-1.5">kg</span>}
+            <div className="mt-4">
+              {targetWeight !== null ? (
+                <div className="flex items-center justify-between text-xs mb-2 gap-2">
+                  <span className="text-zinc-400 truncate">{isPro && classLabel ? classLabel : t('mc_w_target')}</span>
+                  <span className="font-bold flex-shrink-0" style={{ color: 'var(--gold)' }}>
+                    {targetWeight} kg
+                    {toTarget !== null && Math.abs(toTarget) >= 0.1 && (
+                      <span className="text-zinc-500 font-normal"> · {toTarget > 0 ? `+${toTarget}` : toTarget} {t('mc_w_to_goal')}</span>
+                    )}
+                  </span>
+                </div>
+              ) : (
+                <p className="text-xs text-zinc-500 mb-2">{t('mc_w_no_goal')}</p>
+              )}
+              {goalSeg && <SegmentedProgress total={goalSeg.total} done={goalSeg.done} height={10} />}
+            </div>
+          </>
+        ) : (
+          <div className="text-center py-4">
+            <i className="ri-scales-2-line text-4xl text-zinc-700"></i>
+            <p className="text-base font-bold text-white mt-3">{t('mc_w_empty')}</p>
+            <p className="text-xs text-zinc-500 mt-1 max-w-xs mx-auto leading-relaxed">{t('mc_w_empty_hint')}</p>
           </div>
-          <p className="text-xs text-zinc-500 mt-1">{RANGES.find((r) => r.days === range)?.label}</p>
-        </div>
-
-        {/* PRO: días al pesaje. Afición: número de registros. */}
-        <div className="rk-card" style={{ padding: '18px 16px' }}>
-          <p className="text-[11px] text-zinc-500 uppercase tracking-wider">{isPro ? t('mc_fp_weigh_in') : t('mc_w_records')}</p>
-          <div className="flex items-end gap-2 mt-1">
-            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 38, lineHeight: 0.9, color: isPro && daysToWeighIn !== null ? '#E10600' : '#fff' }}>
-              {isPro ? (daysToWeighIn !== null ? daysToWeighIn : '—') : weights.length}
-            </span>
-          </div>
-          <p className="text-xs text-zinc-500 mt-1">
-            {isPro
-              ? (daysToWeighIn !== null ? t('mc_w_days_to_weigh', { n: daysToWeighIn }) : t('mc_w_no_weigh_date'))
-              : t('mc_w_weigh_ins')}
-          </p>
-        </div>
+        )}
       </div>
 
       {/* PRO: ritmo necesario para llegar al peso */}
@@ -401,6 +383,38 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
           <p className="text-xs text-zinc-600 mt-1">{t('mc_w_no_chart_desc')}</p>
         </div>
       )}
+
+      {/* ── MÉTRICAS SECUNDARIAS ── (bajo el gráfico, no como bloque principal) */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rk-card" style={{ padding: 14, background: 'var(--s-2)' }}>
+          <p className="text-[10px] text-zinc-500 uppercase tracking-wider">{t('mc_w_change')}</p>
+          <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, lineHeight: 1, marginTop: 4, color: rangeStats ? (rangeStats.delta <= 0 ? '#4ade80' : '#fb923c') : 'var(--t-3)' }}>
+            {rangeStats ? `${rangeStats.delta > 0 ? '+' : ''}${rangeStats.delta}` : t('mc_w_no_data')}
+          </p>
+          <p className="text-[10px] text-zinc-600 mt-0.5">{rangeStats ? `kg · ${RANGES.find((r) => r.days === range)?.label}` : ' '}</p>
+        </div>
+
+        <div className="rk-card" style={{ padding: 14, background: 'var(--s-2)' }}>
+          <p className="text-[10px] text-zinc-500 uppercase tracking-wider">{isPro ? t('mc_w_category_target') : t('mc_w_target')}</p>
+          {isPro && classLabel ? (
+            <p className="text-sm font-bold mt-1.5 truncate" style={{ color: 'var(--gold)' }}>{classLabel}</p>
+          ) : targetWeight !== null ? (
+            <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, lineHeight: 1, marginTop: 4, color: 'var(--gold)' }}>{targetWeight}<span className="text-[10px] text-zinc-500"> kg</span></p>
+          ) : (
+            <p className="text-xs text-zinc-600 mt-1.5">{t('mc_w_no_goal')}</p>
+          )}
+        </div>
+
+        <div className="rk-card" style={{ padding: 14, background: 'var(--s-2)' }}>
+          <p className="text-[10px] text-zinc-500 uppercase tracking-wider">{isPro ? t('mc_fp_weigh_in') : t('mc_w_records')}</p>
+          <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, lineHeight: 1, marginTop: 4, color: isPro && daysToWeighIn !== null ? '#E10600' : '#fff' }}>
+            {isPro ? (daysToWeighIn !== null ? daysToWeighIn : t('mc_w_no_data')) : weights.length}
+          </p>
+          <p className="text-[10px] text-zinc-600 mt-0.5">
+            {isPro ? (daysToWeighIn !== null ? t('mc_w_to_weigh_days') : t('mc_w_no_weigh_date')) : t('mc_w_weigh_ins')}
+          </p>
+        </div>
+      </div>
 
       {/* Historial */}
       {weights.length > 0 && (

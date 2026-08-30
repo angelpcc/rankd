@@ -733,6 +733,12 @@ export default {
   mc_w_no_weigh_date: 'No weigh-in date',
   mc_w_days_to_weigh: '{{n}} days to the weigh-in',
   mc_w_health_note: 'Dropping weight too fast wrecks your performance and your health. If you compete, work the cut with a professional.',
+  mc_w_empty: 'No entries yet',
+  mc_w_empty_hint: 'Log your weight below and your trend will show up here.',
+  mc_w_no_goal: 'No goal',
+  mc_w_to_goal: 'to goal',
+  mc_w_no_data: 'No data',
+  mc_w_to_weigh_days: 'days to weigh-in',
 
   // ── Weight cut planner (competition only) ──
   mc_wc_eyebrow: 'UNTIL WEIGH-IN',

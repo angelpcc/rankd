@@ -22,7 +22,6 @@ import RingHub from '@/pages/mi-esquina/components/RingHub';
 import { GearReplacementAlert } from '@/pages/mi-esquina/components/GearChecklist';
 import GymLink from '@/pages/mi-esquina/components/GymLink';
 import NutritionHub from '@/pages/mi-esquina/components/NutritionHub';
-import GearHub from '@/pages/mi-esquina/components/GearHub';
 import Reveal from '@/components/base/Reveal';
 import PageBreadcrumb from '@/components/base/PageBreadcrumb';
 import NotificationBell from '@/components/feature/NotificationBell';
@@ -43,7 +42,7 @@ import SettingsModal from '@/pages/mi-esquina/components/SettingsModal';
 // siguen ahora el patrón resumen (nivel 1) → pantalla de trabajo (nivel 2).
 type Section =
   | 'resumen' | 'agenda' | 'peso' | 'fuerza' | 'actividad' | 'asesor'
-  | 'ring' | 'documentos' | 'compartir' | 'material' | 'nutricion' | 'timer'
+  | 'ring' | 'documentos' | 'compartir' | 'nutricion' | 'timer'
   // Alias heredados de "Progreso" — se remapean para no romper enlaces viejos.
   | 'progreso' | 'objetivos';
 
@@ -71,7 +70,6 @@ const PRO_SECTIONS: SectionDef[] = [
   { id: 'nutricion', labelKey: 'mc_nav_nutrition', icon: 'ri-restaurant-line' },
   { id: 'asesor', labelKey: 'mc_nav_advisor', icon: 'ri-compass-3-line' },
   { id: 'ring', labelKey: 'mc_nav_ring', icon: 'ri-boxing-line' },
-  { id: 'material', labelKey: 'mc_nav_gear', icon: 'ri-t-shirt-line' },
   { id: 'timer', labelKey: 'mc_nav_timer', icon: 'ri-timer-flash-line' },
 ];
 
@@ -85,7 +83,6 @@ const HOBBY_SECTIONS: SectionDef[] = [
   { id: 'actividad', labelKey: 'mc_pr_tab_activity', icon: 'ri-run-line' },
   { id: 'nutricion', labelKey: 'mc_nav_nutrition', icon: 'ri-restaurant-line' },
   { id: 'asesor', labelKey: 'mc_nav_advisor', icon: 'ri-compass-3-line' },
-  { id: 'material', labelKey: 'mc_nav_gear', icon: 'ri-t-shirt-line' },
   { id: 'timer', labelKey: 'mc_nav_timer', icon: 'ri-timer-flash-line' },
 ];
 
@@ -342,7 +339,7 @@ export default function MiEsquinaPage() {
               {/* Alertas condicionales (se ocultan solas si no aplican) */}
               <div className="rk-stack">
                 {!isHobby && <DocumentExpiryAlert profile={profile} onOpen={() => go('ring', 'documentos')} />}
-                <GearReplacementAlert profile={profile} onOpen={() => setSection('material')} />
+                <GearReplacementAlert profile={profile} onOpen={() => navigate('/dashboard?tab=material')} />
               </div>
 
               {/* Tira de semana */}
@@ -434,11 +431,6 @@ export default function MiEsquinaPage() {
 
           {activeSection === 'compartir' && <ShareProgress profile={profile} mode={mode} showToast={showToast} />}
 
-          {/* ══ MATERIAL ══ (R17b: sección por pestañas dentro de GearHub) */}
-          {activeSection === 'material' && (
-            <GearHub profile={profile} showToast={showToast} mode={mode} />
-          )}
-
           {/* ══ NUTRICIÓN ══ — resumen (nivel 1) → pantalla de trabajo (nivel 2) */}
           {activeSection === 'nutricion' && (
             <NutritionHub profile={profile} showToast={showToast} isHobby={isHobby}
@@ -499,7 +491,7 @@ function LoggedOutPreview({ onSignIn }: { onSignIn: () => void }) {
           {/* Sidebar fake (escritorio) */}
           <aside className="hidden lg:flex flex-col w-60 flex-shrink-0 border-r border-zinc-800/70 py-6 px-3">
             <nav className="space-y-1 flex-1">
-              {['Resumen', 'Agenda', 'Progreso', 'Ring', 'Material', 'Nutrición', 'Timer', 'Mensajes'].map((s, i) => (
+              {['Resumen', 'Agenda', 'Peso', 'Fuerza', 'Nutrición', 'Asesor', 'Ring', 'Timer'].map((s, i) => (
                 <div key={s} className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium ${i === 0 ? 'bg-red-600 text-white' : 'text-zinc-400'}`}>
                   <span className="w-4 h-4 bg-current opacity-40 rounded-sm" />
                   <span className="flex-1">{s}</span>

@@ -733,6 +733,12 @@ export default {
   mc_w_no_weigh_date: 'Sin fecha de pesaje',
   mc_w_days_to_weigh: '{{n}} días para el pesaje',
   mc_w_health_note: 'Bajar peso muy rápido hunde tu rendimiento y tu salud. Si compites, trabaja el corte con un profesional.',
+  mc_w_empty: 'Sin registros aún',
+  mc_w_empty_hint: 'Registra tu peso abajo y aquí verás tu evolución.',
+  mc_w_no_goal: 'Sin objetivo',
+  mc_w_to_goal: 'para el objetivo',
+  mc_w_no_data: 'Sin datos',
+  mc_w_to_weigh_days: 'días para el pesaje',
 
   // ── Planificador de corte de peso (solo competición) ──
   mc_wc_eyebrow: 'HASTA EL PESAJE',

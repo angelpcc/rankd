@@ -11,6 +11,7 @@ import FighterOpportunities from './FighterOpportunities';
 import MessagesPanel from './messages/MessagesPanel';
 import VerificationPanel from './VerificationPanel';
 import ProfileCompletionBanner from './ProfileCompletionBanner';
+import GearHub from '@/pages/mi-esquina/components/GearHub';
 import { useFighterCompletion } from '@/hooks/useProfileCompletion';
 
 interface Props { profile: Profile; }
@@ -40,7 +41,7 @@ const COUNTRIES = [
   'Japón', 'Corea del Sur', 'Tailandia', 'Australia', 'Otro',
 ];
 
-type ActiveTab = 'overview' | 'profile' | 'training' | 'opportunities' | 'videos' | 'achievements' | 'messages' | 'verification' | 'settings';
+type ActiveTab = 'overview' | 'profile' | 'material' | 'training' | 'opportunities' | 'videos' | 'achievements' | 'messages' | 'verification' | 'settings';
 
 export default function FighterDashboard({ profile }: Props) {
   const navigate = useNavigate();
@@ -56,7 +57,7 @@ export default function FighterDashboard({ profile }: Props) {
   const [isPublic, setIsPublic] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
     const p = new URLSearchParams(window.location.search).get('tab');
-    return (p === 'messages' ? 'messages' : 'overview') as ActiveTab;
+    return (p === 'messages' ? 'messages' : p === 'material' ? 'material' : 'overview') as ActiveTab;
   });
   const [unreadMessages, setUnreadMessages] = useState(0);
 
@@ -268,6 +269,7 @@ export default function FighterDashboard({ profile }: Props) {
   const allTabs: { id: ActiveTab; label: string; icon: string; badge?: number }[] = [
     { id: 'overview', label: 'Inicio', icon: 'ri-dashboard-line' },
     { id: 'profile', label: t('dash_tab_profile'), icon: 'ri-user-line' },
+    { id: 'material', label: t('mc_nav_gear'), icon: 'ri-t-shirt-line' },
     { id: 'training', label: 'Mi Esquina', icon: 'ri-boxing-line' },
     { id: 'opportunities', label: t('dash_tab_opportunities'), icon: 'ri-megaphone-line' },
     { id: 'messages', label: t('dash_tab_messages'), icon: 'ri-message-3-line', badge: unreadMessages || undefined },
@@ -369,8 +371,7 @@ export default function FighterDashboard({ profile }: Props) {
                   fondo cinematográfico con brillo rojo. Card primaria: 1 por
                   pantalla; el resto del overview queda como .rk-card. */}
               <div className="card-primary relative overflow-hidden anim-fade-up" style={{ padding: 0 }}>
-                {/* Foto de fondo (Unsplash, licencia libre, uso comercial) + oscurecido para legibilidad */}
-                <img src="/images/cuerda.webp" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ opacity: 0.14, objectPosition: 'center 25%' }} />
+                {/* Fondo diseñado del sistema (sin foto): degradado + glow rojo */}
                 <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(115deg, rgba(10,10,11,0.9) 0%, rgba(10,10,11,0.7) 55%, rgba(10,10,11,0.92) 100%)' }} />
                 <div className="rk-glow-red" style={{ width: 340, height: 340, top: -160, right: -80, borderRadius: '50%' }} />
                 <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(115deg, rgba(225,6,0,0.10) 0%, transparent 42%)' }} />
@@ -703,6 +704,11 @@ export default function FighterDashboard({ profile }: Props) {
             </div>
               </div>
             </div>
+          )}
+
+          {/* ══ MATERIAL ══ (movido desde Mi Esquina: referencia de baja frecuencia) */}
+          {activeTab === 'material' && (
+            <GearHub profile={profile} showToast={showToast} mode={isHobby ? 'hobby' : 'pro'} />
           )}
 
           {activeTab === 'opportunities' && <FighterOpportunities profile={profile} fighter={fighter} showToast={showToast} />}
