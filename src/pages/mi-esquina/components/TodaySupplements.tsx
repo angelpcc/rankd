@@ -5,7 +5,12 @@ import { supabase, Profile } from '@/lib/supabase';
 interface Props { profile: Profile }
 
 interface CommonSupplement { id: string; name: string }
-interface UserSupplement { id: string; supplement_id: string | null; custom_name: string | null; time_of_day: string | null }
+interface UserSupplement { id: string; supplement_id: string | null; custom_name: string | null; time_of_day: string | null; slot: string | null }
+
+const SLOT_LABEL: Record<string, string> = {
+  manana: 'mc_sup_slot_manana', con_comidas: 'mc_sup_slot_meals',
+  post_entreno: 'mc_sup_slot_post', antes_dormir: 'mc_sup_slot_sleep', otro: 'mc_sup_slot_other',
+};
 
 /**
  * Referencia de "a qué hora toca qué" en Agenda › Plan (punto de la
@@ -23,11 +28,11 @@ export default function TodaySupplements({ profile }: Props) {
     (async () => {
       const [{ data: cat }, { data: rows }] = await Promise.all([
         supabase.from('common_supplements').select('id, name'),
-        supabase.from('user_supplements').select('id, supplement_id, custom_name, time_of_day').eq('fighter_profile_id', profile.id),
+        supabase.from('user_supplements').select('*').eq('fighter_profile_id', profile.id),
       ]);
       if (!alive) return;
       setCatalog((cat || []) as CommonSupplement[]);
-      setItems((rows || []) as UserSupplement[]);
+      setItems((rows || []).map((r) => ({ ...r, slot: (r as { slot?: string | null }).slot ?? null })) as UserSupplement[]);
     })();
     return () => { alive = false; };
   }, [profile.id]);
@@ -60,7 +65,9 @@ export default function TodaySupplements({ profile }: Props) {
       <div className="flex flex-wrap gap-2">
         {sorted.map((item) => (
           <span key={item.id} className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-300 bg-white/[0.03] border border-white/10 px-2.5 py-1.5 rounded-lg">
-            <span className="text-[#C9A84C]">{fmtTime(item.time_of_day!)}</span>
+            <span className="text-[#C9A84C]">
+              {item.slot && SLOT_LABEL[item.slot] && item.slot !== 'otro' ? t(SLOT_LABEL[item.slot]) : fmtTime(item.time_of_day!)}
+            </span>
             {item.custom_name || catalogById.get(item.supplement_id || '') || '—'}
           </span>
         ))}
