@@ -7,6 +7,8 @@ import { trackBrandView, trackBrandWebsiteClick, trackBrandProductClick } from '
 interface Props {
   brand: BrandWithItems;
   rating?: { avg: number; n: number };
+  /** La marca ofrece patrocinio activamente (se muestra un distintivo). */
+  seekingSponsor?: boolean;
 }
 
 const MODALITY_ICONS: Record<string, string> = {
@@ -43,7 +45,7 @@ const TYPE_CONFIG = {
   },
 };
 
-export default function BrandDirectoryCard({ brand, rating }: Props) {
+export default function BrandDirectoryCard({ brand, rating, seekingSponsor }: Props) {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const initials = brand.name
@@ -95,9 +97,14 @@ export default function BrandDirectoryCard({ brand, rating }: Props) {
         {/* Info */}
         <div className="flex-1 min-w-0">
           <h3 className="font-unbounded font-bold text-white text-sm leading-tight truncate">{brand.name}</h3>
-          <div className="flex items-center gap-2 mt-0.5">
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             {brand.category && <span className="text-xs text-white/45 font-inter truncate">{brand.category}</span>}
             {rating && rating.n > 0 && <span className="text-[11px] text-[#C9A84C] flex items-center gap-0.5 flex-shrink-0"><i className="ri-star-fill"></i>{rating.avg.toFixed(1)}</span>}
+            {seekingSponsor && (
+              <span className="text-[10px] font-bold uppercase tracking-wider text-red-300 bg-red-600/15 border border-red-500/35 px-1.5 py-0.5 rounded-full flex items-center gap-1 flex-shrink-0">
+                <i className="ri-hand-coin-line"></i>{t('br_seeking_sponsor')}
+              </span>
+            )}
           </div>
         </div>
 

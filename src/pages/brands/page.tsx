@@ -24,6 +24,13 @@ const DISCIPLINES = [
 
 type TypeFilter = 'all' | 'product' | 'service' | 'both';
 
+// Señal real de "busca patrocinar ahora": ofrece un servicio de patrocinio
+// (categoría 'Patrocinio' es una de las de servicio) o su categoría lo dice.
+function isSeekingSponsor(b: { category: string | null; services: { category: string | null; title: string }[] }): boolean {
+  if ((b.category || '').toLowerCase().includes('patrocin')) return true;
+  return b.services.some((s) => (s.category || '').toLowerCase().includes('patrocin') || /patrocin|sponsor/i.test(s.title));
+}
+
 export default function BrandsPage() {
   const { profile: currentProfile } = useAuth();
   const isHobby = currentProfile?.athlete_mode === 'hobby';
@@ -108,6 +115,16 @@ export default function BrandsPage() {
   }, [brands, search, typeFilter, categoryFilter, disciplineFilter, sortBy]);
 
   const activeFilterCount = [categoryFilter, disciplineFilter].filter(Boolean).length;
+
+  // "Buscan patrocinar ahora": destacadas arriba y SEPARADAS del resto. Solo en
+  // la vista por defecto (sin búsqueda ni filtros); con filtros, grid único.
+  const defaultView = !search.trim() && !categoryFilter && !disciplineFilter && typeFilter === 'all';
+  const sponsorSeekers = useMemo(
+    () => (defaultView ? filtered.filter(isSeekingSponsor) : []),
+    [filtered, defaultView],
+  );
+  const sponsorIds = useMemo(() => new Set(sponsorSeekers.map((b) => b.id)), [sponsorSeekers]);
+  const mainList = sponsorSeekers.length > 0 ? filtered.filter((b) => !sponsorIds.has(b.id)) : filtered;
   const totalProducts = brands.reduce((acc, b) => acc + b.products.length, 0);
   const totalServices = brands.reduce((acc, b) => acc + b.services.length, 0);
   const productBrands = brands.filter((b) => b.type === 'product' || b.type === 'both').length;
@@ -356,12 +373,46 @@ export default function BrandsPage() {
           </div>
         )}
 
-        {!loading && filtered.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filtered.map((brand) => (
-              <BrandDirectoryCard key={brand.id} brand={brand} rating={brand.user_id ? ratings.get(brand.user_id) : undefined} />
-            ))}
-          </div>
+        {/* ── BUSCAN PATROCINAR AHORA — destacadas y separadas ── */}
+        {!loading && sponsorSeekers.length > 0 && (
+          <section className="mb-12">
+            <div className="relative overflow-hidden rounded-2xl border border-red-500/25 mb-4 p-4 sm:p-5" style={{ background: 'linear-gradient(150deg, var(--s-1) 0%, #0d0d0d 100%)' }}>
+              <div className="absolute inset-0 rk-grid-bg pointer-events-none" style={{ opacity: 0.35 }} />
+              <div className="rk-glow-red" style={{ inset: '-50% 30% auto -10%', height: '160%' }} />
+              <i className="ri-hand-coin-line" style={{ position: 'absolute', right: -14, bottom: -30, fontSize: 130, color: 'rgba(255,255,255,0.05)', lineHeight: 1, pointerEvents: 'none' }} />
+              <div className="relative flex items-center gap-3">
+                <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl bg-red-600/15 border border-red-500/30 text-red-400">
+                  <i className="ri-hand-coin-line text-lg" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-red-400">{t('brands_sponsor_now')}</p>
+                  <p className="text-sm text-zinc-300 mt-0.5">{t('brands_sponsor_now_desc', { n: sponsorSeekers.length })}</p>
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {sponsorSeekers.map((brand) => (
+                <BrandDirectoryCard key={brand.id} brand={brand} seekingSponsor rating={brand.user_id ? ratings.get(brand.user_id) : undefined} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {!loading && mainList.length > 0 && (
+          <>
+            {sponsorSeekers.length > 0 && (
+              <div className="flex items-center gap-3 mb-4">
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider">{t('brands_all_brands')}</h3>
+                <span className="text-xs text-zinc-500">{mainList.length}</span>
+                <span className="flex-1 h-px bg-white/[0.07]" />
+              </div>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {mainList.map((brand) => (
+                <BrandDirectoryCard key={brand.id} brand={brand} seekingSponsor={isSeekingSponsor(brand)} rating={brand.user_id ? ratings.get(brand.user_id) : undefined} />
+              ))}
+            </div>
+          </>
         )}
 
         {/* CTA strip */}

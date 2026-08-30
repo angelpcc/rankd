@@ -111,10 +111,17 @@ export default function MarcaPublicPage() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 md:px-10 py-8 space-y-8">
-        {brand?.description && (
-          <div className="rk-card" style={{ padding: '20px 22px' }}>
-            <h2 className="rk-h3 text-white mb-2" style={{ fontSize: '1rem' }}>{t('pp_about')}</h2>
-            <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-line">{brand.description}</p>
+        {/* Qué busca patrocinar — lo primero: a quién buscan (antes que la bio) */}
+        {(prefs.disciplines?.length || prefs.budget) && (
+          <div className="rk-card" style={{ padding: '20px 22px', borderColor: 'rgba(225,6,0,0.22)' }}>
+            <h2 className="rk-h3 text-white mb-3 flex items-center gap-2" style={{ fontSize: '1rem' }}><i className="ri-hand-coin-line text-red-400" />{t('pp_sponsor_title')}</h2>
+            {prefs.disciplines && prefs.disciplines.length > 0 && (
+              <div className="mb-3">
+                <p className="text-[11px] text-zinc-500 mb-1.5">{t('pp_disciplines')}</p>
+                <div className="flex flex-wrap gap-1.5">{prefs.disciplines.map((d) => <span key={d} className="text-xs px-2.5 py-1 rounded-full bg-red-600/12 border border-red-500/30 text-red-300">{d}</span>)}</div>
+              </div>
+            )}
+            {prefs.budget && <p className="text-xs text-zinc-400"><span className="text-zinc-500">{t('pp_budget')}:</span> <span className="text-white font-semibold">{prefs.budget}</span></p>}
           </div>
         )}
 
@@ -174,17 +181,11 @@ export default function MarcaPublicPage() {
           </div>
         )}
 
-        {/* Qué busca patrocinar — separado del escaparate */}
-        {(prefs.disciplines?.length || prefs.budget) && (
-          <div className="rk-card" style={{ padding: '20px 22px', borderColor: 'rgba(225,6,0,0.22)' }}>
-            <h2 className="rk-h3 text-white mb-3 flex items-center gap-2" style={{ fontSize: '1rem' }}><i className="ri-hand-coin-line text-red-400" />{t('pp_sponsor_title')}</h2>
-            {prefs.disciplines && prefs.disciplines.length > 0 && (
-              <div className="mb-3">
-                <p className="text-[11px] text-zinc-500 mb-1.5">{t('pp_disciplines')}</p>
-                <div className="flex flex-wrap gap-1.5">{prefs.disciplines.map((d) => <span key={d} className="text-xs px-2.5 py-1 rounded-full bg-red-600/12 border border-red-500/30 text-red-300">{d}</span>)}</div>
-              </div>
-            )}
-            {prefs.budget && <p className="text-xs text-zinc-400"><span className="text-zinc-500">{t('pp_budget')}:</span> <span className="text-white font-semibold">{prefs.budget}</span></p>}
+        {/* Sobre la marca — al final: contexto, después de lo que ofrecen */}
+        {brand?.description && (
+          <div className="rk-card" style={{ padding: '20px 22px' }}>
+            <h2 className="rk-h3 text-white mb-2" style={{ fontSize: '1rem' }}>{t('pp_about')}</h2>
+            <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-line">{brand.description}</p>
           </div>
         )}
 

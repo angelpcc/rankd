@@ -61,4 +61,5 @@ export default {
   br_after_review: 'Tu marca aparecerá en el directorio tras ser revisada',
   br_err_desc_max: 'La descripción no puede superar los 500 caracteres.',
   br_err_save: 'Error al guardar. Inténtalo de nuevo.',
+  br_seeking_sponsor: 'Patrocina',
 };

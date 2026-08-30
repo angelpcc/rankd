@@ -267,6 +267,9 @@ export default {
   // Brands page — extra hardcoded
   brands_results_singular: 'brand found',
   brands_results_plural: 'brands found',
+  brands_sponsor_now: 'SEEKING TO SPONSOR NOW',
+  brands_sponsor_now_desc: '{{n}} brands with an active sponsorship offer for fighters',
+  brands_all_brands: 'All brands',
   brands_no_results_title: 'No results',
   brands_no_results_desc: 'Try other filters or broaden your search.',
   brands_loading: 'Loading brands...',

@@ -61,4 +61,5 @@ export default {
   br_after_review: 'Your brand will appear in the directory once reviewed',
   br_err_desc_max: 'The description cannot exceed 500 characters.',
   br_err_save: 'Something went wrong saving. Please try again.',
+  br_seeking_sponsor: 'Sponsors',
 };
