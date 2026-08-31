@@ -1525,6 +1525,8 @@ export default {
   mc_av_field_rounds: 'Rounds',
   mc_av_field_round_dur: 'Round length (s)',
   mc_av_field_pace: 'Pace (min/km)',
+  mc_av_field_incline: 'Incline (%)',
+  mc_av_incline_chip: '{{n}}% incline',
   mc_av_pace_auto: 'Pace: {{pace}} /km',
   mc_av_unit_rounds: 'rounds',
   mc_av_chart_distance: 'Distance per session',

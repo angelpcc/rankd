@@ -1529,6 +1529,8 @@ export default {
   mc_av_field_rounds: 'Asaltos',
   mc_av_field_round_dur: 'Duración de asalto (s)',
   mc_av_field_pace: 'Ritmo (min/km)',
+  mc_av_field_incline: 'Inclinación (%)',
+  mc_av_incline_chip: '{{n}}% inclinación',
   mc_av_pace_auto: 'Ritmo: {{pace}} /km',
   mc_av_unit_rounds: 'asaltos',
   mc_av_chart_distance: 'Distancia por sesión',

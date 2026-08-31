@@ -73,7 +73,7 @@ export const KIND_META: Record<DayPlanKind, { icon: string; hex: string; labelKe
 // ── Tipos de actividad no-fuerza (activity_sessions + payload.kind de day_plan_items) ──
 // value = clave interna (se guarda en BD); labelKey = i18n; fields = qué inputs
 // pide cada tipo, más allá de la duración y la nota (comunes a todos).
-export type ActivityField = 'distance_km' | 'pace' | 'meters' | 'rounds' | 'round_duration';
+export type ActivityField = 'distance_km' | 'pace' | 'meters' | 'rounds' | 'round_duration' | 'incline';
 
 export interface ActivityKindCfg {
   value: string;
@@ -87,9 +87,9 @@ export interface ActivityKindCfg {
 }
 
 export const ACTIVITY_KINDS: ActivityKindCfg[] = [
-  { value: 'correr',   labelKey: 'mc_act_kind_correr',   icon: 'ri-run-line',         hex: '#22c55e', fields: ['distance_km', 'pace'] },
+  { value: 'correr',   labelKey: 'mc_act_kind_correr',   icon: 'ri-run-line',         hex: '#22c55e', fields: ['distance_km', 'pace', 'incline'] },
   { value: 'boxeo',    labelKey: 'mc_act_kind_boxeo',    icon: 'ri-boxing-line',      hex: '#E10600', fields: ['rounds', 'round_duration'], rounds: true },
-  { value: 'bici',     labelKey: 'mc_act_kind_bici',     icon: 'ri-riding-line',      hex: '#3b82f6', fields: ['distance_km'] },
+  { value: 'bici',     labelKey: 'mc_act_kind_bici',     icon: 'ri-riding-line',      hex: '#3b82f6', fields: ['distance_km', 'incline'] },
   { value: 'natacion', labelKey: 'mc_act_kind_natacion', icon: 'ri-drop-line',        hex: '#38bdf8', fields: ['meters'] },
   { value: 'cuerda',   labelKey: 'mc_act_kind_cuerda',   icon: 'ri-donut-chart-line', hex: '#a78bfa', fields: [] },
   { value: 'otro',     labelKey: 'mc_act_kind_otro',     icon: 'ri-more-line',        hex: '#6b7280', fields: [] },

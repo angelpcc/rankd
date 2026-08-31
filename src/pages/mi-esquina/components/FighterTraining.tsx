@@ -26,6 +26,7 @@ interface ActSession {
   pace_sec_per_km: number | null;
   meters: number | null;
   round_duration_sec: number | null;
+  incline_percent: number | null;
   note: string | null;
   created_at: string;
 }
@@ -92,6 +93,7 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
   const [meters, setMeters] = useState('');
   const [rounds, setRounds] = useState('');
   const [roundDur, setRoundDur] = useState('');
+  const [incline, setIncline] = useState('');
   const [note, setNote] = useState('');
 
   const [selectedType, setSelectedType] = useState<string>('');
@@ -124,7 +126,7 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
   const shownPace = pace || (autoPace ? paceLabel(autoPace) : '');
 
   const resetForm = () => {
-    setDuration('30'); setDistanceKm(''); setPace(''); setMeters(''); setRounds(''); setRoundDur(''); setNote('');
+    setDuration('30'); setDistanceKm(''); setPace(''); setMeters(''); setRounds(''); setRoundDur(''); setIncline(''); setNote('');
   };
 
   // Cierra el formulario y limpia el modo edición.
@@ -141,6 +143,7 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
     setMeters(s.meters != null ? String(s.meters) : '');
     setRounds(s.rounds != null ? String(s.rounds) : '');
     setRoundDur(s.round_duration_sec != null ? String(s.round_duration_sec) : '');
+    setIncline(s.incline_percent != null ? String(s.incline_percent) : '');
     setNote(s.note ?? '');
     setEditingId(s.id);
     setStep(2);
@@ -162,6 +165,7 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
       distance_km: cfg.fields.includes('distance_km') && distanceKm ? parseFloat(distanceKm.replace(',', '.')) : null,
       meters: cfg.fields.includes('meters') && meters ? parseInt(meters, 10) : null,
       round_duration_sec: cfg.fields.includes('round_duration') && roundDur ? parseInt(roundDur, 10) : null,
+      incline_percent: cfg.fields.includes('incline') && incline ? parseFloat(incline.replace(',', '.')) : null,
       pace_sec_per_km: cfg.fields.includes('pace')
         ? (pace ? paceToSec(pace) : autoPace) || null
         : null,
@@ -421,11 +425,14 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
                 <button onClick={() => setStep(1)} className="text-xs text-zinc-400 hover:text-white flex items-center gap-1.5 cursor-pointer -mt-1">
                   <i className="ri-arrow-left-line"></i> {t('mc_av_step_back')}
                 </button>
-                {/* Un solo grid: todos los campos con el mismo ancho y altura.
-                    Los pares relacionados van en la misma fila; un campo suelto
-                    ocupa el ancho completo (wide). ActField alinea los inputs
-                    abajo (mt-auto) aunque una etiqueta ocupe dos líneas. */}
-                <div className="grid grid-cols-2 gap-3 items-stretch">
+                {/* Grid de 2 columnas: los pares relacionados van en la misma
+                    fila; un campo suelto ocupa el ancho completo (wide).
+                    ActField reserva la altura de 2 líneas en la zona del label,
+                    así los inputs de una fila arrancan a la misma Y aunque un
+                    label sea más largo que el otro. `items-start`: cada celda a
+                    su alto de contenido (el texto de ayuda de una columna no
+                    empuja el input de la de al lado). */}
+                <div className="grid grid-cols-2 gap-3 items-start">
                   <ActField label={t('mc_av_date')}>
                     <input type="date" value={date} max={todayISO()} onChange={(e) => setDate(e.target.value)}
                       className={`${numCls} cursor-pointer [color-scheme:dark]`} style={{ fontSize: 16, minHeight: 44 }} />
@@ -435,7 +442,7 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
                       className={numCls} style={{ fontSize: 16, minHeight: 44 }} placeholder="30" />
                   </ActField>
                   {cfg.fields.includes('distance_km') && (
-                    <ActField label={t('mc_av_field_km')} wide={!cfg.fields.includes('pace')}>
+                    <ActField label={t('mc_av_field_km')} wide={!cfg.fields.includes('pace') && !cfg.fields.includes('incline')}>
                       <input inputMode="decimal" type="number" min="0" step="0.1" value={distanceKm} onChange={(e) => setDistanceKm(e.target.value)}
                         className={numCls} style={{ fontSize: 16, minHeight: 44 }} placeholder="5" />
                     </ActField>
@@ -444,6 +451,12 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
                     <ActField label={t('mc_av_field_pace')} hint={optText}>
                       <input inputMode="text" value={pace} onChange={(e) => setPace(e.target.value)}
                         className={numCls} style={{ fontSize: 16, minHeight: 44 }} placeholder={autoPace ? paceLabel(autoPace) : '5:30'} />
+                    </ActField>
+                  )}
+                  {cfg.fields.includes('incline') && (
+                    <ActField label={t('mc_av_field_incline')} hint={optText}>
+                      <input inputMode="decimal" type="number" min="0" max="40" step="0.5" value={incline} onChange={(e) => setIncline(e.target.value)}
+                        className={numCls} style={{ fontSize: 16, minHeight: 44 }} placeholder="3" />
                     </ActField>
                   )}
                   {cfg.fields.includes('meters') && (
@@ -606,6 +619,7 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
     if (s.distance_km) out.push(`${s.distance_km} km`);
     if (s.pace_sec_per_km) out.push(`${paceLabel(s.pace_sec_per_km)} /km`);
     if (s.meters) out.push(`${s.meters} m`);
+    if (s.incline_percent) out.push(t('mc_av_incline_chip', { n: s.incline_percent }));
     if (s.rounds) out.push(t('mc_av_rounds_short', { n: s.rounds }));
     return out;
   }
@@ -615,22 +629,34 @@ function sessionSummary(s: ActSession, t: (k: string, o?: Record<string, unknown
   const bits = [`${s.duration_min} min`];
   if (s.distance_km) bits.push(`${s.distance_km} km`);
   if (s.meters) bits.push(`${s.meters} m`);
+  if (s.incline_percent) bits.push(t('mc_av_incline_chip', { n: s.incline_percent }));
   if (s.rounds) bits.push(t('mc_av_rounds_short', { n: s.rounds }));
   bits.push(new Date(s.session_date + 'T12:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'long' }));
   return bits.join(' · ');
 }
 
-// Campo del formulario de actividad con altura de etiqueta consistente: el
-// wrapper del input lleva mt-auto, así todos los inputs de una fila del grid
-// quedan alineados abajo aunque una etiqueta ocupe dos líneas (p. ej. el
-// "(opcional)"). Módulo aparte para no remontar al re-renderizar el formulario.
+// Campo del formulario de actividad.
+//
+// El problema histórico: en una fila de 2 columnas, si un label ocupa 2 líneas
+// (por ser más largo) y el de al lado solo 1, el input de esa columna baja y
+// deja de arrancar a la misma altura que su vecino.
+//
+// Solución de raíz: la zona del label tiene SIEMPRE la altura de 2 líneas
+// (`minHeight`), ocupe el texto 1 línea o 2. Así el input de cada columna
+// arranca exactamente en el mismo desplazamiento vertical dentro de su celda,
+// y como las celdas de una fila del grid empiezan a la misma Y, los inputs
+// también. El "(opcional)" sale del label (que lo alargaba) y va como texto de
+// ayuda DEBAJO del input, donde no afecta a la alineación.
+// Módulo aparte para no remontar al re-renderizar el formulario.
+const ACT_LABEL_MIN_H = '2rem'; // reserva 2 líneas de texto-xs (leading-tight ≈ 15px/línea)
 function ActField({ label, hint, wide, children }: { label: string; hint?: string; wide?: boolean; children: React.ReactNode }) {
   return (
-    <div className={`flex flex-col ${wide ? 'col-span-2' : ''}`}>
-      <label className="block text-xs text-zinc-400 mb-1.5 leading-tight">
-        {label}{hint && <span className="text-zinc-600"> ({hint})</span>}
-      </label>
-      <div className="mt-auto">{children}</div>
+    <div className={`min-w-0 ${wide ? 'col-span-2' : ''}`}>
+      <div className="flex items-end mb-1.5" style={{ minHeight: ACT_LABEL_MIN_H }}>
+        <span className="text-xs text-zinc-400 leading-tight">{label}</span>
+      </div>
+      {children}
+      {hint && <p className="text-[10px] text-zinc-600 mt-1 leading-tight">{hint}</p>}
     </div>
   );
 }
