@@ -32,6 +32,16 @@ interface ActSession {
 
 function startOfMonth(): Date { const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d; }
 
+/** Lunes (ISO local) de esta semana, o `offsetWeeks` semanas atrás. */
+function weekMondayISO(offsetWeeks = 0): string {
+  const d = new Date();
+  const day = d.getDay() === 0 ? 6 : d.getDay() - 1;
+  d.setDate(d.getDate() - day + offsetWeeks * 7);
+  d.setHours(0, 0, 0, 0);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+const TREND_WEEKS = 8;
+
 // Qué mide el gráfico y las métricas para cada tipo.
 type Metric = 'distance' | 'meters' | 'rounds' | 'minutes';
 function metricOf(kind: string): Metric {
@@ -211,6 +221,35 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
     return ACTIVITY_KINDS.filter((k) => set.has(k.value));
   }, [sessions]);
 
+  // ── Resumen semanal: sesiones, desglose por tipo y minutos de esta semana ──
+  const weekAgg = useMemo(() => {
+    const start = weekMondayISO(0);
+    const wk = sessions.filter((s) => s.session_date >= start);
+    const byKind = new Map<string, number>();
+    wk.forEach((s) => byKind.set(s.kind, (byKind.get(s.kind) || 0) + 1));
+    return {
+      count: wk.length,
+      mins: wk.reduce((a, s) => a + (s.duration_min || 0), 0),
+      breakdown: [...byKind.entries()].sort((a, b) => b[1] - a[1]),
+    };
+  }, [sessions]);
+
+  // ── Tendencia: minutos totales por semana, últimas TREND_WEEKS ──
+  const weeklyTrend = useMemo(() => {
+    const weeks = Array.from({ length: TREND_WEEKS }, (_, i) => {
+      const start = weekMondayISO(-(TREND_WEEKS - 1 - i));
+      return { start, label: new Date(start + 'T12:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short' }), mins: 0 };
+    });
+    const first = weeks[0].start;
+    sessions.forEach((s) => {
+      if (s.session_date < first) return;
+      for (let w = weeks.length - 1; w >= 0; w--) {
+        if (s.session_date >= weeks[w].start) { weeks[w].mins += s.duration_min || 0; break; }
+      }
+    });
+    return weeks;
+  }, [sessions, locale]);
+
   const ofType = useMemo(
     () => sessions.filter((s) => s.kind === selectedType).slice().sort((a, b) => a.session_date.localeCompare(b.session_date)),
     [sessions, selectedType],
@@ -220,7 +259,7 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
   const metricUnit = metric === 'distance' ? 'km' : metric === 'meters' ? 'm' : metric === 'rounds' ? t('mc_av_unit_rounds') : 'min';
 
   const chartData = useMemo(
-    () => ofType.slice(-12).map((s) => ({
+    () => ofType.slice(-16).map((s) => ({
       label: new Date(s.session_date + 'T12:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short' }),
       value: metricValue(s, metric),
       mins: s.duration_min,
@@ -302,6 +341,61 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
           icon: showForm ? 'ri-close-line' : 'ri-add-line',
           onClick: () => { if (showForm) closeForm(); else { setEditingId(null); resetForm(); setStep(1); setShowForm(true); } },
         }} />
+
+      {/* ── Resumen semanal (parte superior) ── */}
+      {sessions.length > 0 && (
+        <Reveal>
+          <div className="card-primary" style={{ padding: 22 }}>
+            <p className="text-[11px] font-bold tracking-[0.22em] uppercase text-red-400 mb-2">{t('mc_av_week_eyebrow')}</p>
+            {weekAgg.count === 0 ? (
+              <p className="text-sm text-zinc-400">{t('mc_av_week_none')}</p>
+            ) : (
+              <>
+                <div className="flex items-end gap-5 flex-wrap">
+                  <div>
+                    <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 40, lineHeight: 0.85, color: '#fff' }}>{weekAgg.count}</span>
+                    <span className="text-sm text-zinc-500 ml-1.5">{t('mc_av_week_sessions_u')}</span>
+                  </div>
+                  <div>
+                    <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 40, lineHeight: 0.85, color: 'var(--gold)' }}>{weekAgg.mins}</span>
+                    <span className="text-sm text-zinc-500 ml-1.5">min</span>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                  {weekAgg.breakdown.map(([k, n]) => {
+                    const c = activityKindCfg(k);
+                    return (
+                      <span key={k} className="text-[11px] font-semibold px-2 py-1 rounded-full border" style={{ color: c.hex, borderColor: `${c.hex}40`, background: `${c.hex}14` }}>
+                        {t(c.labelKey)} {n}
+                      </span>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {/* Tendencia: minutos por semana */}
+            <p className="text-[11px] text-zinc-500 mt-5 mb-2">{t('mc_av_trend_title')} · {t('mc_av_trend_sub', { n: TREND_WEEKS })}</p>
+            <div style={{ height: 170 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={weeklyTrend} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
+                  <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.06)" />
+                  <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} interval="preserveStartEnd" minTickGap={8} />
+                  <YAxis allowDecimals={false} tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }} width={30} />
+                  <Tooltip contentStyle={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 10, fontSize: 12 }}
+                    labelStyle={{ color: 'rgba(255,255,255,0.5)' }} cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                    formatter={(v: number) => [`${v} min`, '']} />
+                  <Bar dataKey="mins" radius={[5, 5, 0, 0]} maxBarSize={34}>
+                    {weeklyTrend.map((w, i) => (
+                      <Cell key={w.start} fill={i === weeklyTrend.length - 1 ? '#E10600' : 'rgba(225,6,0,0.35)'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </Reveal>
+      )}
 
       {/* ── Formulario en 2 pasos ── */}
       {showForm && (

@@ -5,6 +5,7 @@ import HubTabs, { type HubTab } from './HubTabs';
 import StrengthSummary from './StrengthSummary';
 import StrengthLog from './StrengthLog';
 import StrengthProgram from './StrengthProgram';
+import StrengthProgress from './StrengthProgress';
 import ExerciseLibrary from './ExerciseLibrary';
 import MobilityRoutines from './MobilityRoutines';
 
@@ -23,6 +24,7 @@ interface Props {
 const WORK_TABS: HubTab[] = [
   { id: 'registrar', labelKey: 'mc_str_tab_log', icon: 'ri-add-circle-line' },
   { id: 'programar', labelKey: 'mc_str_tab_program', icon: 'ri-calendar-todo-line' },
+  { id: 'progresion', labelKey: 'mc_str_tab_progress', icon: 'ri-line-chart-line' },
   { id: 'biblioteca', labelKey: 'mc_str_tab_library', icon: 'ri-book-open-line' },
   { id: 'movilidad', labelKey: 'mc_str_tab_mobility', icon: 'ri-body-scan-line' },
   { id: 'historial', labelKey: 'mc_str_tab_history', icon: 'ri-history-line' },
@@ -53,6 +55,7 @@ export default function FuerzaSection({ profile, showToast, onGoAsesor }: Props)
           hideSummaryBlocks hideHistory onSeeHistory={() => setTab('historial')} />
       )}
       {tab === 'programar' && <StrengthProgram profile={profile} showToast={showToast} />}
+      {tab === 'progresion' && <StrengthProgress profile={profile} />}
       {tab === 'biblioteca' && <ExerciseLibrary />}
       {tab === 'movilidad' && <MobilityRoutines />}
       {tab === 'historial' && (

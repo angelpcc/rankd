@@ -12,7 +12,6 @@ import SectionHero from './SectionHero';
 import Reveal from '@/components/base/Reveal';
 import MuscleMap, { type MapGroup, type TrainState } from './MuscleMap';
 import StrengthSessionForm, { type BuiltSession, type SessionSlot, type EditSession } from './StrengthSessionForm';
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 interface Props {
   profile: Profile;
@@ -108,7 +107,6 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
   const [editCtx, setEditCtx] = useState<{ date: string; slot: SessionSlot | null } | null>(null);
   const [editData, setEditData] = useState<EditSession | undefined>(undefined);
   const [saving, setSaving] = useState(false);
-  const [selected, setSelected] = useState('');
   const [openDay, setOpenDay] = useState<string | null>(null);
   const [openEx, setOpenEx] = useState<string | null>(null);
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
@@ -135,7 +133,6 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
     if (isMissingTable(error)) { setUnavailable(true); setLoading(false); return; }
     const list = (data || []) as StrengthSet[];
     setRows(list);
-    if (list.length) setSelected((cur) => cur || list[0].exercise);
     setLoading(false);
   }, [profile.id]);
 
@@ -154,12 +151,6 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
     rows.forEach((r) => { if (!m.has(r.exercise)) m.set(r.exercise, { label: r.exercise_label, group: groupOfRow(r) }); });
     return [...m.values()];
   }, [rows, groupOfRow]);
-
-  const exerciseList = useMemo(() => {
-    const m = new Map<string, string>();
-    rows.forEach((r) => m.set(r.exercise, r.exercise_label));
-    return [...m.entries()];
-  }, [rows]);
 
   // ── Sesiones por día → franja → grupo muscular (doble sesión por día) ──
   const sessions = useMemo<DaySession[]>(() => {
@@ -261,22 +252,6 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
     const max = Math.max(1, ...entries.map(([, n]) => n));
     return { entries, max };
   }, [rows, groupOfRow]);
-
-  const progExercises = exerciseList;
-
-  // ── Progresión del ejercicio elegido: mejor peso por sesión ──
-  const progression = useMemo(() => {
-    if (!selected) return [];
-    const byDate = new Map<string, number>();
-    rows.filter((r) => r.exercise === selected).forEach((r) => {
-      byDate.set(r.session_date, Math.max(byDate.get(r.session_date) ?? 0, Number(r.weight_kg)));
-    });
-    return [...byDate.entries()]
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([d, kg]) => ({ date: new Date(d + 'T12:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short' }), kg }));
-  }, [rows, selected, locale]);
-
-  const gain = progression.length >= 2 ? +(progression[progression.length - 1].kg - progression[0].kg).toFixed(1) : null;
 
   const agoLabel = useCallback((d: string) => {
     const days = Math.floor((Date.now() - new Date(d + 'T12:00:00').getTime()) / 86400000);
@@ -424,7 +399,6 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
     setRows((prev) => [...inserted, ...prev]);
     setShowForm(false);
     setFormKey((k) => k + 1);
-    if (!selected) setSelected(base[0].exercise);
 
     const groupNames = session.blocks.map((b) => t(`mc_str_mg_${b.group}`)).join(' + ');
     const exCount = session.blocks.reduce((a, b) => a + b.exercises.length, 0);
@@ -670,60 +644,6 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
               <i className="ri-history-line" />{t('mc_strs_see_all')}
             </button>
           )}
-
-          {/* ── PROGRESIÓN ── (card primaria: 1 por pantalla) */}
-          <div className="card-primary" style={{ padding: '22px' }}>
-            <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-              <h3 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>{t('mc_str_progress')}</h3>
-              {gain !== null && (
-                <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${gain > 0 ? 'text-green-400 bg-green-500/10 border-green-500/25' : 'text-zinc-400 bg-white/[0.04] border-white/10'}`}>
-                  {gain > 0 ? '▲ ' : ''}{t('mc_str_gain', { n: gain })}
-                </span>
-              )}
-            </div>
-
-            {/* Selector de ejercicio · pill (rk-nav-btn) para diferenciar de CTAs.
-                Filtrado por el grupo del mapa muscular si hay uno seleccionado. */}
-            <div className="flex gap-1.5 overflow-x-auto pb-1 mb-3 rk-noscroll-x">
-              {progExercises.map(([ex, label]) => (
-                <button key={ex} onClick={() => setSelected(ex)}
-                  className={`rk-nav-btn text-xs font-bold whitespace-nowrap ${selected === ex ? 'is-active' : ''}`}
-                  style={{ padding: '0.4rem 0.9rem' }}>
-                  {label}
-                </button>
-              ))}
-              {progExercises.length === 0 && (
-                <p className="text-xs text-zinc-500 py-2">{t('mc_str_map_no_ex')}</p>
-              )}
-            </div>
-
-            {progression.length < 2 ? (
-              <p className="text-xs text-zinc-500 py-6 text-center">{t('mc_str_no_chart')}</p>
-            ) : (
-              <div style={{ height: 220 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={progression} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="strgrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#fb923c" stopOpacity={0.35} />
-                        <stop offset="100%" stopColor="#fb923c" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.06)" />
-                    <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }} minTickGap={24} />
-                    <YAxis domain={['dataMin - 5', 'dataMax + 5']} tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }} width={36} />
-                    <Tooltip contentStyle={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 10, fontSize: 12 }}
-                      labelStyle={{ color: 'rgba(255,255,255,0.5)' }} formatter={(v: number) => [`${v} kg`, '']} />
-                    <Area type="monotone" dataKey="kg" stroke="#fb923c" strokeWidth={2.5} fill="url(#strgrad)" dot={{ r: 3, fill: '#fb923c' }} activeDot={{ r: 5 }} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </div>
-
-          <p className="text-[11px] text-zinc-600 leading-relaxed flex items-start gap-1.5">
-            <i className="ri-information-line mt-0.5 flex-shrink-0"></i>{t('mc_str_1rm_note')}
-          </p>
         </>
       )}
 
