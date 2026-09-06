@@ -1,8 +1,10 @@
+# RANKD todavía no está lanzada al público: nada debe indexarse aún.
+# Cuando se lance, sustituir por reglas normales (Allow: / + Disallow de zonas
+# privadas) — ver el historial de git de este archivo.
 User-agent: *
-Allow: /
-Disallow: /dashboard
-Disallow: /onboarding
-Disallow: /auth
-Disallow: /registro
+Disallow: /
+
+# La ruta de acceso interno para revisión/grabación (ver ACCESO_DEMO.md) queda
+# cubierta por "Disallow: /" y no se nombra aquí a propósito, para no anunciarla.
 
 Sitemap: https://rankd-black.vercel.app/sitemap.xml

@@ -1,6 +1,8 @@
 import { lazy, Suspense } from 'react';
 import type { RouteObject } from 'react-router-dom';
 import NotFound from '../pages/NotFound';
+import PublicGate from '../components/feature/PublicGate';
+import PreviewEntry from '../pages/preview-entry/page';
 
 const LoadingSpinner = () => (
   <div className="min-h-screen flex items-center justify-center bg-[#0B0B0B]">
@@ -39,24 +41,32 @@ const PromotoraPublicPage = lazy(() => import('../pages/promotora/page'));
 const MarcaPublicPage = lazy(() => import('../pages/marca/page'));
 const PrivacyPage = lazy(() => import('../pages/privacy/page'));
 
+// RANKD aún no está lanzada: las rutas de CONTENIDO van envueltas en
+// <PublicGate> (muestran "Próximamente" salvo acceso interno / sesión).
+// Ver src/components/feature/PublicGate.tsx y ACCESO_DEMO.md.
 const routes: RouteObject[] = [
   {
     path: '/',
     element: (
       <Suspense fallback={<LoadingSpinner />}>
-        <Home />
+        <PublicGate><Home /></PublicGate>
       </Suspense>
     ),
   },
-  // /beta mantiene el mismo componente que / mientras existan enlaces
-  // internos apuntando ahí (top bar de Mi Esquina, botones "volver a home").
+  // /beta mantiene el mismo componente que / mientras existan enlaces internos
+  // apuntando ahí (top bar de Mi Esquina, botones "volver a home").
   {
     path: '/beta',
     element: (
       <Suspense fallback={<LoadingSpinner />}>
-        <Home />
+        <PublicGate><Home /></PublicGate>
       </Suspense>
     ),
+  },
+  // ── Acceso interno: no enlazado, cubierto por robots.txt "Disallow: /" ──
+  {
+    path: '/vista-previa-rk28',
+    element: <PreviewEntry />,
   },
   {
     path: '/auth',
@@ -126,7 +136,7 @@ const routes: RouteObject[] = [
     path: '/fighter/:id',
     element: (
       <Suspense fallback={<LoadingSpinner />}>
-        <FighterPublicPage />
+        <PublicGate><FighterPublicPage /></PublicGate>
       </Suspense>
     ),
   },
@@ -134,7 +144,7 @@ const routes: RouteObject[] = [
     path: '/fighters',
     element: (
       <Suspense fallback={<LoadingSpinner />}>
-        <FightersDirectoryPage />
+        <PublicGate><FightersDirectoryPage /></PublicGate>
       </Suspense>
     ),
   },
@@ -142,7 +152,7 @@ const routes: RouteObject[] = [
     path: '/opportunities',
     element: (
       <Suspense fallback={<LoadingSpinner />}>
-        <OpportunitiesPage />
+        <PublicGate><OpportunitiesPage /></PublicGate>
       </Suspense>
     ),
   },
@@ -150,7 +160,7 @@ const routes: RouteObject[] = [
     path: '/brands',
     element: (
       <Suspense fallback={<LoadingSpinner />}>
-        <BrandsPage />
+        <PublicGate><BrandsPage /></PublicGate>
       </Suspense>
     ),
   },
@@ -158,7 +168,7 @@ const routes: RouteObject[] = [
     path: '/eventos',
     element: (
       <Suspense fallback={<LoadingSpinner />}>
-        <EventosPage />
+        <PublicGate><EventosPage /></PublicGate>
       </Suspense>
     ),
   },
@@ -166,7 +176,7 @@ const routes: RouteObject[] = [
     path: '/como-funciona',
     element: (
       <Suspense fallback={<LoadingSpinner />}>
-        <ComoFuncionaPage />
+        <PublicGate><ComoFuncionaPage /></PublicGate>
       </Suspense>
     ),
   },
@@ -174,7 +184,7 @@ const routes: RouteObject[] = [
     path: '/promotoras',
     element: (
       <Suspense fallback={<LoadingSpinner />}>
-        <PromotorasPage />
+        <PublicGate><PromotorasPage /></PublicGate>
       </Suspense>
     ),
   },
@@ -182,7 +192,7 @@ const routes: RouteObject[] = [
     path: '/promotora/:id',
     element: (
       <Suspense fallback={<LoadingSpinner />}>
-        <PromotoraPublicPage />
+        <PublicGate><PromotoraPublicPage /></PublicGate>
       </Suspense>
     ),
   },
@@ -190,7 +200,7 @@ const routes: RouteObject[] = [
     path: '/marca/:id',
     element: (
       <Suspense fallback={<LoadingSpinner />}>
-        <MarcaPublicPage />
+        <PublicGate><MarcaPublicPage /></PublicGate>
       </Suspense>
     ),
   },
@@ -198,7 +208,7 @@ const routes: RouteObject[] = [
     path: '/evento/:id',
     element: (
       <Suspense fallback={<LoadingSpinner />}>
-        <EventoDetailPage />
+        <PublicGate><EventoDetailPage /></PublicGate>
       </Suspense>
     ),
   },
@@ -206,7 +216,7 @@ const routes: RouteObject[] = [
     path: '/esquina',
     element: (
       <Suspense fallback={<LoadingSpinner />}>
-        <EsquinaPage />
+        <PublicGate><EsquinaPage /></PublicGate>
       </Suspense>
     ),
   },
@@ -262,7 +272,7 @@ const routes: RouteObject[] = [
     path: '/noticias',
     element: (
       <Suspense fallback={<LoadingSpinner />}>
-        <NewsPage />
+        <PublicGate><NewsPage /></PublicGate>
       </Suspense>
     ),
   },
@@ -286,7 +296,7 @@ const routes: RouteObject[] = [
     path: '/tienda',
     element: (
       <Suspense fallback={<LoadingSpinner />}>
-        <StorePage />
+        <PublicGate><StorePage /></PublicGate>
       </Suspense>
     ),
   },
