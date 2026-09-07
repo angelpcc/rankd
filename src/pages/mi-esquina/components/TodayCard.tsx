@@ -5,18 +5,26 @@ import { isMissingTable } from '@/lib/dbState';
 import PhotoCard from '@/components/base/PhotoCard';
 import { type DayPlanItem, type StrengthPayload, type ActivityPayload, activityKindCfg, exerciseLines, KIND_META } from '../lib/dayPlan';
 
-// Card "HOY" — el elemento PRINCIPAL del Resumen. Es una PhotoCard: fondo a
-// sangre (imagen o fondo diseñado) con el degradado de legibilidad y el texto
-// encima. Tres estados: hay entreno hoy / descanso / sin plan.
+// "Tu siguiente acción" — el elemento PRINCIPAL del Resumen y el ÚNICO CTA rojo
+// de la pantalla. Es una PhotoCard (fondo a sangre + degradado + texto) cuyo
+// estado cambia por prioridad:
 //
-// Fotos reales (Unsplash, licencia libre) para entreno de fuerza y actividad;
-// descanso y "sin plan" usan SVG diseñado (hero-rest / hero-plan) porque no
-// hay foto que encaje mejor que la ilustración para esos estados.
+//   1. combate próximo  (solo PRO, pelea a ≤7 días)
+//   2. entrenamiento pendiente hoy
+//   3. peso sin registrar (≥4 días, o pesaje PRO cerca)
+//   4. día de descanso / sin nada planificado
+//   5. sin plan
+//
+// El botón interno es el CTA principal (rk-cta rojo). No debe haber otro CTA
+// rojo en el Resumen.
 
 interface Props {
   profile: Profile;
-  onStart: () => void;      // abre la agenda del día
-  onCreatePlan: () => void; // abre Objetivos (plan IA)
+  mode: 'pro' | 'hobby';
+  onStart: () => void;       // abre la agenda del día
+  onCreatePlan: () => void;  // abre Asesor (plan)
+  onLogWeight: () => void;    // abre Peso
+  onLogToday: () => void;     // abre Actividad con hoy puesto
 }
 
 function todayISO(): string {
@@ -24,24 +32,46 @@ function todayISO(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-interface TrainToday { icon: string; title: string; typeLabelKey: string; note: string | null }
+// Días de diferencia entre `iso` y hoy, ambos a medianoche. Positivo = futuro
+// (faltan N días), negativo = pasado (hace N días).
+function dayDelta(iso: string): number {
+  const a = new Date(iso + 'T00:00:00'); a.setHours(0, 0, 0, 0);
+  const b = new Date(); b.setHours(0, 0, 0, 0);
+  return Math.round((a.getTime() - b.getTime()) / 86400000);
+}
 
-export default function TodayCard({ profile, onStart, onCreatePlan }: Props) {
-  const { t } = useTranslation();
+interface TrainToday { icon: string; title: string; typeLabelKey: string; note: string | null }
+interface FightRow { event_date: string; title: string; kind: string }
+
+export default function TodayCard({ profile, mode, onStart, onCreatePlan, onLogWeight, onLogToday }: Props) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
   const [loading, setLoading] = useState(true);
   const [training, setTraining] = useState<TrainToday[]>([]);
   const [hasPlan, setHasPlan] = useState(false);
+  const [daysSinceWeight, setDaysSinceWeight] = useState<number | null>(null);
+  const [nextFight, setNextFight] = useState<FightRow | null>(null);
+  const [nextWeighIn, setNextWeighIn] = useState<FightRow | null>(null);
 
   useEffect(() => {
     let alive = true;
     (async () => {
-      const [{ data: rows, error: evErr }, { data: plan }] = await Promise.all([
+      const isPro = mode === 'pro';
+      const [{ data: rows, error: evErr }, { data: plan }, { data: wRows }, fightRes] = await Promise.all([
         supabase.from('day_plan_items').select('kind, payload')
           .eq('fighter_profile_id', profile.id).eq('plan_date', todayISO()).in('kind', ['strength', 'activity']),
         supabase.from('objective_plans').select('id')
           .eq('fighter_profile_id', profile.id).eq('status', 'active').limit(1).maybeSingle(),
+        supabase.from('weight_entries').select('entry_date')
+          .eq('fighter_profile_id', profile.id).order('entry_date', { ascending: false }).limit(1),
+        isPro
+          ? supabase.from('planned_events').select('event_date, title, kind')
+              .eq('fighter_profile_id', profile.id).in('kind', ['fight', 'weigh_in'])
+              .gte('event_date', todayISO()).order('event_date', { ascending: true })
+          : Promise.resolve({ data: null, error: null } as { data: FightRow[] | null; error: null }),
       ]);
       if (!alive) return;
+
       if (!isMissingTable(evErr)) {
         const list = ((rows || []) as Pick<DayPlanItem, 'kind' | 'payload'>[]).map((r): TrainToday => {
           if (r.kind === 'strength') {
@@ -60,32 +90,66 @@ export default function TodayCard({ profile, onStart, onCreatePlan }: Props) {
         });
         setTraining(list);
       }
+
       setHasPlan(!!plan);
+
+      const lastW = (wRows || [])[0] as { entry_date: string } | undefined;
+      setDaysSinceWeight(lastW ? -dayDelta(lastW.entry_date) : null);
+
+      const fr = (fightRes.data || []) as FightRow[];
+      setNextFight(fr.find((r) => r.kind === 'fight') || null);
+      setNextWeighIn(fr.find((r) => r.kind === 'weigh_in') || null);
+
       setLoading(false);
     })();
     return () => { alive = false; };
-  }, [profile.id, t]);
+  }, [profile.id, mode, t]);
 
   if (loading) {
     return (
-      <div className="rk-card" style={{ minHeight: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="rk-card" style={{ minHeight: 210, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div className="w-6 h-6 border-2 border-[#E10600] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
-  const pill = (text: string, gold = false) => (
+  const pill = (text: string, tone: 'accent' | 'ghost' = 'accent') => (
     <span style={{
-      background: gold ? 'rgba(201,168,76,0.16)' : 'var(--accent)',
-      color: gold ? 'var(--gold)' : '#fff',
+      background: tone === 'accent' ? 'var(--accent)' : 'rgba(255,255,255,0.14)',
+      color: '#fff',
       borderRadius: 'var(--r-pill)', padding: '4px 12px', fontSize: 12, fontWeight: 700,
       textTransform: 'uppercase', letterSpacing: '0.04em',
     }}>{text}</span>
   );
 
-  const main = training[0];
+  const cta = (label: string, icon: string, onClick: () => void) => (
+    <button onClick={onClick} className="rk-cta w-full flex items-center justify-center gap-2" style={{ minHeight: 48 }}>
+      <i className={`${icon} text-lg`} /> {label}
+    </button>
+  );
 
-  // ── Estado 1: hay entreno hoy ──
+  const main = training[0];
+  const fightDays = nextFight ? dayDelta(nextFight.event_date) : null;
+
+  // ── Estado 1: combate próximo (PRO, ≤7 días) ──
+  if (mode === 'pro' && nextFight && fightDays != null && fightDays >= 0 && fightDays <= 7) {
+    const sub = nextWeighIn
+      ? t('mc_hoy_fight_weighin', { date: new Date(nextWeighIn.event_date + 'T12:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'long' }) })
+      : t('mc_hoy_fight_desc');
+    return (
+      <PhotoCard
+        primary
+        image="/images/sparring.webp"
+        icon="ri-sword-line"
+        chips={pill(fightDays <= 0 ? t('mc_hoy_fight_today') : t('mc_hoy_fight_in', { n: fightDays }))}
+        title={nextFight.title.toUpperCase()}
+        subtitle={sub}
+        footer={cta(t('mc_hoy_fight_cta'), 'ri-focus-3-line', onStart)}
+      />
+    );
+  }
+
+  // ── Estado 2: hay entreno hoy ──
   if (main) {
     const extra = training.length - 1;
     const isStrength = main.typeLabelKey === 'mc_dp_kind_strength';
@@ -94,45 +158,54 @@ export default function TodayCard({ profile, onStart, onCreatePlan }: Props) {
         primary
         image={isStrength ? '/images/fuerza.webp' : '/images/correr.webp'}
         icon={main.icon}
-        chips={<>{pill(t(main.typeLabelKey))}{extra > 0 && pill(`+${extra}`, true)}</>}
+        chips={<>{pill(t('mc_hoy_pending'))}{extra > 0 && pill(`+${extra}`, 'ghost')}</>}
         title={main.title.toUpperCase()}
-        subtitle={main.note || undefined}
-        footer={
-          <button onClick={onStart} className="rk-nav-btn inline-flex items-center gap-2" style={{ background: 'rgba(255,255,255,0.1)' }}>
-            <i className="ri-play-fill"></i> {t('mc_hoy_start')}
-          </button>
-        }
+        subtitle={main.note || t('mc_hoy_pending_desc')}
+        footer={cta(t('mc_hoy_start'), 'ri-play-fill', onStart)}
       />
     );
   }
 
-  // ── Estado 2: plan activo pero hoy descansa ──
+  // ── Estado 3: peso sin registrar (≥4 días) ──
+  if (daysSinceWeight != null && daysSinceWeight >= 4) {
+    return (
+      <PhotoCard
+        primary
+        image="/images/hero-plan.svg"
+        icon="ri-scales-2-line"
+        chips={pill(t('mc_hoy_weight_chip'))}
+        title={t('mc_hoy_weight_title').toUpperCase()}
+        subtitle={t('mc_hoy_weight_desc', { n: daysSinceWeight })}
+        footer={cta(t('mc_hoy_weight_cta'), 'ri-scales-2-line', onLogWeight)}
+      />
+    );
+  }
+
+  // ── Estado 4: plan activo, hoy sin nada planificado (descanso / suelto) ──
   if (hasPlan) {
     return (
       <PhotoCard
+        primary
         image="/images/hero-rest.svg"
         icon="ri-heart-pulse-line"
-        chips={pill(t('mc_hoy_eyebrow'))}
+        chips={pill(t('mc_hoy_eyebrow'), 'ghost')}
         title={t('mc_hoy_rest_title').toUpperCase()}
         subtitle={t('mc_hoy_rest_desc')}
+        footer={cta(t('mc_hoy_rest_cta'), 'ri-add-line', onLogToday)}
       />
     );
   }
 
-  // ── Estado 3: sin plan ──
+  // ── Estado 5: sin plan ──
   return (
     <PhotoCard
       primary
       image="/images/hero-plan.svg"
       icon="ri-sparkling-2-line"
-      chips={pill(t('mc_hoy_eyebrow'))}
+      chips={pill(t('mc_hoy_eyebrow'), 'ghost')}
       title={t('mc_hoy_noplan_title').toUpperCase()}
       subtitle={t('mc_hoy_noplan_desc')}
-      footer={
-        <button onClick={onCreatePlan} className="rk-nav-btn inline-flex items-center gap-2" style={{ background: 'rgba(255,255,255,0.1)' }}>
-          <i className="ri-add-line"></i> {t('mc_hoy_create')}
-        </button>
-      }
+      footer={cta(t('mc_hoy_create'), 'ri-add-line', onCreatePlan)}
     />
   );
 }

@@ -6,8 +6,10 @@ import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import SegmentedProgress from '@/components/base/SegmentedProgress';
 
 // Grid 2×2 de métricas compactas — PESO · ENTRENOS · RACHA · OBJETIVO.
-// Cada una card --s-2: label arriba, dato grande (Bebas). El dato de "logro"
-// (racha, objetivo) va en oro; el resto en blanco. Nada rojo aquí.
+// Cada una card --s-2: label arriba, dato grande (Bebas) en blanco. El acento
+// es rojo RANKD y solo aparece en lo que es progreso/estado activo (objetivo
+// semanal cumplido, racha viva). El delta de peso conserva verde/naranja
+// porque la dirección (bajas/subes) es información esencial, no decoración.
 
 interface Props {
   profile: Profile;
@@ -94,8 +96,9 @@ export default function SummaryMetrics({ profile, weekSessions, weekTarget = 4, 
       {/* ── ENTRENOS SEMANA ── */}
       <Card onClick={onOpenActivity}>
         <p className="rk-label">{t('mc_metric_week')}</p>
-        <p className="rk-num mt-1.5" style={{ color: weekMet ? '#4ade80' : 'var(--t-1)' }}>
+        <p className="rk-num mt-1.5" style={{ color: weekMet ? 'var(--accent)' : 'var(--t-1)' }}>
           {weekSessions}<span style={{ fontSize: 14, color: 'var(--t-3)', marginLeft: 4 }}>/{weekTarget}</span>
+          {weekMet && <i className="ri-check-line" style={{ fontSize: 18, marginLeft: 6, verticalAlign: 'middle' }} />}
         </p>
         <div className="mt-2">
           <SegmentedProgress total={weekTarget} done={weekSessions} height={6} />
@@ -105,8 +108,9 @@ export default function SummaryMetrics({ profile, weekSessions, weekTarget = 4, 
       {/* ── RACHA ── */}
       <Card onClick={onOpenActivity}>
         <p className="rk-label">{t('mc_metric_streak')}</p>
-        <p className="rk-num-gold mt-1.5">
-          {streak}<span style={{ fontSize: 14, color: 'var(--t-3)', marginLeft: 4 }}>{t(streak === 1 ? 'mc_metric_day' : 'mc_metric_days')}</span>
+        <p className="rk-num mt-1.5" style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+          {streak > 0 && <i className="ri-fire-fill" style={{ fontSize: 18, color: 'var(--accent)', alignSelf: 'center' }} />}
+          {streak}<span style={{ fontSize: 14, color: 'var(--t-3)' }}>{t(streak === 1 ? 'mc_metric_day' : 'mc_metric_days')}</span>
         </p>
       </Card>
 
@@ -115,7 +119,7 @@ export default function SummaryMetrics({ profile, weekSessions, weekTarget = 4, 
         <p className="rk-label">{t('mc_metric_goal')}</p>
         {targetWeight != null ? (
           <>
-            <p className="rk-num-gold mt-1.5">{targetWeight}<span style={{ fontSize: 14, color: 'var(--t-3)', marginLeft: 4 }}>kg</span></p>
+            <p className="rk-num mt-1.5">{targetWeight}<span style={{ fontSize: 14, color: 'var(--t-3)', marginLeft: 4 }}>kg</span></p>
             {toGo !== null && toGo !== 0 && (
               <p className="mt-0.5 text-xs" style={{ color: 'var(--t-3)' }}>
                 {t('mc_metric_goal_togo', { n: Math.abs(toGo) })}

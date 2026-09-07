@@ -12,7 +12,7 @@ import SummaryMetrics from '@/pages/mi-esquina/components/SummaryMetrics';
 import SummaryAiLine from '@/pages/mi-esquina/components/SummaryAiLine';
 import WeekStrip from '@/pages/mi-esquina/components/WeekStrip';
 import FightPrep from '@/pages/mi-esquina/components/FightPrep';
-import PhysicalProfileCard from '@/pages/mi-esquina/components/PhysicalProfileCard';
+import ActivationSteps from '@/pages/mi-esquina/components/ActivationSteps';
 import AgendaHub from '@/pages/mi-esquina/components/AgendaHub';
 import WeightTracker from '@/pages/mi-esquina/components/WeightTracker';
 import FuerzaSection from '@/pages/mi-esquina/components/FuerzaSection';
@@ -23,6 +23,8 @@ import { GearReplacementAlert } from '@/pages/mi-esquina/components/GearChecklis
 import GymLink from '@/pages/mi-esquina/components/GymLink';
 import NutritionHub from '@/pages/mi-esquina/components/NutritionHub';
 import Reveal from '@/components/base/Reveal';
+import CollapsibleSection from '@/components/base/CollapsibleSection';
+import BottomSheet from '@/components/base/BottomSheet';
 import PageBreadcrumb from '@/components/base/PageBreadcrumb';
 import NotificationBell from '@/components/feature/NotificationBell';
 import SettingsModal from '@/pages/mi-esquina/components/SettingsModal';
@@ -57,6 +59,11 @@ const SECTION_ALIAS: Partial<Record<Section, Section>> = {
   progreso: 'fuerza',
   objetivos: 'asesor',
 };
+
+// Navegación móvil: solo estas dos secciones tienen peso propio en la barra
+// (+ el botón "Registrar" y "Más"). El resto vive en la hoja "Más" para que
+// las ocho pestañas no compitan con el mismo tamaño.
+const MOBILE_PRIMARY: Section[] = ['resumen', 'agenda'];
 
 // ── Qué ve cada perfil ──
 // El que compite lo tiene TODO: el Ring (sparring, combates y libreta técnica)
@@ -103,6 +110,7 @@ export default function MiEsquinaPage() {
   const [pendingDate, setPendingDate] = useState<string | undefined>(undefined);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [stats, setStats] = useState({
     total: 0, week: 0, weekMin: 0, todayLogged: false, streak: 0, lastWeekMin: 0,
     last7: [] as { key: string; min: number; today: boolean }[],
@@ -278,6 +286,31 @@ export default function MiEsquinaPage() {
         <SettingsModal profile={profile} showToast={showToast} onClose={() => setShowSettings(false)} />
       )}
 
+      {/* Hoja "Más" (solo móvil): el resto de secciones, en rejilla. */}
+      <BottomSheet open={moreOpen} onClose={() => setMoreOpen(false)} title={t('mc_nav_more')}>
+        <div className="grid grid-cols-3 gap-2.5 pb-1">
+          {SECTIONS.filter((s) => !MOBILE_PRIMARY.includes(s.id)).map((s) => {
+            const on = activeSection === s.id;
+            return (
+              <button
+                key={s.id}
+                onClick={() => { setMoreOpen(false); if (s.id === 'timer') navigate('/mi-esquina/timer'); else go(s.id); }}
+                className="flex flex-col items-center justify-center gap-1.5 rounded-xl cursor-pointer transition-colors"
+                style={{
+                  minHeight: 76, padding: 10,
+                  background: on ? 'var(--accent)' : 'var(--s-2)',
+                  border: `1px solid ${on ? 'transparent' : 'var(--s-3)'}`,
+                  color: on ? '#fff' : 'var(--t-2)',
+                }}
+              >
+                <i className={`${s.icon} text-xl`}></i>
+                <span className="text-[11px] font-semibold text-center leading-tight">{t(s.labelKey)}</span>
+              </button>
+            );
+          })}
+        </div>
+      </BottomSheet>
+
       <div className="flex min-h-screen max-w-[1400px] mx-auto" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
         {/* Sidebar (escritorio) */}
         <aside className="hidden lg:flex flex-col w-60 flex-shrink-0 border-r border-zinc-800/70 py-6 px-3 sticky h-[calc(100vh-3.5rem)] overflow-y-auto" style={{ top: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
@@ -296,15 +329,36 @@ export default function MiEsquinaPage() {
           </div>
         </aside>
 
-        {/* Tabs móvil */}
-        <div className="lg:hidden fixed left-0 right-0 z-30 bg-zinc-950/95 backdrop-blur border-b border-zinc-800 overflow-x-auto" style={{ top: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
-          <div className="flex px-3 py-2 gap-1 min-w-max">
-            {SECTIONS.map((s) => (
-              <button key={s.id} onClick={() => (s.id === 'timer' ? navigate('/mi-esquina/timer') : go(s.id))}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${activeSection === s.id ? 'bg-red-600 text-white' : 'text-zinc-400'}`}>
-                <i className={s.icon}></i>{t(s.labelKey)}
-              </button>
-            ))}
+        {/* Tabs móvil — jerarquía: Resumen · Agenda · Registrar (acción) · Más.
+            El resto de secciones vive en la hoja "Más" para no apilar ocho
+            pestañas con el mismo peso. */}
+        <div className="lg:hidden fixed left-0 right-0 z-30 bg-zinc-950/95 backdrop-blur border-b border-zinc-800" style={{ top: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
+          <div className="flex px-2 py-1.5 gap-1">
+            {MOBILE_PRIMARY.map((id) => {
+              const s = SECTIONS.find((x) => x.id === id);
+              if (!s) return null;
+              const on = activeSection === s.id;
+              return (
+                <button key={s.id} onClick={() => go(s.id)}
+                  className="flex-1 flex flex-col items-center justify-center gap-0.5 rounded-lg cursor-pointer transition-colors"
+                  style={{ minHeight: 44, color: on ? '#fff' : 'var(--t-3)', borderBottom: `2px solid ${on ? 'var(--accent)' : 'transparent'}` }}>
+                  <i className={`${s.icon} text-base`}></i>
+                  <span className="text-[11px] font-semibold">{t(s.labelKey)}</span>
+                </button>
+              );
+            })}
+            <button onClick={() => go('actividad', undefined, todayISO())}
+              className="flex-1 flex flex-col items-center justify-center gap-0.5 rounded-lg cursor-pointer"
+              style={{ minHeight: 44, color: 'var(--accent)', borderBottom: `2px solid ${activeSection === 'actividad' ? 'var(--accent)' : 'transparent'}` }}>
+              <i className="ri-add-circle-fill text-base"></i>
+              <span className="text-[11px] font-bold">{t('mc_act_s3_cta')}</span>
+            </button>
+            <button onClick={() => setMoreOpen(true)} aria-haspopup="dialog"
+              className="flex-1 flex flex-col items-center justify-center gap-0.5 rounded-lg cursor-pointer transition-colors"
+              style={{ minHeight: 44, color: !MOBILE_PRIMARY.includes(activeSection) && activeSection !== 'actividad' ? '#fff' : 'var(--t-3)' }}>
+              <i className="ri-more-2-fill text-base"></i>
+              <span className="text-[11px] font-semibold">{t('mc_nav_more')}</span>
+            </button>
           </div>
         </div>
 
@@ -342,56 +396,60 @@ export default function MiEsquinaPage() {
                 <GearReplacementAlert profile={profile} onOpen={() => navigate('/dashboard?tab=material')} />
               </div>
 
-              {/* Tira de semana */}
-              <div className="rk-card" style={{ padding: 18 }}>
-                <WeekStrip activeDates={stats.weekActiveDates} done={stats.week} total={4}
-                  onDayClick={() => go('agenda', 'plan')} />
-              </div>
-
-              {/* HOY — PhotoCard, elemento principal */}
+              {/* 1 · TU SIGUIENTE ACCIÓN — hero del Resumen y ÚNICO CTA rojo.
+                  El propio componente cambia de estado (combate / entreno /
+                  peso / descanso / sin plan) y trae dentro su botón rojo. */}
               <Reveal>
-                <TodayCard profile={profile}
+                <TodayCard profile={profile} mode={mode}
                   onStart={() => go('agenda', 'plan')}
-                  onCreatePlan={() => go('asesor')} />
+                  onCreatePlan={() => go('asesor')}
+                  onLogWeight={() => go('peso')}
+                  onLogToday={() => go('actividad', undefined, todayISO())} />
               </Reveal>
 
-              {/* Métricas 2×2 */}
+              {/* 2 · Progreso de la semana + racha (primero, como pide el brief) */}
               <Reveal delay={80}>
-                <SummaryMetrics profile={profile} weekSessions={stats.week} streak={stats.streak}
-                  onOpenActivity={() => go('actividad')} onOpenWeight={() => go('peso')} />
+                <div className="rk-card" style={{ padding: 18 }}>
+                  <WeekStrip activeDates={stats.weekActiveDates} done={stats.week} total={4}
+                    onDayClick={() => go('agenda', 'plan')} />
+                  {stats.streak > 0 && (
+                    <div className="flex items-center gap-2" style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--s-3)' }}>
+                      <i className="ri-fire-fill" style={{ color: 'var(--accent)', fontSize: 18 }} />
+                      <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, color: 'var(--t-1)', lineHeight: 1 }}>{stats.streak}</span>
+                      <span style={{ fontSize: 13, color: 'var(--t-2)' }}>
+                        {t(stats.streak === 1 ? 'mc_streak_line_one' : 'mc_streak_line', { n: stats.streak })}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </Reveal>
 
-              {/* Plan activo */}
-              <Reveal delay={160}>
-                <SummaryAiLine profile={profile} onOpen={() => go('asesor')} />
-              </Reveal>
+              {/* 3 · Ruta de activación (solo primer uso; se oculta al completar) */}
+              <ActivationSteps profile={profile} totalSessions={stats.total} showToast={showToast}
+                onDefineGoal={() => go('asesor')}
+                onLogFirst={() => go('actividad', undefined, todayISO())} />
 
-              {/* Próxima pelea (PRO; null si no hay combate) */}
+              {/* 4 · Próxima pelea (PRO; el componente devuelve null si no hay combate) */}
               {!isHobby && (
-                <Reveal delay={200}>
+                <Reveal delay={120}>
                   <FightPrep profile={profile} onOpenCalendar={() => go('agenda', 'plan')} />
                 </Reveal>
               )}
 
-              <div className="rk-stack">
-                <PhysicalProfileCard profileId={profile.id} showToast={showToast} hideWhenComplete />
+              {/* 5 · Más de tu progreso — módulos menos urgentes, plegados */}
+              <CollapsibleSection title={t('mc_more_progress')}>
+                <SummaryMetrics profile={profile} weekSessions={stats.week} streak={stats.streak}
+                  onOpenActivity={() => go('actividad')} onOpenWeight={() => go('peso')} />
+                <SummaryAiLine profile={profile} onOpen={() => go('asesor')} />
                 <GymLink profile={profile} showToast={showToast} />
-              </div>
-
-              {/* Único CTA rojo de la pantalla: registrar lo de hoy */}
-              <button onClick={() => go('actividad', undefined, todayISO())}
-                className="rk-cta w-full flex items-center justify-center gap-2">
-                <i className="ri-add-line text-lg"></i> {t('mc_register_today')}
-              </button>
-
-              {/* Informe de progreso exportable (antes vivía en Progreso) */}
-              <button
-                onClick={() => window.open('/mi-esquina/informe/imprimir', '_blank', 'noopener')}
-                className="rk-btn rk-btn-ghost w-full flex items-center justify-center gap-1.5"
-                style={{ fontSize: '0.78rem', padding: '0.55rem 1rem' }}
-              >
-                <i className="ri-file-chart-line"></i> {t('mc_export_report')}
-              </button>
+                <button
+                  onClick={() => window.open('/mi-esquina/informe/imprimir', '_blank', 'noopener')}
+                  className="rk-btn rk-btn-ghost w-full flex items-center justify-center gap-1.5"
+                  style={{ fontSize: '0.78rem', padding: '0.55rem 1rem' }}
+                >
+                  <i className="ri-file-chart-line"></i> {t('mc_export_report')}
+                </button>
+              </CollapsibleSection>
             </div>
           )}
 

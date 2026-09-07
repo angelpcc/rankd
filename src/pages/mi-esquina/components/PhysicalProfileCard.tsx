@@ -38,7 +38,7 @@ export default function PhysicalProfileCard({ profileId, showToast, hideWhenComp
   return (
     <>
       <div className="rk-card flex items-center gap-4" style={{ padding: '16px 18px', transform: 'none' }}>
-        <div className={`w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-2xl border ${done ? 'bg-emerald-500/12 border-emerald-500/30 text-emerald-400' : 'bg-[#C9A84C]/12 border-[#C9A84C]/30 text-[#C9A84C]'}`}>
+        <div className={`w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-2xl border ${done ? 'bg-emerald-500/12 border-emerald-500/30 text-emerald-400' : 'bg-[#E10600]/12 border-[#E10600]/30 text-[#E10600]'}`}>
           <i className={`text-xl ${done ? 'ri-shield-check-line' : 'ri-user-heart-line'}`}></i>
         </div>
         <div className="flex-1 min-w-0">
@@ -49,7 +49,7 @@ export default function PhysicalProfileCard({ profileId, showToast, hideWhenComp
             <>
               <p className="text-xs text-zinc-400 mt-0.5">{t('mc_pp_card_desc')}</p>
               <div className="mt-2 h-1 w-full rounded-full bg-white/10 overflow-hidden">
-                <div className="h-full rounded-full bg-gradient-to-r from-[#E10600] to-[#C9A84C] transition-all" style={{ width: `${c.pct}%` }} />
+                <div className="h-full rounded-full transition-all" style={{ width: `${c.pct}%`, background: 'var(--accent)' }} />
               </div>
             </>
           )}
