@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
 import BottomSheet from '@/components/base/BottomSheet';
@@ -11,13 +11,17 @@ import {
 import { hasTechnique } from '../lib/exerciseTechnique';
 import ExerciseTechniqueCard from './ExerciseTechniqueCard';
 import PlateCalculator from './PlateCalculator';
+import LastPerformanceCard from './LastPerformanceCard';
+import { buildLastPerformance, buildSuggestion, type LastPerformance, type Suggestion, type PerfRow } from '../lib/lastPerformance';
+import { loadDraft, saveDraft, clearDraft, type StrengthDraft } from '../lib/strengthDraft';
+import { useOnline } from '@/hooks/useOnline';
 
 // ── Sesión construida que se devuelve al padre para guardar ──
 // reps = valor bajo/fijo; repsMax = tope del rango (undefined = fijo). En
 // tracking_mode 'time'/'distance', `reps` guarda segundos / metros. `weight`
 // puede ser 0 (peso corporal, o series sin peso).
 export interface BuiltSet { reps: number; weight: number; repsMax?: number }
-export interface BuiltExercise { label: string; sets: BuiltSet[]; weightMode?: WeightMode; trackingMode?: TrackingMode }
+export interface BuiltExercise { label: string; sets: BuiltSet[]; weightMode?: WeightMode; trackingMode?: TrackingMode; note?: string }
 export interface BuiltBlock { group: MuscleGroup; exercises: BuiltExercise[] }
 
 function weightLabelKey(mode: WeightMode): string {
@@ -38,7 +42,7 @@ export interface BuiltSession { date: string; blocks: BuiltBlock[]; slot: Sessio
 // lo pasa como `initialSession`: el formulario abre en el paso 2, pre-relleno,
 // y al guardar el padre reemplaza las filas (no crea una sesión nueva).
 export interface EditSessionSet { reps: string; weight: string }
-export interface EditSessionExercise { label: string; sets: EditSessionSet[] }
+export interface EditSessionExercise { label: string; sets: EditSessionSet[]; note?: string }
 export interface EditSessionBlock { group: MuscleGroup; exercises: EditSessionExercise[] }
 export interface EditSession { date: string; slot: SessionSlot | null; blocks: EditSessionBlock[] }
 
@@ -72,7 +76,7 @@ export function parseRepsInput(raw: string): { reps: number; repsMax?: number } 
 
 // ── Estado editable interno (inputs como texto) ──
 interface FSet { reps: string; weight: string }
-interface FExercise { id: string; label: string; query: string; open: boolean; sets: FSet[]; techOpen?: boolean }
+interface FExercise { id: string; label: string; query: string; open: boolean; sets: FSet[]; techOpen?: boolean; note?: string; noteOpen?: boolean }
 interface FBlock { group: MuscleGroup; exercises: FExercise[] }
 
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -112,6 +116,12 @@ interface Props {
    * sesión nueva. undefined = alta normal.
    */
   initialSession?: EditSession;
+  /**
+   * Sesión anterior de la que partir para crear una NUEVA (duplicar). Igual que
+   * `initialSession` en cuanto a pre-relleno, pero se guarda como alta normal
+   * y la fecha se lleva a hoy: repetir el entreno de ayer no debe reescribirlo.
+   */
+  duplicateFrom?: EditSession;
 }
 
 const SLOT_ORDER: SessionSlot[] = ['morning', 'afternoon', 'evening'];
@@ -121,21 +131,36 @@ function blocksFromEdit(s: EditSession): FBlock[] {
   return s.blocks.map((b) => ({
     group: b.group,
     exercises: b.exercises.map((e) => ({
-      id: uidLocal(), label: e.label, query: '', open: false,
+      id: uidLocal(), label: e.label, query: '', open: false, note: e.note || undefined,
       sets: e.sets.map((st) => ({ reps: st.reps, weight: st.weight })),
     })),
   }));
 }
 
-export default function StrengthSessionForm({ open, onClose, saving, onSave, ownExercises, fighterProfileId, showToast, slotsByDate, initialGroup, initialSession }: Props) {
+function blocksFromDraft(d: StrengthDraft): FBlock[] {
+  return d.blocks
+    .filter((b) => (MUSCLE_GROUPS as string[]).includes(b.group))
+    .map((b) => ({
+      group: b.group as MuscleGroup,
+      exercises: b.exercises.map((e) => ({
+        id: uidLocal(), label: e.label, query: '', open: false, note: e.note || undefined,
+        sets: e.sets.map((st) => ({ reps: st.reps, weight: st.weight })),
+      })),
+    }));
+}
+
+interface ExPerf { perf: LastPerformance; suggestion: Suggestion; tracking: TrackingMode }
+
+export default function StrengthSessionForm({ open, onClose, saving, onSave, ownExercises, fighterProfileId, showToast, slotsByDate, initialGroup, initialSession, duplicateFrom }: Props) {
   const { t, i18n } = useTranslation();
   const lang: 'es' | 'en' = i18n.language === 'en' ? 'en' : 'es';
   const library = useMemo(() => libraryLabels(lang), [lang]);
+  const prefill = initialSession ?? duplicateFrom;
 
-  const [step, setStep] = useState<1 | 2>(initialSession || initialGroup ? 2 : 1);
+  const [step, setStep] = useState<1 | 2>(prefill || initialGroup ? 2 : 1);
   const [date, setDate] = useState(initialSession?.date ?? todayISO());
   const [blocks, setBlocks] = useState<FBlock[]>(
-    initialSession ? blocksFromEdit(initialSession)
+    prefill ? blocksFromEdit(prefill)
       : initialGroup ? [{ group: initialGroup, exercises: [] }] : [],
   );
   const [freeText, setFreeText] = useState('');
@@ -143,34 +168,97 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
   // Franja elegida. null = "sesión única del día" (implícito, no se pide).
   const [slot, setSlot] = useState<SessionSlot | null>(initialSession?.slot ?? null);
   const [plateFor, setPlateFor] = useState<{ group: MuscleGroup; id: string; si: number } | null>(null);
-  const [histByEx, setHistByEx] = useState<Record<string, string>>({});
+  const [perfByEx, setPerfByEx] = useState<Record<string, ExPerf>>({});
+  const online = useOnline();
 
-  // Última vez que se registró un ejercicio: pre-rellena y muestra "Última vez…".
+  // ── Borrador local ──
+  // `pendingDraft` = borrador encontrado al abrir, aún sin decidir. Mientras
+  // esté puesto se muestra la banda "tienes un entreno sin terminar" y NO se
+  // autoguarda (para no pisarlo con el formulario vacío).
+  const [pendingDraft, setPendingDraft] = useState<StrengthDraft | null>(null);
+  const [draftState, setDraftState] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [draftAt, setDraftAt] = useState<number | null>(null);
+  // Editar y duplicar parten de datos ya guardados: ahí el borrador estorba.
+  const draftEnabled = !initialSession && !duplicateFrom;
+
+  useEffect(() => {
+    if (!open || !draftEnabled) return;
+    // Solo al abrir: si dependiera de `blocks`, la banda reaparecería al teclear.
+    const d = loadDraft(fighterProfileId);
+    if (d) setPendingDraft(d);
+  }, [open, draftEnabled, fighterProfileId]);
+
+  const resumeDraft = () => {
+    if (!pendingDraft) return;
+    setBlocks(blocksFromDraft(pendingDraft));
+    if (pendingDraft.date) setDate(pendingDraft.date);
+    setSlot(pendingDraft.slot);
+    setStep(2);
+    setPendingDraft(null);
+  };
+
+  const discardDraft = () => {
+    clearDraft(fighterProfileId);
+    setPendingDraft(null);
+    setDraftState('idle');
+    setDraftAt(null);
+  };
+
+  // Autoguardado con rebote: escribir en cada pulsación sería un write por
+  // tecla; 800 ms basta para no perder nada real si se cierra la app.
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!open || !draftEnabled || pendingDraft) return;
+    const hasContent = blocks.some((b) => b.exercises.some((e) => e.label.trim() !== ''));
+    if (!hasContent) return;
+    setDraftState('saving');
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      const ok = saveDraft(fighterProfileId, {
+        date,
+        slot,
+        blocks: blocks.map((b) => ({
+          group: b.group,
+          exercises: b.exercises.map((e) => ({ label: e.label, note: e.note, sets: e.sets })),
+        })),
+      });
+      setDraftState(ok ? 'saved' : 'idle');
+      if (ok) setDraftAt(Date.now());
+    }, 800);
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+  }, [blocks, date, slot, open, draftEnabled, pendingDraft, fighterProfileId]);
+
+  // Última vez que se registró un ejercicio: guarda el rendimiento previo para
+  // pintar la tarjeta. Ya NO pre-rellena solo: el usuario decide con un botón.
   const applyHistory = async (group: MuscleGroup, id: string, name: string) => {
     const key = norm(name);
     if (!key) return;
+    // 200 filas cubren un histórico largo del mismo ejercicio sin traer la
+    // tabla entera; el índice (fighter, exercise, date desc) lo resuelve bien.
     const { data } = await supabase.from('strength_sets')
-      .select('session_date, reps, reps_max, weight_kg')
+      .select('session_date, reps, reps_max, weight_kg, notes')
       .eq('fighter_profile_id', fighterProfileId).eq('exercise', key)
-      .order('session_date', { ascending: false }).limit(20);
-    const rows = (data || []) as { session_date: string; reps: number; reps_max: number | null; weight_kg: number }[];
-    if (rows.length === 0) return;
-    const lastDate = rows[0].session_date;
-    const last = rows.filter((r) => r.session_date === lastDate);
-    const tm = trackingModeOf(name);
-    const w = Math.max(...last.map((r) => Number(r.weight_kg) || 0));
-    const primary = tm === 'reps'
-      ? (last[0].reps_max && last[0].reps_max > last[0].reps ? `${last[0].reps}-${last[0].reps_max}` : String(last[0].reps))
-      : String(last[0].reps);
+      .order('session_date', { ascending: false }).limit(200);
+    const rows = (data || []) as PerfRow[];
+    const perf = buildLastPerformance(rows);
+    if (!perf) { setPerfByEx((prev) => { const n = { ...prev }; delete n[id]; return n; }); return; }
+    const tracking = trackingModeOf(name);
+    const suggestion = buildSuggestion(perf, tracking, weightModeOf(name));
+    setPerfByEx((prev) => ({ ...prev, [id]: { perf, suggestion, tracking } }));
+  };
+
+  /** Pone en el ejercicio las series de la última vez (opcionalmente con más carga). */
+  const applySuggestion = (group: MuscleGroup, id: string, stepUp: boolean) => {
+    const entry = perfByEx[id];
+    if (!entry) return;
+    const { suggestion } = entry;
+    const sets = suggestion.sets.map((s) => ({
+      reps: s.reps,
+      weight: stepUp && suggestion.nextWeight !== null ? String(suggestion.nextWeight) : s.weight,
+    }));
     setBlocks((prev) => prev.map((b) => b.group === group
-      ? { ...b, exercises: b.exercises.map((e) => e.id === id
-          ? { ...e, sets: Array.from({ length: Math.max(1, last.length) }, () => ({ reps: primary, weight: w > 0 ? String(w) : '' })) }
-          : e) } : b));
-    const days = Math.floor((Date.now() - new Date(lastDate + 'T12:00:00').getTime()) / 86400000);
-    const ago = days <= 0 ? t('mc_str_today') : days === 1 ? t('mc_str_yesterday') : t('mc_str_days_ago', { n: days });
-    const unit = tm === 'time' ? ` ${t('mc_str_unit_sec')}` : tm === 'distance' ? ` ${t('mc_str_unit_m')}` : '';
-    const detail = `${last.length}×${primary}${unit}${w > 0 ? ` · ${w} kg` : ''} · ${ago}`;
-    setHistByEx((prev) => ({ ...prev, [id]: t('mc_str_last_time_detail', { detail }) }));
+      ? { ...b, exercises: b.exercises.map((e) => e.id === id ? { ...e, sets } : e) }
+      : b));
   };
 
   // Franjas ya usadas ese día. Si hay alguna, mostramos el selector de franja
@@ -189,7 +277,10 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
 
   const selectedGroups = useMemo(() => new Set(blocks.map((b) => b.group)), [blocks]);
 
-  const resetAll = () => { setStep(1); setDate(todayISO()); setBlocks([]); setFreeText(''); setInterpreted(false); setSlot(null); };
+  const resetAll = () => {
+    setStep(1); setDate(todayISO()); setBlocks([]); setFreeText(''); setInterpreted(false); setSlot(null);
+    setPerfByEx({}); setPendingDraft(null); setDraftState('idle'); setDraftAt(null);
+  };
 
   const close = () => { onClose(); };
 
@@ -226,6 +317,23 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
     setBlocks((prev) => prev.map((b) => b.group === group
       ? { ...b, exercises: b.exercises.filter((e) => e.id !== id) }
       : b));
+  };
+
+  /** Clona un ejercicio con sus series justo debajo (variantes, drop sets…). */
+  const duplicateExercise = (group: MuscleGroup, id: string) => {
+    setBlocks((prev) => prev.map((b) => {
+      if (b.group !== group) return b;
+      const i = b.exercises.findIndex((e) => e.id === id);
+      if (i < 0) return b;
+      const src = b.exercises[i];
+      const copy: FExercise = {
+        ...src, id: uid(), open: false, techOpen: false,
+        sets: src.sets.map((s) => ({ ...s })),
+      };
+      const exercises = [...b.exercises];
+      exercises.splice(i + 1, 0, copy);
+      return { ...b, exercises };
+    }));
   };
 
   const addSet = (group: MuscleGroup, id: string) => {
@@ -307,7 +415,7 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
             sets.push({ reps: v, weight });
           }
         }
-        if (sets.length > 0) exercises.push({ label, sets, weightMode: wm, trackingMode: tm });
+        if (sets.length > 0) exercises.push({ label, sets, weightMode: wm, trackingMode: tm, note: e.note?.trim() || undefined });
       }
       if (exercises.length > 0) built.push({ group: b.group, exercises });
     }
@@ -335,23 +443,64 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
       onClose={handleClose}
       title={initialSession ? t('mc_str_edit_session') : step === 1 ? t('mc_str_new') : t('mc_str_step2_title')}
       footer={
-        step === 1 ? (
+        pendingDraft ? undefined : step === 1 ? (
           <button onClick={goStep2} disabled={blocks.length === 0} style={{ minHeight: 48 }}
             className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50">
             {t('mc_str_continue')} <i className="ri-arrow-right-line"></i>
           </button>
         ) : (
-          <button onClick={submit} disabled={saving} style={{ minHeight: 48 }}
-            className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60">
-            {saving
-              ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {t('mc_saving')}</>
-              : initialSession
-                ? <><i className="ri-save-line"></i> {t('mc_str_save_changes')}</>
-                : <><i className="ri-save-line"></i> {t('mc_str_save_session')}{totalExercises > 0 ? ` (${totalExercises})` : ''}</>}
-          </button>
+          <>
+            {/* Sin red no se puede guardar en Supabase, pero el borrador local
+                sigue intacto: hay que decirlo antes de que pulse guardar. */}
+            {!online && (
+              <p className="text-[11px] mb-2 flex items-center gap-1.5" style={{ color: '#fb923c' }} role="alert">
+                <i className="ri-wifi-off-line" /> {t('mc_str_offline_warn')}
+              </p>
+            )}
+            <button onClick={submit} disabled={saving} style={{ minHeight: 48 }}
+              className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60">
+              {saving
+                ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {t('mc_saving')}</>
+                : initialSession
+                  ? <><i className="ri-save-line"></i> {t('mc_str_save_changes')}</>
+                  : <><i className="ri-save-line"></i> {t('mc_str_save_session')}{totalExercises > 0 ? ` (${totalExercises})` : ''}</>}
+            </button>
+          </>
         )
       }
     >
+      {/* ── Borrador sin terminar: bifurcación explícita antes de nada ── */}
+      {pendingDraft && (
+        <div className="rk-card" style={{ padding: 18 }}>
+          <div className="flex items-start gap-3">
+            <span className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl"
+              style={{ background: 'var(--accent-dim)', border: '1px solid rgba(225,6,0,0.28)', color: 'var(--accent)' }}>
+              <i className="ri-history-line text-lg" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-white">{t('mc_dft_title')}</p>
+              <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--t-2)' }}>
+                {t('mc_dft_desc', {
+                  n: pendingDraft.blocks.reduce((a, b) => a + b.exercises.filter((e) => e.label.trim()).length, 0),
+                  when: new Date(pendingDraft.savedAt).toLocaleString(i18n.language === 'en' ? 'en-GB' : 'es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
+                })}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2 mt-4">
+            <button type="button" onClick={resumeDraft} style={{ minHeight: 44 }}
+              className="rk-cta flex-1 flex items-center justify-center gap-2">
+              <i className="ri-play-fill" /> {t('mc_dft_resume')}
+            </button>
+            <button type="button" onClick={discardDraft} style={{ minHeight: 44, padding: '0 16px' }}
+              className="rk-nav-btn text-sm font-bold">
+              {t('mc_dft_discard')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!pendingDraft && (<>
       {/* Entrada rápida por voz/texto: rellena grupos + ejercicios */}
       <div className="rounded-2xl border border-red-500/25 bg-red-600/[0.06] p-4 mb-4">
         <div className="flex items-center justify-between gap-2 mb-2">
@@ -466,6 +615,11 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
                           <i className="ri-information-line"></i>
                         </button>
                       )}
+                      <button type="button" onClick={() => duplicateExercise(b.group, e.id)}
+                        aria-label={t('mc_str_duplicate_exercise')} title={t('mc_str_duplicate_exercise')}
+                        className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg text-zinc-500 hover:text-white cursor-pointer">
+                        <i className="ri-file-copy-line"></i>
+                      </button>
                       <button onClick={() => removeExercise(b.group, e.id)} aria-label={t('mc_str_remove_exercise')}
                         className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg text-zinc-600 hover:text-red-400 cursor-pointer">
                         <i className="ri-delete-bin-line"></i>
@@ -488,7 +642,15 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
                       );
                     })()}
 
-                    {histByEx[e.id] && <p className="text-[11px] text-zinc-500 mt-2">{histByEx[e.id]}</p>}
+                    {perfByEx[e.id] && (
+                      <LastPerformanceCard
+                        perf={perfByEx[e.id].perf}
+                        suggestion={perfByEx[e.id].suggestion}
+                        tracking={perfByEx[e.id].tracking}
+                        onRepeat={() => applySuggestion(b.group, e.id, false)}
+                        onStepUp={() => applySuggestion(b.group, e.id, true)}
+                      />
+                    )}
 
                     {/* Series: primario (reps / seg / m) + peso (según modo) */}
                     <div className="mt-3 space-y-2">
@@ -536,6 +698,21 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
                         className="w-full flex items-center justify-center gap-2 text-xs font-bold text-zinc-300 bg-white/[0.03] border border-white/10 hover:border-white/25 rounded-xl cursor-pointer transition-colors">
                         <i className="ri-add-line"></i> {t('mc_str_add_set')}
                       </button>
+
+                      {/* Nota de la serie: la lee el "última vez" del próximo día. */}
+                      {e.noteOpen || e.note ? (
+                        <input value={e.note || ''} maxLength={200}
+                          onChange={(ev) => patchExercise(b.group, e.id, { note: ev.target.value })}
+                          placeholder={t('mc_str_note_ph')} aria-label={t('mc_str_note_label')}
+                          style={{ fontSize: 16, minHeight: 44 }}
+                          className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-500" />
+                      ) : (
+                        <button type="button" onClick={() => patchExercise(b.group, e.id, { noteOpen: true })}
+                          style={{ minHeight: 36 }}
+                          className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-500 hover:text-white cursor-pointer">
+                          <i className="ri-sticky-note-line" /> {t('mc_str_note_add')}
+                        </button>
+                      )}
                     </div>
                   </div>
                   );
@@ -550,6 +727,20 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
           ))}
         </div>
       )}
+
+      {/* Estado del borrador: que se vea que no se está perdiendo nada. */}
+      {draftEnabled && draftState !== 'idle' && (
+        <p className="text-[11px] mt-4 flex items-center gap-1.5" style={{ color: 'var(--t-3)' }} role="status">
+          {draftState === 'saving' ? (
+            <><i className="ri-loader-4-line animate-spin" /> {t('mc_dft_saving')}</>
+          ) : (
+            <><i className="ri-check-line" style={{ color: '#4ade80' }} /> {t('mc_dft_saved', {
+              time: draftAt ? new Date(draftAt).toLocaleTimeString(i18n.language === 'en' ? 'en-GB' : 'es-ES', { hour: '2-digit', minute: '2-digit' }) : '',
+            })}</>
+          )}
+        </p>
+      )}
+      </>)}
     </BottomSheet>
     <PlateCalculator
       open={!!plateFor}

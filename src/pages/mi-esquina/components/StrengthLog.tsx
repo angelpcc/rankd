@@ -8,6 +8,7 @@ import {
 } from '../lib/exercises';
 import { fmtWeight, fmtSetCount, fmtSetValue } from '../lib/dayPlan';
 import { reconcileDayTicks } from '../lib/planTicks';
+import { clearDraft } from '../lib/strengthDraft';
 import SectionHero from './SectionHero';
 import Reveal from '@/components/base/Reveal';
 import MuscleMap, { type MapGroup, type TrainState } from './MuscleMap';
@@ -39,6 +40,8 @@ interface StrengthSet {
   session_slot: SessionSlot | null;
   weight_mode: string | null;
   tracking_mode: string | null;
+  /** Nota libre del ejercicio (columna de la migración 0014). */
+  notes: string | null;
   created_at: string;
 }
 
@@ -106,6 +109,8 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
   // editando (para borrar sus filas al guardar); editData = lo que pinta el form.
   const [editCtx, setEditCtx] = useState<{ date: string; slot: SessionSlot | null } | null>(null);
   const [editData, setEditData] = useState<EditSession | undefined>(undefined);
+  // Duplicar: mismo pre-relleno que editar, pero se guarda como sesión NUEVA.
+  const [duplicateData, setDuplicateData] = useState<EditSession | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [openDay, setOpenDay] = useState<string | null>(null);
   const [openEx, setOpenEx] = useState<string | null>(null);
@@ -281,9 +286,9 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
   // Reconstruye una sesión guardada (día + franja) para editarla en el
   // formulario. Los ejercicios libres que no casan con la biblioteca caen a
   // "full_body" (el form necesita un grupo válido, sin 'other').
-  const openEdit = (date: string, slot: SessionSlot | null) => {
+  const buildSessionFrom = (date: string, slot: SessionSlot | null): EditSession | null => {
     const slotRows = rows.filter((r) => r.session_date === date && (r.session_slot ?? null) === slot);
-    if (slotRows.length === 0) return;
+    if (slotRows.length === 0) return null;
     const mgOf = (r: StrengthSet): MuscleGroup =>
       (r.muscle_group && (MUSCLE_GROUPS as string[]).includes(r.muscle_group)
         ? (r.muscle_group as MuscleGroup)
@@ -301,6 +306,7 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
         const sorted = [...sets].sort((a, b) => a.set_number - b.set_number);
         return {
           label: sorted[0].exercise_label,
+          note: sorted.map((r) => (r.notes || '').trim()).find((n) => n !== '') || undefined,
           sets: sorted.map((r) => ({
             reps: r.reps_max && r.reps_max > r.reps ? `${r.reps}-${r.reps_max}` : String(r.reps),
             weight: Number(r.weight_kg) > 0 ? String(Number(r.weight_kg)) : '',
@@ -308,8 +314,27 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
         };
       }),
     }));
+    return { date, slot, blocks };
+  };
+
+  const openEdit = (date: string, slot: SessionSlot | null) => {
+    const built = buildSessionFrom(date, slot);
+    if (!built) return;
     setEditCtx({ date, slot });
-    setEditData({ date, slot, blocks });
+    setEditData(built);
+    setDuplicateData(undefined);
+    setFormInitialGroup(undefined);
+    setFormKey((k) => k + 1);
+    setShowForm(true);
+  };
+
+  /** Repetir una sesión anterior tal cual, con la fecha llevada a hoy. */
+  const openDuplicate = (date: string, slot: SessionSlot | null) => {
+    const built = buildSessionFrom(date, slot);
+    if (!built) return;
+    setEditCtx(null);
+    setEditData(undefined);
+    setDuplicateData({ ...built, date: todayISO(), slot: null });
     setFormInitialGroup(undefined);
     setFormKey((k) => k + 1);
     setShowForm(true);
@@ -333,6 +358,10 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
         session_slot: session.slot,
         weight_mode: e.weightMode ?? 'total',
         tracking_mode: e.trackingMode ?? 'reps',
+        // La nota va solo en la 1ª serie: es del ejercicio, no de cada serie.
+        // `notes` viene de la migración 0014, así que existe siempre que exista
+        // la tabla (no necesita el fallback de isMissingColumn de abajo).
+        notes: i === 0 ? (e.note ?? null) : null,
       }))),
     );
     if (base.length === 0) return;
@@ -397,8 +426,11 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
 
     const inserted = (data as StrengthSet[]).map((r) => ({ ...r, reps_max: r.reps_max ?? null, muscle_group: r.muscle_group ?? null, session_slot: r.session_slot ?? null, weight_mode: r.weight_mode ?? null, tracking_mode: r.tracking_mode ?? null }));
     setRows((prev) => [...inserted, ...prev]);
+    // La sesión está en la BD: solo ahora se tira el borrador local.
+    clearDraft(profile.id);
     setShowForm(false);
     setFormKey((k) => k + 1);
+    setDuplicateData(undefined);
 
     const groupNames = session.blocks.map((b) => t(`mc_str_mg_${b.group}`)).join(' + ');
     const exCount = session.blocks.reduce((a, b) => a + b.exercises.length, 0);
@@ -605,11 +637,17 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
                               </p>
                             </div>
                           ))}
-                              {/* Editar esta sesión (día + franja) */}
-                              <button onClick={() => openEdit(s.date, sl.slot)}
-                                className="text-xs text-zinc-500 hover:text-white flex items-center gap-1.5 cursor-pointer transition-colors pt-1">
-                                <i className="ri-pencil-line"></i>{t('mc_str_edit_session')}
-                              </button>
+                              {/* Editar / repetir esta sesión (día + franja) */}
+                              <div className="flex items-center gap-4 pt-1 flex-wrap">
+                                <button onClick={() => openEdit(s.date, sl.slot)} style={{ minHeight: 36 }}
+                                  className="text-xs text-zinc-500 hover:text-white flex items-center gap-1.5 cursor-pointer transition-colors">
+                                  <i className="ri-pencil-line"></i>{t('mc_str_edit_session')}
+                                </button>
+                                <button onClick={() => openDuplicate(s.date, sl.slot)} style={{ minHeight: 36 }}
+                                  className="text-xs text-zinc-500 hover:text-white flex items-center gap-1.5 cursor-pointer transition-colors">
+                                  <i className="ri-file-copy-line"></i>{t('mc_str_duplicate_session')}
+                                </button>
+                              </div>
                             </div>
                           ))}
 
@@ -652,7 +690,7 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
       <StrengthSessionForm
         key={formKey}
         open={showForm}
-        onClose={() => { setShowForm(false); setEditCtx(null); setEditData(undefined); }}
+        onClose={() => { setShowForm(false); setEditCtx(null); setEditData(undefined); setDuplicateData(undefined); }}
         saving={saving}
         onSave={saveSession}
         ownExercises={ownExercises}
@@ -661,6 +699,7 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
         slotsByDate={slotsByDate}
         initialGroup={formInitialGroup}
         initialSession={editData}
+        duplicateFrom={duplicateData}
       />
 
       {/* Signature moment: destello full-screen al batir marca. Se desmonta

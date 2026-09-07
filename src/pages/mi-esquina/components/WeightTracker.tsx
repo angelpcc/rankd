@@ -4,6 +4,7 @@ import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable, isMissingColumn } from '@/lib/dbState';
 import Reveal from '@/components/base/Reveal';
 import SegmentedProgress from '@/components/base/SegmentedProgress';
+import StateBlock from '@/components/base/StateBlock';
 import WeightCutPlanner from '@/pages/mi-esquina/components/WeightCutPlanner';
 import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
@@ -23,11 +24,51 @@ interface WeightEntry {
 }
 
 const RANGES = [
-  { days: 30, label: '1M' },
+  { days: 7, label: '7D' },
+  { days: 30, label: '30D' },
   { days: 90, label: '3M' },
-  { days: 180, label: '6M' },
   { days: 3650, label: '∞' },
 ];
+
+/** Ventana de la media móvil: suaviza el ruido diario (agua, comida, hora). */
+const TREND_WINDOW = 7;
+
+interface ChartPoint {
+  date: string; iso: string; kg: number; trend: number;
+  delta: number | null; toGoal: number | null;
+}
+
+/**
+ * Tarjeta del gráfico de peso. Se pinta al tocar o pasar por un punto y da el
+ * contexto que un número suelto no da: si ese día subiste o bajaste, por dónde
+ * iba la tendencia y cuánto faltaba para el objetivo.
+ */
+function WeightTooltip({ active, payload }: { active?: boolean; payload?: { payload: ChartPoint }[] }) {
+  const { t } = useTranslation();
+  if (!active || !payload || !payload.length) return null;
+  const d = payload[0].payload;
+  return (
+    <div style={{ background: '#0d0d0d', border: '1px solid var(--s-3)', borderRadius: 12, padding: '10px 12px', minWidth: 148 }}>
+      <p style={{ fontSize: 11, color: 'var(--t-3)', margin: 0 }}>{d.date}</p>
+      <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 26, lineHeight: 1.1, color: 'var(--t-1)', margin: '2px 0 0' }}>
+        {d.kg}<span style={{ fontSize: 13, color: 'var(--t-3)', marginLeft: 3 }}>kg</span>
+      </p>
+      {d.delta !== null && d.delta !== 0 && (
+        <p style={{ fontSize: 11, margin: '3px 0 0', color: d.delta < 0 ? '#4ade80' : '#fb923c' }}>
+          {d.delta < 0 ? '▼' : '▲'} {Math.abs(d.delta)} kg {t('mc_w_tt_vs_prev')}
+        </p>
+      )}
+      <p style={{ fontSize: 11, margin: '5px 0 0', color: 'var(--t-2)' }}>
+        {t('mc_w_tt_trend')}: <strong style={{ color: 'var(--t-1)' }}>{d.trend} kg</strong>
+      </p>
+      {d.toGoal !== null && (
+        <p style={{ fontSize: 11, margin: '2px 0 0', color: 'var(--t-2)' }}>
+          {t('mc_w_tt_to_goal')}: <strong style={{ color: 'var(--t-1)' }}>{Math.abs(d.toGoal)} kg</strong>
+        </p>
+      )}
+    </div>
+  );
+}
 
 function iso(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -212,31 +253,39 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
     return { delta: +(sorted[sorted.length - 1].weight_kg - sorted[0].weight_kg).toFixed(1) };
   }, [weights, range]);
 
+  // Serie del gráfico: peso del día + media móvil ("tendencia") + variación
+  // frente al registro anterior + distancia al objetivo. Todo se calcula aquí
+  // para que el tooltip no tenga que volver a buscar nada.
   const chartData = useMemo(() => {
     const since = new Date(); since.setDate(since.getDate() - range);
-    return [...weights]
+    const inRange = [...weights]
       .filter((w) => new Date(w.entry_date + 'T12:00:00') >= since)
-      .sort((a, b) => a.entry_date.localeCompare(b.entry_date))
-      .map((w) => ({
+      .sort((a, b) => a.entry_date.localeCompare(b.entry_date));
+    return inRange.map((w, i) => {
+      const window = inRange.slice(Math.max(0, i - (TREND_WINDOW - 1)), i + 1);
+      const trend = +(window.reduce((a, x) => a + Number(x.weight_kg), 0) / window.length).toFixed(2);
+      const prev = i > 0 ? Number(inRange[i - 1].weight_kg) : null;
+      return {
         date: new Date(w.entry_date + 'T12:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short' }),
-        kg: w.weight_kg,
-      }));
-  }, [weights, range, locale]);
+        iso: w.entry_date,
+        kg: Number(w.weight_kg),
+        trend,
+        delta: prev === null ? null : +(Number(w.weight_kg) - prev).toFixed(1),
+        toGoal: targetWeight === null ? null : +(Number(w.weight_kg) - targetWeight).toFixed(1),
+      };
+    });
+  }, [weights, range, locale, targetWeight]);
+
+  /** Media móvil actual — el número que de verdad indica si subes o bajas. */
+  const trendNow = chartData.length ? chartData[chartData.length - 1].trend : null;
 
   if (loading) {
-    return <div className="flex items-center justify-center py-24"><div className="w-8 h-8 border-2 border-[#C9A84C] border-t-transparent rounded-full animate-spin"></div></div>;
+    return <StateBlock variant="loading" />;
   }
 
   if (unavailable) {
-    return (
-      <div className="rk-card text-center max-w-lg mx-auto" style={{ padding: '48px 28px' }}>
-        <div className="w-16 h-16 mx-auto mb-5 flex items-center justify-center rounded-2xl bg-[#C9A84C]/10 border border-[#C9A84C]/25 anim-float">
-          <i className="ri-scales-2-line text-3xl text-[#C9A84C]"></i>
-        </div>
-        <h3 className="rk-h3" style={{ fontSize: '1.2rem', color: '#fff' }}>{t('mc_coming_soon_title')}</h3>
-        <p className="text-sm text-zinc-400 mt-2 leading-relaxed">{t('mc_coming_soon_desc')}</p>
-      </div>
-    );
+    return <StateBlock variant="empty" icon="ri-scales-2-line"
+      title={t('mc_coming_soon_title')} description={t('mc_coming_soon_desc')} />;
   }
 
   return (
@@ -323,7 +372,7 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
             <div className="relative">
               <input value={weightInput} onChange={(e) => setWeightInput(e.target.value)} inputMode="decimal"
                 onKeyDown={(e) => { if (e.key === 'Enter') addWeight(); }} placeholder="72.4"
-                className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl pl-4 pr-10 py-3 focus:outline-none focus:border-[#C9A84C]" />
+                className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl pl-4 pr-10 py-3 focus:outline-none focus:border-[#E10600]" />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-500">kg</span>
             </div>
           </div>
@@ -341,36 +390,55 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
       {chartData.length >= 2 ? (
         <Reveal>
           <div className="rk-card" style={{ padding: '22px 20px' }}>
-            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
               <h3 className="rk-h3" style={{ fontSize: '1rem', color: '#fff' }}>{t('mc_w_evolution')}</h3>
-              <div className="flex gap-1">
+              <div className="flex gap-1" role="group" aria-label={t('mc_w_evolution')}>
                 {RANGES.map((r) => (
-                  <button key={r.days} onClick={() => setRange(r.days)}
-                    className={`text-xs font-bold px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${range === r.days ? 'bg-[#C9A84C] text-zinc-900' : 'bg-white/[0.04] text-zinc-400 hover:text-white'}`}>
+                  <button key={r.days} onClick={() => setRange(r.days)} aria-pressed={range === r.days}
+                    style={{ minHeight: 32 }}
+                    className={`text-xs font-bold px-2.5 rounded-lg transition-colors cursor-pointer ${range === r.days ? 'bg-[#E10600] text-white' : 'bg-white/[0.04] text-zinc-400 hover:text-white'}`}>
                     {r.label}
                   </button>
                 ))}
               </div>
             </div>
+
+            {/* Leyenda: separar "lo que pesaste hoy" de "hacia dónde vas". */}
+            <div className="flex items-center gap-4 mb-3 flex-wrap">
+              <span className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--t-2)' }}>
+                <span style={{ width: 14, height: 3, borderRadius: 2, background: '#E10600' }} />
+                {t('mc_w_legend_daily')}
+              </span>
+              <span className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--t-2)' }}>
+                <span style={{ width: 14, height: 0, borderTop: '2px dashed rgba(255,255,255,0.55)' }} />
+                {t('mc_w_legend_trend', { n: TREND_WINDOW })}
+                {trendNow !== null && <strong style={{ color: 'var(--t-1)' }}>· {trendNow} kg</strong>}
+              </span>
+            </div>
+
             <div style={{ height: 240 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
                   <defs>
                     <linearGradient id="wtgrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#C9A84C" stopOpacity={0.35} />
-                      <stop offset="100%" stopColor="#C9A84C" stopOpacity={0} />
+                      <stop offset="0%" stopColor="#E10600" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#E10600" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.06)" />
                   <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }} minTickGap={24} />
                   <YAxis domain={['dataMin - 1', 'dataMax + 1']} tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }} width={38} />
-                  <Tooltip contentStyle={{ background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 10, fontSize: 12 }}
-                    labelStyle={{ color: 'rgba(255,255,255,0.5)' }} formatter={(v: number) => [`${v} kg`, '']} />
+                  {/* Guía vertical roja en el punto activo, en vez del cursor gris. */}
+                  <Tooltip content={<WeightTooltip />} cursor={{ stroke: '#E10600', strokeWidth: 1, strokeDasharray: '3 3' }} />
                   {targetWeight !== null && (
-                    <ReferenceLine y={targetWeight} stroke="#E10600" strokeDasharray="5 4" strokeOpacity={0.7}
-                      label={{ value: `${targetWeight} kg`, fill: '#E10600', fontSize: 10, position: 'insideTopRight' }} />
+                    <ReferenceLine y={targetWeight} stroke="rgba(255,255,255,0.45)" strokeDasharray="5 4"
+                      label={{ value: `${targetWeight} kg`, fill: 'rgba(255,255,255,0.6)', fontSize: 10, position: 'insideTopRight' }} />
                   )}
-                  <Area type="monotone" dataKey="kg" stroke="#C9A84C" strokeWidth={2.5} fill="url(#wtgrad)" dot={{ r: 3, fill: '#C9A84C' }} activeDot={{ r: 5 }} />
+                  <Area type="monotone" dataKey="kg" stroke="#E10600" strokeWidth={2.5} fill="url(#wtgrad)"
+                    dot={{ r: 3, fill: '#E10600' }}
+                    activeDot={{ r: 6, fill: '#E10600', stroke: 'rgba(225,6,0,0.35)', strokeWidth: 6 }} />
+                  <Area type="monotone" dataKey="trend" stroke="rgba(255,255,255,0.55)" strokeWidth={2}
+                    strokeDasharray="4 4" fill="none" dot={false} activeDot={false} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -426,7 +494,7 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
               const diff = next ? +(w.weight_kg - next.weight_kg).toFixed(1) : null;
               return (
                 <div key={w.id} className="rk-card flex items-center gap-4 group" style={{ padding: '12px 16px' }}>
-                  <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#C9A84C]/10 border border-[#C9A84C]/25 text-[#C9A84C] flex-shrink-0">
+                  <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#E10600]/10 border border-[#E10600]/25 text-[#E10600] flex-shrink-0">
                     <i className="ri-scales-2-line"></i>
                   </div>
                   <div className="flex-1 min-w-0">
@@ -488,21 +556,21 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
                 <div>
                   <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_w_class_label')}</label>
                   <input value={classInput} onChange={(e) => setClassInput(e.target.value)} maxLength={40} placeholder={t('mc_w_class_ph')}
-                    className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#C9A84C]" />
+                    className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#E10600]" />
                 </div>
               )}
 
               <div>
                 <label className="block text-xs text-zinc-400 mb-1.5">{isPro ? t('mc_w_limit') : t('mc_w_target_hobby')}</label>
                 <input value={targetInput} onChange={(e) => setTargetInput(e.target.value)} inputMode="decimal" autoFocus={!isPro} placeholder="70.0"
-                  className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#C9A84C]" />
+                  className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#E10600]" />
               </div>
 
               {isPro && (
                 <div>
                   <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_w_weigh_in_date')}</label>
                   <input type="date" value={dateInput} onChange={(e) => setDateInput(e.target.value)}
-                    className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#C9A84C] cursor-pointer" />
+                    className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#E10600] cursor-pointer" />
                 </div>
               )}
 
