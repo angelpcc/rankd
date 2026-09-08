@@ -1,6 +1,12 @@
+import SectionArt, { type ArtKind } from './SectionArt';
 import { useState } from 'react';
 
 interface Props {
+  /**
+   * Ilustración propia de sección. Tiene PRIORIDAD sobre `image`: donde hay
+   * arte de marca no queremos foto de archivo. Ver SectionArt.
+   */
+  art?: ArtKind;
   /** Ruta de imagen en /images. Si falta o falla, se pinta un fondo diseñado. */
   image?: string;
   /** Pills arriba-izquierda. */
@@ -30,10 +36,10 @@ const LEGIBILITY =
  * Sin imagen (o si la imagen falla) pinta un fondo diseñado — nunca un hueco.
  */
 export default function PhotoCard({
-  image, chips, title, subtitle, icon, onClick, aspect = '16 / 11', objectPosition, footer, primary, className = '',
+  art, image, chips, title, subtitle, icon, onClick, aspect = '16 / 11', objectPosition, footer, primary, className = '',
 }: Props) {
   const [imgOk, setImgOk] = useState(true);
-  const showImage = !!image && imgOk;
+  const showImage = !art && !!image && imgOk;
   // Nunca un <button> exterior: el footer suele traer su propio CTA (no anidar
   // interactivos). Si hay onClick y NO hay footer, la card entera es clicable.
   const cardClickable = !!onClick && !footer;
@@ -52,7 +58,11 @@ export default function PhotoCard({
       }}
     >
       {/* Fondo (capa absoluta detrás del contenido en flujo) */}
-      {showImage ? (
+      {art ? (
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(150deg, var(--s-1) 0%, #0d0d0d 100%)' }}>
+          <SectionArt kind={art} className="absolute inset-0 w-full h-full" />
+        </div>
+      ) : showImage ? (
         <img src={image} alt="" onError={() => setImgOk(false)} className="absolute inset-0 w-full h-full object-cover" style={objectPosition ? { objectPosition } : undefined} />
       ) : (
         <div className="absolute inset-0" style={{ background: 'linear-gradient(150deg, var(--s-1) 0%, #0d0d0d 100%)' }}>

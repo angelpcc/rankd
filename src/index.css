@@ -902,3 +902,116 @@ html, body {
 @media (min-width: 1024px) {
   .rk-agenda-fab { bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px)); }
 }
+
+/* ── Figura de patrón de movimiento ────────────────────────────────────────
+   Monigote SVG que repite el gesto básico de cada patrón. Se usa en la ficha
+   de técnica y en la biblioteca. Todo el movimiento es CSS sobre grupos del
+   propio SVG: cero imágenes, cero red.
+
+   `transform-box: fill-box` es imprescindible: sin él, transform-origin en SVG
+   se mide contra el viewBox entero y los brazos giran desde una esquina
+   cualquiera en vez de desde el hombro. */
+.rk-mf { display: block; overflow: visible; }
+.rk-mf line,
+.rk-mf path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.rk-mf .mf-torso,
+.rk-mf .mf-leg,
+.rk-mf .mf-arm { stroke: var(--t-1); stroke-width: 4.5; }
+.rk-mf .mf-head { fill: var(--t-1); stroke: none; }
+.rk-mf .mf-ground { stroke: var(--s-3); stroke-width: 3; }
+/* La carga va en rojo: es lo único que el ojo debe seguir. */
+.rk-mf .mf-load { stroke: var(--accent); stroke-width: 5; opacity: 0; }
+
+.rk-mf .mf-arm,
+.rk-mf .mf-leg,
+.rk-mf .mf-trunk,
+.rk-mf .mf-body,
+.rk-mf .mf-load { transform-box: fill-box; }
+
+/* Orígenes de giro: hombro para los brazos, cadera para piernas y torso. */
+.rk-mf .mf-arm-l { transform-origin: 100% 0%; }
+.rk-mf .mf-arm-r { transform-origin: 0% 0%; }
+.rk-mf .mf-leg-l { transform-origin: 100% 0%; }
+.rk-mf .mf-leg-r { transform-origin: 0% 0%; }
+.rk-mf .mf-trunk { transform-origin: 50% 100%; }
+.rk-mf .mf-body  { transform-origin: 50% 100%; }
+
+/* EMPUJE: los brazos salen hacia delante y vuelven. */
+.mf-push .mf-arm-l { animation: mf-push-l 1.8s ease-in-out infinite; }
+.mf-push .mf-arm-r { animation: mf-push-r 1.8s ease-in-out infinite; }
+.mf-push .mf-load  { opacity: 1; animation: mf-push-load 1.8s ease-in-out infinite; }
+@keyframes mf-push-l { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(-52deg); } }
+@keyframes mf-push-r { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(52deg); } }
+@keyframes mf-push-load { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-16px); } }
+
+/* TRACCIÓN: la carga viene hacia el cuerpo y los codos se cierran. */
+.mf-pull .mf-arm-l { animation: mf-pull-l 1.8s ease-in-out infinite; }
+.mf-pull .mf-arm-r { animation: mf-pull-r 1.8s ease-in-out infinite; }
+.mf-pull .mf-load  { opacity: 1; animation: mf-pull-load 1.8s ease-in-out infinite; }
+@keyframes mf-pull-l { 0%,100% { transform: rotate(-38deg); } 50% { transform: rotate(6deg); } }
+@keyframes mf-pull-r { 0%,100% { transform: rotate(38deg); } 50% { transform: rotate(-6deg); } }
+@keyframes mf-pull-load { 0%,100% { transform: translateY(-14px); } 50% { transform: translateY(2px); } }
+
+/* SENTADILLA: el cuerpo baja y las piernas se abren en flexión. */
+.mf-squat .mf-body  { animation: mf-squat-body 2s ease-in-out infinite; }
+.mf-squat .mf-leg-l { animation: mf-squat-leg-l 2s ease-in-out infinite; }
+.mf-squat .mf-leg-r { animation: mf-squat-leg-r 2s ease-in-out infinite; }
+.mf-squat .mf-load  { opacity: 1; }
+@keyframes mf-squat-body  { 0%,100% { transform: translateY(0); } 50% { transform: translateY(16px); } }
+@keyframes mf-squat-leg-l { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(-16deg); } }
+@keyframes mf-squat-leg-r { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(16deg); } }
+
+/* BISAGRA DE CADERA: el torso cae hacia delante, las piernas casi rectas. */
+.mf-hinge .mf-trunk { animation: mf-hinge-trunk 2s ease-in-out infinite; }
+.mf-hinge .mf-load  { opacity: 1; animation: mf-hinge-load 2s ease-in-out infinite; }
+@keyframes mf-hinge-trunk { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(-56deg); } }
+@keyframes mf-hinge-load  { 0%,100% { transform: translateY(0); } 50% { transform: translateY(10px); } }
+
+/* ZANCADA: una pierna se adelanta y el cuerpo baja. */
+.mf-lunge .mf-body  { animation: mf-lunge-body 2s ease-in-out infinite; }
+.mf-lunge .mf-leg-l { animation: mf-lunge-front 2s ease-in-out infinite; }
+.mf-lunge .mf-leg-r { animation: mf-lunge-back 2s ease-in-out infinite; }
+@keyframes mf-lunge-body  { 0%,100% { transform: translateY(0); } 50% { transform: translateY(12px); } }
+@keyframes mf-lunge-front { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(-30deg); } }
+@keyframes mf-lunge-back  { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(24deg); } }
+
+/* ACARREO: el cuerpo se balancea al andar con la carga colgando. */
+.mf-carry .mf-body  { animation: mf-carry-body 1.4s ease-in-out infinite; }
+.mf-carry .mf-leg-l { animation: mf-carry-leg-l 1.4s ease-in-out infinite; }
+.mf-carry .mf-leg-r { animation: mf-carry-leg-r 1.4s ease-in-out infinite; }
+.mf-carry .mf-load  { opacity: 1; transform: translateY(20px); }
+@keyframes mf-carry-body  { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-3px) rotate(2deg); } }
+@keyframes mf-carry-leg-l { 0%,100% { transform: rotate(-14deg); } 50% { transform: rotate(14deg); } }
+@keyframes mf-carry-leg-r { 0%,100% { transform: rotate(14deg); } 50% { transform: rotate(-14deg); } }
+
+/* ROTACIÓN: el tronco gira de lado a lado y arrastra los brazos. */
+.mf-rotation .mf-trunk { animation: mf-rot-trunk 2s ease-in-out infinite; }
+.mf-rotation .mf-load  { opacity: 1; }
+@keyframes mf-rot-trunk { 0%,100% { transform: rotate(-16deg) scaleX(0.86); } 50% { transform: rotate(16deg) scaleX(1); } }
+
+/* ANTIRROTACIÓN: el tronco AGUANTA. Solo una vibración mínima: se ve que
+   resiste, no que se mueve. La carga tira hacia un lado. */
+.mf-antirotation .mf-trunk { animation: mf-anti-trunk 1.1s ease-in-out infinite; }
+.mf-antirotation .mf-load  { opacity: 1; animation: mf-anti-load 1.1s ease-in-out infinite; }
+@keyframes mf-anti-trunk { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(2.5deg); } }
+@keyframes mf-anti-load  { 0%,100% { transform: translateX(0); } 50% { transform: translateX(7px); } }
+
+/* SALTO: el cuerpo despega y las piernas se recogen en el aire. */
+.mf-jump .mf-body  { animation: mf-jump-body 1.5s cubic-bezier(0.3, 0, 0.2, 1) infinite; }
+.mf-jump .mf-leg-l { animation: mf-jump-leg-l 1.5s ease-in-out infinite; }
+.mf-jump .mf-leg-r { animation: mf-jump-leg-r 1.5s ease-in-out infinite; }
+@keyframes mf-jump-body  { 0%,100% { transform: translateY(10px); } 45% { transform: translateY(-16px); } 60% { transform: translateY(-14px); } }
+@keyframes mf-jump-leg-l { 0%,100% { transform: rotate(-12deg); } 50% { transform: rotate(-30deg); } }
+@keyframes mf-jump-leg-r { 0%,100% { transform: rotate(12deg); } 50% { transform: rotate(30deg); } }
+
+/* AISLAMIENTO: solo se mueve el brazo, el resto queda quieto. Es justo lo que
+   distingue a un curl de un movimiento compuesto. */
+.mf-isolation .mf-arm-r { animation: mf-iso-arm 1.6s ease-in-out infinite; }
+.mf-isolation .mf-load  { opacity: 1; animation: mf-iso-load 1.6s ease-in-out infinite; }
+@keyframes mf-iso-arm  { 0%,100% { transform: rotate(28deg); } 50% { transform: rotate(-46deg); } }
+@keyframes mf-iso-load { 0%,100% { transform: translateY(4px) scaleX(0.5) translateX(34px); } 50% { transform: translateY(-14px) scaleX(0.5) translateX(34px); } }
+
+/* Sin movimiento: se ve la figura en su postura, que sigue informando. */
+@media (prefers-reduced-motion: reduce) {
+  .rk-mf * { animation: none !important; }
+}

@@ -160,7 +160,7 @@ export default function NutritionHub({ profile, showToast, isHobby, onGoWeight }
       {tab === 'guia' && (
         <div className="space-y-8 mt-6">
           <PhotoCard
-            image="/images/comida.webp"
+            art="nutrition"
             icon="ri-restaurant-2-line"
             aspect="21 / 8"
             chips={<span style={{ background: 'rgba(255,255,255,0.1)', color: 'var(--t-1)', borderRadius: 'var(--r-pill)', padding: '4px 12px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{t('mc_ng_eyebrow')}</span>}

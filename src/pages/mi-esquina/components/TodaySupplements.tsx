@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
+import { activeSupplementsOn, todayISO } from '../lib/supplements';
 
 interface Props {
   profile: Profile;
@@ -12,10 +13,21 @@ interface Props {
    * que es cuando de verdad importan.
    */
   compact?: boolean;
+  /**
+   * Día que se está mirando (YYYY-MM-DD). Solo se pintan los suplementos que
+   * estaban VIGENTES ese día: si añadiste omega-3 hoy, el martes pasado no
+   * debe mostrarlo, porque entonces no lo tomabas. Por defecto, hoy.
+   */
+  date?: string;
 }
 
 interface CommonSupplement { id: string; name: string }
-interface UserSupplement { id: string; supplement_id: string | null; custom_name: string | null; time_of_day: string | null; slot: string | null }
+interface UserSupplement {
+  id: string; supplement_id: string | null; custom_name: string | null;
+  time_of_day: string | null; slot: string | null;
+  started_on?: string | null;
+  ended_on?: string | null;
+}
 
 const SLOT_LABEL: Record<string, string> = {
   manana: 'mc_sup_slot_manana', con_comidas: 'mc_sup_slot_meals',
@@ -28,7 +40,7 @@ const SLOT_LABEL: Record<string, string> = {
  * Solo lectura — añadir/editar vive en Nutrición › Suplementos. No
  * renderiza nada si no hay suplementos con hora asignada.
  */
-export default function TodaySupplements({ profile, compact = false }: Props) {
+export default function TodaySupplements({ profile, compact = false, date }: Props) {
   const { t } = useTranslation();
   const [catalog, setCatalog] = useState<CommonSupplement[]>([]);
   const [items, setItems] = useState<UserSupplement[]>([]);
@@ -54,10 +66,11 @@ export default function TodaySupplements({ profile, compact = false }: Props) {
   }, [catalog]);
 
   const sorted = useMemo(() => {
-    return items
+    const iso = date || todayISO();
+    return activeSupplementsOn(items, iso)
       .filter((i) => i.time_of_day)
       .sort((a, b) => (a.time_of_day || '').localeCompare(b.time_of_day || ''));
-  }, [items]);
+  }, [items, date]);
 
   if (sorted.length === 0) return null;
 

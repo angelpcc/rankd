@@ -147,7 +147,7 @@ export default function TodayCard({ profile, mode, onStart, onCreatePlan, onLogW
     return (
       <PhotoCard
         primary
-        image="/images/sparring.webp"
+        art="ring"
         icon="ri-sword-line"
         chips={pill(fightDays <= 0 ? t('mc_hoy_fight_today') : t('mc_hoy_fight_in', { n: fightDays }))}
         title={nextFight.title.toUpperCase()}
@@ -164,7 +164,7 @@ export default function TodayCard({ profile, mode, onStart, onCreatePlan, onLogW
     return (
       <PhotoCard
         primary
-        image={isStrength ? '/images/fuerza.webp' : '/images/correr.webp'}
+        art={isStrength ? "strength" : "activity"}
         icon={main.icon}
         chips={<>{pill(t('mc_hoy_pending'))}{extra > 0 && pill(`+${extra}`, 'ghost')}</>}
         title={main.title.toUpperCase()}
@@ -179,7 +179,7 @@ export default function TodayCard({ profile, mode, onStart, onCreatePlan, onLogW
     return (
       <PhotoCard
         primary
-        image="/images/hero-plan.svg"
+        art="weight"
         icon="ri-scales-2-line"
         chips={pill(t('mc_hoy_weight_chip'))}
         title={t('mc_hoy_weight_title').toUpperCase()}
@@ -194,7 +194,7 @@ export default function TodayCard({ profile, mode, onStart, onCreatePlan, onLogW
     return (
       <PhotoCard
         primary
-        image="/images/hero-rest.svg"
+        art="agenda"
         icon="ri-heart-pulse-line"
         chips={pill(t('mc_hoy_eyebrow'), 'ghost')}
         title={t('mc_hoy_rest_title').toUpperCase()}
@@ -208,7 +208,7 @@ export default function TodayCard({ profile, mode, onStart, onCreatePlan, onLogW
   return (
     <PhotoCard
       primary
-      image="/images/hero-plan.svg"
+      art="agenda"
       icon="ri-sparkling-2-line"
       chips={pill(t('mc_hoy_eyebrow'), 'ghost')}
       title={t('mc_hoy_noplan_title').toUpperCase()}

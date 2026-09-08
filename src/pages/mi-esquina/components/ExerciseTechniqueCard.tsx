@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import MovementFigure from '@/components/base/MovementFigure';
 import { techniqueFor } from '../lib/exerciseTechnique';
 
 // Panel de ficha de técnica (PROMPT_4·B3). Contenido estático informativo:
@@ -16,6 +17,22 @@ export default function ExerciseTechniqueCard({ name }: Props) {
 
   return (
     <div className="mt-2 rounded-xl border border-white/10 bg-white/[0.02] p-3.5 space-y-3">
+      {/* Figura del patrón: de un vistazo se ve de qué familia es el gesto
+          (empujar, traccionar, bisagra...). No es una demostración del
+          ejercicio concreto, y el pie de foto lo dice. */}
+      {f.pattern && (
+        <div className="flex items-center gap-3 rounded-xl px-3 py-2"
+          style={{ background: 'var(--s-2)', border: '1px solid var(--s-3)' }}>
+          <MovementFigure pattern={f.pattern} size={68} label={t(`mc_pat_${f.pattern}`)} />
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: 'var(--t-3)' }}>
+              {t('mc_ex_pattern_title')}
+            </p>
+            <p className="text-sm font-bold text-white">{t(`mc_pat_${f.pattern}`)}</p>
+            <p className="text-[10px] leading-tight mt-0.5" style={{ color: 'var(--t-3)' }}>{t('mc_ex_pattern_hint')}</p>
+          </div>
+        </div>
+      )}
       {/* Chips: músculos secundarios + material.
           Ya no son texto escrito a mano en la ficha: vienen de la biblioteca
           (LibExercise.secondary / .equipment) y se traducen aquí. Así no pueden

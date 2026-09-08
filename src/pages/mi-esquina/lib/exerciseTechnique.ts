@@ -20,7 +20,7 @@
 // mayúsculas, así que casa "Press banca con barra", "press banca" (alias
 // antiguo) y el nombre en inglés.
 
-import { EXERCISE_LIBRARY, type Equipment, type MuscleGroup } from './exercises';
+import { EXERCISE_LIBRARY, type Equipment, type MovementPattern, type MuscleGroup } from './exercises';
 
 type Lang = 'es' | 'en';
 
@@ -1072,6 +1072,11 @@ export interface Technique {
   secondary: MuscleGroup[];
   /** Clave de material; se traduce con `mc_eq_<clave>`. null si no consta. */
   equipment: Equipment | null;
+  /**
+   * Patrón de movimiento, para pintar la figura animada. Se traduce con
+   * `mc_pat_<clave>`. null si el ejercicio no lo tiene anotado.
+   */
+  pattern: MovementPattern | null;
   /** Postura, movimiento, contracción y control. Una línea cada uno. */
   technique: string[];
   /** Errores típicos. */
@@ -1094,6 +1099,7 @@ export function techniqueFor(nameOrKey: string, lang: Lang): Technique | null {
   return {
     secondary: ex.secondary || [],
     equipment: ex.equipment ?? null,
+    pattern: ex.pattern ?? null,
     technique: raw ? raw.technique.map(pick) : [],
     mistakes: raw ? raw.mistakes.map(pick) : [],
   };

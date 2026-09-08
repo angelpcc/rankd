@@ -603,7 +603,7 @@ function DayView({ profile, date, locale, items, comp, logged, mode, onPrev, onN
               diario), así que se muestran en TODOS los días en vez de vivir en
               una tarjeta fija encima de la Agenda. Solo lectura: se gestionan
               en Nutrición › Suplementos. */}
-          <TodaySupplements profile={profile} compact />
+          <TodaySupplements profile={profile} compact date={date} />
 
           {/* Añadir un bloque que aún no existe */}
           <div className="flex flex-wrap gap-2">

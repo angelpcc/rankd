@@ -21,24 +21,21 @@ interface Props {
   onGoAsesor: () => void;
 }
 
-// De seis pestañas a cuatro. Seis obligaban a deslizar y a decidir demasiado
-// pronto. Se funden las que son la misma tarea vista desde dos momentos:
-//   · Registrar  = lo que haces hoy + lo que dejas programado para otro día
-//   · Biblioteca = ejercicios + rutinas de movilidad (ambos son "consultar qué
-//     hacer", no "registrar")
-// Nada queda escondido: el contenido de Programar y Movilidad se pinta en su
-// pestaña, no detrás de un clic extra.
+// Cinco pestañas. Registrar absorbe Programar (es la misma tarea, otro día),
+// pero MOVILIDAD VUELVE A TENER LA SUYA: metida al final de la biblioteca de
+// ejercicios quedaba enterrada y parecía un anexo, cuando es trabajo propio y
+// con su propia lógica (zonas del cuerpo, no grupos musculares).
 const WORK_TABS: HubTab[] = [
   { id: 'registrar', labelKey: 'mc_str_tab_log', icon: 'ri-add-circle-line' },
   { id: 'progresion', labelKey: 'mc_str_tab_progress', icon: 'ri-line-chart-line' },
   { id: 'biblioteca', labelKey: 'mc_str_tab_library', icon: 'ri-book-open-line' },
+  { id: 'movilidad', labelKey: 'mc_str_tab_mobility', icon: 'ri-body-scan-line' },
   { id: 'historial', labelKey: 'mc_str_tab_history', icon: 'ri-history-line' },
 ];
 
 // Enlaces viejos (y el `onEnter` del resumen) siguen funcionando.
 const TAB_ALIAS: Record<string, string> = {
   programar: 'registrar',
-  movilidad: 'biblioteca',
 };
 
 export default function FuerzaSection({ profile, showToast, onGoAsesor }: Props) {
@@ -73,15 +70,10 @@ export default function FuerzaSection({ profile, showToast, onGoAsesor }: Props)
         </>
       )}
       {tab === 'progresion' && <StrengthProgress profile={profile} />}
-      {tab === 'biblioteca' && (
-        <>
-          <ExerciseLibrary />
-          {/* Movilidad es consulta, igual que la biblioteca: qué hacer y cómo. */}
-          <div className="mt-8 pt-8" style={{ borderTop: '1px solid var(--s-3)' }}>
-            <MobilityRoutines />
-          </div>
-        </>
-      )}
+      {/* Biblioteca = SOLO ejercicios de fuerza. Movilidad y estiramientos
+          tienen su propia pestaña: mezclarlos aquí los hacía invisibles. */}
+      {tab === 'biblioteca' && <ExerciseLibrary />}
+      {tab === 'movilidad' && <MobilityRoutines />}
       {tab === 'historial' && (
         <StrengthLog profile={profile} showToast={showToast} hideSummaryBlocks hideRegisterCta />
       )}

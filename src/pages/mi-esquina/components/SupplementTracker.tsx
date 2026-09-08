@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable, isMissingColumn } from '@/lib/dbState';
+import { activeSupplementsOn, todayISO } from '../lib/supplements';
 import BottomSheet from '@/components/base/BottomSheet';
 
 // Nutrición · nivel 2 · Suplementos (PROMPT 1 · parte B).
@@ -22,6 +23,9 @@ interface CommonSupplement {
 interface UserSupplement {
   id: string; supplement_id: string | null; custom_name: string | null;
   time_of_day: string | null; slot: string | null;
+  /** Vigencia (migración 0048). Ausentes = migración sin aplicar. */
+  started_on?: string | null;
+  ended_on?: string | null;
 }
 
 // 8 categorías del enum (mig 0041) → 4 grupos para el filtro.
@@ -73,7 +77,11 @@ export default function SupplementTracker({ profile, showToast }: Props) {
       benefits: Array.isArray((c as { benefits?: unknown }).benefits) ? (c as { benefits: string[] }).benefits : null,
       timing: (c as { timing?: string | null }).timing ?? null,
     })) as CommonSupplement[]);
-    setItems((rows || []).map((r) => ({ ...r, slot: (r as { slot?: string | null }).slot ?? null })) as UserSupplement[]);
+    // Esta pantalla es "mi rutina AHORA", así que solo lista los vigentes hoy.
+    // Los que se dejaron de tomar siguen en la base para que la Agenda pueda
+    // pintarlos en los días en que sí se tomaban.
+    const all = (rows || []).map((r) => ({ ...r, slot: (r as { slot?: string | null }).slot ?? null })) as UserSupplement[];
+    setItems(activeSupplementsOn(all, todayISO()));
     setLoading(false);
   }, [profile.id]);
 
@@ -132,13 +140,21 @@ export default function SupplementTracker({ profile, showToast }: Props) {
       return;
     }
 
+    // `started_on` es HOY: un suplemento que añades hoy no debe aparecer en los
+    // días de la Agenda anteriores, porque entonces no lo tomabas.
     let res = await supabase.from('user_supplements').insert({
       fighter_profile_id: profile.id,
       supplement_id: sheet.sup.id,
       custom_name: null,
       slot: slotChoice,
       time_of_day,
+      started_on: todayISO(),
     }).select().maybeSingle();
+    if (isMissingColumn(res.error)) {
+      res = await supabase.from('user_supplements').insert({
+        fighter_profile_id: profile.id, supplement_id: sheet.sup.id, custom_name: null, slot: slotChoice, time_of_day,
+      }).select().maybeSingle();
+    }
     if (isMissingColumn(res.error)) {
       res = await supabase.from('user_supplements').insert({
         fighter_profile_id: profile.id, supplement_id: sheet.sup.id, custom_name: null, time_of_day,
@@ -151,11 +167,27 @@ export default function SupplementTracker({ profile, showToast }: Props) {
     showToast(t('mc_sup_added_toast', { slot: t(slotCfg(slotChoice)?.labelKey || 'mc_sup_slot_manana').toLowerCase() }));
   };
 
+  /**
+   * Dejar de tomar un suplemento NO lo borra: le pone fecha de fin de hoy.
+   *
+   * Borrarlo reescribiría el pasado — la Agenda de la semana anterior dejaría
+   * de mostrar algo que sí tomabas entonces. Con la fecha de fin, los días
+   * anteriores se quedan como estaban y a partir de hoy ya no aparece.
+   *
+   * Si la migración 0048 no está aplicada, se cae al borrado de siempre: se
+   * pierde el histórico, pero la acción del usuario se respeta.
+   */
   const remove = async (id: string) => {
     setItems((prev) => prev.filter((i) => i.id !== id));
     setConfirmDelete(null);
-    const { error } = await supabase.from('user_supplements').delete().eq('id', id);
-    if (error) { showToast(t('error_save'), 'error'); load(); }
+    const res = await supabase.from('user_supplements')
+      .update({ ended_on: todayISO() }).eq('id', id);
+    if (res.error && isMissingColumn(res.error)) {
+      const del = await supabase.from('user_supplements').delete().eq('id', id);
+      if (del.error) { showToast(t('error_save'), 'error'); load(); }
+      return;
+    }
+    if (res.error) { showToast(t('error_save'), 'error'); load(); }
   };
 
   const slotLabel = (item: UserSupplement) => {
