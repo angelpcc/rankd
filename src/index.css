@@ -890,3 +890,15 @@ html, body {
    filtros). El contenido sigue deslizándose; solo se oculta la barra. */
 .rk-noscroll-x::-webkit-scrollbar { display: none; }
 .rk-noscroll-x { scrollbar-width: none; -ms-overflow-style: none; }
+
+/* Flotante "registrar entreno" de la Agenda.
+   En móvil la barra de secciones vive abajo (~62 px), así que el flotante se
+   sube por encima para no taparla; a partir de lg esa barra no existe y vuelve
+   a pegarse al borde inferior. */
+.rk-agenda-fab {
+  right: max(1.25rem, env(safe-area-inset-right, 0px));
+  bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 1024px) {
+  .rk-agenda-fab { bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px)); }
+}

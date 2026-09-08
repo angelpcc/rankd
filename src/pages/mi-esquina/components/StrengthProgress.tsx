@@ -351,7 +351,7 @@ export default function StrengthProgress({ profile }: Props) {
 
       {/* ═══════ POR EJERCICIO ═══════ */}
       {view === 'exercise' && (
-        <div className="card-primary" style={{ padding: 22 }}>
+        <div className="rk-card" style={{ padding: 22 }}>
           {exercises.length > 8 && (
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('mc_sp_search_ph')}
               aria-label={t('mc_sp_search_ph')} style={{ minHeight: 44 }}
@@ -441,7 +441,7 @@ export default function StrengthProgress({ profile }: Props) {
 
       {/* ═══════ POR GRUPO MUSCULAR ═══════ */}
       {view === 'group' && (
-        <div className="card-primary" style={{ padding: 22 }}>
+        <div className="rk-card" style={{ padding: 22 }}>
           <div className="flex gap-1.5 overflow-x-auto pb-1 mb-4 rk-noscroll-x">
             {groupsWithData.map((g) => (
               <button key={g} onClick={() => setSelectedGroup(g)}

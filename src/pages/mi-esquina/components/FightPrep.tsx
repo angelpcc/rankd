@@ -92,7 +92,7 @@ export default function FightPrep({ profile, onOpenCalendar }: Props) {
             <h3 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 26, letterSpacing: 1, color: '#fff', marginTop: 4, lineHeight: 1.05 }}>
               {fight.title}
             </h3>
-            <p className="text-xs text-zinc-400 mt-1 capitalize">
+            <p className="text-xs text-zinc-400 mt-1 first-letter:uppercase">
               {new Date(fight.event_date + 'T12:00:00').toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
           </div>
@@ -132,7 +132,7 @@ export default function FightPrep({ profile, onOpenCalendar }: Props) {
           <div className="flex items-center gap-2.5 mt-3 text-xs text-zinc-400">
             <i className="ri-scales-2-line text-[#C9A84C]"></i>
             <span className="font-bold text-[#C9A84C]">{t('mc_fp_weigh_in')}:</span>
-            <span className="capitalize">
+            <span className="first-letter:uppercase">
               {new Date(weighIn.event_date + 'T12:00:00').toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })}
             </span>
           </div>

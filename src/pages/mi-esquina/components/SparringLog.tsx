@@ -298,7 +298,7 @@ export default function SparringLog({ profile, showToast }: Props) {
                         </button>
                       )}
                     </div>
-                    <p className="text-xs text-zinc-500 mt-0.5 capitalize">
+                    <p className="text-xs text-zinc-500 mt-0.5 first-letter:uppercase">
                       {new Date(x.session_date + 'T12:00:00').toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })}
                       {' · '}{'🔥'.repeat(Math.max(1, Math.min(5, x.intensity)))}
                     </p>

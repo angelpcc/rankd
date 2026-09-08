@@ -487,6 +487,10 @@ export default {
   mc_navgrp_today: 'Today',
   mc_navgrp_track: 'Your tracking',
   mc_navgrp_tools: 'Tools',
+  // Weight goal kind (body change vs. fight weigh-in)
+  mc_w_kind_label: 'What is this goal for?',
+  mc_w_kind_body: 'Body change',
+  mc_w_kind_weighin: 'Fight weigh-in',
   mc_nav_more: 'More',
   mc_streak_line: 'days in a row. Keep it alive.',
   mc_streak_line_one: 'day. Don’t let it stop at one.',

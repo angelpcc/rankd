@@ -603,7 +603,7 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
                           <span key={ci} className="text-[11px] text-zinc-400 bg-white/5 px-2 py-0.5 rounded-full">{chip}</span>
                         ))}
                       </div>
-                      <p className="text-xs text-zinc-500 mt-1 capitalize">
+                      <p className="text-xs text-zinc-500 mt-1 first-letter:uppercase">
                         {new Date(s.session_date + 'T12:00:00').toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })}
                       </p>
                       {s.note && <p className="text-xs text-zinc-400 mt-1.5 pl-2.5 border-l-2 border-white/10 leading-relaxed">{s.note}</p>}

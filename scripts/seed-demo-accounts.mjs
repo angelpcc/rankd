@@ -227,6 +227,12 @@ async function run() {
       { fighter_profile_id: fighterId, plan_date: iso(0), kind: 'strength', source: 'manual', payload: { groups: ['legs', 'core'], exercises: 'Sentadilla 4x5 · Plancha 3x45s' } },
       { fighter_profile_id: fighterId, plan_date: iso(-1), kind: 'activity', source: 'manual', payload: { kind: 'correr', duration_min: 35 } },
     ];
+    // El script se ejecuta varias veces; sin este borrado previo cada pasada
+    // añadía OTRO "Pierna + Core" al mismo día y el plan salía duplicado en
+    // pantalla. Se limpian solo esas dos fechas de esta cuenta demo.
+    await db.from('day_plan_items').delete()
+      .eq('fighter_profile_id', fighterId)
+      .in('plan_date', rows.map((r) => r.plan_date));
     const { error } = await db.from('day_plan_items').insert(rows);
     if (error) throw error;
   });

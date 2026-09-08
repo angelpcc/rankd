@@ -487,6 +487,10 @@ export default {
   mc_navgrp_today: 'Hoy',
   mc_navgrp_track: 'Tu seguimiento',
   mc_navgrp_tools: 'Herramientas',
+  // Tipo de objetivo de peso (cambio físico vs. pesaje de pelea)
+  mc_w_kind_label: '¿Para qué es este objetivo?',
+  mc_w_kind_body: 'Cambio físico',
+  mc_w_kind_weighin: 'Pesaje de pelea',
   mc_nav_more: 'Más',
   mc_streak_line: 'días seguidos. No la rompas.',
   mc_streak_line_one: 'día. Que no se quede en uno.',

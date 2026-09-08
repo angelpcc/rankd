@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { SkeletonBox } from '@/components/base/Skeleton';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable } from '@/lib/dbState';
@@ -112,7 +113,8 @@ export default function TrainerPlanUpload({ profile, showToast }: Props) {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center py-8"><div className="w-6 h-6 border-2 border-[#C9A84C] border-t-transparent rounded-full animate-spin"></div></div>;
+    // Esqueleto en vez de spinner dorado: el oro no es color de carga.
+    return <div className="py-2"><SkeletonBox height={64} radius={16} /></div>;
   }
   if (unavailable) return null;
 

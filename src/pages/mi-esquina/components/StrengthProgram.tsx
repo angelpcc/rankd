@@ -94,15 +94,19 @@ export default function StrengthProgram({ profile, showToast }: Props) {
         <p className="rk-body-14 mt-1">{t('mc_strp_sub')}</p>
       </header>
 
-      <div className="rk-card flex flex-wrap items-end gap-3" style={{ padding: 18 }}>
-        <div className="flex-1 min-w-[160px]">
+      {/* En móvil el campo y el botón van uno debajo de otro y AMBOS a ancho
+          completo: antes el botón se quedaba corto y no cuadraba con el borde
+          derecho del campo. A partir de sm vuelven a la misma fila. */}
+      <div className="rk-card flex flex-col sm:flex-row sm:items-end gap-3" style={{ padding: 18 }}>
+        <div className="flex-1 min-w-0">
           <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_strp_date')}</label>
           <input type="date" value={date} min={todayISO()} onChange={(e) => setDate(e.target.value)}
             style={{ fontSize: 16, minHeight: 44 }}
             className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer [color-scheme:dark]" />
         </div>
         <button onClick={() => setBuilderOpen(true)}
-          className="rk-btn rk-btn-primary flex items-center gap-2" style={{ fontSize: '0.85rem', minHeight: 44 }}>
+          className="rk-btn rk-btn-primary rk-press w-full sm:w-auto flex items-center justify-center gap-2"
+          style={{ fontSize: '0.85rem', minHeight: 44 }}>
           <i className="ri-add-line" />{t('mc_strp_add')}
         </button>
       </div>
@@ -119,7 +123,7 @@ export default function StrengthProgram({ profile, showToast }: Props) {
                 <div className="rk-card" style={{ padding: '14px 16px' }}>
                   <div className="flex items-start gap-3">
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-zinc-500 capitalize">{fmtDate(r.plan_date)}</p>
+                      <p className="text-xs text-zinc-500 first-letter:uppercase">{fmtDate(r.plan_date)}</p>
                       <p className="text-sm font-bold text-white mt-0.5">{groups || t('mc_dp_kind_strength')}</p>
                       {lines.length > 0 && (
                         <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{lines.slice(0, 4).join(' · ')}</p>

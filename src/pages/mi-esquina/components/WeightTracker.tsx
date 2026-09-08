@@ -102,6 +102,10 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
   const [targetInput, setTargetInput] = useState('');
   const [classInput, setClassInput] = useState('');
   const [dateInput, setDateInput] = useState('');
+  // Para qué es el objetivo: cambio físico ('body') o dar el peso de una pelea
+  // ('weighin'). NO hace falta columna nueva: se deduce de si hay fecha de
+  // pesaje guardada, que es justo lo que distingue un caso del otro.
+  const [goalKind, setGoalKind] = useState<'body' | 'weighin'>('body');
   const [savingGoal, setSavingGoal] = useState(false);
   const [range, setRange] = useState(90);
   // Si la migración 0035 aún no está, ocultamos la hora del registro.
@@ -197,27 +201,31 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
     setTargetInput(targetWeight?.toString() || '');
     setClassInput(classLabel || '');
     setDateInput(weighInDate || '');
+    // Si hay fecha de pesaje guardada, el objetivo era de pelea.
+    setGoalKind(weighInDate ? 'weighin' : 'body');
     setShowGoal(true);
   };
 
   const saveGoal = async () => {
     setSavingGoal(true);
     const target = targetInput ? parseFloat(targetInput.replace(',', '.')) : null;
+    const isWeighIn = goalKind === 'weighin';
     // Reescribimos la fila entera: nutrition_goals la comparten Peso y Nutrición.
+    // Al pasar a objetivo físico se LIMPIAN categoría y fecha: si quedaran, la
+    // pantalla seguiría contando días para un pesaje que ya no existe.
     const row: Record<string, unknown> = {
       fighter_profile_id: profile.id,
       target_weight_kg: target,
       daily_water_goal_ml: waterGoal,
+      weight_class_label: isWeighIn ? (classInput.trim() || null) : null,
+      weigh_in_date: isWeighIn ? (dateInput || null) : null,
       updated_at: new Date().toISOString(),
     };
-    if (isPro) {
-      row.weight_class_label = classInput.trim() || null;
-      row.weigh_in_date = dateInput || null;
-    }
     const { error } = await supabase.from('nutrition_goals').upsert(row, { onConflict: 'fighter_profile_id' });
     if (error) { showToast(t('error_save'), 'error'); setSavingGoal(false); return; }
     setTargetWeight(target);
-    if (isPro) { setClassLabel(classInput.trim() || null); setWeighInDate(dateInput || null); }
+    setClassLabel(isWeighIn ? (classInput.trim() || null) : null);
+    setWeighInDate(isWeighIn ? (dateInput || null) : null);
     setShowGoal(false);
     setSavingGoal(false);
     showToast(t('mc_ci_saved'));
@@ -248,12 +256,13 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
 
   /** Ritmo semanal necesario para llegar al peso el día del pesaje. */
   const pace = useMemo(() => {
-    if (!isPro || toTarget === null || daysToWeighIn === null || daysToWeighIn <= 0) return null;
+    // Ritmo de corte: aplica cuando hay PESAJE marcado, no por el tipo de cuenta.
+    if (!weighInDate || toTarget === null || daysToWeighIn === null || daysToWeighIn <= 0) return null;
     if (toTarget <= 0.1) return { kg: 0, state: 'done' as const };
     const perWeek = +(toTarget / (daysToWeighIn / 7)).toFixed(2);
     // Por encima de ~1 kg/semana el corte deja de ser cómodo y hay que vigilarlo.
     return { kg: perWeek, state: perWeek > 1 ? ('fast' as const) : ('ok' as const) };
-  }, [isPro, toTarget, daysToWeighIn]);
+  }, [weighInDate, toTarget, daysToWeighIn]);
 
   const rangeStats = useMemo(() => {
     const since = new Date(); since.setDate(since.getDate() - range);
@@ -338,7 +347,7 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
               <div className="mt-4">
                 {targetWeight !== null ? (
                   <div className="flex items-center justify-between text-xs mb-2 gap-2">
-                    <span className="text-zinc-400 truncate">{isPro && classLabel ? classLabel : t('mc_w_target')}</span>
+                    <span className="text-zinc-400 truncate">{classLabel || t('mc_w_target')}</span>
                     <span className="font-bold flex-shrink-0 text-white">{targetWeight} kg</span>
                   </div>
                 ) : (
@@ -367,7 +376,7 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
       </div>
 
       {/* PRO: ritmo necesario para llegar al peso */}
-      {isPro && pace && (
+      {pace && (
         <div className="rk-card flex items-start gap-3.5" style={{ padding: '16px 20px', transform: 'none', borderColor: pace.state === 'fast' ? 'rgba(225,6,0,0.3)' : 'rgba(34,197,94,0.25)' }}>
           <div className={`w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl border ${pace.state === 'fast' ? 'bg-red-600/12 border-red-500/30 text-red-400' : 'bg-green-500/12 border-green-500/30 text-green-400'}`}>
             <i className="ri-speed-up-line text-lg"></i>
@@ -485,24 +494,27 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
           <p className="text-[10px] text-zinc-600 mt-0.5">{rangeStats ? `kg · ${RANGES.find((r) => r.days === range)?.label}` : ' '}</p>
         </div>
 
+        {/* Estas dos tarjetas siguen el TIPO DE OBJETIVO, no el tipo de cuenta:
+            con objetivo físico no se habla de categoría ni de días para el
+            pesaje, porque no hay pesaje. */}
         <div className="rk-card" style={{ padding: 14, background: 'var(--s-2)' }}>
-          <p className="text-[10px] text-zinc-500 uppercase tracking-wider">{isPro ? t('mc_w_category_target') : t('mc_w_target')}</p>
-          {isPro && classLabel ? (
-            <p className="text-sm font-bold mt-1.5 truncate" style={{ color: 'var(--gold)' }}>{classLabel}</p>
+          <p className="text-[10px] text-zinc-500 uppercase tracking-wider">{classLabel ? t('mc_w_category_target') : t('mc_w_target')}</p>
+          {classLabel ? (
+            <p className="text-sm font-bold mt-1.5 truncate text-white">{classLabel}</p>
           ) : targetWeight !== null ? (
-            <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, lineHeight: 1, marginTop: 4, color: 'var(--gold)' }}>{targetWeight}<span className="text-[10px] text-zinc-500"> kg</span></p>
+            <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, lineHeight: 1, marginTop: 4, color: 'var(--t-1)' }}>{targetWeight}<span className="text-[10px] text-zinc-500"> kg</span></p>
           ) : (
             <p className="text-xs text-zinc-600 mt-1.5">{t('mc_w_no_goal')}</p>
           )}
         </div>
 
         <div className="rk-card" style={{ padding: 14, background: 'var(--s-2)' }}>
-          <p className="text-[10px] text-zinc-500 uppercase tracking-wider">{isPro ? t('mc_fp_weigh_in') : t('mc_w_records')}</p>
-          <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, lineHeight: 1, marginTop: 4, color: isPro && daysToWeighIn !== null ? '#E10600' : '#fff' }}>
-            {isPro ? (daysToWeighIn !== null ? daysToWeighIn : t('mc_w_no_data')) : weights.length}
+          <p className="text-[10px] text-zinc-500 uppercase tracking-wider">{weighInDate ? t('mc_fp_weigh_in') : t('mc_w_records')}</p>
+          <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, lineHeight: 1, marginTop: 4, color: daysToWeighIn !== null ? '#E10600' : '#fff' }}>
+            {weighInDate ? (daysToWeighIn !== null ? daysToWeighIn : t('mc_w_no_data')) : weights.length}
           </p>
           <p className="text-[10px] text-zinc-600 mt-0.5">
-            {isPro ? (daysToWeighIn !== null ? t('mc_w_to_weigh_days') : t('mc_w_no_weigh_date')) : t('mc_w_weigh_ins')}
+            {weighInDate ? t('mc_w_to_weigh_days') : t('mc_w_weigh_ins')}
           </p>
         </div>
       </div>
@@ -532,7 +544,7 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
                         <span className={`text-[11px] font-bold ${diff < 0 ? 'text-green-400' : 'text-orange-400'}`}>{diff > 0 ? '+' : ''}{diff}</span>
                       )}
                     </div>
-                    <p className="text-xs text-zinc-500 capitalize">{new Date(w.entry_date + 'T12:00:00').toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                    <p className="text-xs text-zinc-500 first-letter:uppercase">{new Date(w.entry_date + 'T12:00:00').toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })}</p>
                   </div>
                   <button onClick={() => deleteWeight(w.id)} aria-label={t('mc_delete')}
                     className="w-8 h-8 flex items-center justify-center text-zinc-600 hover:text-red-400 cursor-pointer opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0">
@@ -575,29 +587,61 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
             </div>
 
             <div className="space-y-4">
-              {isPro && (
+              {/* Para qué es el objetivo. Antes esto lo decidía el tipo de
+                  cuenta: si competías, SIEMPRE era categoría y pesaje. Pero
+                  fuera de campamento un competidor puede querer simplemente
+                  subir a 80 kg, y eso no es una categoría. Ahora se elige por
+                  objetivo, no por cuenta. */}
+              <div>
+                <label className="block text-xs text-zinc-400 mb-2">{t('mc_w_kind_label')}</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { k: 'body' as const, icon: 'ri-body-scan-line', labelKey: 'mc_w_kind_body' },
+                    { k: 'weighin' as const, icon: 'ri-sword-line', labelKey: 'mc_w_kind_weighin' },
+                  ]).map((o) => (
+                    <button key={o.k} type="button" onClick={() => setGoalKind(o.k)}
+                      aria-pressed={goalKind === o.k} style={{ minHeight: 60 }}
+                      className={`rk-press flex flex-col items-center justify-center gap-1 rounded-xl border text-xs font-bold cursor-pointer px-2 ${
+                        goalKind === o.k
+                          ? 'bg-red-600 border-red-600 text-white'
+                          : 'bg-white/[0.03] border-white/12 text-zinc-300 hover:border-white/30'}`}>
+                      <i className={`${o.icon} text-lg`} />
+                      <span className="text-center leading-tight">{t(o.labelKey)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {goalKind === 'weighin' && (
                 <div>
                   <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_w_class_label')}</label>
                   <input value={classInput} onChange={(e) => setClassInput(e.target.value)} maxLength={40} placeholder={t('mc_w_class_ph')}
+                    style={{ fontSize: 16, minHeight: 44 }}
                     className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#E10600]" />
                 </div>
               )}
 
               <div>
-                <label className="block text-xs text-zinc-400 mb-1.5">{isPro ? t('mc_w_limit') : t('mc_w_target_hobby')}</label>
-                <input value={targetInput} onChange={(e) => setTargetInput(e.target.value)} inputMode="decimal" autoFocus={!isPro} placeholder="70.0"
+                <label className="block text-xs text-zinc-400 mb-1.5">
+                  {goalKind === 'weighin' ? t('mc_w_limit') : t('mc_w_target_hobby')}
+                </label>
+                <input value={targetInput} onChange={(e) => setTargetInput(e.target.value)} inputMode="decimal" placeholder="70.0"
+                  style={{ fontSize: 16, minHeight: 44 }}
                   className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#E10600]" />
               </div>
 
-              {isPro && (
+              {goalKind === 'weighin' && (
                 <div>
                   <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_w_weigh_in_date')}</label>
                   <input type="date" value={dateInput} onChange={(e) => setDateInput(e.target.value)}
+                    style={{ fontSize: 16, minHeight: 44 }}
                     className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#E10600] cursor-pointer" />
                 </div>
               )}
 
-              <p className="text-[11px] text-zinc-500 leading-relaxed">{isPro ? t('mc_w_hint_pro') : t('mc_w_hint_hobby')}</p>
+              <p className="text-[11px] text-zinc-500 leading-relaxed">
+                {goalKind === 'weighin' ? t('mc_w_hint_pro') : t('mc_w_hint_hobby')}
+              </p>
 
               <button onClick={saveGoal} disabled={savingGoal} className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60" style={{ fontSize: '0.95rem' }}>
                 {savingGoal

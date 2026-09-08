@@ -61,8 +61,8 @@ export default function AgendaHub({ profile, showToast, mode, onLogged, initialT
       {/* Flotante: registrar entreno salta a Progreso › Actividad */}
       {tab === 'plan' && (
         <button onClick={() => onGoActivity()} aria-label={t('mc_ag_fab_log')}
-          className="fixed z-40 flex items-center gap-2 rounded-full bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg cursor-pointer transition-colors"
-          style={{ right: 'max(1.25rem, env(safe-area-inset-right, 0px))', bottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))', padding: '0.9rem 1.3rem', fontSize: '0.85rem', boxShadow: '0 10px 30px rgba(225,6,0,0.4)' }}>
+          className="rk-agenda-fab rk-press fixed z-40 flex items-center gap-2 rounded-full bg-red-600 hover:bg-red-700 text-white font-bold shadow-lg cursor-pointer transition-colors"
+          style={{ padding: '0.9rem 1.3rem', fontSize: '0.85rem', boxShadow: '0 10px 30px rgba(225,6,0,0.4)' }}>
           <i className="ri-add-line text-lg"></i> {t('mc_ag_fab_log')}
         </button>
       )}

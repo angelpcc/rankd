@@ -159,7 +159,7 @@ export default function SparringPlayer({ profile, sparring, showToast, onBack }:
             {sparring.rounds} × {sparring.round_minutes} min
             {sparring.partner ? <span className="text-zinc-400 font-normal text-base"> · {t('mc_sp_with')} {sparring.partner}</span> : ''}
           </h2>
-          <p className="text-zinc-500 text-sm capitalize">{dateLabel}</p>
+          <p className="text-zinc-500 text-sm first-letter:uppercase">{dateLabel}</p>
         </div>
       </div>
 

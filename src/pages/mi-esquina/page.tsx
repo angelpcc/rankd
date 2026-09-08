@@ -339,7 +339,10 @@ export default function MiEsquinaPage() {
             "Más" y el usuario lo rechazó: obligaba a un paso extra para llegar
             a Peso, Fuerza o Nutrición. Los separadores agrupan (hoy · lo que
             registras · herramientas) sin esconder nada. */}
-        <div className="lg:hidden fixed left-0 right-0 z-30 bg-zinc-950/95 backdrop-blur border-b border-zinc-800 overflow-x-auto rk-noscroll-x" style={{ top: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
+        <div
+          className="lg:hidden fixed left-0 right-0 z-30 bg-zinc-950/95 backdrop-blur border-t border-zinc-800 overflow-x-auto rk-noscroll-x"
+          style={{ bottom: 0, paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        >
           <div className="flex items-stretch px-2 py-1.5 gap-1 min-w-max">
             {SECTIONS.map((s, i) => {
               const on = activeSection === s.id;
@@ -371,7 +374,14 @@ export default function MiEsquinaPage() {
         {/* Main */}
         {/* key = sección: React remonta el contenido y la animación de entrada
             se reproduce en cada cambio, dando sensación de navegación real */}
-        <main key={activeSection} className="rk-section-in flex-1 px-4 sm:px-6 lg:px-10 py-8 pt-24 lg:pt-8 pb-16 min-w-0">
+        {/* La barra de secciones vive ABAJO en móvil: el hueco se reserva con
+            padding inferior (altura de la barra + margen seguro del móvil), no
+            arriba. En escritorio manda la barra lateral y no hace falta. */}
+        <main
+          key={activeSection}
+          className="rk-section-in flex-1 px-4 sm:px-6 lg:px-10 py-8 min-w-0"
+          style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}
+        >
 
           {/* Migas de pan: dónde estoy dentro de Mi Esquina y cómo volver al
               resumen (bloque 4). En el propio resumen no hace falta. */}

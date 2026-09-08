@@ -45,7 +45,9 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
 
-  const [view, setView] = useState<'day' | 'week' | 'month'>('week');
+  // Se abre en DÍA: al entrar en Agenda lo que se quiere ver es lo de hoy, no
+  // el panorama de la semana. La semana y el mes siguen a un toque.
+  const [view, setView] = useState<'day' | 'week' | 'month'>('day');
   const [weekStart, setWeekStart] = useState(() => mondayOf(new Date()));
   const [monthCursor, setMonthCursor] = useState(() => { const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d; });
   const [dayISO, setDayISO] = useState<string>(todayISO());
@@ -842,34 +844,34 @@ function AddItemSheet({ open, initialKind, onClose, onSubmit }: {
             </div>
             <div className="grid grid-cols-2 gap-2.5">
               <div>
-                <label className="block text-sm text-zinc-400 mb-1.5">{t('mc_dp_form_duration')} <span className="text-zinc-600">({t('mc_optional')})</span></label>
+                <label className="flex items-end text-sm text-zinc-400 mb-1.5" style={{ minHeight: '2.4rem' }}>{t('mc_dp_form_duration')} <span className="text-zinc-600">({t('mc_optional')})</span></label>
                 <input value={duration} onChange={(e) => setDuration(e.target.value)} inputMode="decimal" type="number" min="1" max="600"
                   style={{ fontSize: 16, minHeight: 44 }} className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" />
               </div>
               {actCfg.fields.includes('distance_km') && (
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1.5">{t('mc_av_field_km')}</label>
+                  <label className="flex items-end text-sm text-zinc-400 mb-1.5" style={{ minHeight: '2.4rem' }}>{t('mc_av_field_km')}</label>
                   <input value={distanceKm} onChange={(e) => setDistanceKm(e.target.value)} inputMode="decimal" type="number" min="0" step="0.1"
                     style={{ fontSize: 16, minHeight: 44 }} className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" />
                 </div>
               )}
               {actCfg.fields.includes('meters') && (
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1.5">{t('mc_av_field_meters')}</label>
+                  <label className="flex items-end text-sm text-zinc-400 mb-1.5" style={{ minHeight: '2.4rem' }}>{t('mc_av_field_meters')}</label>
                   <input value={meters} onChange={(e) => setMeters(e.target.value)} inputMode="decimal" type="number" min="0" step="25"
                     style={{ fontSize: 16, minHeight: 44 }} className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" />
                 </div>
               )}
               {actCfg.fields.includes('rounds') && (
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1.5">{t('mc_av_field_rounds')}</label>
+                  <label className="flex items-end text-sm text-zinc-400 mb-1.5" style={{ minHeight: '2.4rem' }}>{t('mc_av_field_rounds')}</label>
                   <input value={rounds} onChange={(e) => setRounds(e.target.value)} inputMode="decimal" type="number" min="1" max="30"
                     style={{ fontSize: 16, minHeight: 44 }} className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" />
                 </div>
               )}
               {actCfg.fields.includes('round_duration') && (
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1.5">{t('mc_av_field_round_dur')} <span className="text-zinc-600">({t('mc_optional')})</span></label>
+                  <label className="flex items-end text-sm text-zinc-400 mb-1.5" style={{ minHeight: '2.4rem' }}>{t('mc_av_field_round_dur')} <span className="text-zinc-600">({t('mc_optional')})</span></label>
                   <input value={roundDur} onChange={(e) => setRoundDur(e.target.value)} inputMode="decimal" type="number" min="10" max="600" step="10"
                     style={{ fontSize: 16, minHeight: 44 }} className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" />
                 </div>
@@ -877,7 +879,7 @@ function AddItemSheet({ open, initialKind, onClose, onSubmit }: {
             </div>
             {actCfg.fields.includes('pace') && (
               <div>
-                <label className="block text-sm text-zinc-400 mb-1.5">{t('mc_av_field_pace')} <span className="text-zinc-600">({t('mc_optional')})</span></label>
+                <label className="flex items-end text-sm text-zinc-400 mb-1.5" style={{ minHeight: '2.4rem' }}>{t('mc_av_field_pace')} <span className="text-zinc-600">({t('mc_optional')})</span></label>
                 <input value={pace} onChange={(e) => setPace(e.target.value)} inputMode="text" placeholder={autoPace ? paceLabel(autoPace) : '5:30'}
                   style={{ fontSize: 16, minHeight: 44 }} className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" />
                 {shownPace && <p className="text-[11px] text-zinc-500 mt-1">{t('mc_av_pace_auto', { pace: shownPace })}</p>}
@@ -901,7 +903,7 @@ function AddItemSheet({ open, initialKind, onClose, onSubmit }: {
               </div>
             </div>
             <div>
-              <label className="block text-sm text-zinc-400 mb-1.5">{t('mc_dp_form_meal_text')}</label>
+              <label className="flex items-end text-sm text-zinc-400 mb-1.5" style={{ minHeight: '2.4rem' }}>{t('mc_dp_form_meal_text')}</label>
               <input value={mealText} onChange={(e) => setMealText(e.target.value)} maxLength={160} placeholder={t('mc_dp_form_meal_ph')}
                 style={{ fontSize: 16, minHeight: 44 }} className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" />
             </div>
@@ -911,12 +913,12 @@ function AddItemSheet({ open, initialKind, onClose, onSubmit }: {
         {kind === 'supplement' && (
           <>
             <div>
-              <label className="block text-sm text-zinc-400 mb-1.5">{t('mc_dp_form_supp_name')}</label>
+              <label className="flex items-end text-sm text-zinc-400 mb-1.5" style={{ minHeight: '2.4rem' }}>{t('mc_dp_form_supp_name')}</label>
               <input value={suppName} onChange={(e) => setSuppName(e.target.value)} maxLength={80} placeholder={t('mc_dp_form_supp_ph')}
                 style={{ fontSize: 16, minHeight: 44 }} className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" />
             </div>
             <div>
-              <label className="block text-sm text-zinc-400 mb-1.5">{t('mc_dp_form_supp_time')}</label>
+              <label className="flex items-end text-sm text-zinc-400 mb-1.5" style={{ minHeight: '2.4rem' }}>{t('mc_dp_form_supp_time')}</label>
               <input type="time" value={suppTime} onChange={(e) => setSuppTime(e.target.value)}
                 style={{ fontSize: 16, minHeight: 44 }} className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer [color-scheme:dark]" />
             </div>
@@ -925,7 +927,7 @@ function AddItemSheet({ open, initialKind, onClose, onSubmit }: {
 
         {kind === 'note' && (
           <div>
-            <label className="block text-sm text-zinc-400 mb-1.5">{t('mc_dp_form_note_text')}</label>
+            <label className="flex items-end text-sm text-zinc-400 mb-1.5" style={{ minHeight: '2.4rem' }}>{t('mc_dp_form_note_text')}</label>
             <textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} rows={3} maxLength={280} placeholder={t('mc_dp_form_note_ph')}
               style={{ fontSize: 16 }} className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 resize-none" />
           </div>

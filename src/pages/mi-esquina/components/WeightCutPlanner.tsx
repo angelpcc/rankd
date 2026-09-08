@@ -222,7 +222,7 @@ export default function WeightCutPlanner({ current, target, weighIn, classLabel,
                         <p className="text-sm font-bold text-white">
                           {isFinal ? t('mc_wc_step_final') : t('mc_wc_step_week', { n: i + 1 })}
                         </p>
-                        <span className="text-xs text-zinc-500 capitalize">{fmtDate(m.date)}</span>
+                        <span className="text-xs text-zinc-500 first-letter:uppercase">{fmtDate(m.date)}</span>
                       </div>
                       <p className="text-xs mt-0.5" style={{ color: dotColor }}>
                         {isFinal
