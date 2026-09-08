@@ -13,6 +13,14 @@ export interface PerfRow {
   reps_max: number | null;
   weight_kg: number | string;
   notes?: string | null;
+  /**
+   * Máquina o polea concreta (migración 0047). El MISMO ejercicio marca
+   * números distintos según el aparato, así que quien compara debe filtrar
+   * por este campo antes de llamar aquí. Ausente = migración sin aplicar.
+   */
+  machine_label?: string | null;
+  /** Escalón dentro de una serie descendente. 1 o null = la serie de verdad. */
+  drop_step?: number | null;
 }
 
 export interface LastPerformance {

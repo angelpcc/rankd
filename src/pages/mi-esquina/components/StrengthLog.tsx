@@ -10,6 +10,7 @@ import { fmtWeight, fmtSetCount, fmtSetValue } from '../lib/dayPlan';
 import { reconcileDayTicks } from '../lib/planTicks';
 import { clearDraft } from '../lib/strengthDraft';
 import { computePRs, prKey, type PRHit } from '../lib/prs';
+import { groupSeries, isDropStep } from '../lib/strength';
 import StateBlock from '@/components/base/StateBlock';
 import { SkeletonBox, SkeletonList } from '@/components/base/Skeleton';
 import SectionHero from './SectionHero';
@@ -45,11 +46,19 @@ interface StrengthSet {
   tracking_mode: string | null;
   /** Nota libre del ejercicio (columna de la migración 0014). */
   notes: string | null;
+  /** Máquina o polea concreta (migración 0047). null = sin especificar. */
+  machine_label: string | null;
+  /**
+   * Escalón dentro de una serie descendente (migración 0047).
+   * null = serie normal. 1 = la serie de verdad de un dropset. 2, 3… = bajadas.
+   */
+  drop_step: number | null;
   created_at: string;
 }
 
 type GroupKey = MuscleGroup | 'other';
 const ORDER: GroupKey[] = [...MUSCLE_GROUPS, 'other'];
+
 
 function todayISO(): string {
   const d = new Date();
@@ -292,7 +301,13 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
     const cutoffISO = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}-${String(cutoff.getDate()).padStart(2, '0')}`;
     const counts = {} as Record<GroupKey, number>;
     ORDER.forEach((g) => { counts[g] = 0; });
-    rows.forEach((r) => { if (r.session_date >= cutoffISO) counts[groupOfRow(r)]++; });
+    // Las bajadas de una serie descendente NO son series aparte: si contaran,
+    // un dropset de tres bajadas inflaría el volumen semanal a cuatro series.
+    rows.forEach((r) => {
+      if (r.session_date < cutoffISO) return;
+      if (isDropStep(r)) return;
+      counts[groupOfRow(r)]++;
+    });
     // Ordenar de más a menos, y los de 0 al final.
     const entries: [GroupKey, number][] = ORDER.map((g) => [g, counts[g]]);
     entries.sort((a, b) => {
@@ -350,12 +365,18 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
       group: g,
       exercises: [...byGroup.get(g)!.values()].map((sets) => {
         const sorted = [...sets].sort((a, b) => a.set_number - b.set_number);
+        const txt = (r: StrengthSet) => ({
+          reps: r.reps_max && r.reps_max > r.reps ? `${r.reps}-${r.reps_max}` : String(r.reps),
+          weight: Number(r.weight_kg) > 0 ? String(Number(r.weight_kg)) : '',
+        });
         return {
           label: sorted[0].exercise_label,
           note: sorted.map((r) => (r.notes || '').trim()).find((n) => n !== '') || undefined,
-          sets: sorted.map((r) => ({
-            reps: r.reps_max && r.reps_max > r.reps ? `${r.reps}-${r.reps_max}` : String(r.reps),
-            weight: Number(r.weight_kg) > 0 ? String(Number(r.weight_kg)) : '',
+          machine: sorted.map((r) => (r.machine_label || '').trim()).find((m) => m !== '') || undefined,
+          // Agrupado por serie: las bajadas vuelven al formulario como bajadas.
+          sets: groupSeries(sorted).map((se) => ({
+            ...txt(se.main),
+            drops: se.drops.length ? se.drops.map(txt) : undefined,
           })),
         };
       }),
@@ -390,25 +411,48 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
     // reps_max = null cuando la serie es "8" (fijo); = 10 cuando es "8-10".
     // Solo se envía si la fila NEW lo trae; la degradación por si la
     // migración 0026 aún no está aplicada vive más abajo.
+    // Una serie descendente NO son varias series: es una sola con bajadas de
+    // peso encadenadas. Se sigue guardando una fila por escalón (así el volumen
+    // levantado sale solo y no hay que tocar el modelo), pero todos los
+    // escalones comparten `set_number` y se numeran con `drop_step` 1, 2, 3…
+    // Sin la migración 0047 el fallback de abajo los guarda como series
+    // sueltas: el dato sigue siendo correcto, solo se pierde la agrupación.
     const base = session.blocks.flatMap((b) =>
-      b.exercises.flatMap((e) => e.sets.map((s, i) => ({
-        fighter_profile_id: profile.id,
-        exercise: normalize(e.label),
-        exercise_label: e.label.trim(),
-        session_date: session.date,
-        set_number: i + 1,
-        reps: s.reps,
-        reps_max: s.repsMax ?? null,
-        weight_kg: s.weight,
-        muscle_group: b.group,
-        session_slot: session.slot,
-        weight_mode: e.weightMode ?? 'total',
-        tracking_mode: e.trackingMode ?? 'reps',
-        // La nota va solo en la 1ª serie: es del ejercicio, no de cada serie.
-        // `notes` viene de la migración 0014, así que existe siempre que exista
-        // la tabla (no necesita el fallback de isMissingColumn de abajo).
-        notes: i === 0 ? (e.note ?? null) : null,
-      }))),
+      b.exercises.flatMap((e) => e.sets.flatMap((s, i) => {
+        const common = {
+          fighter_profile_id: profile.id,
+          exercise: normalize(e.label),
+          exercise_label: e.label.trim(),
+          session_date: session.date,
+          set_number: i + 1,
+          muscle_group: b.group,
+          session_slot: session.slot,
+          weight_mode: e.weightMode ?? 'total',
+          tracking_mode: e.trackingMode ?? 'reps',
+          machine_label: e.machine ?? null,
+        };
+        const hasDrops = !!s.drops && s.drops.length > 0;
+        const rows = [{
+          ...common,
+          reps: s.reps,
+          reps_max: s.repsMax ?? null,
+          weight_kg: s.weight,
+          drop_step: hasDrops ? 1 : null,
+          // La nota va solo en la 1ª serie: es del ejercicio, no de cada serie.
+          // `notes` viene de la migración 0014, así que existe siempre que
+          // exista la tabla (no necesita el fallback de isMissingColumn).
+          notes: i === 0 ? (e.note ?? null) : null,
+        }];
+        (s.drops || []).forEach((d, di) => rows.push({
+          ...common,
+          reps: d.reps,
+          reps_max: d.repsMax ?? null,
+          weight_kg: d.weight,
+          drop_step: di + 2,
+          notes: null,
+        }));
+        return rows;
+      })),
     );
     if (base.length === 0) return;
 
@@ -424,7 +468,7 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
       if (del.error) { setSaving(false); showToast(t('error_save'), 'error'); return; }
       let ins = await supabase.from('strength_sets').insert(base).select();
       if (isMissingColumn(ins.error)) {
-        const noExtras = base.map(({ muscle_group, reps_max, session_slot, weight_mode, tracking_mode, ...r }) => r);
+        const noExtras = base.map(({ muscle_group, reps_max, session_slot, weight_mode, tracking_mode, machine_label, drop_step, ...r }) => r);
         ins = await supabase.from('strength_sets').insert(noExtras).select();
       }
       setSaving(false);
@@ -464,7 +508,7 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
     // se guarda igual (grupo derivado del nombre, rango como fijo, sin franja).
     let { data, error } = await supabase.from('strength_sets').insert(base).select();
     if (isMissingColumn(error)) {
-      const noExtras = base.map(({ muscle_group, reps_max, session_slot, weight_mode, tracking_mode, ...r }) => r);
+      const noExtras = base.map(({ muscle_group, reps_max, session_slot, weight_mode, tracking_mode, machine_label, drop_step, ...r }) => r);
       ({ data, error } = await supabase.from('strength_sets').insert(noExtras).select());
     }
     setSaving(false);
@@ -679,9 +723,14 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
                                   const exOpen = openEx === `${s.date}|${ex.exercise}`;
                                   const maxW = Math.max(...ex.sets.map((x) => Number(x.weight_kg)));
                                   const hist = exOpen ? historyOf(ex.exercise) : [];
-                                  const first = ex.sets[0];
+                                  // Un dropset es UNA serie con bajadas, no tres
+                                  // series: se cuenta agrupado o el resumen miente.
+                                  const series = groupSeries(ex.sets);
+                                  const hasDrops = series.some((se) => se.drops.length > 0);
+                                  const machine = ex.sets.map((x) => (x.machine_label || '').trim()).find((m) => m !== '');
+                                  const first = series[0].main;
                                   const summary = [
-                                    fmtSetCount(ex.sets.length, { repsMin: first.reps, repsMax: first.reps_max ?? undefined, value: first.reps, trackingMode: ex.tm }, t),
+                                    fmtSetCount(series.length, { repsMin: first.reps, repsMax: first.reps_max ?? undefined, value: first.reps, trackingMode: ex.tm }, t),
                                     fmtWeight(maxW, ex.wm, t),
                                   ].filter(Boolean).join(' · ');
                                   const exPRs = prs.get(prKey(s.date, ex.exercise)) || [];
@@ -719,17 +768,43 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
                                               ))}
                                             </div>
                                           )}
-                                          {/* Series individuales */}
+                                          {/* En qué máquina se hizo, si consta */}
+                                          {machine && (
+                                            <p className="text-[11px] text-zinc-400 flex items-center gap-1.5">
+                                              <i className="ri-settings-3-line text-zinc-600" />{machine}
+                                            </p>
+                                          )}
+                                          {/* Series individuales. Una serie descendente va en
+                                              UNA sola etiqueta con sus bajadas encadenadas por
+                                              flechas: "8·40kg → 6·30kg → 8·20kg". Suelta se
+                                              leería como tres series normales, que es falso. */}
                                           <div className="flex flex-wrap gap-1.5">
-                                            {ex.sets.map((st) => (
-                                              <span key={st.id} className="text-[11px] font-semibold text-zinc-300 bg-white/[0.05] border border-white/10 px-2 py-1 rounded-lg">
-                                                {[
-                                                  fmtSetValue({ repsMin: st.reps, repsMax: st.reps_max ?? undefined, value: st.reps, trackingMode: ex.tm }, t),
-                                                  fmtWeight(Number(st.weight_kg), ex.wm, t),
-                                                ].filter(Boolean).join(' · ')}
-                                              </span>
-                                            ))}
+                                            {series.map((se) => {
+                                              const txt = (st: StrengthSet) => [
+                                                fmtSetValue({ repsMin: st.reps, repsMax: st.reps_max ?? undefined, value: st.reps, trackingMode: ex.tm }, t),
+                                                fmtWeight(Number(st.weight_kg), ex.wm, t),
+                                              ].filter(Boolean).join(' · ');
+                                              const isDrop = se.drops.length > 0;
+                                              return (
+                                                <span key={se.main.id}
+                                                  className="text-[11px] font-semibold text-zinc-300 px-2 py-1 rounded-lg inline-flex items-center gap-1"
+                                                  style={isDrop
+                                                    ? { background: 'rgba(201,168,76,0.10)', border: '1px solid rgba(201,168,76,0.30)' }
+                                                    : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)' }}>
+                                                  {isDrop && <i className="ri-arrow-down-line text-[10px]" style={{ color: '#C9A84C' }} />}
+                                                  {txt(se.main)}
+                                                  {se.drops.map((d) => (
+                                                    <span key={d.id} className="text-zinc-400">→ {txt(d)}</span>
+                                                  ))}
+                                                </span>
+                                              );
+                                            })}
                                           </div>
+                                          {hasDrops && (
+                                            <p className="text-[10px]" style={{ color: '#C9A84C' }}>
+                                              <i className="ri-arrow-down-line" /> {t('mc_str_drop_badge')}
+                                            </p>
+                                          )}
                                           {/* Histórico rápido del ejercicio */}
                                           {hist.length > 1 && (
                                             <div className="flex items-center gap-1.5 flex-wrap">

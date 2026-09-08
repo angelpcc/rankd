@@ -1,12 +1,14 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
+import { isMissingColumn } from '@/lib/dbState';
 import BottomSheet from '@/components/base/BottomSheet';
 import VoiceButton from '@/components/feature/VoiceButton';
 import { parseStrengthSessionFromSpeech } from '@/lib/dictation';
 import {
   MUSCLE_GROUPS, exercisesByGroup, libraryLabels, muscleGroupOf,
-  weightModeOf, trackingModeOf, usesBar, type MuscleGroup, type WeightMode, type TrackingMode,
+  weightModeOf, trackingModeOf, usesBar, equipmentOf,
+  type MuscleGroup, type WeightMode, type TrackingMode,
 } from '../lib/exercises';
 import { hasTechnique } from '../lib/exerciseTechnique';
 import ExerciseTechniqueCard from './ExerciseTechniqueCard';
@@ -20,8 +22,16 @@ import { useOnline } from '@/hooks/useOnline';
 // reps = valor bajo/fijo; repsMax = tope del rango (undefined = fijo). En
 // tracking_mode 'time'/'distance', `reps` guarda segundos / metros. `weight`
 // puede ser 0 (peso corporal, o series sin peso).
-export interface BuiltSet { reps: number; weight: number; repsMax?: number }
-export interface BuiltExercise { label: string; sets: BuiltSet[]; weightMode?: WeightMode; trackingMode?: TrackingMode; note?: string }
+// `drops` son los escalones de una serie DESCENDENTE: bajadas de peso
+// encadenadas sin descanso dentro de la MISMA serie (40x8 → 30x6 → 20x8).
+// Se guardan como filas que comparten set_number, no como series sueltas.
+export interface BuiltDrop { reps: number; weight: number; repsMax?: number }
+export interface BuiltSet { reps: number; weight: number; repsMax?: number; drops?: BuiltDrop[] }
+export interface BuiltExercise {
+  label: string; sets: BuiltSet[]; weightMode?: WeightMode; trackingMode?: TrackingMode; note?: string;
+  /** Máquina o polea concreta en la que se hizo (texto libre corto). */
+  machine?: string;
+}
 export interface BuiltBlock { group: MuscleGroup; exercises: BuiltExercise[] }
 
 function weightLabelKey(mode: WeightMode): string {
@@ -41,8 +51,19 @@ export interface BuiltSession { date: string; blocks: BuiltBlock[]; slot: Sessio
 // El padre reconstruye esto desde las filas de strength_sets de un día+franja y
 // lo pasa como `initialSession`: el formulario abre en el paso 2, pre-relleno,
 // y al guardar el padre reemplaza las filas (no crea una sesión nueva).
-export interface EditSessionSet { reps: string; weight: string }
-export interface EditSessionExercise { label: string; sets: EditSessionSet[]; note?: string }
+export interface EditSessionSet {
+  reps: string;
+  weight: string;
+  /** Escalones de la serie descendente, si los tenía. */
+  drops?: { reps: string; weight: string }[];
+}
+export interface EditSessionExercise {
+  label: string;
+  sets: EditSessionSet[];
+  note?: string;
+  /** Máquina/polea con la que se registró. */
+  machine?: string;
+}
 export interface EditSessionBlock { group: MuscleGroup; exercises: EditSessionExercise[] }
 export interface EditSession { date: string; slot: SessionSlot | null; blocks: EditSessionBlock[] }
 
@@ -75,12 +96,28 @@ export function parseRepsInput(raw: string): { reps: number; repsMax?: number } 
 }
 
 // ── Estado editable interno (inputs como texto) ──
-interface FSet { reps: string; weight: string }
-interface FExercise { id: string; label: string; query: string; open: boolean; sets: FSet[]; techOpen?: boolean; note?: string; noteOpen?: boolean }
+interface FSet {
+  reps: string;
+  weight: string;
+  /** Escalones de una serie descendente. undefined = serie normal. */
+  drops?: { reps: string; weight: string }[];
+}
+interface FExercise {
+  id: string; label: string; query: string; open: boolean; sets: FSet[];
+  techOpen?: boolean; note?: string; noteOpen?: boolean;
+  /** Máquina/polea concreta. Solo se pide en ejercicios de polea o máquina. */
+  machine?: string;
+  machineOpen?: boolean;
+}
 interface FBlock { group: MuscleGroup; exercises: FExercise[] }
 
 const uid = () => Math.random().toString(36).slice(2, 9);
 const norm = (s: string) => s.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ');
+
+// Normaliza el nombre de máquina para comparar. Vacío, null y undefined son lo
+// MISMO ("sin especificar"): esas series se comparan entre ellas, como antes de
+// que existiera el campo.
+const normMachine = (s?: string | null): string => (s || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ');
 
 function todayISO(): string {
   const d = new Date();
@@ -132,7 +169,14 @@ function blocksFromEdit(s: EditSession): FBlock[] {
     group: b.group,
     exercises: b.exercises.map((e) => ({
       id: uidLocal(), label: e.label, query: '', open: false, note: e.note || undefined,
-      sets: e.sets.map((st) => ({ reps: st.reps, weight: st.weight })),
+      machine: e.machine || undefined,
+      // Se conservan los escalones: editar una sesión con series descendentes
+      // no debe convertirlas en series sueltas.
+      sets: e.sets.map((st) => ({
+        reps: st.reps,
+        weight: st.weight,
+        drops: st.drops?.map((d) => ({ reps: d.reps, weight: d.weight })),
+      })),
     })),
   }));
 }
@@ -230,16 +274,29 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
 
   // Última vez que se registró un ejercicio: guarda el rendimiento previo para
   // pintar la tarjeta. Ya NO pre-rellena solo: el usuario decide con un botón.
-  const applyHistory = async (group: MuscleGroup, id: string, name: string) => {
+  const applyHistory = async (group: MuscleGroup, id: string, name: string, machine?: string) => {
     const key = norm(name);
     if (!key) return;
     // 200 filas cubren un histórico largo del mismo ejercicio sin traer la
     // tabla entera; el índice (fighter, exercise, date desc) lo resuelve bien.
-    const { data } = await supabase.from('strength_sets')
-      .select('session_date, reps, reps_max, weight_kg, notes')
+    const q = (cols: string) => supabase.from('strength_sets')
+      .select(cols)
       .eq('fighter_profile_id', fighterProfileId).eq('exercise', key)
       .order('session_date', { ascending: false }).limit(200);
-    const rows = (data || []) as PerfRow[];
+
+    let res = await q('session_date, reps, reps_max, weight_kg, notes, machine_label, drop_step');
+    // Si la migración 0047 no está aplicada, se pide sin las columnas nuevas:
+    // se pierde el filtro por máquina, no la tarjeta entera.
+    if (isMissingColumn(res.error)) res = await q('session_date, reps, reps_max, weight_kg, notes');
+    let rows = (res.data || []) as unknown as PerfRow[];
+    // Comparar 18 kg de una polea con 30 kg de otra no significa nada, así que
+    // "la última vez" solo mira series de la MISMA máquina. Sin máquina puesta
+    // se comparan entre sí las que tampoco la tienen.
+    const wanted = normMachine(machine);
+    rows = rows.filter((r) => normMachine(r.machine_label) === wanted);
+    // Los escalones de un dropset pesan menos por definición; si entraran en la
+    // comparación, "la última vez" parecería siempre peor de lo que fue.
+    rows = rows.filter((r) => !r.drop_step || r.drop_step === 1);
     const perf = buildLastPerformance(rows);
     if (!perf) { setPerfByEx((prev) => { const n = { ...prev }; delete n[id]; return n; }); return; }
     const tracking = trackingModeOf(name);
@@ -336,6 +393,64 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
     }));
   };
 
+  /**
+   * Convierte una serie normal en descendente (o al revés).
+   *
+   * Al activarla se crea el primer escalón ya con menos peso que la serie de
+   * arriba, que es lo que se hace de verdad en un dropset: la bajada nunca
+   * empieza con el mismo kilaje.
+   */
+  const toggleDropset = (group: MuscleGroup, id: string, si: number) => {
+    setBlocks((prev) => prev.map((b) => b.group === group
+      ? { ...b, exercises: b.exercises.map((e) => e.id === id
+          ? { ...e, sets: e.sets.map((s, i) => {
+              if (i !== si) return s;
+              if (s.drops) return { reps: s.reps, weight: s.weight };
+              const w = parseFloat(s.weight.replace(',', '.'));
+              const lower = Number.isFinite(w) && w > 0 ? String(+(Math.round((w * 0.75) / 0.5) * 0.5).toFixed(2)) : '';
+              return { ...s, drops: [{ reps: s.reps, weight: lower }] };
+            }) }
+          : e) }
+      : b));
+  };
+
+  const addDrop = (group: MuscleGroup, id: string, si: number) => {
+    setBlocks((prev) => prev.map((b) => b.group === group
+      ? { ...b, exercises: b.exercises.map((e) => e.id === id
+          ? { ...e, sets: e.sets.map((s, i) => {
+              if (i !== si || !s.drops) return s;
+              const last = s.drops[s.drops.length - 1];
+              const w = parseFloat((last?.weight || s.weight).replace(',', '.'));
+              const lower = Number.isFinite(w) && w > 0 ? String(+(Math.round((w * 0.75) / 0.5) * 0.5).toFixed(2)) : '';
+              return { ...s, drops: [...s.drops, { reps: last?.reps || s.reps, weight: lower }] };
+            }) }
+          : e) }
+      : b));
+  };
+
+  const patchDrop = (group: MuscleGroup, id: string, si: number, di: number, patch: Partial<{ reps: string; weight: string }>) => {
+    setBlocks((prev) => prev.map((b) => b.group === group
+      ? { ...b, exercises: b.exercises.map((e) => e.id === id
+          ? { ...e, sets: e.sets.map((s, i) => i === si && s.drops
+              ? { ...s, drops: s.drops.map((d, j) => j === di ? { ...d, ...patch } : d) }
+              : s) }
+          : e) }
+      : b));
+  };
+
+  const removeDrop = (group: MuscleGroup, id: string, si: number, di: number) => {
+    setBlocks((prev) => prev.map((b) => b.group === group
+      ? { ...b, exercises: b.exercises.map((e) => e.id === id
+          ? { ...e, sets: e.sets.map((s, i) => {
+              if (i !== si || !s.drops) return s;
+              const drops = s.drops.filter((_, j) => j !== di);
+              // Sin escalones ya no es una serie descendente.
+              return drops.length ? { ...s, drops } : { reps: s.reps, weight: s.weight };
+            }) }
+          : e) }
+      : b));
+  };
+
   const addSet = (group: MuscleGroup, id: string) => {
     setBlocks((prev) => prev.map((b) => b.group === group
       ? { ...b, exercises: b.exercises.map((e) => e.id === id
@@ -400,22 +515,38 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
         if (!label) continue;
         const tm = trackingModeOf(label);
         const wm = weightModeOf(label);
+        // Lee un par (reps/segundos/metros, peso) según cómo se mida el
+        // ejercicio. Devuelve null si el valor principal no es válido.
+        const readPair = (raw: { reps: string; weight: string }): BuiltDrop | null => {
+          const weight = parseFloat(raw.weight.replace(',', '.')) || 0;
+          if (tm === 'reps') {
+            const parsed = parseRepsInput(raw.reps);
+            if (!parsed) return null;
+            return parsed.repsMax !== undefined
+              ? { reps: parsed.reps, repsMax: parsed.repsMax, weight }
+              : { reps: parsed.reps, weight };
+          }
+          const v = parseInt(raw.reps, 10);
+          if (!v || v <= 0) return null;
+          return { reps: v, weight };
+        };
+
         const sets: BuiltSet[] = [];
         for (const s of e.sets) {
-          const weight = parseFloat(s.weight.replace(',', '.')) || 0;
-          if (tm === 'reps') {
-            const parsed = parseRepsInput(s.reps);
-            if (!parsed) continue;
-            sets.push(parsed.repsMax !== undefined
-              ? { reps: parsed.reps, repsMax: parsed.repsMax, weight }
-              : { reps: parsed.reps, weight });
-          } else {
-            const v = parseInt(s.reps, 10);
-            if (!v || v <= 0) continue;
-            sets.push({ reps: v, weight });
-          }
+          const main = readPair(s);
+          if (!main) continue;
+          // Los escalones incompletos se descartan sin tirar la serie entera:
+          // dejarse una bajada a medias no debe hacer perder el registro.
+          const drops = (s.drops || []).map(readPair).filter((d): d is BuiltDrop => d !== null);
+          sets.push(drops.length ? { ...main, drops } : main);
         }
-        if (sets.length > 0) exercises.push({ label, sets, weightMode: wm, trackingMode: tm, note: e.note?.trim() || undefined });
+        if (sets.length > 0) {
+          exercises.push({
+            label, sets, weightMode: wm, trackingMode: tm,
+            note: e.note?.trim() || undefined,
+            machine: e.machine?.trim() || undefined,
+          });
+        }
       }
       if (exercises.length > 0) built.push({ group: b.group, exercises });
     }
@@ -596,6 +727,10 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
                   const tm: TrackingMode = e.label ? trackingModeOf(e.label) : 'reps';
                   const wm: WeightMode = e.label ? weightModeOf(e.label) : 'total';
                   const showBar = !!e.label && usesBar(e.label) && wm === 'total';
+                  // El peso de polea y máquina depende del aparato; el de barra
+                  // y mancuerna, no. Por eso el campo solo sale en los primeros.
+                  const eq = e.label ? equipmentOf(e.label) : null;
+                  const needsMachine = eq === 'cable' || eq === 'machine';
                   const primaryLabel = tm === 'time' ? t('mc_str_field_seconds') : tm === 'distance' ? t('mc_str_field_meters') : t('mc_str_reps');
                   const weightOptional = wm === 'bodyweight' || tm !== 'reps';
                   return (
@@ -605,7 +740,7 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
                       <input value={e.label}
                         onChange={(ev) => patchExercise(b.group, e.id, { label: ev.target.value, query: ev.target.value, open: true })}
                         onFocus={() => patchExercise(b.group, e.id, { open: true })}
-                        onBlur={() => { if (e.label.trim()) applyHistory(b.group, e.id, e.label.trim()); }}
+                        onBlur={() => { if (e.label.trim()) applyHistory(b.group, e.id, e.label.trim(), e.machine); }}
                         placeholder={t('mc_str_pick_exercise')} maxLength={50} style={{ fontSize: 16, minHeight: 44 }}
                         className="flex-1 min-w-0 bg-white/[0.04] border border-white/10 text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-500" />
                       {hasTechnique(e.label) && (
@@ -633,7 +768,7 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
                         <div className="mt-1.5 rounded-xl border border-white/10 bg-white/[0.02] p-1.5 max-h-40 overflow-y-auto">
                           {sug.map((c) => (
                             <button key={c} onMouseDown={(ev) => ev.preventDefault()}
-                              onClick={() => { patchExercise(b.group, e.id, { label: c, open: false }); applyHistory(b.group, e.id, c); }}
+                              onClick={() => { patchExercise(b.group, e.id, { label: c, open: false }); applyHistory(b.group, e.id, c, e.machine); }}
                               className="w-full text-left text-sm text-zinc-300 hover:text-white hover:bg-white/[0.05] px-3 py-2 rounded-lg cursor-pointer flex items-center gap-2">
                               <i className="ri-search-line text-xs text-zinc-600"></i>{c}
                             </button>
@@ -641,6 +776,34 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
                         </div>
                       );
                     })()}
+
+                    {/* ── Máquina / polea concreta ──
+                        Solo en ejercicios de polea o máquina: ahí el número que
+                        marca el aparato depende de la marca y la polea, y
+                        comparar 18 de un sitio con 30 de otro no dice nada. En
+                        barra y mancuernas el peso SÍ es comparable siempre, así
+                        que el campo ni aparece. */}
+                    {needsMachine && (
+                      e.machineOpen || e.machine ? (
+                        <div className="mt-2">
+                          <label className="block text-[11px] text-zinc-400 mb-1" htmlFor={`machine-${e.id}`}>
+                            {t('mc_str_machine_label')}
+                          </label>
+                          <input id={`machine-${e.id}`} value={e.machine || ''} maxLength={40}
+                            onChange={(ev) => patchExercise(b.group, e.id, { machine: ev.target.value })}
+                            onBlur={() => { if (e.label.trim()) applyHistory(b.group, e.id, e.label.trim(), e.machine); }}
+                            placeholder={t('mc_str_machine_ph')} style={{ fontSize: 16, minHeight: 44 }}
+                            className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-500" />
+                          <p className="text-[10px] text-zinc-500 mt-1 leading-relaxed">{t('mc_str_machine_hint')}</p>
+                        </div>
+                      ) : (
+                        <button type="button" onClick={() => patchExercise(b.group, e.id, { machineOpen: true })}
+                          style={{ minHeight: 36 }}
+                          className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-zinc-500 hover:text-white cursor-pointer">
+                          <i className="ri-settings-3-line" /> {t('mc_str_machine_add')}
+                        </button>
+                      )
+                    )}
 
                     {perfByEx[e.id] && (
                       <LastPerformanceCard
@@ -665,7 +828,8 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
                       {e.sets.map((s, si) => {
                         const repsInvalid = tm === 'reps' && s.reps.trim() !== '' && !parseRepsInput(s.reps);
                         return (
-                        <div key={si} className="flex items-center gap-1.5">
+                        <div key={si} className="space-y-1.5">
+                        <div className="flex items-center gap-1.5">
                           <span className="w-6 flex-shrink-0 text-center text-[11px] font-bold text-zinc-500">{si + 1}</span>
                           <input value={s.reps} inputMode={tm === 'reps' ? 'text' : 'decimal'}
                             placeholder={tm === 'reps' ? '8-10' : tm === 'time' ? '45' : '20'} style={{ fontSize: 16, minHeight: 44 }}
@@ -691,6 +855,45 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
                               <i className="ri-close-line"></i>
                             </button>
                           )}
+                        </div>
+
+                        {/* ── Serie descendente (dropset) ──
+                            Los escalones son parte de ESTA serie, no series
+                            nuevas: van indentados y sin numerar aparte, para
+                            que se lea "la serie 2 tuvo dos bajadas". */}
+                        {s.drops && s.drops.map((d, di) => (
+                          <div key={`d${di}`} className="flex items-center gap-1.5" style={{ paddingLeft: '1.5rem' }}>
+                            <span className="w-6 flex-shrink-0 flex items-center justify-center text-zinc-600" aria-hidden>
+                              <i className="ri-corner-down-right-line text-xs" />
+                            </span>
+                            <input value={d.reps} inputMode={tm === 'reps' ? 'text' : 'decimal'}
+                              placeholder={tm === 'reps' ? '6' : '30'} style={{ fontSize: 16, minHeight: 40 }}
+                              aria-label={`${t('mc_str_drop_step')} ${di + 1} · ${primaryLabel}`}
+                              onChange={(ev) => patchDrop(b.group, e.id, si, di, { reps: ev.target.value })}
+                              className="flex-1 min-w-0 bg-white/[0.02] border border-white/[0.08] text-white text-center rounded-xl px-2 py-2 focus:outline-none focus:border-red-500" />
+                            <div className="flex-1 min-w-0 relative">
+                              <input value={d.weight} inputMode="decimal" placeholder="0" style={{ fontSize: 16, minHeight: 40 }}
+                                aria-label={`${t('mc_str_drop_step')} ${di + 1} · ${t(weightLabelKey(wm))}`}
+                                onChange={(ev) => patchDrop(b.group, e.id, si, di, { weight: ev.target.value })}
+                                className="w-full bg-white/[0.02] border border-white/[0.08] text-white rounded-xl pl-3 pr-8 py-2 focus:outline-none focus:border-red-500" />
+                              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-zinc-500 pointer-events-none">kg</span>
+                            </div>
+                            <button onClick={() => removeDrop(b.group, e.id, si, di)} aria-label={t('mc_str_drop_remove')}
+                              className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg text-zinc-600 hover:text-red-400 cursor-pointer">
+                              <i className="ri-close-line"></i>
+                            </button>
+                          </div>
+                        ))}
+
+                        <div style={{ paddingLeft: '1.5rem' }}>
+                          <button type="button"
+                            onClick={() => (s.drops ? addDrop(b.group, e.id, si) : toggleDropset(b.group, e.id, si))}
+                            style={{ minHeight: 34 }}
+                            className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-500 hover:text-white cursor-pointer">
+                            <i className="ri-arrow-down-line" />
+                            {s.drops ? t('mc_str_drop_add_more') : t('mc_str_drop_make')}
+                          </button>
+                        </div>
                         </div>
                         );
                       })}

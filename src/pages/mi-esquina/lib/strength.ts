@@ -63,3 +63,37 @@ export function weeklyProgressList(rows: StrengthSetRow[], weekStartISO: string)
 export function bestWeeklyProgress(rows: StrengthSetRow[], weekStartISO: string): WeeklyProgress | null {
   return weeklyProgressList(rows, weekStartISO)[0] || null;
 }
+
+// ── Series descendentes (dropsets) ──
+//
+// En la base hay UNA FILA POR ESCALÓN, pero un dropset de tres bajadas es UNA
+// serie, no tres. Los escalones de una misma serie comparten `set_number` y se
+// numeran con `drop_step` 1, 2, 3… (migración 0047).
+
+/** Fila mínima para poder agrupar por serie. */
+export interface SeriesRow { set_number: number; drop_step?: number | null }
+
+/** Una serie con sus bajadas, si las tenía. */
+export interface Series<T extends SeriesRow> { main: T; drops: T[] }
+
+/**
+ * Agrupa las filas de un ejercicio en SERIES.
+ *
+ * Sin la migración 0047, `drop_step` llega null en todas y cada fila es su
+ * propia serie: exactamente el comportamiento de siempre.
+ */
+export function groupSeries<T extends SeriesRow>(rows: T[]): Series<T>[] {
+  const bySet = new Map<number, T[]>();
+  rows.forEach((r) => bySet.set(r.set_number, [...(bySet.get(r.set_number) || []), r]));
+  return [...bySet.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([, group]) => {
+      const sorted = [...group].sort((a, b) => (a.drop_step ?? 1) - (b.drop_step ?? 1));
+      return { main: sorted[0], drops: sorted.slice(1) };
+    });
+}
+
+/** true si la fila es una BAJADA de un dropset, no una serie de verdad. */
+export function isDropStep(r: { drop_step?: number | null }): boolean {
+  return !!r.drop_step && r.drop_step > 1;
+}

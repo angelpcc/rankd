@@ -34,7 +34,15 @@ interface Row {
   weight_mode: string | null;
   tracking_mode: string | null;
   notes?: string | null;
+  /** Máquina o polea concreta (migración 0047). */
+  machine_label?: string | null;
+  /** Escalón de una serie descendente (migración 0047). */
+  drop_step?: number | null;
 }
+
+/** Vacío, null y undefined son la misma máquina: "sin especificar". */
+const normMachine = (s?: string | null): string =>
+  (s || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ');
 
 type GroupKey = MuscleGroup | 'other';
 const ORDER: GroupKey[] = [...MUSCLE_GROUPS, 'other'];
@@ -93,6 +101,8 @@ export default function StrengthProgress({ profile }: Props) {
   const [search, setSearch] = useState('');
   const [period, setPeriod] = useState<string>('12w');
   const [metric, setMetric] = useState<Metric>('weight');
+  // Máquina cuyo progreso se está mirando. null = la más usada del ejercicio.
+  const [machineSel, setMachineSel] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -141,8 +151,33 @@ export default function StrengthProgress({ profile }: Props) {
   // Por cada sesión se agrega: mejor carga, mejores reps, volumen (Σ reps×peso),
   // e1RM de la mejor serie y la nota. Así el tooltip puede contarlo todo sin
   // volver a consultar nada.
+  // Máquinas distintas en las que se ha registrado el ejercicio elegido, de la
+  // más usada a la menos. Si solo hay una, el selector no se muestra.
+  const machines = useMemo(() => {
+    const count = new Map<string, { label: string; n: number }>();
+    rows.filter((r) => r.exercise === selectedEx).forEach((r) => {
+      const k = normMachine(r.machine_label);
+      const cur = count.get(k) || { label: (r.machine_label || '').trim(), n: 0 };
+      cur.n += 1;
+      count.set(k, cur);
+    });
+    return [...count.entries()]
+      .sort((a, b) => b[1].n - a[1].n)
+      .map(([key, v]) => ({ key, label: v.label }));
+  }, [rows, selectedEx]);
+
+  // Al cambiar de ejercicio se vuelve a "la máquina más usada".
+  useEffect(() => { setMachineSel(null); }, [selectedEx]);
+  const activeMachine = machineSel ?? machines[0]?.key ?? '';
+
   const exProg = useMemo(() => {
-    const exRows = rows.filter((r) => r.exercise === selectedEx);
+    // Comparar 18 kg de una polea con 30 kg de otra dibujaría una línea que
+    // sube y baja sin que la fuerza haya cambiado. El gráfico mira UNA máquina.
+    // Las bajadas de un dropset tampoco entran: pesan menos por definición y
+    // hundirían la línea cada vez que se hace una serie descendente.
+    const exRows = rows.filter((r) => r.exercise === selectedEx
+      && normMachine(r.machine_label) === activeMachine
+      && (!r.drop_step || r.drop_step === 1));
     const label = exRows[0]?.exercise_label || selectedEx;
     const wm: WeightMode = (exRows.find((r) => r.weight_mode)?.weight_mode as WeightMode) || weightModeOf(label);
     const tm: TrackingMode = (exRows.find((r) => r.tracking_mode)?.tracking_mode as TrackingMode) || trackingModeOf(label);
@@ -209,7 +244,7 @@ export default function StrengthProgress({ profile }: Props) {
       /** Nº total de sesiones del ejercicio, ignorando el periodo. */
       totalSessions: new Set(exRows.map((r) => r.session_date)).size,
     };
-  }, [rows, selectedEx, locale, period, metric]);
+  }, [rows, selectedEx, locale, period, metric, activeMachine]);
 
   const unitShort = exProg.tm === 'time' ? t('mc_str_unit_sec')
     : exProg.tm === 'distance' ? t('mc_str_unit_m')
@@ -391,6 +426,25 @@ export default function StrengthProgress({ profile }: Props) {
               </div>
             )}
           </div>
+
+          {/* ── Selector de máquina ──
+              Solo aparece si el ejercicio se ha registrado en más de un
+              aparato. Cada máquina marca números distintos, así que la línea
+              mezcla dos escalas si no se separa. */}
+          {machines.length > 1 && (
+            <div className="mb-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 mb-1.5">{t('mc_str_machine_label')}</p>
+              <div className="flex gap-1 flex-wrap" role="group" aria-label={t('mc_str_machine_label')}>
+                {machines.map((m) => (
+                  <button key={m.key} onClick={() => setMachineSel(m.key)} aria-pressed={activeMachine === m.key}
+                    style={{ minHeight: 32 }}
+                    className={`text-xs font-bold px-2.5 rounded-lg transition-colors cursor-pointer ${activeMachine === m.key ? 'bg-white/[0.14] text-white' : 'bg-white/[0.04] text-zinc-400 hover:text-white'}`}>
+                    {m.label || t('mc_str_machine_none')}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {exProg.series.length < 2 ? (
             <p className="text-xs text-zinc-500 py-8 text-center leading-relaxed">

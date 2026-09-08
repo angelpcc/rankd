@@ -41,6 +41,14 @@ alter table public.strength_sets
   add column if not exists machine_label text,
   add column if not exists drop_step     smallint;
 
+-- 3. activity_sessions.avg_hr → frecuencia cardíaca media de la sesión.
+--
+--    Dato secundario y opcional: la mayoría de registros no lo llevan. Va
+--    plegado en el formulario junto a ritmo e inclinación, para que registrar
+--    una carrera siga siendo tipo + duración + distancia y nada más.
+alter table public.activity_sessions
+  add column if not exists avg_hr smallint;
+
 -- Búsqueda de "cómo fue la última vez en ESTA máquina": el índice existente
 -- (fighter, exercise, date desc) ya acota casi todo; machine_label se filtra
 -- sobre un conjunto pequeño, así que no hace falta índice propio.

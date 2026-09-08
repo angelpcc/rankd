@@ -24,7 +24,20 @@ export interface PRRow {
   weight_kg: number | string;
   weight_mode?: string | null;
   tracking_mode?: string | null;
+  /**
+   * Máquina o polea concreta (migración 0047). Una marca en la polea de un
+   * gimnasio no es una marca en la de otro: el número depende del aparato,
+   * así que las marcas se llevan por separado.
+   */
+  machine_label?: string | null;
+  /** Escalón de una serie descendente. >1 = bajada, no una serie de verdad. */
+  drop_step?: number | null;
 }
+
+/** Vacío, null y undefined son la misma máquina: "sin especificar". */
+const normMachine = (s?: string | null): string =>
+  (s || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ');
+
 
 export interface PRHit {
   kind: PRKind;
@@ -57,15 +70,27 @@ interface Running {
 export function computePRs(rows: PRRow[]): Map<string, PRHit[]> {
   const out = new Map<string, PRHit[]>();
 
-  // Agrupar por ejercicio y, dentro, por fecha.
-  const byExercise = new Map<string, Map<string, PRRow[]>>();
+  // Agrupar por ejercicio Y MÁQUINA y, dentro, por fecha.
+  //
+  // El mismo jalón marca 18 en una polea y 30 en otra sin que hayas ganado
+  // fuerza. Mezclarlas inventaría una marca al cambiar de gimnasio, o la haría
+  // inalcanzable para siempre. Cada máquina lleva su propio récord.
+  //
+  // La clave del grupo se construye con JSON.stringify para no depender de
+  // ningún carácter separador: los nombres de máquina son texto libre del
+  // usuario y cualquier separador elegido a mano podría aparecer en ellos. El
+  // ejercicio se guarda aparte en el propio valor, así que nunca hay que
+  // parsear la clave de vuelta.
+  interface Bucket { exercise: string; byDate: Map<string, PRRow[]> }
+  const buckets = new Map<string, Bucket>();
   rows.forEach((r) => {
-    if (!byExercise.has(r.exercise)) byExercise.set(r.exercise, new Map());
-    const byDate = byExercise.get(r.exercise)!;
-    byDate.set(r.session_date, [...(byDate.get(r.session_date) || []), r]);
+    const k = JSON.stringify([r.exercise, normMachine(r.machine_label)]);
+    let bucket = buckets.get(k);
+    if (!bucket) { bucket = { exercise: r.exercise, byDate: new Map() }; buckets.set(k, bucket); }
+    bucket.byDate.set(r.session_date, [...(bucket.byDate.get(r.session_date) || []), r]);
   });
 
-  byExercise.forEach((byDate, exercise) => {
+  buckets.forEach(({ exercise, byDate }) => {
     const dates = [...byDate.keys()].sort();
     const run: Running = { bestWeight: 0, bestVolume: 0, bestValue: 0, repsAtWeight: new Map() };
     let seenAny = false;
@@ -96,6 +121,10 @@ export function computePRs(rows: PRRow[]): Map<string, PRHit[]> {
         if (seenAny && loaded) {
           let bestGain: PRHit | null = null;
           sets.forEach((s) => {
+            // Las bajadas de un dropset no cuentan aquí: 6 reps a 30 kg
+            // llegando reventado tras 40 kg no es comparable con 6 reps a
+            // 30 kg en fresco. Contarlas inventaría marcas.
+            if (s.drop_step && s.drop_step > 1) return;
             const w = Number(s.weight_kg) || 0;
             if (w <= 0) return;
             const prev = run.repsAtWeight.get(w);
@@ -116,13 +145,19 @@ export function computePRs(rows: PRRow[]): Map<string, PRHit[]> {
         run.bestWeight = Math.max(run.bestWeight, maxWeight);
         run.bestVolume = Math.max(run.bestVolume, volume);
         sets.forEach((s) => {
+          if (s.drop_step && s.drop_step > 1) return;
           const w = Number(s.weight_kg) || 0;
           if (w <= 0) return;
           run.repsAtWeight.set(w, Math.max(run.repsAtWeight.get(w) ?? 0, s.reps));
         });
       }
 
-      if (hits.length) out.set(prKey(date, exercise), hits);
+      // Se ACUMULA, no se reemplaza: el mismo ejercicio en dos máquinas
+      // distintas el mismo día son dos grupos que escriben en la misma clave.
+      if (hits.length) {
+        const k = prKey(date, exercise);
+        out.set(k, [...(out.get(k) || []), ...hits]);
+      }
       seenAny = true;
     });
   });

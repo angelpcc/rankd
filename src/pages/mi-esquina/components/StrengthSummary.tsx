@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, type Profile } from '@/lib/supabase';
-import { isMissingTable } from '@/lib/dbState';
+import { isMissingTable, isMissingColumn } from '@/lib/dbState';
 import { MUSCLE_GROUPS, muscleGroupOf, type MuscleGroup } from '../lib/exercises';
 import { exerciseLines, type StrengthPayload } from '../lib/dayPlan';
 import MuscleMap, { type MapGroup, type TrainState } from './MuscleMap';
@@ -22,7 +22,7 @@ type GroupKey = MuscleGroup | 'other';
 const ORDER: GroupKey[] = [...MUSCLE_GROUPS, 'other'];
 const MAP_GROUPS: MapGroup[] = ['chest', 'shoulders', 'biceps', 'triceps', 'back', 'core', 'legs'];
 
-interface Row { session_date: string; muscle_group: string | null; exercise_label: string }
+interface Row { session_date: string; muscle_group: string | null; exercise_label: string; drop_step?: number | null }
 interface DaySession { date: string; groups: GroupKey[]; exerciseCount: number }
 
 function iso(d: Date): string {
@@ -43,17 +43,25 @@ export default function StrengthSummary({ profile, onEnter, onGoAsesor }: Props)
     let alive = true;
     (async () => {
       const todayI = iso(new Date());
-      const [setsRes, planRes, activeRes] = await Promise.all([
-        supabase.from('strength_sets').select('session_date, muscle_group, exercise_label')
-          .eq('fighter_profile_id', profile.id).order('session_date', { ascending: false }).limit(1200),
+      // `drop_step` viene de la migración 0047. Si no está aplicada, se pide
+      // sin ella: entonces no hay dropsets guardados y nada que descontar.
+      const setsQuery = (cols: string) => supabase.from('strength_sets').select(cols)
+        .eq('fighter_profile_id', profile.id).order('session_date', { ascending: false }).limit(1200);
+      const [setsFirst, planRes, activeRes] = await Promise.all([
+        setsQuery('session_date, muscle_group, exercise_label, drop_step'),
         supabase.from('day_plan_items').select('payload')
           .eq('fighter_profile_id', profile.id).eq('kind', 'strength').eq('plan_date', todayI),
         supabase.from('objective_plans').select('id')
           .eq('fighter_profile_id', profile.id).eq('status', 'active').limit(1).maybeSingle(),
       ]);
+      const setsRes = isMissingColumn(setsFirst.error)
+        ? await setsQuery('session_date, muscle_group, exercise_label')
+        : setsFirst;
       if (!alive) return;
       if (isMissingTable(setsRes.error)) { setUnavailable(true); setLoading(false); return; }
-      setRows((setsRes.data || []) as Row[]);
+      // Las bajadas de una serie descendente no son series: se descartan aquí
+      // una sola vez, así ni el volumen semanal ni el recuento las cuentan.
+      setRows(((setsRes.data || []) as unknown as Row[]).filter((r) => !r.drop_step || r.drop_step === 1));
       if (!isMissingTable(planRes.error)) {
         setToday(((planRes.data || []) as { payload: StrengthPayload }[]).map((r) => r.payload));
       } else {
