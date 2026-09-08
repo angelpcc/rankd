@@ -46,7 +46,8 @@ export default function AgendaHub({ profile, showToast, mode, onLogged, initialT
           {mode === 'pro' && (
             <Reveal><FightPrep profile={profile} /></Reveal>
           )}
-          <Reveal delay={20}><TodaySupplements profile={profile} /></Reveal>
+          {/* Los suplementos ya NO van aquí arriba: se pintan dentro de la vista
+              de día (WeeklyAgenda › DayView), junto a fuerza y actividad. */}
           <Reveal delay={30}><AgendaWeekStrip profile={profile} /></Reveal>
         </>
       )}

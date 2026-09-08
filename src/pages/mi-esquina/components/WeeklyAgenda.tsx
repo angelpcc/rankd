@@ -7,6 +7,7 @@ import StateBlock from '@/components/base/StateBlock';
 import SegmentedProgress from '@/components/base/SegmentedProgress';
 import StrengthPlanBuilder from './StrengthPlanBuilder';
 import SectionHero from './SectionHero';
+import TodaySupplements from './TodaySupplements';
 import {
   type DayPlanItem, type DayPlanKind, type StrengthPayload, type ActivityPayload,
   type MealPayload, type SupplementPayload, type NotePayload, type MealSlot, type ExerciseSpec,
@@ -262,6 +263,7 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
         <div className="space-y-6 max-w-3xl">
           {header}
           <DayView
+            profile={profile}
             date={dayISO}
             locale={locale}
             items={itemsByDate.get(dayISO) || []}
@@ -490,6 +492,8 @@ function WeekLegend({ t, mode }: { t: (k: string) => string; mode: 'pro' | 'hobb
 
 // ────────────────────────────────────────────────────────────────────────
 interface DayViewProps {
+  /** Para los suplementos del día (solo lectura). */
+  profile: Profile;
   date: string;
   locale: string;
   items: DayPlanItem[];
@@ -507,7 +511,7 @@ interface DayViewProps {
   onGoActivity: () => void;
 }
 
-function DayView({ date, locale, items, comp, logged, mode, onPrev, onNext, onAdd, onRemove, onMove, onPlanThisDay, onPlanWeek, onGoActivity }: DayViewProps) {
+function DayView({ profile, date, locale, items, comp, logged, mode, onPrev, onNext, onAdd, onRemove, onMove, onPlanThisDay, onPlanWeek, onGoActivity }: DayViewProps) {
   const { t } = useTranslation();
   const dObj = new Date(date + 'T12:00:00');
   const isToday = date === todayISO();
@@ -594,6 +598,12 @@ function DayView({ date, locale, items, comp, logged, mode, onPrev, onNext, onAd
               </div>
             );
           })}
+
+          {/* Suplementos del día. Son una rutina recurrente (los tomas casi a
+              diario), así que se muestran en TODOS los días en vez de vivir en
+              una tarjeta fija encima de la Agenda. Solo lectura: se gestionan
+              en Nutrición › Suplementos. */}
+          <TodaySupplements profile={profile} compact />
 
           {/* Añadir un bloque que aún no existe */}
           <div className="flex flex-wrap gap-2">

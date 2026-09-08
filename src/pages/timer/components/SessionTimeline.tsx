@@ -70,7 +70,13 @@ export default function SessionTimeline({ schedule, elapsedTotal = 0, live = fal
 
       {/* Leyenda */}
       <div className="flex items-center gap-4 mt-2.5 flex-wrap">
-        <Legend color="#E10600" label={`${schedule.filter((s) => s.type === 'round').length} ${t('tm_phase_round').toLowerCase()}`} />
+        {/* Concatenaba el número con la palabra SIEMPRE en singular y salía
+            "3 asalto". Con más de uno se usa el plural, que ya existe. */}
+        {(() => {
+          const n = schedule.filter((s) => s.type === 'round').length;
+          const word = (n === 1 ? t('tm_phase_round') : t('tm_rounds')).toLowerCase();
+          return <Legend color="#E10600" label={`${n} ${word}`} />;
+        })()}
         {schedule.some((s) => s.type === 'rest') && <Legend color="#22c55e" label={t('tm_phase_rest')} />}
         {schedule.some((s) => s.bursts.length > 0) && <Legend striped label={t('tm_burst_title')} />}
       </div>

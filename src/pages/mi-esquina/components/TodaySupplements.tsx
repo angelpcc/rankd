@@ -2,7 +2,17 @@ import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 
-interface Props { profile: Profile }
+interface Props {
+  profile: Profile;
+  /**
+   * `true` = se pinta como un bloque más DENTRO de la vista de día, sin card
+   * propia. Los suplementos son una rutina recurrente, no una fila fechada:
+   * antes vivían en una tarjeta fija encima de la Agenda y ocupaban lo primero
+   * que veías cada vez. Al ir dentro del día se leen junto a fuerza y actividad,
+   * que es cuando de verdad importan.
+   */
+  compact?: boolean;
+}
 
 interface CommonSupplement { id: string; name: string }
 interface UserSupplement { id: string; supplement_id: string | null; custom_name: string | null; time_of_day: string | null; slot: string | null }
@@ -18,7 +28,7 @@ const SLOT_LABEL: Record<string, string> = {
  * Solo lectura — añadir/editar vive en Nutrición › Suplementos. No
  * renderiza nada si no hay suplementos con hora asignada.
  */
-export default function TodaySupplements({ profile }: Props) {
+export default function TodaySupplements({ profile, compact = false }: Props) {
   const { t } = useTranslation();
   const [catalog, setCatalog] = useState<CommonSupplement[]>([]);
   const [items, setItems] = useState<UserSupplement[]>([]);
@@ -57,21 +67,38 @@ export default function TodaySupplements({ profile }: Props) {
     return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
   };
 
+  const chips = (
+    <div className="flex flex-wrap gap-2">
+      {sorted.map((item) => (
+        <span key={item.id} className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-300 bg-white/[0.03] border border-white/10 px-2.5 py-1.5 rounded-lg">
+          <span style={{ color: 'var(--t-2)' }}>
+            {item.slot && SLOT_LABEL[item.slot] && item.slot !== 'otro' ? t(SLOT_LABEL[item.slot]) : fmtTime(item.time_of_day!)}
+          </span>
+          {item.custom_name || catalogById.get(item.supplement_id || '') || '—'}
+        </span>
+      ))}
+    </div>
+  );
+
+  // Dentro del día: mismo formato que los demás bloques (título en versalitas
+  // + chips), sin card, para que se lea como uno más y no como un añadido.
+  if (compact) {
+    return (
+      <div>
+        <p className="text-[11px] font-bold tracking-[0.18em] uppercase mb-2 flex items-center gap-2" style={{ color: 'var(--t-2)' }}>
+          <i className="ri-capsule-line"></i>{t('mc_sup_today_title')}
+        </p>
+        {chips}
+      </div>
+    );
+  }
+
   return (
     <div className="rk-card" style={{ padding: '14px 18px' }}>
-      <p className="text-[11px] font-bold tracking-[0.16em] uppercase text-[#C9A84C] mb-2.5 flex items-center gap-1.5">
+      <p className="text-[11px] font-bold tracking-[0.16em] uppercase mb-2.5 flex items-center gap-1.5" style={{ color: 'var(--t-2)' }}>
         <i className="ri-capsule-line"></i>{t('mc_sup_today_title')}
       </p>
-      <div className="flex flex-wrap gap-2">
-        {sorted.map((item) => (
-          <span key={item.id} className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-300 bg-white/[0.03] border border-white/10 px-2.5 py-1.5 rounded-lg">
-            <span className="text-[#C9A84C]">
-              {item.slot && SLOT_LABEL[item.slot] && item.slot !== 'otro' ? t(SLOT_LABEL[item.slot]) : fmtTime(item.time_of_day!)}
-            </span>
-            {item.custom_name || catalogById.get(item.supplement_id || '') || '—'}
-          </span>
-        ))}
-      </div>
+      {chips}
     </div>
   );
 }

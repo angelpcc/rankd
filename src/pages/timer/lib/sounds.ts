@@ -218,8 +218,15 @@ export const timerSounds = new TimerSounds();
 // la página del temporizador. Devuelve una función de limpieza.
 export function armTimerAudio(): () => void {
   const handler = () => { timerSounds.unlock(); };
-  const opts = { passive: true } as AddEventListenerOptions;
-  const events: (keyof DocumentEventMap)[] = ['pointerdown', 'touchstart', 'mousedown', 'keydown'];
-  events.forEach((e) => document.addEventListener(e, handler, opts));
-  return () => events.forEach((e) => document.removeEventListener(e, handler, opts));
+  // Sin nombrar `AddEventListenerOptions` ni `DocumentEventMap`: son tipos de
+  // la lib DOM que TypeScript resuelve pero que la regla no-undef de ESLint no
+  // conoce, y daban dos errores de lint sin ningún efecto en tiempo de
+  // ejecución. Se infieren igual.
+  //
+  // `passive` SOLO existe al añadir. Al quitar, el navegador compara el tipo, la
+  // función y `capture`; pasarle `{ passive }` rompe la compilación (TS2769)
+  // porque `EventListenerOptions` no tiene esa propiedad.
+  const events = ['pointerdown', 'touchstart', 'mousedown', 'keydown'] as const;
+  events.forEach((e) => document.addEventListener(e, handler, { passive: true }));
+  return () => events.forEach((e) => document.removeEventListener(e, handler));
 }

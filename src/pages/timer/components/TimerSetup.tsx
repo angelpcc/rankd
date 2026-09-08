@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   FACTORY_PRESETS, fmt, fmtLong, totalSessionSeconds, totalWorkSeconds, uid,
@@ -40,6 +40,10 @@ export default function TimerSetup(props: Props) {
   } = props;
   const { t } = useTranslation();
   const [libraryFor, setLibraryFor] = useState<number | null | 'browse'>(null);
+  // Los tres números del resumen son un atajo a la configuración libre, que
+  // está más abajo pasados los preajustes.
+  const cfgRef = useRef<HTMLDivElement | null>(null);
+  const goToConfig = () => cfgRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   const [savingPreset, setSavingPreset] = useState(false);
   const [presetName, setPresetName] = useState('');
   const [aiPrompt, setAiPrompt] = useState('');
@@ -129,9 +133,9 @@ export default function TimerSetup(props: Props) {
 
         {/* Resumen numérico */}
         <div className="grid grid-cols-3 gap-3">
-          <MiniStat value={String(config.rounds)} label={t('tm_rounds')} />
-          <MiniStat value={fmt(config.roundSec)} label={t('tm_round_dur')} color="#E10600" />
-          <MiniStat value={config.restSec > 0 ? fmt(config.restSec) : '—'} label={t('tm_rest_dur')} color="#22c55e" />
+          <MiniStat value={String(config.rounds)} label={t('tm_rounds')} onClick={goToConfig} />
+          <MiniStat value={fmt(config.roundSec)} label={t('tm_round_dur')} color="#E10600" onClick={goToConfig} />
+          <MiniStat value={config.restSec > 0 ? fmt(config.restSec) : '—'} label={t('tm_rest_dur')} color="#22c55e" onClick={goToConfig} />
         </div>
 
         {/* ── Preajustes ── */}
@@ -185,6 +189,7 @@ export default function TimerSetup(props: Props) {
         </Section>
 
         {/* ── Configuración libre ── */}
+        <div ref={cfgRef} style={{ scrollMarginTop: 80 }} />
         <Section icon="ri-equalizer-line" title={t('tm_cfg_title')} sub={t('tm_cfg_sub')}>
           <div className="space-y-4">
             <Row label={t('tm_rounds')}>
@@ -367,12 +372,27 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-function MiniStat({ value, label, color = '#fff' }: { value: string; label: string; color?: string }) {
-  return (
-    <div className="rounded-xl bg-white/[0.03] border border-white/10 px-2 py-3 text-center">
+/**
+ * Resumen de la configuración. Parecía un dato de solo lectura, y los controles
+ * de verdad viven más abajo (pasados los preajustes): al entrar no se veía qué
+ * era editable. Ahora es un atajo — se toca y lleva a la configuración libre.
+ */
+function MiniStat({ value, label, color = '#fff', onClick }: { value: string; label: string; color?: string; onClick?: () => void }) {
+  const inner = (
+    <>
       <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 26, lineHeight: 1, color }}>{value}</p>
       <p className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1 truncate">{label}</p>
-    </div>
+    </>
+  );
+  if (!onClick) {
+    return <div className="rounded-xl bg-white/[0.03] border border-white/10 px-2 py-3 text-center">{inner}</div>;
+  }
+  return (
+    <button type="button" onClick={onClick} style={{ minHeight: 76 }}
+      className="rk-press relative w-full rounded-xl bg-white/[0.03] border border-white/10 hover:border-white/25 px-2 py-3 text-center cursor-pointer">
+      <i className="ri-pencil-line absolute" style={{ top: 6, right: 7, fontSize: 11, color: 'var(--t-3)' }} aria-hidden />
+      {inner}
+    </button>
   );
 }
 

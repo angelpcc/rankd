@@ -21,21 +21,32 @@ interface Props {
   onGoAsesor: () => void;
 }
 
+// De seis pestañas a cuatro. Seis obligaban a deslizar y a decidir demasiado
+// pronto. Se funden las que son la misma tarea vista desde dos momentos:
+//   · Registrar  = lo que haces hoy + lo que dejas programado para otro día
+//   · Biblioteca = ejercicios + rutinas de movilidad (ambos son "consultar qué
+//     hacer", no "registrar")
+// Nada queda escondido: el contenido de Programar y Movilidad se pinta en su
+// pestaña, no detrás de un clic extra.
 const WORK_TABS: HubTab[] = [
   { id: 'registrar', labelKey: 'mc_str_tab_log', icon: 'ri-add-circle-line' },
-  { id: 'programar', labelKey: 'mc_str_tab_program', icon: 'ri-calendar-todo-line' },
   { id: 'progresion', labelKey: 'mc_str_tab_progress', icon: 'ri-line-chart-line' },
   { id: 'biblioteca', labelKey: 'mc_str_tab_library', icon: 'ri-book-open-line' },
-  { id: 'movilidad', labelKey: 'mc_str_tab_mobility', icon: 'ri-body-scan-line' },
   { id: 'historial', labelKey: 'mc_str_tab_history', icon: 'ri-history-line' },
 ];
+
+// Enlaces viejos (y el `onEnter` del resumen) siguen funcionando.
+const TAB_ALIAS: Record<string, string> = {
+  programar: 'registrar',
+  movilidad: 'biblioteca',
+};
 
 export default function FuerzaSection({ profile, showToast, onGoAsesor }: Props) {
   const { t } = useTranslation();
   const [view, setView] = useState<'summary' | 'work'>('summary');
   const [tab, setTab] = useState('registrar');
 
-  const enter = (target?: string) => { if (target) setTab(target); setView('work'); };
+  const enter = (target?: string) => { if (target) setTab(TAB_ALIAS[target] ?? target); setView('work'); };
 
   if (view === 'summary') {
     return <StrengthSummary profile={profile} onEnter={enter} onGoAsesor={onGoAsesor} />;
@@ -51,13 +62,26 @@ export default function FuerzaSection({ profile, showToast, onGoAsesor }: Props)
       <HubTabs tabs={WORK_TABS} active={tab} onChange={setTab} />
 
       {tab === 'registrar' && (
-        <StrengthLog profile={profile} showToast={showToast}
-          hideSummaryBlocks hideHistory onSeeHistory={() => setTab('historial')} />
+        <>
+          <StrengthLog profile={profile} showToast={showToast}
+            hideSummaryBlocks hideHistory onSeeHistory={() => setTab('historial')} />
+          {/* Programar vive aquí: es la misma tarea (dejar preparado un
+              entreno), solo que para otro día. */}
+          <div className="mt-8 pt-8" style={{ borderTop: '1px solid var(--s-3)' }}>
+            <StrengthProgram profile={profile} showToast={showToast} />
+          </div>
+        </>
       )}
-      {tab === 'programar' && <StrengthProgram profile={profile} showToast={showToast} />}
       {tab === 'progresion' && <StrengthProgress profile={profile} />}
-      {tab === 'biblioteca' && <ExerciseLibrary />}
-      {tab === 'movilidad' && <MobilityRoutines />}
+      {tab === 'biblioteca' && (
+        <>
+          <ExerciseLibrary />
+          {/* Movilidad es consulta, igual que la biblioteca: qué hacer y cómo. */}
+          <div className="mt-8 pt-8" style={{ borderTop: '1px solid var(--s-3)' }}>
+            <MobilityRoutines />
+          </div>
+        </>
+      )}
       {tab === 'historial' && (
         <StrengthLog profile={profile} showToast={showToast} hideSummaryBlocks hideRegisterCta />
       )}
