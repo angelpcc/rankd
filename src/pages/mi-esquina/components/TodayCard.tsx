@@ -147,7 +147,7 @@ export default function TodayCard({ profile, mode, onStart, onCreatePlan, onLogW
     return (
       <PhotoCard
         primary
-        art="ring"
+        image="/images/sparring.webp"
         icon="ri-sword-line"
         chips={pill(fightDays <= 0 ? t('mc_hoy_fight_today') : t('mc_hoy_fight_in', { n: fightDays }))}
         title={nextFight.title.toUpperCase()}
@@ -164,7 +164,7 @@ export default function TodayCard({ profile, mode, onStart, onCreatePlan, onLogW
     return (
       <PhotoCard
         primary
-        art={isStrength ? "strength" : "activity"}
+        image={isStrength ? "/images/fuerza.webp" : "/images/correr.webp"}
         icon={main.icon}
         chips={<>{pill(t('mc_hoy_pending'))}{extra > 0 && pill(`+${extra}`, 'ghost')}</>}
         title={main.title.toUpperCase()}

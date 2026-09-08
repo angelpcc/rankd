@@ -1,17 +1,25 @@
-import SectionArt, { type ArtKind } from '@/components/base/SectionArt';
+import PhotoCard from '@/components/base/PhotoCard';
 
 // Cabecera de cada sección de Mi Esquina.
 //
-// Antes eran fotos de archivo (un gimnasio cualquiera, alguien corriendo por
-// una carretera cualquiera). Se veían genéricas y desentonaban con el resto de
-// la interfaz, que es dibujo plano en rojo, oro y negro. Ahora cada sección
-// lleva su propia ilustración SVG en los colores de marca, con el mismo
-// criterio que la diana de Objetivos.
+// Foto real donde la foto funciona (Fuerza, Actividad, Nutrición, Ring: las
+// que ya había y quedaban bien) e ilustración propia donde no hay una foto que
+// aporte. No es todo-o-nada: sustituir las buenas por dibujos fue un error.
 //
-// Ventaja de paso: pesan unos cientos de bytes en vez de decenas de kilobytes,
-// se ven nítidas en cualquier pantalla y no hay hueco roto si algo no carga.
+// Si la foto no carga, PhotoCard pinta su fondo diseñado — nunca un hueco.
 
-export type HeroKind = ArtKind;
+export type HeroKind = 'strength' | 'activity' | 'agenda' | 'nutrition' | 'ring';
+
+// Fotos reales (Unsplash, licencia libre) en WebP. `art` solo donde la foto no
+// aportaba nada mejor que un dibujo.
+const HERO: Record<HeroKind, { image?: string; art?: 'agenda'; icon: string }> = {
+  strength:  { image: '/images/fuerza.webp',    icon: 'ri-hammer-line' },
+  activity:  { image: '/images/correr.webp',    icon: 'ri-run-line' },
+  nutrition: { image: '/images/nutricion.webp', icon: 'ri-restaurant-2-line' },
+  ring:      { image: '/images/sparring.webp',  icon: 'ri-boxing-line' },
+  // La foto de silueta no decía nada de una agenda; la rejilla de mes sí.
+  agenda:    { art: 'agenda',                   icon: 'ri-calendar-todo-line' },
+};
 
 interface Props {
   kind: HeroKind;
@@ -24,40 +32,27 @@ interface Props {
   action?: { label: string; icon?: string; onClick: () => void };
 }
 
-const LEGIBILITY =
-  'linear-gradient(100deg, rgba(10,10,11,0.97) 0%, rgba(10,10,11,0.86) 46%, rgba(10,10,11,0.35) 100%)';
-
 export default function SectionHero({ kind, eyebrow, title, subtitle, action }: Props) {
+  const h = HERO[kind];
   return (
-    <div className="relative w-full overflow-hidden flex flex-col justify-end"
-      style={{
-        borderRadius: 'var(--r-card)',
-        background: 'linear-gradient(150deg, var(--s-1) 0%, #0d0d0d 100%)',
-        border: '1px solid var(--s-3)',
-        minHeight: action ? 168 : 132,
-      }}>
-      {/* La ilustración va a sangre por la derecha; el degradado de la
-          izquierda garantiza que el texto se lea encima de ella. */}
-      <SectionArt kind={kind} className="absolute inset-0 w-full h-full" />
-      <div className="absolute inset-0 pointer-events-none" style={{ background: LEGIBILITY }} />
-
-      <div className="relative p-5">
-        {eyebrow && (
-          <p className="rk-eyebrow" style={{ marginBottom: 4 }}>{eyebrow}</p>
-        )}
-        <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 30, lineHeight: 1.02, color: 'var(--t-1)', letterSpacing: '0.01em' }}>
-          {title.toUpperCase()}
-        </p>
-        {subtitle && (
-          <p className="mt-1" style={{ fontSize: 13, color: 'var(--t-2)', maxWidth: '30ch' }}>{subtitle}</p>
-        )}
-        {action && (
-          <button onClick={action.onClick} style={{ minHeight: 44 }}
-            className="rk-nav-btn rk-press inline-flex items-center gap-2 mt-4">
-            {action.icon && <i className={action.icon} />} {action.label}
-          </button>
-        )}
-      </div>
-    </div>
+    <PhotoCard
+      art={h.art}
+      image={h.image}
+      icon={h.icon}
+      aspect="21 / 7"
+      chips={eyebrow ? (
+        <span style={{ background: 'rgba(255,255,255,0.1)', color: 'var(--t-1)', borderRadius: 'var(--r-pill)', padding: '4px 12px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+          {eyebrow}
+        </span>
+      ) : undefined}
+      title={title.toUpperCase()}
+      subtitle={subtitle}
+      footer={action ? (
+        <button onClick={action.onClick} style={{ minHeight: 44 }}
+          className="rk-nav-btn rk-press inline-flex items-center gap-2">
+          {action.icon && <i className={action.icon} />} {action.label}
+        </button>
+      ) : undefined}
+    />
   );
 }

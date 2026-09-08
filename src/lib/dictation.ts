@@ -121,7 +121,24 @@ function digitize(s: string): string {
 
 const clampN = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 
-export function parseStrengthFromSpeech(text: string, library: string[] = []): ParsedStrength {
+/**
+ * Biblioteca para reconocer ejercicios al dictar.
+ *
+ * Admite dos formas para no romper a quien ya pasaba nombres sueltos:
+ *   · `string[]` → cada nombre se reconoce solo por sí mismo (ejercicios que
+ *     el usuario ya ha registrado, que no tienen variantes).
+ *   · `{ label, terms }[]` → varias formas de llamar al mismo ejercicio. Es lo
+ *     que devuelve `exerciseDictationTerms`, e incluye el nombre sin el
+ *     paréntesis del equipo y los alias antiguos.
+ */
+export type DictEntry = { label: string; terms: string[] };
+export type DictLibrary = (string | DictEntry)[];
+
+function dictEntries(lib: DictLibrary): DictEntry[] {
+  return lib.map((e) => (typeof e === 'string' ? { label: e, terms: [e] } : e));
+}
+
+export function parseStrengthFromSpeech(text: string, library: DictLibrary = []): ParsedStrength {
   const raw = norm(text);
   const s = digitize(raw);
   const out: ParsedStrength = { notes: text.trim() };
@@ -158,12 +175,15 @@ export function parseStrengthFromSpeech(text: string, library: string[] = []): P
     if (rm) { const r = parseInt(rm[1], 10); if (r > 0 && r <= 100) out.reps = r; }
   }
 
-  // Ejercicio: el nombre de la biblioteca más largo que aparezca en el texto.
-  const found = library
-    .map((l) => ({ l, n: norm(l) }))
+  // Ejercicio: la forma MÁS LARGA que aparezca en el texto. Se buscan todas
+  // las formas de llamarlo (nombre completo, sin el paréntesis del equipo,
+  // alias antiguos), no solo el nombre de la biblioteca: nadie dicta
+  // "jalón al pecho abre paréntesis polea".
+  const found = dictEntries(library)
+    .flatMap(({ label, terms }) => terms.map((term) => ({ label, n: norm(term) })))
     .filter((x) => x.n && raw.includes(x.n))
     .sort((a, b) => b.n.length - a.n.length)[0];
-  if (found) out.exercise = found.l;
+  if (found) out.exercise = found.label;
 
   return out;
 }
@@ -179,18 +199,20 @@ export function parseStrengthFromSpeech(text: string, library: string[] = []): P
 
 const CONNECTORS = /\s*(?:,?\s*(?:y\s+)?(?:luego|despues|a\s+continuacion|seguido)\b|,?\s*(?:and\s+)?(?:then|next|after\s+that)\b)\s*/g;
 
-function findExerciseHits(hay: string, library: string[]): { label: string; idx: number; len: number }[] {
+function findExerciseHits(hay: string, library: DictLibrary): { label: string; idx: number; len: number }[] {
   const hits: { label: string; idx: number; len: number }[] = [];
-  library.forEach((l) => {
-    const n = norm(l);
-    if (!n) return;
-    let from = 0;
-    for (;;) {
-      const idx = hay.indexOf(n, from);
-      if (idx === -1) break;
-      hits.push({ label: l, idx, len: n.length });
-      from = idx + n.length;
-    }
+  dictEntries(library).forEach(({ label, terms }) => {
+    terms.forEach((term) => {
+      const n = norm(term);
+      if (!n) return;
+      let from = 0;
+      for (;;) {
+        const idx = hay.indexOf(n, from);
+        if (idx === -1) break;
+        hits.push({ label, idx, len: n.length });
+        from = idx + n.length;
+      }
+    });
   });
   // Ordena por posición; en solapes, gana el nombre más largo.
   hits.sort((a, b) => a.idx - b.idx || b.len - a.len);
@@ -201,7 +223,7 @@ function findExerciseHits(hay: string, library: string[]): { label: string; idx:
   return chosen.sort((a, b) => a.idx - b.idx);
 }
 
-export function parseStrengthSessionFromSpeech(text: string, library: string[] = []): ParsedStrength[] {
+export function parseStrengthSessionFromSpeech(text: string, library: DictLibrary = []): ParsedStrength[] {
   const raw = norm(text);
 
   // 1) Segmentar por conectores explícitos ("luego", "then"…).

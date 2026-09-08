@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
-import { isMissingTable } from '@/lib/dbState';
+import { isMissingTable, isMissingColumn } from '@/lib/dbState';
 import BottomSheet from '@/components/base/BottomSheet';
 import StateBlock from '@/components/base/StateBlock';
 import SegmentedProgress from '@/components/base/SegmentedProgress';
 import StrengthPlanBuilder from './StrengthPlanBuilder';
 import SectionHero from './SectionHero';
-import TodaySupplements from './TodaySupplements';
+import { activeSupplementsOn } from '../lib/supplements';
 import {
   type DayPlanItem, type DayPlanKind, type StrengthPayload, type ActivityPayload,
   type MealPayload, type SupplementPayload, type NotePayload, type MealSlot, type ExerciseSpec,
@@ -28,7 +28,38 @@ interface Props {
 
 interface CompEvent { id: string; event_date: string; kind: 'fight' | 'weigh_in'; title: string }
 interface LoggedAct { id: string; session_date: string; kind: string; duration_min: number; rounds: number | null }
-interface LoggedStr { session_date: string; muscle_group: string | null }
+interface LoggedStr {
+  session_date: string;
+  muscle_group: string | null;
+  exercise_label: string;
+  /** Franja (migración 0033). null = sesión única del día. */
+  session_slot?: string | null;
+}
+interface LoggedWeight { entry_date: string; weight_kg: number }
+interface LoggedMeal { entry_date: string; meal_type: string | null; description: string }
+/** Suplemento de la rutina, con su vigencia (migración 0048). */
+interface UserSupp {
+  id: string; supplement_id: string | null; custom_name: string | null;
+  time_of_day: string | null; slot: string | null;
+  started_on?: string | null; ended_on?: string | null;
+}
+
+const SUPP_SLOT_LABEL: Record<string, string> = {
+  manana: 'mc_sup_slot_manana', con_comidas: 'mc_sup_slot_meals',
+  post_entreno: 'mc_sup_slot_post', antes_dormir: 'mc_sup_slot_sleep', otro: 'mc_sup_slot_other',
+};
+
+/** Todo lo que de verdad se hizo un día, para el resumen de la vista de día. */
+export interface DayLog {
+  acts: LoggedAct[];
+  strGroups: Set<string>;
+  /** Sesiones de fuerza del día, separadas por franja. */
+  strSessions: { slot: string | null; groups: string[]; exercises: string[] }[];
+  weight: number | null;
+  meals: LoggedMeal[];
+}
+
+const EMPTY_LOG: DayLog = { acts: [], strGroups: new Set(), strSessions: [], weight: null, meals: [] };
 
 function iso(d: Date): string { return isoOf(d); }
 const todayISO = () => iso(new Date());
@@ -57,6 +88,10 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
   const [comp, setComp] = useState<CompEvent[]>([]);
   const [loggedActs, setLoggedActs] = useState<LoggedAct[]>([]);
   const [loggedStr, setLoggedStr] = useState<LoggedStr[]>([]);
+  const [loggedWeights, setLoggedWeights] = useState<LoggedWeight[]>([]);
+  const [loggedMeals, setLoggedMeals] = useState<LoggedMeal[]>([]);
+  const [supps, setSupps] = useState<UserSupp[]>([]);
+  const [suppNames, setSuppNames] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [unavailable, setUnavailable] = useState(false);
 
@@ -69,18 +104,35 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [planRes, compRes, actRes, strRes] = await Promise.all([
+    // `session_slot` viene de la 0033. Si no está aplicada se pide sin ella:
+    // se pierde la separación mañana/tarde, no el resumen entero.
+    const strQuery = (cols: string) => supabase.from('strength_sets').select(cols)
+      .eq('fighter_profile_id', profile.id);
+    const [planRes, compRes, actRes, strFirst, weightRes, mealRes, suppRes, catRes] = await Promise.all([
       supabase.from('day_plan_items').select('*').eq('fighter_profile_id', profile.id).order('plan_date', { ascending: true }),
       supabase.from('planned_events').select('id, event_date, kind, title')
         .eq('fighter_profile_id', profile.id).in('kind', ['fight', 'weigh_in']),
       supabase.from('activity_sessions').select('id, session_date, kind, duration_min, rounds').eq('fighter_profile_id', profile.id),
-      supabase.from('strength_sets').select('session_date, muscle_group').eq('fighter_profile_id', profile.id),
+      strQuery('session_date, muscle_group, exercise_label, session_slot'),
+      supabase.from('weight_entries').select('entry_date, weight_kg').eq('fighter_profile_id', profile.id),
+      supabase.from('meal_entries').select('entry_date, meal_type, description').eq('fighter_profile_id', profile.id),
+      supabase.from('user_supplements').select('*').eq('fighter_profile_id', profile.id),
+      supabase.from('common_supplements').select('id, name'),
     ]);
     if (isMissingTable(planRes.error)) { setUnavailable(true); setLoading(false); return; }
+    const strRes = isMissingColumn(strFirst.error)
+      ? await strQuery('session_date, muscle_group, exercise_label')
+      : strFirst;
     setItems((planRes.data || []) as DayPlanItem[]);
     if (!isMissingTable(compRes.error)) setComp((compRes.data || []) as CompEvent[]);
     if (!isMissingTable(actRes.error)) setLoggedActs((actRes.data || []) as LoggedAct[]);
-    if (!isMissingTable(strRes.error)) setLoggedStr((strRes.data || []) as LoggedStr[]);
+    if (!isMissingTable(strRes.error)) setLoggedStr((strRes.data || []) as unknown as LoggedStr[]);
+    if (!isMissingTable(weightRes.error)) setLoggedWeights((weightRes.data || []) as LoggedWeight[]);
+    if (!isMissingTable(mealRes.error)) setLoggedMeals((mealRes.data || []) as LoggedMeal[]);
+    if (!isMissingTable(suppRes.error)) setSupps((suppRes.data || []) as UserSupp[]);
+    if (!isMissingTable(catRes.error)) {
+      setSuppNames(new Map(((catRes.data || []) as { id: string; name: string }[]).map((c) => [c.id, c.name])));
+    }
     setLoading(false);
   }, [profile.id]);
 
@@ -99,21 +151,44 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
     return m;
   }, [comp]);
 
-  // Registrado por día: actividades + grupos de fuerza (para el bloque
-  // "Registrado" de la vista Día — Tarea 4: la actividad aparece en la Agenda).
+  // Todo lo REGISTRADO por día: actividades, sesiones de fuerza separadas por
+  // franja y con sus ejercicios, peso del día y comidas. Es lo que alimenta el
+  // resumen "Lo que hiciste" de la vista de día, para que la Agenda sirva como
+  // historial real y no solo como lista de lo previsto.
   const loggedByDate = useMemo(() => {
-    const m = new Map<string, { acts: LoggedAct[]; strGroups: Set<string> }>();
-    loggedActs.forEach((a) => {
-      const e = m.get(a.session_date) || { acts: [], strGroups: new Set<string>() };
-      e.acts.push(a); m.set(a.session_date, e);
-    });
+    const m = new Map<string, DayLog>();
+    const get = (d: string): DayLog => {
+      let e = m.get(d);
+      if (!e) { e = { acts: [], strGroups: new Set<string>(), strSessions: [], weight: null, meals: [] }; m.set(d, e); }
+      return e;
+    };
+
+    loggedActs.forEach((a) => { get(a.session_date).acts.push(a); });
+
+    // Fuerza: agrupada por día Y FRANJA. Entrenar mañana y tarde el mismo día
+    // son dos sesiones, y el resumen debe decirlo.
+    const bySlot = new Map<string, { date: string; slot: string | null; groups: Set<string>; exercises: Set<string> }>();
     loggedStr.forEach((s) => {
-      const e = m.get(s.session_date) || { acts: [], strGroups: new Set<string>() };
-      if (s.muscle_group) e.strGroups.add(s.muscle_group);
-      m.set(s.session_date, e);
+      const slot = s.session_slot ?? null;
+      const key = `${s.session_date}|${slot ?? ''}`;
+      let e = bySlot.get(key);
+      if (!e) { e = { date: s.session_date, slot, groups: new Set(), exercises: new Set() }; bySlot.set(key, e); }
+      if (s.muscle_group) e.groups.add(s.muscle_group);
+      const label = (s.exercise_label || '').trim();
+      if (label) e.exercises.add(label);
+      const day = get(s.session_date);
+      if (s.muscle_group) day.strGroups.add(s.muscle_group);
     });
+    bySlot.forEach((e) => {
+      get(e.date).strSessions.push({ slot: e.slot, groups: [...e.groups], exercises: [...e.exercises] });
+    });
+
+    // Peso: si hubo varias pesadas ese día, se queda la última registrada.
+    loggedWeights.forEach((w) => { get(w.entry_date).weight = Number(w.weight_kg); });
+    loggedMeals.forEach((mm) => { get(mm.entry_date).meals.push(mm); });
+
     return m;
-  }, [loggedActs, loggedStr]);
+  }, [loggedActs, loggedStr, loggedWeights, loggedMeals]);
 
   const MONTHS = useMemo(() => Array.from({ length: 12 }, (_, m) => new Date(2024, m, 1).toLocaleDateString(locale, { month: 'long' })), [locale]);
   const WEEKDAYS_N = useMemo(() => Array.from({ length: 7 }, (_, i) => new Date(2024, 0, 1 + i).toLocaleDateString(locale, { weekday: 'narrow' }).toUpperCase()), [locale]);
@@ -263,12 +338,13 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
         <div className="space-y-6 max-w-3xl">
           {header}
           <DayView
-            profile={profile}
+            supps={supps}
+            suppNames={suppNames}
             date={dayISO}
             locale={locale}
             items={itemsByDate.get(dayISO) || []}
             comp={compByDate.get(dayISO) || []}
-            logged={loggedByDate.get(dayISO) || { acts: [], strGroups: new Set() }}
+            logged={loggedByDate.get(dayISO) || EMPTY_LOG}
             mode={mode}
             onPrev={() => setDayISO(iso(addDays(new Date(dayISO + 'T12:00:00'), -1)))}
             onNext={() => setDayISO(iso(addDays(new Date(dayISO + 'T12:00:00'), 1)))}
@@ -492,13 +568,14 @@ function WeekLegend({ t, mode }: { t: (k: string) => string; mode: 'pro' | 'hobb
 
 // ────────────────────────────────────────────────────────────────────────
 interface DayViewProps {
-  /** Para los suplementos del día (solo lectura). */
-  profile: Profile;
+  /** Suplementos vigentes ese día (solo lectura). */
+  supps: UserSupp[];
+  suppNames: Map<string, string>;
   date: string;
   locale: string;
   items: DayPlanItem[];
   comp: CompEvent[];
-  logged: { acts: LoggedAct[]; strGroups: Set<string> };
+  logged: DayLog;
   mode: 'pro' | 'hobby';
   onPrev: () => void;
   onNext: () => void;
@@ -511,7 +588,7 @@ interface DayViewProps {
   onGoActivity: () => void;
 }
 
-function DayView({ profile, date, locale, items, comp, logged, mode, onPrev, onNext, onAdd, onRemove, onMove, onPlanThisDay, onPlanWeek, onGoActivity }: DayViewProps) {
+function DayView({ supps, suppNames, date, locale, items, comp, logged, mode, onPrev, onNext, onAdd, onRemove, onMove, onPlanThisDay, onPlanWeek, onGoActivity }: DayViewProps) {
   const { t } = useTranslation();
   const dObj = new Date(date + 'T12:00:00');
   const isToday = date === todayISO();
@@ -521,6 +598,16 @@ function DayView({ profile, date, locale, items, comp, logged, mode, onPrev, onN
 
   const byKind = (k: DayPlanKind) => items.filter((i) => i.kind === k);
   const empty = items.length === 0;
+
+  // Suplementos que estaban vigentes ESE día, ordenados por hora de toma.
+  const daySupps = activeSupplementsOn(supps, date)
+    .slice()
+    .sort((a, b) => (a.time_of_day || '99:99').localeCompare(b.time_of_day || '99:99'));
+
+  // ¿Hay algo que resumir? Los suplementos cuentan: un día en el que solo
+  // tomaste creatina sigue siendo un día con algo registrado.
+  const hasLog = logged.strSessions.length > 0 || logged.acts.length > 0
+    || logged.weight != null || logged.meals.length > 0 || daySupps.length > 0;
 
   return (
     <div className="space-y-5">
@@ -599,12 +686,6 @@ function DayView({ profile, date, locale, items, comp, logged, mode, onPrev, onN
             );
           })}
 
-          {/* Suplementos del día. Son una rutina recurrente (los tomas casi a
-              diario), así que se muestran en TODOS los días en vez de vivir en
-              una tarjeta fija encima de la Agenda. Solo lectura: se gestionan
-              en Nutrición › Suplementos. */}
-          <TodaySupplements profile={profile} compact date={date} />
-
           {/* Añadir un bloque que aún no existe */}
           <div className="flex flex-wrap gap-2">
             {KIND_ORDER.filter((k) => byKind(k).length === 0).map((k) => (
@@ -617,28 +698,96 @@ function DayView({ profile, date, locale, items, comp, logged, mode, onPrev, onN
         </div>
       )}
 
-      {/* Registrado ese día (solo lectura): lo que de verdad se hizo. */}
-      {(logged.acts.length > 0 || logged.strGroups.size > 0) && (
-        <div>
-          <p className="text-[11px] font-bold tracking-[0.18em] uppercase text-green-400 mb-2 flex items-center gap-2">
+      {/* ── LO QUE HICISTE ESE DÍA ──
+          Va SIEMPRE, tenga o no plan. Antes vivía dentro de la rama "hay algo
+          planificado", así que un día sin plan no mostraba nada: ni el entreno
+          que habías registrado, ni los suplementos. La Agenda tiene que servir
+          para mirar atrás y ver lo que de verdad hiciste. Todo solo lectura:
+          cada cosa se edita en su sección. */}
+      {hasLog && (
+        <div className="rk-card" style={{ padding: '16px 18px' }}>
+          <p className="text-[11px] font-bold tracking-[0.18em] uppercase text-green-400 mb-3 flex items-center gap-2">
             <i className="ri-check-double-line"></i>{t('mc_ag_day_summary_logged')}
           </p>
-          <div className="flex flex-wrap gap-2">
-            {logged.strGroups.size > 0 && (
-              <span className="inline-flex items-center gap-1.5 text-xs text-zinc-300 bg-white/[0.03] border border-white/10 px-2.5 py-1.5 rounded-lg">
-                <i className="ri-hammer-line" style={{ color: KIND_META.strength.hex }}></i>
-                {[...logged.strGroups].map((g) => t(`mc_str_mg_${g}`, { defaultValue: g })).join(' + ')}
-              </span>
-            )}
+
+          <div className="space-y-3">
+            {/* Fuerza: una línea por sesión, con su franja y sus ejercicios. */}
+            {logged.strSessions.map((s, i) => (
+              <div key={`s${i}`} className="flex items-start gap-2.5">
+                <i className="ri-hammer-line mt-0.5 flex-shrink-0" style={{ color: KIND_META.strength.hex }} />
+                <div className="min-w-0">
+                  <p className="text-sm text-zinc-200">
+                    {s.groups.length > 0
+                      ? s.groups.map((g) => t(`mc_str_mg_${g}`, { defaultValue: g })).join(' + ')
+                      : t('mc_dp_kind_strength')}
+                    {s.slot && <span className="text-zinc-500"> · {t(`mc_str_slot_${s.slot}`, { defaultValue: s.slot })}</span>}
+                  </p>
+                  {s.exercises.length > 0 && (
+                    <p className="text-[11px] text-zinc-500 leading-relaxed">{s.exercises.join(' · ')}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {/* Actividad */}
             {logged.acts.map((a) => {
               const cfg = activityKindCfg(a.kind);
               return (
-                <span key={a.id} className="inline-flex items-center gap-1.5 text-xs text-zinc-300 bg-white/[0.03] border border-white/10 px-2.5 py-1.5 rounded-lg">
-                  <i className={cfg.icon} style={{ color: cfg.hex }}></i>
-                  {t(cfg.labelKey)} · {a.duration_min} min{a.rounds ? ` · ${a.rounds}R` : ''}
-                </span>
+                <div key={a.id} className="flex items-start gap-2.5">
+                  <i className={`${cfg.icon} mt-0.5 flex-shrink-0`} style={{ color: cfg.hex }} />
+                  <p className="text-sm text-zinc-200">
+                    {t(cfg.labelKey)}
+                    <span className="text-zinc-500"> · {a.duration_min} min{a.rounds ? ` · ${a.rounds}R` : ''}</span>
+                  </p>
+                </div>
               );
             })}
+
+            {/* Peso del día */}
+            {logged.weight != null && (
+              <div className="flex items-start gap-2.5">
+                <i className="ri-scales-2-line mt-0.5 flex-shrink-0" style={{ color: '#C9A84C' }} />
+                <p className="text-sm text-zinc-200">
+                  {t('mc_ag_day_weight')}<span className="text-zinc-500"> · {logged.weight} kg</span>
+                </p>
+              </div>
+            )}
+
+            {/* Comidas registradas */}
+            {logged.meals.length > 0 && (
+              <div className="flex items-start gap-2.5">
+                <i className="ri-restaurant-2-line mt-0.5 flex-shrink-0" style={{ color: KIND_META.meal.hex }} />
+                <div className="min-w-0">
+                  <p className="text-sm text-zinc-200">{t('mc_ag_day_meals', { count: logged.meals.length })}</p>
+                  <p className="text-[11px] text-zinc-500 leading-relaxed">
+                    {logged.meals.map((m) => m.description).join(' · ')}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Suplementos VIGENTES ese día. Se gestionan en Nutrición, pero
+                aparecen aquí porque son parte de la rutina del día. Al quitar
+                uno se le pone fecha de fin, así que los días anteriores lo
+                siguen mostrando y los siguientes no. */}
+            {daySupps.length > 0 && (
+              <div className="flex items-start gap-2.5">
+                <i className="ri-capsule-line mt-0.5 flex-shrink-0" style={{ color: KIND_META.supplement.hex }} />
+                <div className="min-w-0">
+                  <p className="text-sm text-zinc-200">{t('mc_sup_today_title')}</p>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {daySupps.map((s) => (
+                      <span key={s.id} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-zinc-300 bg-white/[0.04] border border-white/10 px-2 py-1 rounded-lg">
+                        {s.slot && SUPP_SLOT_LABEL[s.slot] && s.slot !== 'otro' && (
+                          <span style={{ color: 'var(--t-3)' }}>{t(SUPP_SLOT_LABEL[s.slot])}</span>
+                        )}
+                        {s.custom_name || suppNames.get(s.supplement_id || '') || '—'}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

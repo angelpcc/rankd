@@ -86,7 +86,10 @@ export default {
   mc_ag_fab_log: 'Log training',
   mc_ag_day_go_activity: 'View / Log',
   mc_ag_day_summary_planned: 'Planned',
-  mc_ag_day_summary_logged: 'Logged',
+  mc_ag_day_summary_logged: 'What you did',
+  mc_ag_day_weight: 'Weight logged',
+  mc_ag_day_meals_one: '1 meal logged',
+  mc_ag_day_meals_other: '{{count}} meals logged',
 
   // ── Real trainer's plan photo (item 8) ──
   mc_tp_title: "My trainer's plan",
@@ -606,8 +609,6 @@ export default {
   mc_pat_antirotation: 'Anti-rotation',
   mc_pat_jump: 'Jump',
   mc_pat_isolation: 'Isolation',
-  mc_ex_pattern_title: 'Movement pattern',
-  mc_ex_pattern_hint: 'The family of movement, not this exact exercise.',
   mc_diff_beginner: 'Beginner',
   mc_diff_intermediate: 'Intermediate',
   mc_diff_advanced: 'Advanced',

@@ -86,7 +86,10 @@ export default {
   mc_ag_fab_log: 'Registrar entreno',
   mc_ag_day_go_activity: 'Ver / Registrar',
   mc_ag_day_summary_planned: 'Planificados',
-  mc_ag_day_summary_logged: 'Registrados',
+  mc_ag_day_summary_logged: 'Lo que hiciste',
+  mc_ag_day_weight: 'Peso registrado',
+  mc_ag_day_meals_one: '1 comida registrada',
+  mc_ag_day_meals_other: '{{count}} comidas registradas',
 
   // ── Foto del plan del entrenador real (punto 8) ──
   mc_tp_title: 'Plan de mi entrenador',
@@ -606,8 +609,6 @@ export default {
   mc_pat_antirotation: 'Antirrotación',
   mc_pat_jump: 'Salto',
   mc_pat_isolation: 'Aislamiento',
-  mc_ex_pattern_title: 'Patrón de movimiento',
-  mc_ex_pattern_hint: 'Gesto de la familia, no del ejercicio concreto.',
   mc_diff_beginner: 'Iniciación',
   mc_diff_intermediate: 'Intermedio',
   mc_diff_advanced: 'Avanzado',

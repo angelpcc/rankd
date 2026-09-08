@@ -304,6 +304,50 @@ export function libraryLabels(lang: Lang): string[] {
   return EXERCISE_LIBRARY.map((e) => exLabel(e, lang));
 }
 
+/**
+ * Nombres por los que se puede RECONOCER cada ejercicio al dictar.
+ *
+ * Nadie dice "jalón al pecho abre paréntesis polea cierra paréntesis". Al
+ * desdoblar la biblioteca en variantes por equipo, buscar el nombre completo
+ * dentro de lo dictado dejó de encontrar nada: el usuario dice "jalón al
+ * pecho" y en la biblioteca pone "Jalón al pecho (polea)".
+ *
+ * Cada entrada devuelve varias formas de llamarla:
+ *   · el nombre completo tal cual
+ *   · el nombre SIN el paréntesis del equipo
+ *   · sus alias (los nombres antiguos)
+ *   · el nombre en el otro idioma, por si se mezcla
+ *
+ * Cuando dos variantes comparten forma corta ("jalón al pecho" lo comparten
+ * polea y máquina guiada), gana la PRIMERA de la biblioteca, que está ordenada
+ * poniendo delante la variante más habitual. Los alias apuntan a esa misma, así
+ * que el resultado es el que espera el usuario.
+ */
+export function exerciseDictationTerms(lang: Lang): { label: string; terms: string[] }[] {
+  const taken = new Set<string>();
+  return EXERCISE_LIBRARY.map((e) => {
+    const label = exLabel(e, lang);
+    const candidates = [
+      label,
+      label.replace(/\s*\([^)]*\)\s*/g, ' ').trim(),
+      ...(e.aliases || []),
+      e.es, e.en,
+      e.es.replace(/\s*\([^)]*\)\s*/g, ' ').trim(),
+      e.en.replace(/\s*\([^)]*\)\s*/g, ' ').trim(),
+    ];
+    const terms: string[] = [];
+    candidates.forEach((c) => {
+      const k = normNoAccent(c);
+      // Se descartan las formas de 3 letras o menos: "v", "z" y demás casarían
+      // con medio texto y el dictado empezaría a inventarse ejercicios.
+      if (!k || k.length <= 3 || taken.has(k)) return;
+      taken.add(k);
+      terms.push(c);
+    });
+    return { label, terms };
+  }).filter((e) => e.terms.length > 0);
+}
+
 /** Ejercicios de un grupo, ya como etiquetas del idioma activo. */
 export function exercisesByGroup(group: MuscleGroup, lang: Lang): string[] {
   return EXERCISE_LIBRARY.filter((e) => e.group === group).map((e) => exLabel(e, lang));

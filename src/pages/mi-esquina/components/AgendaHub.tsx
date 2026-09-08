@@ -7,7 +7,6 @@ import PlanificarPanel from '@/pages/mi-esquina/components/PlanificarPanel';
 import AgendaWeekStrip from '@/pages/mi-esquina/components/AgendaWeekStrip';
 import FightPrep from '@/pages/mi-esquina/components/FightPrep';
 import TrainerPlanUpload from '@/pages/mi-esquina/components/TrainerPlanUpload';
-import TodaySupplements from '@/pages/mi-esquina/components/TodaySupplements';
 import Reveal from '@/components/base/Reveal';
 
 interface Props {

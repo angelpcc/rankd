@@ -6,7 +6,7 @@ import BottomSheet from '@/components/base/BottomSheet';
 import VoiceButton from '@/components/feature/VoiceButton';
 import { parseStrengthSessionFromSpeech } from '@/lib/dictation';
 import {
-  MUSCLE_GROUPS, exercisesByGroup, libraryLabels, muscleGroupOf,
+  MUSCLE_GROUPS, exercisesByGroup, exerciseDictationTerms, muscleGroupOf,
   weightModeOf, trackingModeOf, usesBar, equipmentOf,
   type MuscleGroup, type WeightMode, type TrackingMode,
 } from '../lib/exercises';
@@ -198,7 +198,9 @@ interface ExPerf { perf: LastPerformance; suggestion: Suggestion; tracking: Trac
 export default function StrengthSessionForm({ open, onClose, saving, onSave, ownExercises, fighterProfileId, showToast, slotsByDate, initialGroup, initialSession, duplicateFrom }: Props) {
   const { t, i18n } = useTranslation();
   const lang: 'es' | 'en' = i18n.language === 'en' ? 'en' : 'es';
-  const library = useMemo(() => libraryLabels(lang), [lang]);
+  // Términos de reconocimiento, no solo los nombres: incluyen la forma sin el
+  // paréntesis del equipo y los alias antiguos, que es como se dicta de verdad.
+  const library = useMemo(() => exerciseDictationTerms(lang), [lang]);
   const prefill = initialSession ?? duplicateFrom;
 
   const [step, setStep] = useState<1 | 2>(prefill || initialGroup ? 2 : 1);
