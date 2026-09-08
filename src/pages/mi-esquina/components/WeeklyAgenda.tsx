@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable } from '@/lib/dbState';
 import BottomSheet from '@/components/base/BottomSheet';
+import StateBlock from '@/components/base/StateBlock';
+import SegmentedProgress from '@/components/base/SegmentedProgress';
 import StrengthPlanBuilder from './StrengthPlanBuilder';
 import SectionHero from './SectionHero';
 import {
@@ -58,6 +60,9 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
   const [sheetFor, setSheetFor] = useState<{ date: string; kind?: DayPlanKind } | null>(null);
   // Fuerza usa su propio planificador en detalle (grupos → ejercicios → series).
   const [strengthSheet, setStrengthSheet] = useState<{ date: string } | null>(null);
+  // Reprogramar: id del elemento que se está moviendo de día.
+  const [moveFor, setMoveFor] = useState<DayPlanItem | null>(null);
+  const [duplicating, setDuplicating] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -122,6 +127,47 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
     showToast(t('mc_dp_added'));
   };
 
+  /**
+   * Reprogramar: solo cambia la fecha, conserva el contenido. Antes había que
+   * borrar y volver a crear, que perdía los ejercicios ya detallados.
+   */
+  const moveItem = async (id: string, newDate: string) => {
+    const prev = items.find((i) => i.id === id);
+    if (!prev || prev.plan_date === newDate) { setMoveFor(null); return; }
+    // Al mover se pierde el tick: el "hecho" era de aquel día, no de este.
+    const { error } = await supabase.from('day_plan_items')
+      .update({ plan_date: newDate, completed: false }).eq('id', id);
+    if (error) { showToast(t('error_save'), 'error'); return; }
+    setItems((list) => list.map((i) => (i.id === id ? { ...i, plan_date: newDate, completed: false } : i)));
+    setMoveFor(null);
+    showToast(t('mc_ag_moved'));
+  };
+
+  /**
+   * Copiar la semana anterior a la que se está viendo. Solo duplica el plan
+   * (day_plan_items), nunca lo registrado, y siempre sin marcar como hecho.
+   */
+  const duplicatePrevWeek = async () => {
+    const prevStart = addDays(weekStart, -7);
+    const prevRange = Array.from({ length: 7 }, (_, i) => iso(addDays(prevStart, i)));
+    const source = items.filter((i) => prevRange.includes(i.plan_date));
+    if (source.length === 0) { showToast(t('mc_ag_dup_empty'), 'error'); return; }
+    setDuplicating(true);
+    const rows = source.map((i) => ({
+      fighter_profile_id: profile.id,
+      plan_date: iso(addDays(new Date(i.plan_date + 'T12:00:00'), 7)),
+      kind: i.kind,
+      payload: i.payload,
+      source: 'manual',
+      completed: false,
+    }));
+    const { data, error } = await supabase.from('day_plan_items').insert(rows).select();
+    setDuplicating(false);
+    if (error || !data) { showToast(t('error_save'), 'error'); return; }
+    setItems((list) => [...list, ...(data as DayPlanItem[])]);
+    showToast(t('mc_ag_dup_done', { n: data.length }));
+  };
+
   const removeItem = async (id: string) => {
     setItems((p) => p.filter((x) => x.id !== id));
     const { error } = await supabase.from('day_plan_items').delete().eq('id', id);
@@ -146,23 +192,44 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
           setStrengthSheet(null);
         }}
       />
+      {/* Reprogramar: elegir el nuevo día sin perder el contenido */}
+      <BottomSheet open={!!moveFor} onClose={() => setMoveFor(null)} title={t('mc_ag_move_title')}>
+        {moveFor && (
+          <>
+            <p className="text-sm mb-4" style={{ color: 'var(--t-2)' }}>
+              {t('mc_ag_move_desc', { what: summarizeItem(moveFor, t) })}
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {Array.from({ length: 14 }, (_, i) => addDays(mondayOf(new Date(moveFor.plan_date + 'T12:00:00')), i)).map((d) => {
+                const dISO = iso(d);
+                const current = dISO === moveFor.plan_date;
+                return (
+                  <button key={dISO} onClick={() => moveItem(moveFor.id, dISO)} disabled={current}
+                    style={{ minHeight: 48 }}
+                    className={`rounded-xl border text-left px-3 cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                      current ? 'border-white/10 bg-white/[0.02]' : 'border-white/12 bg-white/[0.04] hover:border-white/30'}`}>
+                    <span className="block text-[11px] uppercase tracking-wider" style={{ color: 'var(--t-3)' }}>
+                      {d.toLocaleDateString(locale, { weekday: 'short' })}
+                      {dISO === todayISO() && ` · ${t('mc_today')}`}
+                    </span>
+                    <span className="block text-sm font-semibold text-white">
+                      {d.toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </BottomSheet>
     </>
   );
 
-  if (loading) {
-    return <div className="flex items-center justify-center py-24"><div className="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div></div>;
-  }
+  if (loading) return <StateBlock variant="loading" />;
 
   if (unavailable) {
-    return (
-      <div className="rk-card text-center max-w-lg mx-auto" style={{ padding: '48px 28px' }}>
-        <div className="w-16 h-16 mx-auto mb-5 flex items-center justify-center rounded-2xl bg-red-600/10 border border-red-500/25 anim-float">
-          <i className="ri-calendar-todo-line text-3xl text-red-400"></i>
-        </div>
-        <h3 className="rk-h3" style={{ fontSize: '1.3rem', color: '#fff' }}>{t('mc_coming_soon_title')}</h3>
-        <p className="text-sm text-zinc-400 mt-2 leading-relaxed">{t('mc_coming_soon_desc')}</p>
-      </div>
-    );
+    return <StateBlock variant="empty" icon="ri-calendar-todo-line"
+      title={t('mc_coming_soon_title')} description={t('mc_coming_soon_desc')} />;
   }
 
   // ══════════ CABECERA hero + selector Día · Semana · Mes ══════════
@@ -203,6 +270,7 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
             onNext={() => setDayISO(iso(addDays(new Date(dayISO + 'T12:00:00'), 1)))}
             onAdd={(kind) => (kind === 'strength' ? setStrengthSheet({ date: dayISO }) : setSheetFor({ date: dayISO, kind }))}
             onRemove={removeItem}
+            onMove={(it) => setMoveFor(it)}
             onPlanThisDay={() => setStrengthSheet({ date: dayISO })}
             onPlanWeek={onGoPlanificar ? () => onGoPlanificar(dayISO) : undefined}
             onGoActivity={() => onGoActivity(dayISO)}
@@ -217,6 +285,16 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
   if (view === 'week') {
     const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
     const weekEnd = addDays(weekStart, 6);
+    // Resumen de la semana: lo previsto (day_plan_items que se pueden marcar),
+    // lo completado y los minutos REALMENTE registrados en activity_sessions.
+    const wsISO = iso(weekStart); const weISO = iso(weekEnd);
+    const inWeek = items.filter((i) => i.plan_date >= wsISO && i.plan_date <= weISO);
+    const tickable = inWeek.filter((i) => TICK_KINDS.includes(i.kind));
+    const doneWeek = tickable.filter((i) => i.completed).length;
+    const minutesWeek = loggedActs
+      .filter((a) => a.session_date >= wsISO && a.session_date <= weISO)
+      .reduce((acc, a) => acc + (a.duration_min || 0), 0);
+    const strDaysWeek = new Set(loggedStr.filter((s) => s.session_date >= wsISO && s.session_date <= weISO).map((s) => s.session_date)).size;
     const rangeLabel = `${weekStart.toLocaleDateString(locale, { day: 'numeric', month: 'short' })} – ${weekEnd.toLocaleDateString(locale, { day: 'numeric', month: 'short' })}`;
     const isCurrentWeek = iso(weekStart) === iso(mondayOf(new Date()));
     return (
@@ -236,6 +314,37 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
             <button onClick={() => setWeekStart(addDays(weekStart, 7))} className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/[0.04] border border-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer">
               <i className="ri-arrow-right-s-line text-xl"></i>
             </button>
+          </div>
+
+          {/* Resumen de la semana: previsto vs hecho, en una línea */}
+          <div className="rk-card" style={{ padding: 16 }}>
+            <div className="flex items-baseline justify-between gap-3 flex-wrap">
+              <p className="rk-label" style={{ color: 'var(--t-2)' }}>{t('mc_ag_week_summary')}</p>
+              <p className="text-xs" style={{ color: 'var(--t-3)' }}>
+                {t('mc_ag_week_done', { done: doneWeek, total: tickable.length })}
+              </p>
+            </div>
+            <div className="mt-2.5">
+              <SegmentedProgress total={Math.max(tickable.length, 1)} done={doneWeek} />
+            </div>
+            <div className="grid grid-cols-3 gap-2 mt-3">
+              {[
+                { v: String(tickable.length), l: t('mc_ag_week_planned') },
+                { v: String(minutesWeek), l: t('mc_ag_week_minutes') },
+                { v: String(strDaysWeek), l: t('mc_ag_week_strength_days') },
+              ].map((s) => (
+                <div key={s.l} className="rk-surface-2 text-center" style={{ padding: '10px 6px' }}>
+                  <p className="rk-num" style={{ fontSize: 22 }}>{s.v}</p>
+                  <p className="rk-label" style={{ fontSize: 9, marginTop: 4 }}>{s.l}</p>
+                </div>
+              ))}
+            </div>
+            {tickable.length === 0 && (
+              <button onClick={duplicatePrevWeek} disabled={duplicating} style={{ minHeight: 44 }}
+                className="rk-nav-btn w-full mt-3 text-xs font-bold inline-flex items-center justify-center gap-2 disabled:opacity-50">
+                <i className="ri-file-copy-line" /> {duplicating ? t('mc_saving') : t('mc_ag_dup_prev_week')}
+              </button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-7 gap-2">
@@ -384,12 +493,14 @@ interface DayViewProps {
   onNext: () => void;
   onAdd: (kind: DayPlanKind) => void;
   onRemove: (id: string) => void;
+  /** Reprogramar el elemento a otro día conservando su contenido. */
+  onMove?: (item: DayPlanItem) => void;
   onPlanThisDay: () => void;
   onPlanWeek?: () => void;
   onGoActivity: () => void;
 }
 
-function DayView({ date, locale, items, comp, logged, mode, onPrev, onNext, onAdd, onRemove, onPlanThisDay, onPlanWeek, onGoActivity }: DayViewProps) {
+function DayView({ date, locale, items, comp, logged, mode, onPrev, onNext, onAdd, onRemove, onMove, onPlanThisDay, onPlanWeek, onGoActivity }: DayViewProps) {
   const { t } = useTranslation();
   const dObj = new Date(date + 'T12:00:00');
   const isToday = date === todayISO();
@@ -470,7 +581,7 @@ function DayView({ date, locale, items, comp, logged, mode, onPrev, onNext, onAd
                 </div>
                 <div className="space-y-2">
                   {list.map((it) => (
-                    <DayItemRow key={it.id} item={it} onRemove={() => onRemove(it.id)} />
+                    <DayItemRow key={it.id} item={it} onRemove={() => onRemove(it.id)} onMove={onMove ? () => onMove(it) : undefined} />
                   ))}
                 </div>
               </div>
@@ -524,7 +635,7 @@ function DayView({ date, locale, items, comp, logged, mode, onPrev, onNext, onAd
   );
 }
 
-function DayItemRow({ item, onRemove }: { item: DayPlanItem; onRemove: () => void }) {
+function DayItemRow({ item, onRemove, onMove }: { item: DayPlanItem; onRemove: () => void; onMove?: () => void }) {
   const { t } = useTranslation();
   const tickable = KIND_META[item.kind].tick;
   const done = tickable && item.completed;
@@ -579,6 +690,12 @@ function DayItemRow({ item, onRemove }: { item: DayPlanItem; onRemove: () => voi
           <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${done ? 'text-green-500' : 'text-zinc-600'}`}>
             {done ? t('mc_ag_block_done') : t('mc_ag_block_pending')}
           </span>
+        )}
+        {onMove && (
+          <button onClick={onMove} aria-label={t('mc_ag_move_title')} title={t('mc_ag_move_title')}
+            className="w-7 h-7 flex items-center justify-center text-zinc-600 hover:text-white cursor-pointer flex-shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+            <i className="ri-calendar-event-line text-sm"></i>
+          </button>
         )}
         <button onClick={onRemove} aria-label={t('mc_pl_line_remove')}
           className="w-7 h-7 flex items-center justify-center text-zinc-600 hover:text-red-400 cursor-pointer flex-shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">

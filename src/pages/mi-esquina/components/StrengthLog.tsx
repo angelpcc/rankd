@@ -9,6 +9,8 @@ import {
 import { fmtWeight, fmtSetCount, fmtSetValue } from '../lib/dayPlan';
 import { reconcileDayTicks } from '../lib/planTicks';
 import { clearDraft } from '../lib/strengthDraft';
+import { computePRs, prKey, type PRHit } from '../lib/prs';
+import StateBlock from '@/components/base/StateBlock';
 import SectionHero from './SectionHero';
 import Reveal from '@/components/base/Reveal';
 import MuscleMap, { type MapGroup, type TrainState } from './MuscleMap';
@@ -206,6 +208,49 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
         return { date, slots, exerciseCount, volume };
       });
   }, [rows, groupOfRow]);
+
+  // ── Marcas personales, derivadas del histórico completo ──
+  // Se calculan sobre `rows` (no sobre lo filtrado): una marca lo es frente a
+  // todo tu histórico, no frente a lo que tengas filtrado en pantalla.
+  const prs = useMemo(() => computePRs(rows), [rows]);
+
+  // ── Filtros del historial ──
+  const [hQuery, setHQuery] = useState('');
+  const [hGroup, setHGroup] = useState<GroupKey | 'all'>('all');
+  const [hDays, setHDays] = useState<number | null>(null); // null = todo
+
+  // Búsqueda insensible a tildes: "jalon" tiene que encontrar "Jalón al pecho".
+  const searchNorm = (s: string) => s.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+  const filteredSessions = useMemo(() => {
+    const needle = searchNorm(hQuery);
+    let since = '';
+    if (hDays !== null) {
+      const d = new Date(); d.setDate(d.getDate() - hDays);
+      since = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    return sessions
+      .filter((s) => hDays === null || s.date >= since)
+      .map((s) => {
+        // Se filtra DENTRO del día: si un día tiene pecho y pierna y filtras
+        // pierna, el día sigue apareciendo pero solo con el bloque de pierna.
+        const slots = s.slots.map((sl) => ({
+          ...sl,
+          groups: sl.groups
+            .filter((g) => hGroup === 'all' || g.group === hGroup)
+            .map((g) => ({
+              ...g,
+              exercises: g.exercises.filter((ex) => !needle || searchNorm(ex.label).includes(needle)),
+            }))
+            .filter((g) => g.exercises.length > 0),
+        })).filter((sl) => sl.groups.length > 0);
+        const exerciseCount = slots.reduce((a, sl) => a + sl.groups.reduce((b, g) => b + g.exercises.length, 0), 0);
+        return { ...s, slots, exerciseCount };
+      })
+      .filter((s) => s.slots.length > 0);
+  }, [sessions, hQuery, hGroup, hDays]);
+
+  const historyFiltered = hQuery.trim() !== '' || hGroup !== 'all' || hDays !== null;
 
   // Franjas ocupadas por día — se pasa al form para deshabilitar/proponer libre.
   const slotsByDate = useMemo<Record<string, SessionSlot[]>>(() => {
@@ -528,8 +573,45 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
           {!hideHistory && (
           <div>
             <h3 className="rk-label mb-3">{t('mc_str_history')}</h3>
+
+            {/* Filtros: búsqueda de ejercicio + grupo + periodo */}
+            <div className="space-y-2 mb-4">
+              <input value={hQuery} onChange={(e) => setHQuery(e.target.value)}
+                placeholder={t('mc_str_h_search_ph')} aria-label={t('mc_str_h_search_ph')}
+                style={{ fontSize: 16, minHeight: 44 }}
+                className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" />
+              <div className="flex gap-1.5 overflow-x-auto pb-1 rk-noscroll-x" role="group" aria-label={t('mc_str_h_filter_group')}>
+                <button onClick={() => setHGroup('all')} aria-pressed={hGroup === 'all'} style={{ minHeight: 36 }}
+                  className={`rk-nav-btn text-xs font-bold whitespace-nowrap ${hGroup === 'all' ? 'is-active' : ''}`} >
+                  {t('mc_exlib_all')}
+                </button>
+                {ORDER.filter((g) => rows.some((r) => groupOfRow(r) === g)).map((g) => (
+                  <button key={g} onClick={() => setHGroup(g)} aria-pressed={hGroup === g} style={{ minHeight: 36 }}
+                    className={`rk-nav-btn text-xs font-bold whitespace-nowrap ${hGroup === g ? 'is-active' : ''}`}>
+                    {g === 'other' ? t('mc_str_mg_other') : t(`mc_str_mg_${g}`)}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {[{ d: 30, k: 'mc_str_h_30d' }, { d: 90, k: 'mc_str_h_90d' }, { d: null, k: 'mc_sp_period_all' }].map((p) => (
+                  <button key={String(p.d)} onClick={() => setHDays(p.d)} aria-pressed={hDays === p.d} style={{ minHeight: 32 }}
+                    className={`text-xs font-bold px-2.5 rounded-lg cursor-pointer transition-colors ${hDays === p.d ? 'bg-[#E10600] text-white' : 'bg-white/[0.04] text-zinc-400 hover:text-white'}`}>
+                    {t(p.k)}
+                  </button>
+                ))}
+                <span className="text-xs ml-auto" style={{ color: 'var(--t-3)' }}>
+                  {t('mc_str_h_count', { n: filteredSessions.length })}
+                </span>
+              </div>
+            </div>
+
+            {filteredSessions.length === 0 && historyFiltered && (
+              <StateBlock variant="empty" icon="ri-search-line" title={t('mc_str_h_none')}
+                action={{ label: t('mc_exlib_clear'), onClick: () => { setHQuery(''); setHGroup('all'); setHDays(null); } }} />
+            )}
+
             <div className="rk-stack">
-              {sessions.map((s, i) => {
+              {filteredSessions.map((s, i) => {
                 const isOpen = openDay === s.date;
                 const hasSlots = s.slots.some((sl) => sl.slot !== null);
                 return (
@@ -592,11 +674,19 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
                                     fmtSetCount(ex.sets.length, { repsMin: first.reps, repsMax: first.reps_max ?? undefined, value: first.reps, trackingMode: ex.tm }, t),
                                     fmtWeight(maxW, ex.wm, t),
                                   ].filter(Boolean).join(' · ');
+                                  const exPRs = prs.get(prKey(s.date, ex.exercise)) || [];
                                   return (
                                     <div key={ex.exercise}>
                                       <button onClick={() => setOpenEx(exOpen ? null : `${s.date}|${ex.exercise}`)}
                                         className="w-full flex items-center gap-3 py-1.5 text-left cursor-pointer group">
-                                        <span className="flex-1 min-w-0 text-sm text-zinc-200 truncate group-hover:text-white">{ex.label}</span>
+                                        <span className="flex-1 min-w-0 text-sm text-zinc-200 truncate group-hover:text-white">
+                                          {ex.label}
+                                          {exPRs.length > 0 && (
+                                            <span className="ml-1.5 align-middle" title={t('mc_pr_badge')} aria-label={t('mc_pr_badge')}>
+                                              <i className="ri-trophy-fill text-[11px]" style={{ color: 'var(--accent)' }} />
+                                            </span>
+                                          )}
+                                        </span>
                                         <span className="text-sm font-semibold text-zinc-300 flex-shrink-0" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
                                           {summary}
                                         </span>
@@ -604,6 +694,21 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
                                       </button>
                                       {exOpen && (
                                         <div className="pl-1 pb-2 space-y-2">
+                                          {exPRs.length > 0 && (
+                                            <div className="flex flex-wrap gap-1.5">
+                                              {exPRs.map((p: PRHit, pi) => (
+                                                <span key={pi} className="text-[11px] font-semibold px-2 py-1 rounded-lg inline-flex items-center gap-1.5"
+                                                  style={{ background: 'var(--accent-dim)', border: '1px solid rgba(225,6,0,0.3)', color: '#fff' }}>
+                                                  <i className="ri-trophy-fill" style={{ color: 'var(--accent)' }} />
+                                                  {p.kind === 'weight' && t('mc_pr_weight', { v: p.value, prev: p.prev })}
+                                                  {p.kind === 'reps_at_weight' && t('mc_pr_reps', { v: p.value, prev: p.prev, w: p.atWeight })}
+                                                  {p.kind === 'volume' && t('mc_pr_volume', { v: p.value })}
+                                                  {p.kind === 'time' && t('mc_pr_time', { v: p.value })}
+                                                  {p.kind === 'distance' && t('mc_pr_distance', { v: p.value })}
+                                                </span>
+                                              ))}
+                                            </div>
+                                          )}
                                           {/* Series individuales */}
                                           <div className="flex flex-wrap gap-1.5">
                                             {ex.sets.map((st) => (

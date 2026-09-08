@@ -310,7 +310,14 @@ export default function StrengthProgress({ profile }: Props) {
     const recent = weeks.slice(weeks.length - half).reduce((a, w) => a + w.sets, 0);
     const trend: 'up' | 'flat' | 'down' =
       recent > older * 1.15 ? 'up' : recent < older * 0.85 ? 'down' : 'flat';
-    return { weeks, trend, total: weeks.reduce((a, w) => a + w.sets, 0) };
+    // Comparativa directa de la semana en curso con la anterior: es la
+    // pregunta que se hace de verdad ("¿voy mejor que la semana pasada?").
+    const thisWeek = weeks[weeks.length - 1]?.sets ?? 0;
+    const lastWeek = weeks[weeks.length - 2]?.sets ?? 0;
+    return {
+      weeks, trend, total: weeks.reduce((a, w) => a + w.sets, 0),
+      thisWeek, lastWeek, diff: thisWeek - lastWeek,
+    };
   }, [rows, selectedGroup, locale]);
 
   if (loading) return <StateBlock variant="loading" />;
@@ -471,6 +478,24 @@ export default function StrengthProgress({ profile }: Props) {
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
+              </div>
+
+              {/* Esta semana frente a la anterior */}
+              <div className="grid grid-cols-3 gap-2 mt-4">
+                <div className="rk-surface-2 text-center" style={{ padding: '12px 6px' }}>
+                  <p className="rk-num" style={{ fontSize: 22, color: RED }}>{groupWeekly.thisWeek}</p>
+                  <p className="rk-label" style={{ fontSize: 9, marginTop: 4 }}>{t('mc_sp_cmp_this')}</p>
+                </div>
+                <div className="rk-surface-2 text-center" style={{ padding: '12px 6px' }}>
+                  <p className="rk-num" style={{ fontSize: 22 }}>{groupWeekly.lastWeek}</p>
+                  <p className="rk-label" style={{ fontSize: 9, marginTop: 4 }}>{t('mc_sp_cmp_last')}</p>
+                </div>
+                <div className="rk-surface-2 text-center" style={{ padding: '12px 6px' }}>
+                  <p className="rk-num" style={{ fontSize: 22, color: groupWeekly.diff === 0 ? 'var(--t-2)' : groupWeekly.diff > 0 ? '#4ade80' : '#fb923c' }}>
+                    {groupWeekly.diff > 0 ? '+' : ''}{groupWeekly.diff}
+                  </p>
+                  <p className="rk-label" style={{ fontSize: 9, marginTop: 4 }}>{t('mc_sp_cmp_diff')}</p>
+                </div>
               </div>
             </>
           )}

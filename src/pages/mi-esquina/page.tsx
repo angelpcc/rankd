@@ -13,6 +13,7 @@ import SummaryAiLine from '@/pages/mi-esquina/components/SummaryAiLine';
 import WeekStrip from '@/pages/mi-esquina/components/WeekStrip';
 import FightPrep from '@/pages/mi-esquina/components/FightPrep';
 import ActivationSteps from '@/pages/mi-esquina/components/ActivationSteps';
+import AlertStack from '@/pages/mi-esquina/components/AlertStack';
 import AgendaHub from '@/pages/mi-esquina/components/AgendaHub';
 import WeightTracker from '@/pages/mi-esquina/components/WeightTracker';
 import FuerzaSection from '@/pages/mi-esquina/components/FuerzaSection';
@@ -115,6 +116,8 @@ export default function MiEsquinaPage() {
     total: 0, week: 0, weekMin: 0, todayLogged: false, streak: 0, lastWeekMin: 0,
     last7: [] as { key: string; min: number; today: boolean }[],
     weekActiveDates: new Set<string>(),
+    /** Días desde el último registro. null = nunca ha registrado nada. */
+    daysSinceActivity: null as number | null,
   });
   // Se incrementa al registrar algo, para que el resumen semanal se recalcule
   const [refreshKey, setRefreshKey] = useState(0);
@@ -183,8 +186,16 @@ export default function MiEsquinaPage() {
 
       const weekActiveDates = new Set(week.map((s) => s.session_date));
 
+      // Días desde el registro más reciente (da igual el tipo).
+      const allDates = [...days].sort();
+      const lastDate = allDates[allDates.length - 1];
+      const daysSinceActivity = lastDate
+        ? Math.max(0, Math.round((new Date(iso(now) + 'T00:00:00').getTime() - new Date(lastDate + 'T00:00:00').getTime()) / 86400000))
+        : null;
+
       setStats({
         total: data.length,
+        daysSinceActivity,
         week: week.length,
         weekMin: week.reduce((a, s) => a + (s.duration_min || 0), 0),
         lastWeekMin: lastWeek.reduce((a, s) => a + (s.duration_min || 0), 0),
@@ -394,6 +405,19 @@ export default function MiEsquinaPage() {
               <div className="rk-stack">
                 {!isHobby && <DocumentExpiryAlert profile={profile} onOpen={() => go('ring', 'documentos')} />}
                 <GearReplacementAlert profile={profile} onOpen={() => navigate('/dashboard?tab=material')} />
+                {/* Avisos derivados de datos reales; cada uno se puede posponer
+                    o descartar. No repiten lo que ya dice "Tu siguiente acción". */}
+                <AlertStack
+                  profile={profile}
+                  mode={mode}
+                  daysSinceActivity={stats.daysSinceActivity}
+                  onAction={(kind) => {
+                    if (kind === 'weigh_in_soon' || kind === 'weight_stalled') go('peso');
+                    else if (kind === 'week_empty') go('agenda', 'planificar');
+                    else if (kind === 'fight_soon') go('agenda', 'plan');
+                    else go('actividad', undefined, todayISO());
+                  }}
+                />
               </div>
 
               {/* 1 · TU SIGUIENTE ACCIÓN — hero del Resumen y ÚNICO CTA rojo.
