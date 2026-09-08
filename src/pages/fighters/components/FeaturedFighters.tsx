@@ -58,7 +58,7 @@ export default function FeaturedFighters({ items }: { items: Item[] }) {
     take((f) => f.verified, (a, b) => wr(b) - wr(a), t('fd_reason_verified'), 'text-[#C9A84C] bg-[#C9A84C]/15 border-[#C9A84C]/35');
     take((f) => f.wins + f.losses + f.draws >= 3, (a, b) => wr(b) - wr(a), t('fd_reason_record'), 'text-red-300 bg-red-600/15 border-red-500/35');
     take((f) => f.kos >= 3, (a, b) => b.kos - a.kos, t('fd_reason_kos'), 'text-orange-300 bg-orange-500/15 border-orange-500/35');
-    take(() => true, (a, b) => items.findIndex((x) => x.fighter.id === a.id) - items.findIndex((x) => x.fighter.id === b.id), t('fd_reason_new'), 'text-sky-300 bg-sky-500/15 border-sky-500/35');
+    take(() => true, (a, b) => items.findIndex((x) => x.fighter.id === a.id) - items.findIndex((x) => x.fighter.id === b.id), t('fd_reason_new'), 'text-white bg-white/10 border-white/25');
     rest.forEach((x) => m.set(x.fighter.id, { label: t('fd_reason_top'), cls: 'text-zinc-300 bg-white/[0.06] border-white/15' }));
     return m;
   }, [featured, items, t]);

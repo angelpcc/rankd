@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
+import EmptyArt from '@/components/base/EmptyArt';
+import { SkeletonList } from '@/components/base/Skeleton';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile, Fighter } from '@/lib/supabase';
@@ -200,6 +202,15 @@ export default function FightersDirectoryPage() {
     });
     return Array.from(locs).sort();
   }, [data]);
+
+  // Firma de los filtros: cambia cuando cambia cualquiera, y se usa como `key`
+  // de la rejilla para que la entrada escalonada vuelva a reproducirse. El
+  // texto libre se deja fuera a propósito: remontar en cada tecla haría que la
+  // lista parpadeara mientras escribes.
+  const resultsKey = useMemo(
+    () => [filters.discipline, filters.weightClass, filters.expLevel, filters.location, filters.available, sortBy].join('|'),
+    [filters.discipline, filters.weightClass, filters.expLevel, filters.location, filters.available, sortBy],
+  );
 
   const filtered = useMemo(() => {
     let result = data.filter(({ fighter, profile }) => {
@@ -536,14 +547,10 @@ export default function FightersDirectoryPage() {
               </div>
 
               {loading ? (
-                <div className="flex items-center justify-center py-24">
-                  <div className="w-10 h-10 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-                </div>
+                <SkeletonList rows={6} />
               ) : data.length === 0 ? (
                 <div className="text-center py-24 rk-card">
-                  <div className="w-20 h-20 flex items-center justify-center mx-auto mb-5 rounded-2xl bg-red-600/10 border border-red-500/25">
-                    <i className="ri-user-search-line text-4xl text-red-400"></i>
-                  </div>
+                  <div className="flex justify-center mb-5"><EmptyArt kind="people" size={112} /></div>
                   <h2 className="rk-h3 text-white mb-2">{t('fighters_dir_empty_title')}</h2>
                   <p className="text-sm text-zinc-400 mb-6 max-w-sm mx-auto">{t('fighters_dir_empty_desc')}</p>
                   <button onClick={() => navigate('/auth')} className="rk-btn rk-btn-primary" style={{ fontSize: '0.9rem' }}>
@@ -552,9 +559,7 @@ export default function FightersDirectoryPage() {
                 </div>
               ) : filtered.length === 0 ? (
                 <div className="text-center py-24 rk-card">
-                  <div className="w-20 h-20 flex items-center justify-center mx-auto mb-5 rounded-2xl bg-white/[0.04] border border-white/10">
-                    <i className="ri-filter-off-line text-4xl text-zinc-500"></i>
-                  </div>
+                  <div className="flex justify-center mb-5"><EmptyArt kind="search" size={112} /></div>
                   <h2 className="rk-h3 text-white mb-2">{t('fighters_dir_no_filter_title')}</h2>
                   <p className="text-sm text-zinc-400 mb-4 max-w-sm mx-auto">{t('fighters_dir_no_filter_desc')}</p>
                   <button
@@ -565,7 +570,11 @@ export default function FightersDirectoryPage() {
                   </button>
                 </div>
               ) : viewMode === 'grid' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                // `key` con la firma de los filtros: al cambiarlos React remonta
+                // la rejilla y la entrada escalonada se reproduce otra vez. Sin
+                // esto la animación solo corría al cargar la página y filtrar se
+                // sentía como un salto seco.
+                <div key={resultsKey} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
                   {filtered.map(({ fighter, profile }, i) => (
                     <div key={fighter.id} className="anim-fade-up" style={{ animationDelay: `${Math.min(i * 0.06, 0.5)}s` }}>
                       <FighterCard fighter={fighter} profile={profile} />
@@ -573,7 +582,7 @@ export default function FightersDirectoryPage() {
                   ))}
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div key={resultsKey} className="space-y-3">
                   {filtered.map(({ fighter, profile }) => {
                     const initials = (profile.full_name || 'F').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
                     const socialCount = getSocialCount(profile);

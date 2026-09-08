@@ -7,7 +7,7 @@
 
 export type EmptyArtKind =
   | 'weight' | 'strength' | 'activity' | 'nutrition'
-  | 'agenda' | 'search' | 'notes' | 'plan';
+  | 'agenda' | 'search' | 'notes' | 'plan' | 'people';
 
 interface Props {
   kind: EmptyArtKind;
@@ -92,6 +92,24 @@ function Art({ kind }: { kind: EmptyArtKind }) {
           <rect x="16" y="12" width="32" height="40" rx="4" stroke={LINE} strokeWidth="2" fill="none" />
           <path d="M23 24h18" stroke={ACCENT} strokeWidth="2.5" strokeLinecap="round" />
           <path d="M23 32h18M23 40h11" stroke={DIM} strokeWidth="2" strokeLinecap="round" />
+        </>
+      );
+    // Tres fichas de perfil; la del centro, la que falta, en rojo. Para
+    // directorios vacíos (peleadores, marcas, promotoras, gimnasios).
+    case 'people':
+      return (
+        <>
+          <rect x="8" y="22" width="14" height="20" rx="3" stroke={LINE} strokeWidth="2" fill="none" />
+          <circle cx="15" cy="29" r="3" stroke={LINE} strokeWidth="1.8" fill="none" />
+          <path d="M11 38a4 4 0 0 1 8 0" stroke={LINE} strokeWidth="1.8" fill="none" />
+
+          <rect x="25" y="17" width="14" height="30" rx="3" stroke={ACCENT} strokeWidth="2" fill="none" />
+          <circle cx="32" cy="27" r="3.4" stroke={ACCENT} strokeWidth="1.8" fill="none" />
+          <path d="M27.5 38a4.5 4.5 0 0 1 9 0" stroke={ACCENT} strokeWidth="1.8" fill="none" />
+
+          <rect x="42" y="22" width="14" height="20" rx="3" stroke={LINE} strokeWidth="2" fill="none" />
+          <circle cx="49" cy="29" r="3" stroke={LINE} strokeWidth="1.8" fill="none" />
+          <path d="M45 38a4 4 0 0 1 8 0" stroke={LINE} strokeWidth="1.8" fill="none" />
         </>
       );
     // Diana: el patrón que el usuario dice que ya funciona en Objetivos.

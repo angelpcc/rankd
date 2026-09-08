@@ -34,10 +34,14 @@ export default function FighterCard({ profile, fighter }: Props) {
   const totalFights = fighter.wins + fighter.losses + fighter.draws;
   const winRate = totalFights > 0 ? Math.round((fighter.wins / totalFights) * 100) : null;
 
+  // La elevación al pasar por encima ya la da el `hover:-translate-y` de
+  // Tailwind; NO se añade `.rk-lift` porque también escribe `transform` y
+  // ganaría la última regla, perdiendo la elevación. Solo se suma `.rk-press`,
+  // el hundido al pulsar, que es lo que faltaba en móvil.
   return (
     <article
       onClick={() => navigate(`/fighter/${fighter.id}`)}
-      className="group bg-[#0c0c0c] border border-white/[0.08] rounded-2xl overflow-hidden hover:border-red-500/40 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-red-600/15 transition-all duration-300 cursor-pointer"
+      className="group bg-[#0c0c0c] border border-white/[0.08] rounded-2xl overflow-hidden hover:border-red-500/40 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-red-600/15 transition-all duration-300 cursor-pointer rk-press"
     >
       {/* ── FOTO GRANDE tipo ficha de peleador ── */}
       <div className="relative h-52 bg-gradient-to-br from-zinc-900 to-black overflow-hidden">

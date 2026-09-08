@@ -1,4 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
+import EmptyArt from '@/components/base/EmptyArt';
+import { SkeletonList } from '@/components/base/Skeleton';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
 import Navbar from '@/pages/home/components/Navbar';
@@ -314,19 +316,12 @@ export default function BrandsPage() {
       <main className="max-w-7xl mx-auto px-6 md:px-10 py-10 md:py-14">
 
         {loading && (
-          <div className="flex items-center justify-center py-32">
-            <div className="text-center">
-              <div className="w-10 h-10 border-2 border-[#E10600] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-zinc-400 text-sm font-inter">{t('brands_loading')}</p>
-            </div>
-          </div>
+          <SkeletonList rows={6} />
         )}
 
         {!loading && brands.length === 0 && (
           <div className="flex flex-col items-center justify-center py-32 px-6 text-center">
-            <div className="w-24 h-24 flex items-center justify-center rounded-3xl bg-white/[0.05] border border-white/10 mb-8">
-              <i className="ri-store-2-line text-5xl text-gray-400"></i>
-            </div>
+            <div className="mb-6"><EmptyArt kind="people" size={120} /></div>
             <h2 className="font-unbounded font-bold text-white text-xl mb-3">
               {t('brands_empty_registered')}
             </h2>
@@ -338,9 +333,7 @@ export default function BrandsPage() {
 
         {!loading && brands.length > 0 && filtered.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
-            <div className="w-16 h-16 flex items-center justify-center rounded-2xl bg-white/[0.05] border border-white/10 mb-6">
-              <i className="ri-filter-off-line text-3xl text-gray-400"></i>
-            </div>
+            <div className="mb-5"><EmptyArt kind="search" size={104} /></div>
             <h3 className="font-unbounded font-bold text-white text-base mb-2">{t('brands_no_results_title')}</h3>
             <p className="text-zinc-400 text-sm font-inter mb-6">{t('brands_no_results_desc')}</p>
             <button

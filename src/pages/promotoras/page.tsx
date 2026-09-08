@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
+import EmptyArt from '@/components/base/EmptyArt';
+import { SkeletonList } from '@/components/base/Skeleton';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase, Organization, Profile } from '@/lib/supabase';
@@ -214,21 +216,17 @@ export default function PromotorasPage() {
 
         {/* Resultados */}
         {loading ? (
-          <div className="flex items-center justify-center py-24"><div className="w-10 h-10 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div></div>
+          <SkeletonList rows={5} />
         ) : rows.length === 0 ? (
           <div className="rk-card text-center" style={{ padding: '64px 24px' }}>
-            <div className="w-20 h-20 mx-auto mb-5 flex items-center justify-center rounded-2xl bg-red-600/10 border border-red-500/25 anim-float">
-              <i className="ri-trophy-line text-4xl text-red-400"></i>
-            </div>
+            <div className="flex justify-center mb-5"><EmptyArt kind="people" size={112} /></div>
             <h2 className="rk-h3 text-white">{t('prm_empty_title')}</h2>
             <p className="text-sm text-zinc-400 mt-2 max-w-sm mx-auto">{t('prm_empty_desc')}</p>
             <button onClick={() => navigate('/auth')} className="rk-btn rk-btn-primary mt-6" style={{ fontSize: '0.85rem' }}>{t('prm_empty_cta')}</button>
           </div>
         ) : filtered.length === 0 ? (
           <div className="rk-card text-center" style={{ padding: '56px 24px' }}>
-            <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center rounded-2xl bg-white/[0.04] border border-white/10">
-              <i className="ri-filter-off-line text-3xl text-zinc-500"></i>
-            </div>
+            <div className="flex justify-center mb-4"><EmptyArt kind="search" size={104} /></div>
             <h2 className="rk-h3 text-white">{t('prm_no_match_title')}</h2>
             <p className="text-sm text-zinc-400 mt-2">{t('prm_no_match_desc')}</p>
             <button onClick={clearAll} className="rk-btn rk-btn-ghost mt-5" style={{ fontSize: '0.8rem', padding: '0.6rem 1.3rem' }}>{t('prm_clear_filters')}</button>
