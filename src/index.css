@@ -885,3 +885,8 @@ html, body {
   .rk-press, .rk-lift { transition: none; }
   .rk-press:active, .rk-lift:active, .rk-lift:hover { transform: none; }
 }
+
+/* Tira horizontal sin barra de scroll visible (nav de Mi Esquina, chips de
+   filtros). El contenido sigue deslizándose; solo se oculta la barra. */
+.rk-noscroll-x::-webkit-scrollbar { display: none; }
+.rk-noscroll-x { scrollbar-width: none; -ms-overflow-style: none; }

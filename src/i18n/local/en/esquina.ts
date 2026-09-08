@@ -483,6 +483,10 @@ export default {
   mc_ai_line_label: 'Your active plan',
   // ── Summary v3: next action · streak · more of your progress · activation ──
   mc_more_progress: 'More of your progress',
+  // Mi Esquina menu groups (they hide nothing, they only sort)
+  mc_navgrp_today: 'Today',
+  mc_navgrp_track: 'Your tracking',
+  mc_navgrp_tools: 'Tools',
   mc_nav_more: 'More',
   mc_streak_line: 'days in a row. Keep it alive.',
   mc_streak_line_one: 'day. Don’t let it stop at one.',

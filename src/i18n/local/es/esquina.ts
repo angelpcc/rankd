@@ -483,6 +483,10 @@ export default {
   mc_ai_line_label: 'Tu plan activo',
   // ── Resumen v3: siguiente acción · racha · más de tu progreso · activación ──
   mc_more_progress: 'Más de tu progreso',
+  // Grupos del menú de Mi Esquina (no esconden nada, solo ordenan)
+  mc_navgrp_today: 'Hoy',
+  mc_navgrp_track: 'Tu seguimiento',
+  mc_navgrp_tools: 'Herramientas',
   mc_nav_more: 'Más',
   mc_streak_line: 'días seguidos. No la rompas.',
   mc_streak_line_one: 'día. Que no se quede en uno.',

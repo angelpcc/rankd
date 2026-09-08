@@ -51,7 +51,11 @@ export function useCountUp(value: number, { duration = 700, decimals = 0, delay 
     const run = () => {
       const start = performance.now();
       const step = (now: number) => {
-        const t = Math.min(1, (now - start) / duration);
+        // Se acota por ARRIBA y por ABAJO. El timestamp que pasa rAF puede ser
+        // anterior al performance.now() de justo antes; con t negativo,
+        // easeOutCubic devuelve valores enormes en negativo y la cifra pega un
+        // salto absurdo (se vio un "-63.3 kg" en un peso de 66.2).
+        const t = Math.max(0, Math.min(1, (now - start) / duration));
         const current = round(from + (value - from) * easeOutCubic(t));
         // Se guarda el valor REALMENTE pintado: si el efecto se corta a mitad
         // (React 18 en desarrollo monta, limpia y vuelve a montar), el siguiente
