@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
-import { isMissingTable, isMissingColumn } from '@/lib/dbState';
+import { isMissingTable, writeDroppingMissingColumns } from '@/lib/dbState';
 import {
   MUSCLE_GROUPS, muscleGroupOf, weightModeOf, trackingModeOf,
   type MuscleGroup, type WeightMode, type TrackingMode,
@@ -456,6 +456,20 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
     );
     if (base.length === 0) return;
 
+    /**
+     * Inserta quitando SOLO las columnas que esta base no tenga.
+     *
+     * Antes un único reintento tiraba TODAS las opcionales: bastaba con que
+     * faltara una (p. ej. session_slot de la 0033) para guardar filas peladas
+     * y perder grupo muscular, rango de repeticiones y modos de peso que la
+     * base sí admitía. Ahora se quita exactamente la que falta y se reintenta.
+     */
+    const insertDegrading = () => writeDroppingMissingColumns(
+      base,
+      (rows) => supabase.from('strength_sets').insert(rows).select(),
+      ['fighter_profile_id', 'exercise', 'exercise_label', 'session_date', 'set_number', 'reps', 'weight_kg'],
+    ).then(({ result }) => result);
+
     // ── Edición: se reemplazan las filas de la sesión original ──
     // Se borran las de editCtx (día+franja de partida) y se insertan las nuevas
     // en session.date/slot (que el usuario puede haber cambiado en el form).
@@ -466,11 +480,7 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
       setSaving(true);
       const del = await supabase.from('strength_sets').delete().in('id', oldIds);
       if (del.error) { setSaving(false); showToast(t('error_save'), 'error'); return; }
-      let ins = await supabase.from('strength_sets').insert(base).select();
-      if (isMissingColumn(ins.error)) {
-        const noExtras = base.map(({ muscle_group, reps_max, session_slot, weight_mode, tracking_mode, machine_label, drop_step, ...r }) => r);
-        ins = await supabase.from('strength_sets').insert(noExtras).select();
-      }
+      const ins = await insertDegrading();
       setSaving(false);
       if (ins.error || !ins.data) { showToast(t('error_save'), 'error'); load(); return; }
       const inserted = (ins.data as StrengthSet[]).map((r) => ({ ...r, reps_max: r.reps_max ?? null, muscle_group: r.muscle_group ?? null, session_slot: r.session_slot ?? null, weight_mode: r.weight_mode ?? null, tracking_mode: r.tracking_mode ?? null }));
@@ -502,15 +512,7 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
     });
 
     setSaving(true);
-    // Insert con las columnas nuevas (muscle_group de 0029, reps_max de 0026,
-    // session_slot de 0033). Si alguna migración no está aplicada,
-    // isMissingColumn lo detecta y se reintenta sin ninguna extra: la sesión
-    // se guarda igual (grupo derivado del nombre, rango como fijo, sin franja).
-    let { data, error } = await supabase.from('strength_sets').insert(base).select();
-    if (isMissingColumn(error)) {
-      const noExtras = base.map(({ muscle_group, reps_max, session_slot, weight_mode, tracking_mode, machine_label, drop_step, ...r }) => r);
-      ({ data, error } = await supabase.from('strength_sets').insert(noExtras).select());
-    }
+    const { data, error } = await insertDegrading();
     setSaving(false);
     if (error || !data) { showToast(t('error_save'), 'error'); return; }
 
