@@ -6,6 +6,7 @@ import { MUSCLE_GROUPS, muscleGroupOf, type MuscleGroup } from '../lib/exercises
 import { exerciseLines, type StrengthPayload } from '../lib/dayPlan';
 import MuscleMap, { type MapGroup, type TrainState } from './MuscleMap';
 import Reveal from '@/components/base/Reveal';
+import { SkeletonBox, SkeletonList } from '@/components/base/Skeleton';
 
 // Fuerza · NIVEL 1 (resumen). Solo consulta: mapa muscular, card de "hoy"
 // (day_plan_items kind strength), volumen semanal y últimas sesiones. Un
@@ -116,8 +117,19 @@ export default function StrengthSummary({ profile, onEnter, onGoAsesor }: Props)
     return t('mc_str_days_ago', { n: days });
   };
 
+  // Un esqueleto con la forma real de la pantalla (mapa, card de hoy, botón,
+  // volumen, historial), no una ruedecita: se ve dónde va a aparecer cada cosa
+  // y el salto al contenido no mueve el layout.
   if (loading) {
-    return <div className="flex items-center justify-center py-24"><div className="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin" /></div>;
+    return (
+      <div className="rk-blocks max-w-3xl">
+        <SkeletonBox height={260} radius={20} />
+        <SkeletonBox height={132} radius={20} />
+        <SkeletonBox height={52} radius={14} />
+        <SkeletonBox height={196} radius={20} />
+        <SkeletonList rows={3} />
+      </div>
+    );
   }
   if (unavailable) {
     return (
@@ -181,8 +193,16 @@ export default function StrengthSummary({ profile, onEnter, onGoAsesor }: Props)
         )}
       </Reveal>
 
-      {/* ── ENTRAR AL NIVEL 2 ── (tras la card destacada: visible nada más entrar) */}
-      <button onClick={() => onEnter()} className="rk-cta w-full flex items-center justify-center gap-2">
+      {/* ── ENTRAR AL NIVEL 2 ── (tras la card destacada: visible nada más entrar)
+          Cuando hay entreno hoy, la card ya lleva su propio botón rojo
+          "Empezar". Dos botones rojos idénticos y pegados no dicen cuál es la
+          acción principal, así que este pasa a segundo plano. Sin entreno hoy
+          es la única acción de la pantalla y sí va en rojo. */}
+      <button onClick={() => onEnter()}
+        className={todayItems.length > 0
+          ? 'rk-nav-btn w-full flex items-center justify-center gap-2'
+          : 'rk-cta w-full flex items-center justify-center gap-2'}
+        style={todayItems.length > 0 ? { minHeight: 44 } : undefined}>
         <i className="ri-hammer-line text-lg" />{t('mc_strs_enter')}
       </button>
 

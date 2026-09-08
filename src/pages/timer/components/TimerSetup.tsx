@@ -44,6 +44,11 @@ export default function TimerSetup(props: Props) {
   // está más abajo pasados los preajustes.
   const cfgRef = useRef<HTMLDivElement | null>(null);
   const goToConfig = () => cfgRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Prueba de sonido: null = aún sin probar. true/false = el navegador deja
+  // sonar o lo está bloqueando. Sin esto, tocar el botón con el volumen bajado
+  // no distingue "no suena la app" de "no suena el móvil".
+  const [soundOk, setSoundOk] = useState<boolean | null>(null);
+  const testSound = async () => { setSoundOk(await timerSounds.test()); };
   const [savingPreset, setSavingPreset] = useState(false);
   const [presetName, setPresetName] = useState('');
   const [aiPrompt, setAiPrompt] = useState('');
@@ -138,6 +143,26 @@ export default function TimerSetup(props: Props) {
           <MiniStat value={config.restSec > 0 ? fmt(config.restSec) : '—'} label={t('tm_rest_dur')} color="#22c55e" onClick={goToConfig} />
         </div>
 
+        {/* ── Comprobación de sonido ──
+            Estaba enterrada como última fila de la configuración libre, donde
+            nadie la encuentra antes de empezar. Ahora va arriba y, sobre todo,
+            RESPONDE: dice si el navegador ha dejado sonar el audio. Tocarla
+            además desbloquea el audio del móvil, que exige un gesto. */}
+        <div className="rounded-xl border px-3.5 py-3 flex items-center gap-3 flex-wrap"
+          style={{
+            background: 'rgba(255,255,255,0.03)',
+            borderColor: soundOk === false ? 'rgba(201,168,76,0.4)' : 'rgba(255,255,255,0.1)',
+          }}>
+          <button type="button" onClick={testSound} style={{ minHeight: 44 }}
+            className="rk-press flex items-center gap-2 px-3.5 rounded-lg text-sm font-semibold bg-white/5 text-white border border-white/12 hover:border-white/30 cursor-pointer transition-colors">
+            <i className={soundOk ? 'ri-volume-up-fill' : 'ri-volume-up-line'} />{t('tm_sound_test_btn')}
+          </button>
+          <p className="text-xs leading-relaxed flex-1 min-w-[10rem]"
+            style={{ color: soundOk === false ? '#C9A84C' : 'var(--t-2)' }}>
+            {soundOk === null ? t('tm_sound_hint') : soundOk ? t('tm_sound_ok') : t('tm_sound_blocked')}
+          </p>
+        </div>
+
         {/* ── Preajustes ── */}
         <Section icon="ri-flashlight-line" title={t('tm_presets')}>
           <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-600 mb-2">{t('tm_factory')}</p>
@@ -217,14 +242,8 @@ export default function TimerSetup(props: Props) {
                 ))}
               </div>
             </Row>
-            {/* Probar sonido: además de comprobar el volumen, desbloquea el audio
-                del navegador (necesario en móvil) al ser un gesto del usuario. */}
-            <Row label={t('tm_sound_test')}>
-              <button onClick={() => { timerSounds.unlock(); timerSounds.roundStart(); }}
-                className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold bg-white/5 text-zinc-300 hover:text-white border border-white/10 hover:border-white/25 cursor-pointer transition-colors">
-                <i className="ri-volume-up-line"></i>{t('tm_sound_test_btn')}
-              </button>
-            </Row>
+            {/* La prueba de sonido ya no vive aquí abajo: está arriba, junto a
+                los tres números, donde se ve antes de empezar. */}
           </div>
         </Section>
 
@@ -352,8 +371,11 @@ export default function TimerSetup(props: Props) {
 function Section({ icon, title, sub, children }: { icon: string; title: string; sub?: string; children: React.ReactNode }) {
   return (
     <div className="rounded-2xl bg-white/[0.02] border border-white/8 p-4 sm:p-5">
+      {/* El icono de cada sección iba en rojo. Con cinco secciones seguidas eran
+          cinco rojos decorativos compitiendo con el botón de empezar, que es lo
+          único que hay que pulsar. En gris, el rojo vuelve a significar algo. */}
       <div className="flex items-center gap-2.5 mb-1">
-        <i className={`${icon} text-red-400`}></i>
+        <i className={icon} style={{ color: 'var(--t-3)' }}></i>
         <h2 className="text-base font-bold text-white">{title}</h2>
       </div>
       {sub && <p className="text-xs text-zinc-500 mb-4 leading-relaxed">{sub}</p>}

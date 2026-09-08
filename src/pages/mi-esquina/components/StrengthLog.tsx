@@ -11,6 +11,7 @@ import { reconcileDayTicks } from '../lib/planTicks';
 import { clearDraft } from '../lib/strengthDraft';
 import { computePRs, prKey, type PRHit } from '../lib/prs';
 import StateBlock from '@/components/base/StateBlock';
+import { SkeletonBox, SkeletonList } from '@/components/base/Skeleton';
 import SectionHero from './SectionHero';
 import Reveal from '@/components/base/Reveal';
 import MuscleMap, { type MapGroup, type TrainState } from './MuscleMap';
@@ -500,8 +501,17 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
     if (error) { showToast(t('error_save'), 'error'); load(); }
   };
 
+  // Esqueleto con la forma de la pantalla en vez de una ruedecita: se ve
+  // enseguida que va a haber cabecera, mapa y sesiones, y nada salta de sitio
+  // cuando llegan los datos.
   if (loading) {
-    return <div className="flex items-center justify-center py-24"><div className="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div></div>;
+    return (
+      <div className="rk-blocks max-w-3xl">
+        <SkeletonBox height={96} radius={20} />
+        {!hideSummaryBlocks && <SkeletonBox height={260} radius={20} />}
+        <SkeletonList rows={4} />
+      </div>
+    );
   }
 
   if (unavailable) {

@@ -207,6 +207,33 @@ export class TimerSounds {
     if (!ctx) return;
     this.tone(680, ctx.currentTime, 0.09, 0.3, 'square');
   }
+
+  /**
+   * Prueba explícita de sonido, para el botón "Probar sonido".
+   *
+   * Suena aunque la sesión esté en silencio: pulsar "probar" es pedir oírlo.
+   * Devuelve `true` solo si el navegador ha dejado arrancar el audio de verdad
+   * — así la pantalla puede distinguir "ha sonado, sube el volumen" de "el
+   * navegador lo está bloqueando", que es justo lo que el usuario no puede
+   * diagnosticar solo. `resume()` es asíncrono, por eso se espera.
+   */
+  async test(): Promise<boolean> {
+    const wasMuted = this.muted;
+    this.muted = false;
+    try {
+      this.unlock();
+      const ctx = this.ctx;
+      if (!ctx) return false;
+      if (ctx.state === 'suspended') {
+        try { await ctx.resume(); } catch { /* el navegador puede negarse */ }
+      }
+      if (ctx.state !== 'running') return false;
+      this.roundStart();
+      return true;
+    } finally {
+      this.muted = wasMuted;
+    }
+  }
 }
 
 // ── Instancia compartida ──
