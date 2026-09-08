@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { SkeletonDashboard } from '@/components/base/Skeleton';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile, Fighter, FighterVideo, FighterAchievement } from '@/lib/supabase';
@@ -253,9 +254,7 @@ export default function FighterDashboard({ profile }: Props) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <div className="w-10 h-10 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
+      <div className="min-h-screen bg-zinc-950"><SkeletonDashboard /></div>
     );
   }
 

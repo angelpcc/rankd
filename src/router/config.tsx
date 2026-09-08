@@ -1,12 +1,24 @@
 import { lazy, Suspense } from 'react';
 import type { RouteObject } from 'react-router-dom';
 import NotFound from '../pages/NotFound';
+import { SkeletonBox } from '../components/base/Skeleton';
 import PublicGate from '../components/feature/PublicGate';
 import PreviewEntry from '../pages/preview-entry/page';
 
+// Espera mientras se descarga el trozo de la página. Es lo PRIMERO que ve el
+// usuario, así que en vez de un spinner suelto se pinta la silueta de una
+// pantalla (cabecera + contenido): la página no aparece de golpe sobre un vacío.
 const LoadingSpinner = () => (
-  <div className="min-h-screen flex items-center justify-center bg-[#0B0B0B]">
-    <div className="w-8 h-8 border-2 border-[#E10600] border-t-transparent rounded-full animate-spin" />
+  <div className="min-h-screen bg-[#0B0B0B] px-5 py-8" role="status" aria-busy="true">
+    <div className="max-w-4xl mx-auto space-y-5">
+      <SkeletonBox height={12} width={110} />
+      <SkeletonBox height={34} width="62%" />
+      <SkeletonBox height={180} radius={20} style={{ marginTop: 24 }} />
+      <div className="grid grid-cols-2 gap-3">
+        <SkeletonBox height={90} radius={16} />
+        <SkeletonBox height={90} radius={16} />
+      </div>
+    </div>
   </div>
 );
 

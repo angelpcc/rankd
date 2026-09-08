@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { SkeletonDashboard } from '@/components/base/Skeleton';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile, Opportunity } from '@/lib/supabase';
 import DashboardNav from './DashboardNav';
@@ -219,9 +220,7 @@ export default function BrandDashboard({ profile }: Props) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <div className="w-10 h-10 border-2 border-[#C9A84C] border-t-transparent rounded-full animate-spin"></div>
-      </div>
+      <div className="min-h-screen bg-zinc-950"><SkeletonDashboard /></div>
     );
   }
 

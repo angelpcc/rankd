@@ -74,6 +74,64 @@ export function SkeletonList({ rows = 3, className = '' }: { rows?: number; clas
 }
 
 /**
+ * Panel de control: saludo, fila de cuatro indicadores y lista de actividad.
+ * Es la forma de los dashboards de peleador, promotora y marca.
+ */
+export function SkeletonDashboard({ className = '' }: { className?: string }) {
+  return (
+    <div className={`max-w-5xl mx-auto px-5 py-8 space-y-6 ${className}`} role="status" aria-busy="true">
+      <div>
+        <SkeletonBox height={11} width={100} />
+        <SkeletonBox height={32} width="55%" style={{ marginTop: 10 }} />
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {Array.from({ length: 4 }).map((_, i) => <SkeletonStat key={i} />)}
+      </div>
+      <SkeletonList rows={4} />
+    </div>
+  );
+}
+
+/**
+ * Portada de perfil: banda de cabecera con avatar y nombre, fila de cifras y
+ * dos bloques de contenido. Se usa mientras carga una ficha pública (peleador,
+ * marca, promotora) para que al llegar los datos no salte todo de sitio.
+ */
+export function SkeletonProfile({ className = '' }: { className?: string }) {
+  return (
+    <div className={className} role="status" aria-busy="true">
+      {/* Cabecera a sangre */}
+      <div style={{ background: 'var(--s-1)', borderBottom: '1px solid var(--s-3)', padding: '32px 20px' }}>
+        <div className="max-w-4xl mx-auto flex items-end gap-4">
+          <SkeletonBox width={96} height={96} radius={20} />
+          <div className="flex-1 min-w-0">
+            <SkeletonBox height={12} width={90} />
+            <SkeletonBox height={30} width="60%" style={{ marginTop: 10 }} />
+            <SkeletonBox height={12} width="40%" style={{ marginTop: 10 }} />
+          </div>
+        </div>
+      </div>
+      {/* Cifras + contenido */}
+      <div className="max-w-4xl mx-auto px-5 py-6 space-y-5">
+        <div className="grid grid-cols-4 gap-2.5">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rk-surface-2" style={{ padding: '16px 8px' }}>
+              <SkeletonBox height={26} width="60%" />
+              <SkeletonBox height={9} width="85%" style={{ marginTop: 8 }} />
+            </div>
+          ))}
+        </div>
+        <div className="rk-card" style={{ padding: 20 }}>
+          <SkeletonBox height={11} width={120} />
+          <SkeletonText lines={3} className="mt-4" />
+        </div>
+        <SkeletonList rows={2} />
+      </div>
+    </div>
+  );
+}
+
+/**
  * Esqueleto por defecto de una sección de Mi Esquina: cabecera + cifras +
  * gráfico. Es el que usa `StateBlock variant="loading"`.
  */

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { SkeletonProfile } from '@/components/base/Skeleton';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile, Organization, OrgEvent, Opportunity } from '@/lib/supabase';
@@ -52,7 +53,7 @@ export default function PromotoraPublicPage() {
   }, [id]);
 
   if (loading) {
-    return <div className="min-h-screen bg-[#070707]"><Navbar /><div className="flex items-center justify-center" style={{ minHeight: '70vh' }}><div className="w-10 h-10 border-2 border-red-500 border-t-transparent rounded-full animate-spin" /></div></div>;
+    return <div className="min-h-screen bg-[#070707]"><Navbar /><SkeletonProfile /></div>;
   }
   if (notFound || !profile) {
     return (

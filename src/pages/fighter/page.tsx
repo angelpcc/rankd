@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { SkeletonProfile } from '@/components/base/Skeleton';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile, Fighter, FighterVideo, FighterAchievement } from '@/lib/supabase';
@@ -154,9 +155,7 @@ export default function FighterPublicPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <div className="w-10 h-10 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
+      <div className="min-h-screen bg-zinc-950"><SkeletonProfile /></div>
     );
   }
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { SkeletonDashboard } from '@/components/base/Skeleton';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
@@ -85,9 +86,7 @@ export default function ClubPage() {
 
   if (authLoading || !user || !profile || resolving) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <div className="w-10 h-10 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
-      </div>
+      <div className="min-h-screen bg-zinc-950"><SkeletonDashboard /></div>
     );
   }
 
