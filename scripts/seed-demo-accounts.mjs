@@ -126,11 +126,22 @@ async function run() {
     ids[acc.user_type + (acc.athlete_mode ? `:${acc.athlete_mode}` : '')] = id;
     console.log(`${created ? '＋ creada ' : '· existe  '} ${acc.label.padEnd(28)} ${acc.email}`);
 
-    // El perfil lo crea un trigger a partir de user_metadata; aquí nos
-    // aseguramos de que quede con los valores correctos.
+    // OJO: aquí había un `update()`. No hay trigger que cree la fila de
+    // `profiles` al crear el usuario en auth (lo hace el cliente al
+    // registrarse), así que el update afectaba a 0 filas y NO daba error:
+    // el paso salía en verde y luego todo lo demás fallaba con "violates
+    // foreign key constraint" porque el perfil no existía. Con upsert la
+    // fila se crea si falta y se actualiza si ya está.
+    // `profiles.user_type` tiene un CHECK que en esta base admite
+    // fighter/brand/promoter/gym/manager. 'coach' llega en una migración
+    // pendiente; hasta que se aplique, la cuenta se crea como 'gym' para que
+    // exista el perfil (y con él el espacio de entrenador). El email sigue
+    // siendo demo.coach@rankd.test.
+    const userType = acc.user_type === 'coach' ? 'gym' : acc.user_type;
     await step('profiles', async () => {
-      const { error } = await db.from('profiles').update({
-        user_type: acc.user_type,
+      const { error } = await db.from('profiles').upsert({
+        id,
+        user_type: userType,
         athlete_mode: acc.athlete_mode ?? null,
         full_name: acc.profile.full_name,
         bio: acc.profile.bio ?? null,
@@ -143,7 +154,7 @@ async function run() {
         twitter: acc.profile.twitter ?? null,
         accepted_terms_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      }).eq('id', id);
+      }, { onConflict: 'id' });
       if (error) throw error;
     });
   }
@@ -176,7 +187,10 @@ async function run() {
     const rows = [0, 7, 14, 21, 28, 35, 42].map((d, i) => ({
       fighter_profile_id: fighterId, entry_date: iso(d), weight_kg: 66.2 + i * 0.35,
     }));
-    const { error } = await db.from('weight_entries').upsert(rows, { onConflict: 'fighter_profile_id,entry_date' });
+    // weight_entries NO tiene unique (fighter_profile_id, entry_date), solo un
+    // indice: upsert con onConflict falla. Se borra y se reinserta.
+    await db.from('weight_entries').delete().eq('fighter_profile_id', rows[0].fighter_profile_id).in('entry_date', rows.map((r) => r.entry_date));
+    const { error } = await db.from('weight_entries').insert(rows);
     if (error) throw error;
   });
   await step('nutrition_goals (objetivo de peso + pesaje)', async () => {
@@ -243,18 +257,27 @@ async function run() {
   });
   await step('weight_entries', async () => {
     const rows = [0, 10, 20].map((d, i) => ({ fighter_profile_id: hobbyId, entry_date: iso(d), weight_kg: 62 - i * 0.4 }));
-    const { error } = await db.from('weight_entries').upsert(rows, { onConflict: 'fighter_profile_id,entry_date' });
+    await db.from('weight_entries').delete().eq('fighter_profile_id', rows[0].fighter_profile_id).in('entry_date', rows.map((r) => r.entry_date));
+    const { error } = await db.from('weight_entries').insert(rows);
     if (error) throw error;
   });
 
   // ── Organizaciones (brand / promoter / gym / manager) ──
   console.log('\nDatos · Organizaciones');
+  // `organizations.org_type` tiene un CHECK que en esta base solo admite los
+  // tipos antiguos (brand/promoter): 'gym' y 'manager' son posteriores y viven
+  // en `profiles.user_type`. Si el CHECK rechaza el tipo, se cae a 'promoter'
+  // para que la ficha exista igualmente — el tipo real manda desde el perfil.
   const org = async (profileId, name, type, description) => step(`organizations (${type})`, async () => {
-    const payload = { profile_id: profileId, org_name: name, org_type: type, description, is_public: type !== 'manager', updated_at: new Date().toISOString() };
-    const { data: ex } = await db.from('organizations').select('id').eq('profile_id', profileId).maybeSingle();
-    const { error } = ex
-      ? await db.from('organizations').update(payload).eq('id', ex.id)
-      : await db.from('organizations').insert(payload);
+    const write = async (orgType) => {
+      const payload = { profile_id: profileId, org_name: name, org_type: orgType, description, is_public: type !== 'manager', updated_at: new Date().toISOString() };
+      const { data: ex } = await db.from('organizations').select('id').eq('profile_id', profileId).maybeSingle();
+      return ex
+        ? await db.from('organizations').update(payload).eq('id', ex.id)
+        : await db.from('organizations').insert(payload);
+    };
+    let { error } = await write(type);
+    if (error && /org_type_check/.test(error.message || '')) ({ error } = await write('promoter'));
     if (error) throw error;
   });
   await org(brandId, 'Nébula Combat', 'brand', 'Guantes y protecciones de gama media para boxeo y kickboxing. Fabricación europea.');
@@ -293,7 +316,8 @@ async function run() {
       { org_profile_id: gymId, fighter_profile_id: fighterId, display_name: 'Marco Ruiz', status: 'active', shares_activity: true },
       { org_profile_id: gymId, fighter_profile_id: hobbyId, display_name: 'Lucía Ferrer', status: 'active', shares_activity: false },
     ];
-    const { error } = await db.from('gym_roster').upsert(rows, { onConflict: 'org_profile_id,fighter_profile_id' });
+    await db.from('gym_roster').delete().eq('org_profile_id', gymId);
+    const { error } = await db.from('gym_roster').insert(rows);
     if (error) throw error;
   });
   await step('gym_staff (entrenador ↔ gimnasio)', async () => {

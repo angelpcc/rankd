@@ -31,6 +31,7 @@ export function useCountUp(value: number, { duration = 700, decimals = 0, delay 
   const fromRef = useRef(prefersReducedMotion() ? value : 0);
   const rafRef = useRef<number | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const guardRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!Number.isFinite(value)) return;
@@ -41,7 +42,8 @@ export function useCountUp(value: number, { duration = 700, decimals = 0, delay 
     }
 
     const from = fromRef.current;
-    if (from === value) return;
+    // Ya estamos en el valor: solo hay que asegurarse de pintarlo.
+    if (from === value) { setDisplay(value); return; }
 
     const factor = Math.pow(10, decimals);
     const round = (n: number) => Math.round(n * factor) / factor;
@@ -50,8 +52,12 @@ export function useCountUp(value: number, { duration = 700, decimals = 0, delay 
       const start = performance.now();
       const step = (now: number) => {
         const t = Math.min(1, (now - start) / duration);
-        const current = from + (value - from) * easeOutCubic(t);
-        setDisplay(round(current));
+        const current = round(from + (value - from) * easeOutCubic(t));
+        // Se guarda el valor REALMENTE pintado: si el efecto se corta a mitad
+        // (React 18 en desarrollo monta, limpia y vuelve a montar), el siguiente
+        // pase continúa desde aquí en vez de creerse que ya había terminado.
+        fromRef.current = current;
+        setDisplay(current);
         if (t < 1) {
           rafRef.current = requestAnimationFrame(step);
         } else {
@@ -65,11 +71,25 @@ export function useCountUp(value: number, { duration = 700, decimals = 0, delay 
     if (delay > 0) timeoutRef.current = setTimeout(run, delay);
     else run();
 
+    // Red de seguridad: en una pestaña de fondo el navegador NO ejecuta
+    // requestAnimationFrame, así que la animación no avanza y la cifra se
+    // quedaría en 0 hasta que el usuario volviera a la pestaña. Este temporizador
+    // (que sí corre en segundo plano) fuerza el valor final pasado el tiempo de
+    // la animación. Primero el dato correcto; la animación es un extra.
+    guardRef.current = setTimeout(() => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      fromRef.current = value;
+      setDisplay(value);
+    }, delay + duration + 120);
+
+    // La limpieza SOLO cancela lo pendiente. Antes ponía `fromRef.current =
+    // value`, y con el doble montaje de desarrollo eso hacía que la segunda
+    // pasada viera `from === value`, saliera antes de animar y dejara la cifra
+    // congelada.
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
       if (timeoutRef.current !== null) clearTimeout(timeoutRef.current);
-      // Si se desmonta a mitad, el próximo montaje arranca del último pintado.
-      fromRef.current = value;
+      if (guardRef.current !== null) clearTimeout(guardRef.current);
     };
   }, [value, duration, decimals, delay]);
 

@@ -484,8 +484,8 @@ export default {
   // ── Resumen v3: siguiente acción · racha · más de tu progreso · activación ──
   mc_more_progress: 'Más de tu progreso',
   mc_nav_more: 'Más',
-  mc_streak_line: '{{n}} días seguidos. No la rompas.',
-  mc_streak_line_one: '1 día. Empieza la racha.',
+  mc_streak_line: 'días seguidos. No la rompas.',
+  mc_streak_line_one: 'día. Que no se quede en uno.',
   // Card "Tu siguiente acción"
   mc_hoy_pending: 'Entreno pendiente',
   mc_hoy_pending_desc: 'Lo tienes planificado para hoy. Vamos.',

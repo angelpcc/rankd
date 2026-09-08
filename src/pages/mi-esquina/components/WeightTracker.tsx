@@ -399,7 +399,7 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
             </div>
           </div>
           <button onClick={addWeight} disabled={savingWeight || !weightInput}
-            className="rk-btn rk-btn-gold flex items-center justify-center gap-1.5 disabled:opacity-50" style={{ fontSize: '0.85rem', padding: '0.85rem 1.6rem' }}>
+            className="rk-cta rk-press flex items-center justify-center gap-1.5 disabled:opacity-50" style={{ fontSize: '0.9rem', padding: '0.85rem 1.6rem', minHeight: 48 }}>
             {savingWeight ? <div className="w-4 h-4 border-2 border-zinc-900 border-t-transparent rounded-full animate-spin"></div> : <><i className="ri-add-line"></i> {t('mc_w_register')}</>}
           </button>
         </div>

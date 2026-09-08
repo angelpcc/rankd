@@ -7,6 +7,7 @@ import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis
 import { ACTIVITY_KINDS, activityKindCfg, computePace, paceLabel, paceToSec, todayISO } from '../lib/dayPlan';
 import ActivityGlyph from './ActivityGlyph';
 import StreakRow from './StreakRow';
+import CountUp from '@/components/base/CountUp';
 import { reconcileDayTicks } from '../lib/planTicks';
 import SectionHero from './SectionHero';
 
@@ -382,7 +383,7 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
                     <span className="text-sm text-zinc-500 ml-1.5">{t('mc_av_week_sessions_u')}</span>
                   </div>
                   <div>
-                    <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 40, lineHeight: 0.85, color: 'var(--gold)' }}>{weekAgg.mins}</span>
+                    <CountUp value={weekAgg.mins} delay={80} style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 40, lineHeight: 0.85, color: 'var(--t-1)' }} />
                     <span className="text-sm text-zinc-500 ml-1.5">min</span>
                   </div>
                 </div>

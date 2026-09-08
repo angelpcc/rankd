@@ -484,8 +484,8 @@ export default {
   // ── Summary v3: next action · streak · more of your progress · activation ──
   mc_more_progress: 'More of your progress',
   mc_nav_more: 'More',
-  mc_streak_line: '{{n}} days in a row. Keep it alive.',
-  mc_streak_line_one: '1 day. Start the streak.',
+  mc_streak_line: 'days in a row. Keep it alive.',
+  mc_streak_line_one: 'day. Don’t let it stop at one.',
   // "Your next action" card
   mc_hoy_pending: 'Session pending',
   mc_hoy_pending_desc: "It's on your plan for today. Let's go.",
