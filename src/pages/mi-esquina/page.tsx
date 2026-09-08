@@ -14,6 +14,8 @@ import WeekStrip from '@/pages/mi-esquina/components/WeekStrip';
 import FightPrep from '@/pages/mi-esquina/components/FightPrep';
 import ActivationSteps from '@/pages/mi-esquina/components/ActivationSteps';
 import AlertStack from '@/pages/mi-esquina/components/AlertStack';
+import GreetingLine from '@/pages/mi-esquina/components/GreetingLine';
+import CountUp from '@/components/base/CountUp';
 import AgendaHub from '@/pages/mi-esquina/components/AgendaHub';
 import WeightTracker from '@/pages/mi-esquina/components/WeightTracker';
 import FuerzaSection from '@/pages/mi-esquina/components/FuerzaSection';
@@ -306,7 +308,7 @@ export default function MiEsquinaPage() {
               <button
                 key={s.id}
                 onClick={() => { setMoreOpen(false); if (s.id === 'timer') navigate('/mi-esquina/timer'); else go(s.id); }}
-                className="flex flex-col items-center justify-center gap-1.5 rounded-xl cursor-pointer transition-colors"
+                className="flex flex-col items-center justify-center gap-1.5 rounded-xl cursor-pointer transition-colors rk-press"
                 style={{
                   minHeight: 76, padding: 10,
                   background: on ? 'var(--accent)' : 'var(--s-2)',
@@ -328,7 +330,7 @@ export default function MiEsquinaPage() {
           <nav className="space-y-1 flex-1">
             {SECTIONS.map((s) => (
               <button key={s.id} onClick={() => (s.id === 'timer' ? navigate('/mi-esquina/timer') : go(s.id))}
-                className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer text-left ${activeSection === s.id ? 'bg-red-600 text-white shadow-lg shadow-red-600/25' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/70'}`}>
+                className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium cursor-pointer text-left rk-press ${activeSection === s.id ? 'bg-red-600 text-white shadow-lg shadow-red-600/25' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/70'}`}>
                 <i className={`${s.icon} text-base flex-shrink-0`}></i>
                 <span className="flex-1">{t(s.labelKey)}</span>
               </button>
@@ -351,7 +353,7 @@ export default function MiEsquinaPage() {
               const on = activeSection === s.id;
               return (
                 <button key={s.id} onClick={() => go(s.id)}
-                  className="flex-1 flex flex-col items-center justify-center gap-0.5 rounded-lg cursor-pointer transition-colors"
+                  className="flex-1 flex flex-col items-center justify-center gap-0.5 rounded-lg cursor-pointer transition-colors rk-press"
                   style={{ minHeight: 44, color: on ? '#fff' : 'var(--t-3)', borderBottom: `2px solid ${on ? 'var(--accent)' : 'transparent'}` }}>
                   <i className={`${s.icon} text-base`}></i>
                   <span className="text-[11px] font-semibold">{t(s.labelKey)}</span>
@@ -359,7 +361,7 @@ export default function MiEsquinaPage() {
               );
             })}
             <button onClick={() => go('actividad', undefined, todayISO())}
-              className="flex-1 flex flex-col items-center justify-center gap-0.5 rounded-lg cursor-pointer"
+              className="flex-1 flex flex-col items-center justify-center gap-0.5 rounded-lg cursor-pointer rk-press"
               style={{ minHeight: 44, color: 'var(--accent)', borderBottom: `2px solid ${activeSection === 'actividad' ? 'var(--accent)' : 'transparent'}` }}>
               <i className="ri-add-circle-fill text-base"></i>
               <span className="text-[11px] font-bold">{t('mc_act_s3_cta')}</span>
@@ -390,16 +392,9 @@ export default function MiEsquinaPage() {
 
           {/* ══════════ RESUMEN ══════════ */}
           {activeSection === 'resumen' && (
-            <div className="rk-blocks max-w-3xl">
-              {/* Saludo */}
-              <div>
-                <h1 className="rk-screen-title" style={{ fontSize: 'clamp(24px,6vw,32px)' }}>
-                  {t('mc_greeting', { name: firstName })}
-                </h1>
-                <p className="mt-1" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, color: 'var(--t-3)' }}>
-                  {isHobby ? t('mc_hb_consistency_desc') : t('mc_sum_sub_pro')}
-                </p>
-              </div>
+            <div className="rk-blocks rk-stagger max-w-3xl">
+              {/* Saludo contextual: cambia con la hora y con la racha */}
+              <GreetingLine name={firstName} streak={stats.streak} totalSessions={stats.total} isHobby={isHobby} />
 
               {/* Alertas condicionales (se ocultan solas si no aplican) */}
               <div className="rk-stack">
@@ -439,7 +434,8 @@ export default function MiEsquinaPage() {
                   {stats.streak > 0 && (
                     <div className="flex items-center gap-2" style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--s-3)' }}>
                       <i className="ri-fire-fill" style={{ color: 'var(--accent)', fontSize: 18 }} />
-                      <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, color: 'var(--t-1)', lineHeight: 1 }}>{stats.streak}</span>
+                      <CountUp value={stats.streak} duration={700} delay={200}
+                        style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, color: 'var(--t-1)', lineHeight: 1 }} />
                       <span style={{ fontSize: 13, color: 'var(--t-2)' }}>
                         {t(stats.streak === 1 ? 'mc_streak_line_one' : 'mc_streak_line', { n: stats.streak })}
                       </span>

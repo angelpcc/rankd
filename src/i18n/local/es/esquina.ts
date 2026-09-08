@@ -638,6 +638,17 @@ export default {
   mc_lw_src_improve: 'A mejorar, del sparring',
   mc_lw_src_worked: 'Funcionó en el sparring',
   mc_lw_src_note: 'Nota técnica',
+  // ── Saludo contextual y racha visual ──
+  mc_greet_morning: 'Buenos días, {{name}}',
+  mc_greet_afternoon: 'Buenas tardes, {{name}}',
+  mc_greet_evening: 'Buenas noches, {{name}}',
+  mc_greet_night: 'Aún despierto, {{name}}',
+  mc_greet_streak: 'días seguidos. No la rompas hoy.',
+  mc_greet_streak_one: 'día. Que no se quede en uno.',
+  mc_greet_first: 'Tu primer registro empieza tu historial.',
+  mc_streak_row_title: 'Tus últimos días',
+  mc_streak_row_aria: 'Racha de {{n}} días sobre los últimos {{d}}',
+  mc_sp_no_ex_hint: 'Registra dos sesiones del mismo ejercicio y aquí verás cómo progresas.',
   // ── Mapa muscular (Fuerza) ──
   mc_str_map_title: 'Qué has entrenado',
   mc_str_map_front: 'Frente',

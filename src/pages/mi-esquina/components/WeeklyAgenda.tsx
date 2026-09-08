@@ -228,7 +228,7 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
   if (loading) return <StateBlock variant="loading" />;
 
   if (unavailable) {
-    return <StateBlock variant="empty" icon="ri-calendar-todo-line"
+    return <StateBlock variant="empty" art="agenda"
       title={t('mc_coming_soon_title')} description={t('mc_coming_soon_desc')} />;
   }
 
@@ -357,10 +357,15 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
               const doneCount = list.filter((x) => TICK_KINDS.includes(x.kind) && x.completed).length;
               const hasFight = evs.some((e) => e.kind === 'fight');
               const hasWeigh = evs.some((e) => e.kind === 'weigh_in');
+              // Intensidad de fondo según la carga del día: un día con 4 cosas
+              // se ve más "lleno" que uno con 1, sin tener que contar puntos.
+              const load = Math.min(4, list.length);
+              const loadBg = load === 0 ? undefined : `rgba(225,6,0,${0.04 + load * 0.035})`;
               return (
                 <button key={dISO} onClick={() => openDay(dISO)}
-                  className={`group text-left rounded-2xl border p-3 min-h-[116px] flex flex-col transition-all cursor-pointer ${
-                    isToday ? 'border-red-500/50 bg-red-600/[0.06]' : hasFight ? 'border-red-500/40' : 'border-white/10 bg-white/[0.02] hover:border-white/25 hover:bg-white/[0.04]'
+                  style={{ background: isToday ? undefined : loadBg }}
+                  className={`group text-left rounded-2xl border p-3 min-h-[116px] flex flex-col cursor-pointer rk-press ${
+                    isToday ? 'border-red-500/50 bg-red-600/[0.06]' : hasFight ? 'border-red-500/40' : 'border-white/10 hover:border-white/25'
                   }`}>
                   <div className="flex items-center justify-between">
                     <span className={`text-[10px] font-bold uppercase tracking-wider ${isToday ? 'text-red-400' : 'text-zinc-500'}`}>
@@ -687,7 +692,13 @@ function DayItemRow({ item, onRemove, onMove }: { item: DayPlanItem; onRemove: (
           {sub && <p className="text-[11px] text-zinc-500 truncate">{sub}</p>}
         </div>
         {tickable && (
-          <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 ${done ? 'text-green-500' : 'text-zinc-600'}`}>
+          <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 inline-flex items-center gap-1 ${done ? 'text-green-500' : 'text-zinc-600'}`}>
+            {done && (
+              // El check se dibuja en el momento en que el bloque pasa a hecho
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="rk-check-draw" />
+              </svg>
+            )}
             {done ? t('mc_ag_block_done') : t('mc_ag_block_pending')}
           </span>
         )}

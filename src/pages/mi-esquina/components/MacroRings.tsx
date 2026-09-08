@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import CountUp from '@/components/base/CountUp';
 
 // Anillos de macros para el resumen (nivel 1) de Nutrición. Presentacional.
 // Estructura inspirada en apps de nutrición (referencia visual), colores RANKD:
@@ -22,22 +23,36 @@ interface Props {
   fat: number;
 }
 
-function RingSvg({ ring, label, unit }: { ring: Ring; label: string; unit: string }) {
+function RingSvg({ ring, label, unit, delay }: { ring: Ring; label: string; unit: string; delay: number }) {
   const R = 34;
   const C = 2 * Math.PI * R;
   const denom = ring.goal && ring.goal > 0 ? ring.goal : ring.ref;
   const frac = Math.max(0, Math.min(1, ring.value / denom));
   const center = ring.goal && ring.goal > 0 ? Math.max(0, Math.round(ring.goal - ring.value)) : Math.round(ring.value);
+  const target = C - frac * C;
+
+  // `key` con el valor: al registrar una comida el anillo se re-monta y la
+  // animación de llenado vuelve a correr desde el carril vacío, que es el
+  // "crece en el momento" que pedía el brief.
   return (
     <div className="flex flex-col items-center gap-1.5">
       <div className="relative" style={{ width: 84, height: 84 }}>
         <svg viewBox="0 0 84 84" className="absolute inset-0 -rotate-90 w-full h-full">
           <circle cx="42" cy="42" r={R} fill="none" stroke="var(--s-3)" strokeWidth="8" />
-          <circle cx="42" cy="42" r={R} fill="none" stroke={ring.color} strokeWidth="8" strokeLinecap="round"
-            strokeDasharray={C} strokeDashoffset={C - frac * C} style={{ transition: 'stroke-dashoffset 0.4s' }} />
+          <circle
+            key={ring.value}
+            cx="42" cy="42" r={R} fill="none" stroke={ring.color} strokeWidth="8" strokeLinecap="round"
+            className="rk-ring-fill"
+            strokeDasharray={C}
+            strokeDashoffset={C}
+            style={{ ['--rk-ring-to' as string]: `${target}`, animationDelay: `${delay}ms` }}
+          />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, lineHeight: 1, color: 'var(--t-1)' }}>{center}</span>
+          <CountUp
+            value={center} delay={delay}
+            style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, lineHeight: 1, color: 'var(--t-1)' }}
+          />
           <span className="text-[9px] text-zinc-500">{unit}</span>
         </div>
       </div>
@@ -55,9 +70,9 @@ export default function MacroRings({ protein, carbs, fat }: Props) {
   ];
   return (
     <div className="flex items-center justify-around gap-2">
-      <RingSvg ring={rings[0]} label={t('mc_food_photo_protein')} unit="g" />
-      <RingSvg ring={rings[1]} label={t('mc_food_photo_carbs')} unit="g" />
-      <RingSvg ring={rings[2]} label={t('mc_food_photo_fat')} unit="g" />
+      <RingSvg ring={rings[0]} label={t('mc_food_photo_protein')} unit="g" delay={0} />
+      <RingSvg ring={rings[1]} label={t('mc_food_photo_carbs')} unit="g" delay={90} />
+      <RingSvg ring={rings[2]} label={t('mc_food_photo_fat')} unit="g" delay={180} />
     </div>
   );
 }

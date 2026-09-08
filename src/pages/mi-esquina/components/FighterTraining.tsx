@@ -5,6 +5,8 @@ import { isMissingColumn, isMissingTable } from '@/lib/dbState';
 import Reveal from '@/components/base/Reveal';
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ACTIVITY_KINDS, activityKindCfg, computePace, paceLabel, paceToSec, todayISO } from '../lib/dayPlan';
+import ActivityGlyph from './ActivityGlyph';
+import StreakRow from './StreakRow';
 import { reconcileDayTicks } from '../lib/planTicks';
 import SectionHero from './SectionHero';
 
@@ -335,6 +337,20 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
   const numCls = 'w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500';
   const optText = t('mc_optional');
 
+  // Días con actividad + racha viva, para la fila de marcas. Se derivan de las
+  // sesiones ya cargadas; no hay consulta extra.
+  const activeDates = new Set(sessions.map((s) => s.session_date));
+  const streakDays = (() => {
+    const d = new Date(); d.setHours(0, 0, 0, 0);
+    const key = (x: Date) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+    // Si hoy aún no hay nada, la racha se cuenta desde ayer (no se rompe hasta
+    // que el día termina).
+    if (!activeDates.has(key(d))) d.setDate(d.getDate() - 1);
+    let n = 0;
+    while (activeDates.has(key(d))) { n++; d.setDate(d.getDate() - 1); }
+    return n;
+  })();
+
   return (
     <div className="rk-blocks max-w-4xl">
       <SectionHero kind="activity" eyebrow={t('mc_av_eyebrow')}
@@ -345,6 +361,11 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
           icon: showForm ? 'ri-close-line' : 'ri-add-line',
           onClick: () => { if (showForm) closeForm(); else { setEditingId(null); resetForm(); setStep(1); setShowForm(true); } },
         }} />
+
+      {/* ── Racha en marcas, no en número suelto ── */}
+      {sessions.length > 0 && (
+        <StreakRow activeDates={activeDates} streak={streakDays} />
+      )}
 
       {/* ── Resumen semanal (parte superior) ── */}
       {sessions.length > 0 && (
@@ -415,7 +436,7 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
                   <button key={k.value} type="button" onClick={() => { setKind(k.value); resetForm(); setStep(2); }}
                     className="flex flex-col items-center gap-1.5 py-3.5 px-1 rounded-xl border border-white/10 bg-white/[0.02] text-xs font-semibold text-white hover:border-white/25 transition-all cursor-pointer"
                     style={{ minHeight: 44 }}>
-                    <i className={`${k.icon} text-xl`} style={{ color: k.hex }}></i>
+                    <ActivityGlyph kind={k.value} size={26} style={{ color: k.hex }} />
                     {t(k.labelKey)}
                   </button>
                 ))}
@@ -504,7 +525,7 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
                 <button key={k.value} onClick={() => setSelectedType(k.value)}
                   className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${selectedType === k.value ? 'border-white/30' : 'border-white/10 hover:border-white/20'}`}
                   style={{ background: selectedType === k.value ? `${k.hex}1e` : 'rgba(255,255,255,0.02)', color: '#fff', minHeight: 40 }}>
-                  <i className={k.icon} style={{ color: k.hex }}></i>{t(k.labelKey)}
+                  <ActivityGlyph kind={k.value} size={18} style={{ color: k.hex }} />{t(k.labelKey)}
                 </button>
               ))}
             </div>
@@ -572,7 +593,7 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
                 <Reveal key={s.id} delay={Math.min(i, 6) * 40}>
                   <div className="rk-card flex items-center gap-4 group" style={{ padding: '14px 16px' }}>
                     <div className="w-11 h-11 flex items-center justify-center rounded-xl border flex-shrink-0" style={{ background: `${c.hex}1a`, borderColor: `${c.hex}40`, color: c.hex }}>
-                      <i className={`${c.icon} text-lg`}></i>
+                      <ActivityGlyph kind={s.kind} size={22} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">

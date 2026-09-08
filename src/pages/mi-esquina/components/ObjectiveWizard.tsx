@@ -5,6 +5,7 @@ import { isMissingTable } from '@/lib/dbState';
 import { detectMuscleGroups, detectActivityKind, parseDuration } from '@/lib/dictation';
 import VoiceButton from '@/components/feature/VoiceButton';
 import AdjustPlanReview from './AdjustPlanReview';
+import Skeleton, { SkeletonBox } from '@/components/base/Skeleton';
 import { analyzeRoutinePhoto } from '@/services/routineImport';
 
 /**
@@ -517,7 +518,7 @@ export default function ObjectiveWizard({ profile, showToast, onGoPlan }: Props)
   if (checking || loadingActive) {
     return (
       <div className="rk-card flex items-center justify-center" style={{ minHeight: 220 }}>
-        <div className="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+        <Skeleton />
       </div>
     );
   }
@@ -729,13 +730,31 @@ export default function ObjectiveWizard({ profile, showToast, onGoPlan }: Props)
             </div>
           )}
 
-          {/* PASO 3 — Loading intermedio (solo la primera vez, sin plan aún) */}
+          {/* PASO 3 — Mientras se genera el plan.
+              Indicador de "escribiendo" (tres puntos) en vez del spinner: la
+              espera se lee como alguien redactando, no como una carga colgada.
+              Debajo, el esqueleto de los días que van a aparecer. */}
           {generating && !plan && (
-            <div className="card-primary text-center" style={{ padding: '32px 26px' }}>
-              <div className="w-12 h-12 mx-auto mb-3 flex items-center justify-center rounded-2xl bg-red-600/12 border border-red-500/30">
-                <div className="w-5 h-5 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+            <div className="card-primary" style={{ padding: '26px' }} role="status" aria-busy="true">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex items-end gap-1" aria-hidden>
+                  {[0, 1, 2].map((i) => (
+                    <span key={i} className="rk-typing-dot" style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)' }} />
+                  ))}
+                </span>
+                <p className="rk-title-card" style={{ margin: 0 }}>{t('op_step2_generating')}</p>
               </div>
-              <p className="rk-title-card">{t('op_step2_generating')}</p>
+              <div className="mt-5 space-y-2.5">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="rk-surface-2 flex items-center gap-3" style={{ padding: 12 }}>
+                    <SkeletonBox width={34} height={34} radius={10} />
+                    <div className="flex-1 min-w-0">
+                      <SkeletonBox height={11} width="35%" />
+                      <SkeletonBox height={9} width="65%" style={{ marginTop: 7 }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

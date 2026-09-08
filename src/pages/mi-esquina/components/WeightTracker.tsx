@@ -5,6 +5,9 @@ import { isMissingTable, isMissingColumn } from '@/lib/dbState';
 import Reveal from '@/components/base/Reveal';
 import SegmentedProgress from '@/components/base/SegmentedProgress';
 import StateBlock from '@/components/base/StateBlock';
+import CountUp from '@/components/base/CountUp';
+import GoalGauge from '@/components/base/GoalGauge';
+import EmptyArt from '@/components/base/EmptyArt';
 import WeightCutPlanner from '@/pages/mi-esquina/components/WeightCutPlanner';
 import { Area, AreaChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
@@ -92,6 +95,9 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
 
   const [weightInput, setWeightInput] = useState('');
   const [savingWeight, setSavingWeight] = useState(false);
+  // Se enciende ~1 s tras registrar: destella el borde de la card y la cifra
+  // rebota. Es la confirmación visual del principio 8, además del toast.
+  const [justSaved, setJustSaved] = useState(false);
   const [showGoal, setShowGoal] = useState(false);
   const [targetInput, setTargetInput] = useState('');
   const [classInput, setClassInput] = useState('');
@@ -175,6 +181,10 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
     showToast(msg);
     setWeightInput('');
     setSavingWeight(false);
+    // Confirmación visual: la card destella y la cifra rebota mientras cuenta
+    // hasta el nuevo valor. Se apaga sola para no dejar la animación pegada.
+    setJustSaved(true);
+    setTimeout(() => setJustSaved(false), 1000);
   };
 
   const deleteWeight = async (id: string) => {
@@ -284,7 +294,7 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
   }
 
   if (unavailable) {
-    return <StateBlock variant="empty" icon="ri-scales-2-line"
+    return <StateBlock variant="empty" art="weight"
       title={t('mc_coming_soon_title')} description={t('mc_coming_soon_desc')} />;
   }
 
@@ -305,40 +315,52 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
       </div>
 
       {/* ── CARD PRINCIPAL: peso actual + progreso hacia el objetivo ── */}
-      <div className="card-primary" style={{ padding: 22 }}>
+      {/* `justSaved` dispara el destello del borde al registrar (principio 8). */}
+      <div className={`card-primary ${justSaved ? 'rk-saved' : ''}`} style={{ padding: 22 }}>
         {currentWeight !== null ? (
-          <>
-            <p className="rk-label" style={{ marginBottom: 6 }}>{t('mc_w_current')}</p>
-            <div className="flex items-end gap-2">
-              <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 40, lineHeight: 0.85, color: '#fff' }}>{currentWeight}</span>
-              <span className="text-sm text-zinc-500 mb-1">kg</span>
-              {weightTrend !== null && weightTrend !== 0 && (
-                <span className={`text-xs font-bold mb-1.5 inline-flex items-center gap-0.5 ${weightTrend < 0 ? 'text-green-400' : 'text-orange-400'}`}>
-                  <i className={weightTrend < 0 ? 'ri-arrow-down-line' : 'ri-arrow-up-line'}></i>{Math.abs(weightTrend)}
-                </span>
-              )}
-            </div>
-            <div className="mt-4">
-              {targetWeight !== null ? (
-                <div className="flex items-center justify-between text-xs mb-2 gap-2">
-                  <span className="text-zinc-400 truncate">{isPro && classLabel ? classLabel : t('mc_w_target')}</span>
-                  <span className="font-bold flex-shrink-0" style={{ color: 'var(--gold)' }}>
-                    {targetWeight} kg
-                    {toTarget !== null && Math.abs(toTarget) >= 0.1 && (
-                      <span className="text-zinc-500 font-normal"> · {toTarget > 0 ? `+${toTarget}` : toTarget} {t('mc_w_to_goal')}</span>
-                    )}
+          <div className="flex items-start justify-between gap-5 flex-wrap">
+            <div className="min-w-0">
+              <p className="rk-label" style={{ marginBottom: 6 }}>{t('mc_w_current')}</p>
+              <div className="flex items-end gap-2">
+                <CountUp
+                  key={currentWeight}
+                  value={currentWeight} decimals={1} duration={800}
+                  className={justSaved ? 'rk-pop' : undefined}
+                  style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 40, lineHeight: 0.85, color: '#fff', display: 'inline-block' }}
+                />
+                <span className="text-sm text-zinc-500 mb-1">kg</span>
+                {weightTrend !== null && weightTrend !== 0 && (
+                  <span className={`text-xs font-bold mb-1.5 inline-flex items-center gap-0.5 ${weightTrend < 0 ? 'text-green-400' : 'text-orange-400'}`}>
+                    <i className={weightTrend < 0 ? 'ri-arrow-down-line' : 'ri-arrow-up-line'}></i>{Math.abs(weightTrend)}
                   </span>
-                </div>
-              ) : (
-                <p className="text-xs text-zinc-500 mb-2">{t('mc_w_no_goal')}</p>
-              )}
-              {goalSeg && <SegmentedProgress total={goalSeg.total} done={goalSeg.done} height={10} />}
+                )}
+              </div>
+              <div className="mt-4">
+                {targetWeight !== null ? (
+                  <div className="flex items-center justify-between text-xs mb-2 gap-2">
+                    <span className="text-zinc-400 truncate">{isPro && classLabel ? classLabel : t('mc_w_target')}</span>
+                    <span className="font-bold flex-shrink-0 text-white">{targetWeight} kg</span>
+                  </div>
+                ) : (
+                  <p className="text-xs text-zinc-500 mb-2">{t('mc_w_no_goal')}</p>
+                )}
+                {goalSeg && <SegmentedProgress total={goalSeg.total} done={goalSeg.done} height={10} />}
+              </div>
             </div>
-          </>
+
+            {/* Distancia al objetivo, en gráfico: el arco se rellena al entrar */}
+            {goalPct !== null && toTarget !== null && (
+              <GoalGauge
+                pct={goalPct}
+                value={Math.abs(toTarget).toFixed(1)}
+                label={t('mc_w_to_goal')}
+              />
+            )}
+          </div>
         ) : (
           <div className="text-center py-4">
-            <i className="ri-scales-2-line text-4xl text-zinc-700"></i>
-            <p className="text-base font-bold text-white mt-3">{t('mc_w_empty')}</p>
+            <div className="flex justify-center mb-1"><EmptyArt kind="weight" size={96} /></div>
+            <p className="text-base font-bold text-white mt-2">{t('mc_w_empty')}</p>
             <p className="text-xs text-zinc-500 mt-1 max-w-xs mx-auto leading-relaxed">{t('mc_w_empty_hint')}</p>
           </div>
         )}
@@ -434,22 +456,23 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
                     <ReferenceLine y={targetWeight} stroke="rgba(255,255,255,0.45)" strokeDasharray="5 4"
                       label={{ value: `${targetWeight} kg`, fill: 'rgba(255,255,255,0.6)', fontSize: 10, position: 'insideTopRight' }} />
                   )}
+                  {/* La línea se dibuja de izquierda a derecha al entrar; la
+                      tendencia entra después para que se lean por separado. */}
                   <Area type="monotone" dataKey="kg" stroke="#E10600" strokeWidth={2.5} fill="url(#wtgrad)"
                     dot={{ r: 3, fill: '#E10600' }}
-                    activeDot={{ r: 6, fill: '#E10600', stroke: 'rgba(225,6,0,0.35)', strokeWidth: 6 }} />
+                    activeDot={{ r: 6, fill: '#E10600', stroke: 'rgba(225,6,0,0.35)', strokeWidth: 6 }}
+                    isAnimationActive animationDuration={900} animationEasing="ease-out" />
                   <Area type="monotone" dataKey="trend" stroke="rgba(255,255,255,0.55)" strokeWidth={2}
-                    strokeDasharray="4 4" fill="none" dot={false} activeDot={false} />
+                    strokeDasharray="4 4" fill="none" dot={false} activeDot={false}
+                    isAnimationActive animationBegin={350} animationDuration={800} animationEasing="ease-out" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>
         </Reveal>
       ) : (
-        <div className="rk-card text-center" style={{ padding: '40px 24px' }}>
-          <i className="ri-line-chart-line text-4xl text-zinc-700"></i>
-          <p className="text-sm text-zinc-400 mt-3 font-medium">{t('mc_w_no_chart')}</p>
-          <p className="text-xs text-zinc-600 mt-1">{t('mc_w_no_chart_desc')}</p>
-        </div>
+        <StateBlock variant="empty" art="weight"
+          title={t('mc_w_no_chart')} description={t('mc_w_no_chart_desc')} />
       )}
 
       {/* ── MÉTRICAS SECUNDARIAS ── (bajo el gráfico, no como bloque principal) */}

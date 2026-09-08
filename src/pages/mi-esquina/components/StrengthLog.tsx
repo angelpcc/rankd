@@ -606,7 +606,7 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
             </div>
 
             {filteredSessions.length === 0 && historyFiltered && (
-              <StateBlock variant="empty" icon="ri-search-line" title={t('mc_str_h_none')}
+              <StateBlock variant="empty" art="search" title={t('mc_str_h_none')}
                 action={{ label: t('mc_exlib_clear'), onClick: () => { setHQuery(''); setHGroup('all'); setHDays(null); } }} />
             )}
 

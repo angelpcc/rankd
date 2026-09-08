@@ -8,6 +8,7 @@ import {
 } from '../lib/exercises';
 import { startOfWeekISO } from '../lib/strength';
 import StateBlock from '@/components/base/StateBlock';
+import CountUp from '@/components/base/CountUp';
 import {
   Bar, BarChart, CartesianGrid, Cell, Line, LineChart,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
@@ -322,14 +323,14 @@ export default function StrengthProgress({ profile }: Props) {
 
   if (loading) return <StateBlock variant="loading" />;
   if (unavailable) {
-    return <StateBlock variant="empty" icon="ri-line-chart-line"
+    return <StateBlock variant="empty" art="strength"
       title={t('mc_coming_soon_title')} description={t('mc_coming_soon_desc')} />;
   }
   if (loadError) {
     return <StateBlock variant="error" action={{ label: t('mc_state_retry'), onClick: () => setReloadKey((k) => k + 1) }} />;
   }
   if (rows.length === 0) {
-    return <StateBlock variant="empty" icon="ri-line-chart-line" title={t('mc_sp_no_ex')} />;
+    return <StateBlock variant="empty" art="strength" title={t('mc_sp_no_ex')} description={t('mc_sp_no_ex_hint')} />;
   }
 
   const tooltipStyle = { background: '#0d0d0d', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 10, fontSize: 12 };
@@ -405,9 +406,11 @@ export default function StrengthProgress({ profile }: Props) {
                     <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }} minTickGap={20} />
                     <YAxis domain={yDomain} tickLine={false} axisLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }} width={38} />
                     <Tooltip content={<ExTooltip />} cursor={{ stroke: RED, strokeWidth: 1, strokeDasharray: '3 3' }} />
+                    {/* Se traza de izquierda a derecha al entrar, no aparece hecha */}
                     <Line type="monotone" dataKey="v" stroke={RED} strokeWidth={2.5}
                       dot={{ r: 3, fill: RED }}
-                      activeDot={{ r: 6, fill: RED, stroke: 'rgba(225,6,0,0.35)', strokeWidth: 6 }} />
+                      activeDot={{ r: 6, fill: RED, stroke: 'rgba(225,6,0,0.35)', strokeWidth: 6 }}
+                      isAnimationActive animationDuration={900} animationEasing="ease-out" />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -471,7 +474,8 @@ export default function StrengthProgress({ profile }: Props) {
                     <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: 'rgba(255,255,255,0.5)' }}
                       cursor={{ fill: 'rgba(255,255,255,0.04)' }}
                       formatter={(v: number) => [`${v} ${t('mc_sp_sets')}`, '']} />
-                    <Bar dataKey="sets" radius={[5, 5, 0, 0]} maxBarSize={34}>
+                    <Bar dataKey="sets" radius={[5, 5, 0, 0]} maxBarSize={34}
+                      isAnimationActive animationDuration={800} animationEasing="ease-out">
                       {groupWeekly.weeks.map((w, i) => (
                         <Cell key={w.start} fill={i === groupWeekly.weeks.length - 1 ? RED : 'rgba(225,6,0,0.35)'} />
                       ))}
@@ -483,16 +487,20 @@ export default function StrengthProgress({ profile }: Props) {
               {/* Esta semana frente a la anterior */}
               <div className="grid grid-cols-3 gap-2 mt-4">
                 <div className="rk-surface-2 text-center" style={{ padding: '12px 6px' }}>
-                  <p className="rk-num" style={{ fontSize: 22, color: RED }}>{groupWeekly.thisWeek}</p>
+                  <CountUp value={groupWeekly.thisWeek} className="rk-num" style={{ fontSize: 22, color: RED, display: 'block' }} />
                   <p className="rk-label" style={{ fontSize: 9, marginTop: 4 }}>{t('mc_sp_cmp_this')}</p>
                 </div>
                 <div className="rk-surface-2 text-center" style={{ padding: '12px 6px' }}>
-                  <p className="rk-num" style={{ fontSize: 22 }}>{groupWeekly.lastWeek}</p>
+                  <CountUp value={groupWeekly.lastWeek} delay={80} className="rk-num" style={{ fontSize: 22, display: 'block' }} />
                   <p className="rk-label" style={{ fontSize: 9, marginTop: 4 }}>{t('mc_sp_cmp_last')}</p>
                 </div>
                 <div className="rk-surface-2 text-center" style={{ padding: '12px 6px' }}>
                   <p className="rk-num" style={{ fontSize: 22, color: groupWeekly.diff === 0 ? 'var(--t-2)' : groupWeekly.diff > 0 ? '#4ade80' : '#fb923c' }}>
-                    {groupWeekly.diff > 0 ? '+' : ''}{groupWeekly.diff}
+                    {/* La flecha dice la dirección sin depender del color */}
+                    {groupWeekly.diff !== 0 && (
+                      <i className={groupWeekly.diff > 0 ? 'ri-arrow-up-line' : 'ri-arrow-down-line'} style={{ fontSize: 16, marginRight: 2 }} />
+                    )}
+                    <CountUp value={Math.abs(groupWeekly.diff)} delay={160} />
                   </p>
                   <p className="rk-label" style={{ fontSize: 9, marginTop: 4 }}>{t('mc_sp_cmp_diff')}</p>
                 </div>

@@ -638,6 +638,17 @@ export default {
   mc_lw_src_improve: 'To improve, from sparring',
   mc_lw_src_worked: 'Worked in sparring',
   mc_lw_src_note: 'Technique note',
+  // ── Contextual greeting and streak row ──
+  mc_greet_morning: 'Good morning, {{name}}',
+  mc_greet_afternoon: 'Good afternoon, {{name}}',
+  mc_greet_evening: 'Good evening, {{name}}',
+  mc_greet_night: 'Still up, {{name}}',
+  mc_greet_streak: 'days in a row. Don’t break it today.',
+  mc_greet_streak_one: 'day. Don’t let it stop at one.',
+  mc_greet_first: 'Your first entry starts your history.',
+  mc_streak_row_title: 'Your last few days',
+  mc_streak_row_aria: 'Streak of {{n}} days across the last {{d}}',
+  mc_sp_no_ex_hint: 'Log the same exercise twice and you will see your progress here.',
   // ── Muscle map (Strength) ──
   mc_str_map_title: 'What you trained',
   mc_str_map_front: 'Front',

@@ -107,7 +107,7 @@ export default function ActivationSteps({ profile, totalSessions, showToast, onD
                 type="button"
                 onClick={interactive ? s.run : undefined}
                 aria-disabled={!interactive}
-                className="w-full text-left flex items-start gap-3"
+                className="w-full text-left flex items-start gap-3 rk-press"
                 style={{
                   minHeight: 44, padding: '12px 0',
                   borderTop: i === 0 ? 'none' : '1px solid var(--s-3)',

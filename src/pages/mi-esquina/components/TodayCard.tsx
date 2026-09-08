@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable } from '@/lib/dbState';
 import PhotoCard from '@/components/base/PhotoCard';
+import { SkeletonBox } from '@/components/base/Skeleton';
 import { type DayPlanItem, type StrengthPayload, type ActivityPayload, activityKindCfg, exerciseLines, KIND_META } from '../lib/dayPlan';
 
 // "Tu siguiente acción" — el elemento PRINCIPAL del Resumen y el ÚNICO CTA rojo
@@ -106,9 +107,16 @@ export default function TodayCard({ profile, mode, onStart, onCreatePlan, onLogW
   }, [profile.id, mode, t]);
 
   if (loading) {
+    // Esqueleto con la forma de la PhotoCard: chip arriba, titular abajo y
+    // botón, para que al llegar los datos no salte el layout.
     return (
-      <div className="rk-card" style={{ minHeight: 210, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div className="w-6 h-6 border-2 border-[#E10600] border-t-transparent rounded-full animate-spin" />
+      <div className="rk-card" style={{ minHeight: 210, padding: 20, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }} role="status" aria-busy="true">
+        <SkeletonBox width={110} height={22} radius={999} />
+        <div>
+          <SkeletonBox width="65%" height={26} />
+          <SkeletonBox width="85%" height={12} style={{ marginTop: 10 }} />
+          <SkeletonBox width="100%" height={48} radius={14} style={{ marginTop: 16 }} />
+        </div>
       </div>
     );
   }
@@ -123,7 +131,7 @@ export default function TodayCard({ profile, mode, onStart, onCreatePlan, onLogW
   );
 
   const cta = (label: string, icon: string, onClick: () => void) => (
-    <button onClick={onClick} className="rk-cta w-full flex items-center justify-center gap-2" style={{ minHeight: 48 }}>
+    <button onClick={onClick} className="rk-cta rk-press w-full flex items-center justify-center gap-2" style={{ minHeight: 48 }}>
       <i className={`${icon} text-lg`} /> {label}
     </button>
   );

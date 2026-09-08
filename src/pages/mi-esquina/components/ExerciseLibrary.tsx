@@ -149,7 +149,7 @@ export default function ExerciseLibrary() {
       </div>
 
       {list.length === 0 ? (
-        <StateBlock variant="empty" icon="ri-search-line" title={t('mc_exlib_none')}
+        <StateBlock variant="empty" art="search" title={t('mc_exlib_none')}
           action={{ label: t('mc_exlib_clear'), onClick: clearAll }} />
       ) : (
         <div className="rk-stack">
