@@ -83,50 +83,71 @@ export interface LibExercise {
   difficulty?: Difficulty;
   /** Músculos que acompañan al principal. */
   secondary?: MuscleGroup[];
+  /**
+   * Nombres ANTIGUOS que deben seguir resolviendo a esta ficha.
+   *
+   * Al desdoblar un ejercicio en variantes por equipo ("Jalón al pecho" →
+   * "Jalón al pecho (polea)" + "(máquina guiada)") el nombre viejo desaparece
+   * de la lista, pero sigue guardado en `strength_sets` de sesiones anteriores.
+   * Sin alias, esas filas dejarían de encontrar su ficha y perderían grupo
+   * muscular, modo de peso y ficha de técnica. El alias apunta a la variante
+   * más habitual, que es la que el usuario estaba registrando.
+   *
+   * NO se muestran en la biblioteca ni en el dictado: solo resuelven nombres.
+   */
+  aliases?: string[];
 }
 
-// Ficha de técnica (contenido estático, PROMPT_4·B3). Opcional: los ejercicios
-// sin ficha simplemente no muestran el icono de info.
-export interface ExerciseTechnique {
-  /** Músculos secundarios (mostrar como chips). */
-  secondary: string[];
-  /** 3-4 puntos, una línea cada uno. */
-  technique: string[];
-  /** 2-3 errores típicos. */
-  mistakes: string[];
-  /** Material principal: "barra", "mancuernas", "polea", "peso corporal"... */
-  equipment: string;
-}
+// La ficha de técnica vive en `exerciseTechnique.ts` (tipo `Technique`). Los
+// músculos secundarios y el material NO se repiten allí: se leen de los campos
+// `secondary` y `equipment` de esta misma biblioteca.
 
 export const EXERCISE_LIBRARY: LibExercise[] = [
   // ── ESPALDA ──
   { es: 'Dominadas', en: 'Pull-ups', group: 'back', weightMode: 'bodyweight', pattern: 'pull', equipment: 'bodyweight', difficulty: 'intermediate', secondary: ['biceps', 'core'] },
-  { es: 'Jalón al pecho', en: 'Lat pulldown', group: 'back', pattern: 'pull', equipment: 'cable', difficulty: 'beginner', secondary: ['biceps'] },
-  { es: 'Jalón agarre cerrado', en: 'Close-grip pulldown', group: 'back', pattern: 'pull', equipment: 'cable', difficulty: 'beginner', secondary: ['biceps'] },
+  { es: 'Dominadas lastradas', en: 'Weighted pull-ups', group: 'back', weightMode: 'bodyweight', pattern: 'pull', equipment: 'bodyweight', difficulty: 'advanced', secondary: ['biceps', 'core'] },
+  { es: 'Dominadas asistidas (máquina)', en: 'Assisted pull-up (machine)', group: 'back', pattern: 'pull', equipment: 'machine', difficulty: 'beginner', secondary: ['biceps'] },
+  { es: 'Jalón al pecho (polea)', en: 'Lat pulldown (cable)', group: 'back', pattern: 'pull', equipment: 'cable', difficulty: 'beginner', secondary: ['biceps'], aliases: ['Jalón al pecho', 'Lat pulldown'] },
+  { es: 'Jalón al pecho (máquina guiada)', en: 'Lat pulldown (plate-loaded machine)', group: 'back', pattern: 'pull', equipment: 'machine', difficulty: 'beginner', secondary: ['biceps'] },
+  { es: 'Jalón agarre en V (polea)', en: 'V-bar pulldown (cable)', group: 'back', pattern: 'pull', equipment: 'cable', difficulty: 'beginner', secondary: ['biceps'] },
+  { es: 'Jalón agarre cerrado (polea)', en: 'Close-grip pulldown (cable)', group: 'back', pattern: 'pull', equipment: 'cable', difficulty: 'beginner', secondary: ['biceps'], aliases: ['Jalón agarre cerrado', 'Close-grip pulldown'] },
+  { es: 'Jalón agarre neutro (polea)', en: 'Neutral-grip pulldown (cable)', group: 'back', pattern: 'pull', equipment: 'cable', difficulty: 'beginner', secondary: ['biceps'] },
+  { es: 'Jalón unilateral (polea)', en: 'Single-arm pulldown (cable)', group: 'back', pattern: 'pull', equipment: 'cable', unilateral: true, difficulty: 'intermediate', secondary: ['biceps', 'core'] },
   { es: 'Remo con barra', en: 'Barbell row', group: 'back', bar: true, pattern: 'pull', equipment: 'barbell', difficulty: 'intermediate', secondary: ['biceps', 'core'] },
   { es: 'Remo con mancuerna', en: 'Dumbbell row', group: 'back', weightMode: 'per_side', pattern: 'pull', equipment: 'dumbbell', unilateral: true, difficulty: 'beginner', secondary: ['biceps'] },
+  { es: 'Remo con mancuernas a dos manos', en: 'Two-dumbbell row', group: 'back', weightMode: 'per_dumbbell', pattern: 'pull', equipment: 'dumbbell', difficulty: 'beginner', secondary: ['biceps', 'core'] },
   { es: 'Remo en punta (T)', en: 'T-bar row', group: 'back', bar: true, pattern: 'pull', equipment: 'barbell', difficulty: 'intermediate', secondary: ['biceps'] },
   { es: 'Remo en polea baja', en: 'Seated cable row', group: 'back', pattern: 'pull', equipment: 'cable', difficulty: 'beginner', secondary: ['biceps'] },
+  { es: 'Remo en polea agarre ancho', en: 'Wide-grip cable row', group: 'back', pattern: 'pull', equipment: 'cable', difficulty: 'beginner', secondary: ['biceps', 'shoulders'] },
   { es: 'Remo en máquina', en: 'Machine row', group: 'back', pattern: 'pull', equipment: 'machine', difficulty: 'beginner', secondary: ['biceps'] },
-  { es: 'Remo pecho apoyado', en: 'Chest-supported row', group: 'back', pattern: 'pull', equipment: 'machine', difficulty: 'beginner', secondary: ['biceps'] },
+  { es: 'Remo pecho apoyado (máquina)', en: 'Chest-supported row (machine)', group: 'back', pattern: 'pull', equipment: 'machine', difficulty: 'beginner', secondary: ['biceps'], aliases: ['Remo pecho apoyado', 'Chest-supported row'] },
+  { es: 'Remo pecho apoyado con mancuernas', en: 'Chest-supported dumbbell row', group: 'back', weightMode: 'per_dumbbell', pattern: 'pull', equipment: 'dumbbell', difficulty: 'beginner', secondary: ['biceps'] },
+  { es: 'Remo en multipower', en: 'Smith machine row', group: 'back', pattern: 'pull', equipment: 'machine', difficulty: 'beginner', secondary: ['biceps', 'core'] },
   { es: 'Remo unilateral en polea', en: 'Single-arm cable row', group: 'back', pattern: 'pull', equipment: 'cable', unilateral: true, difficulty: 'beginner', secondary: ['biceps', 'core'] },
   { es: 'Peso muerto', en: 'Deadlift', group: 'back', bar: true, pattern: 'hinge', equipment: 'barbell', difficulty: 'advanced', secondary: ['legs', 'core'] },
   { es: 'Peso muerto rumano', en: 'Romanian deadlift', group: 'back', bar: true, pattern: 'hinge', equipment: 'barbell', difficulty: 'intermediate', secondary: ['legs'] },
+  { es: 'Peso muerto rumano con mancuernas', en: 'Dumbbell Romanian deadlift', group: 'back', weightMode: 'per_dumbbell', pattern: 'hinge', equipment: 'dumbbell', difficulty: 'beginner', secondary: ['legs'] },
   { es: 'Hiperextensiones', en: 'Back extension', group: 'back', weightMode: 'bodyweight', pattern: 'hinge', equipment: 'bodyweight', difficulty: 'beginner', secondary: ['legs', 'core'] },
-  { es: 'Encogimientos', en: 'Shrugs', group: 'back', bar: true, pattern: 'isolation', equipment: 'barbell', difficulty: 'beginner', secondary: ['shoulders'] },
+  { es: 'Encogimientos con barra', en: 'Barbell shrug', group: 'back', bar: true, pattern: 'isolation', equipment: 'barbell', difficulty: 'beginner', secondary: ['shoulders'], aliases: ['Encogimientos', 'Shrugs'] },
+  { es: 'Encogimientos con mancuernas', en: 'Dumbbell shrug', group: 'back', weightMode: 'per_dumbbell', pattern: 'isolation', equipment: 'dumbbell', difficulty: 'beginner', secondary: ['shoulders'] },
+  { es: 'Encogimientos en máquina', en: 'Machine shrug', group: 'back', pattern: 'isolation', equipment: 'machine', difficulty: 'beginner', secondary: ['shoulders'] },
   { es: 'Face pull', en: 'Face pull', group: 'back', pattern: 'pull', equipment: 'cable', difficulty: 'beginner', secondary: ['shoulders'] },
   { es: 'Pull-over en polea', en: 'Straight-arm pulldown', group: 'back', pattern: 'isolation', equipment: 'cable', difficulty: 'beginner', secondary: ['chest'] },
   { es: 'Pullover en máquina', en: 'Machine pullover', group: 'back', pattern: 'isolation', equipment: 'machine', difficulty: 'beginner', secondary: ['chest'] },
 
   // ── PECHO ──
-  { es: 'Press banca', en: 'Bench press', group: 'chest', bar: true, pattern: 'push', equipment: 'barbell', difficulty: 'intermediate', secondary: ['triceps', 'shoulders'] },
-  { es: 'Press inclinado con barra', en: 'Incline barbell press', group: 'chest', bar: true, pattern: 'push', equipment: 'barbell', difficulty: 'intermediate', secondary: ['shoulders', 'triceps'] },
-  { es: 'Press declinado', en: 'Decline press', group: 'chest', bar: true, pattern: 'push', equipment: 'barbell', difficulty: 'intermediate', secondary: ['triceps'] },
+  { es: 'Press banca con barra', en: 'Barbell bench press', group: 'chest', bar: true, pattern: 'push', equipment: 'barbell', difficulty: 'intermediate', secondary: ['triceps', 'shoulders'], aliases: ['Press banca', 'Bench press'] },
   { es: 'Press banca con mancuernas', en: 'Dumbbell bench press', group: 'chest', weightMode: 'per_side', pattern: 'push', equipment: 'dumbbell', difficulty: 'beginner', secondary: ['triceps', 'shoulders'] },
-  { es: 'Press inclinado con mancuernas', en: 'Incline dumbbell press', group: 'chest', weightMode: 'per_side', pattern: 'push', equipment: 'dumbbell', difficulty: 'beginner', secondary: ['shoulders', 'triceps'] },
   { es: 'Press de pecho en máquina', en: 'Machine chest press', group: 'chest', pattern: 'push', equipment: 'machine', difficulty: 'beginner', secondary: ['triceps'] },
+  { es: 'Press de pecho en multipower', en: 'Smith machine bench press', group: 'chest', pattern: 'push', equipment: 'machine', difficulty: 'beginner', secondary: ['triceps', 'shoulders'] },
+  { es: 'Press inclinado con barra', en: 'Incline barbell press', group: 'chest', bar: true, pattern: 'push', equipment: 'barbell', difficulty: 'intermediate', secondary: ['shoulders', 'triceps'] },
+  { es: 'Press inclinado con mancuernas', en: 'Incline dumbbell press', group: 'chest', weightMode: 'per_side', pattern: 'push', equipment: 'dumbbell', difficulty: 'beginner', secondary: ['shoulders', 'triceps'] },
+  { es: 'Press inclinado en máquina', en: 'Incline machine press', group: 'chest', pattern: 'push', equipment: 'machine', difficulty: 'beginner', secondary: ['shoulders', 'triceps'] },
+  { es: 'Press declinado con barra', en: 'Decline barbell press', group: 'chest', bar: true, pattern: 'push', equipment: 'barbell', difficulty: 'intermediate', secondary: ['triceps'], aliases: ['Press declinado', 'Decline press'] },
+  { es: 'Press declinado en máquina', en: 'Decline machine press', group: 'chest', pattern: 'push', equipment: 'machine', difficulty: 'beginner', secondary: ['triceps'] },
   { es: 'Press unilateral en polea', en: 'Single-arm cable press', group: 'chest', pattern: 'push', equipment: 'cable', unilateral: true, difficulty: 'intermediate', secondary: ['triceps', 'core'] },
   { es: 'Aperturas con mancuernas', en: 'Dumbbell fly', group: 'chest', weightMode: 'per_side', pattern: 'isolation', equipment: 'dumbbell', difficulty: 'beginner', secondary: ['shoulders'] },
+  { es: 'Aperturas inclinadas con mancuernas', en: 'Incline dumbbell fly', group: 'chest', weightMode: 'per_side', pattern: 'isolation', equipment: 'dumbbell', difficulty: 'beginner', secondary: ['shoulders'] },
   { es: 'Aperturas en polea', en: 'Cable fly', group: 'chest', pattern: 'isolation', equipment: 'cable', difficulty: 'beginner', secondary: ['shoulders'] },
   { es: 'Cruce de poleas alto-bajo', en: 'High-to-low cable crossover', group: 'chest', pattern: 'isolation', equipment: 'cable', difficulty: 'beginner', secondary: ['shoulders'] },
   { es: 'Cruce de poleas bajo-alto', en: 'Low-to-high cable crossover', group: 'chest', pattern: 'isolation', equipment: 'cable', difficulty: 'beginner', secondary: ['shoulders'] },
@@ -138,61 +159,83 @@ export const EXERCISE_LIBRARY: LibExercise[] = [
   // ── HOMBRO ──
   { es: 'Press militar con barra', en: 'Overhead barbell press', group: 'shoulders', bar: true, pattern: 'push', equipment: 'barbell', difficulty: 'intermediate', secondary: ['triceps', 'core'] },
   { es: 'Press militar con mancuernas', en: 'Dumbbell shoulder press', group: 'shoulders', weightMode: 'per_side', pattern: 'push', equipment: 'dumbbell', difficulty: 'beginner', secondary: ['triceps'] },
-  { es: 'Press Arnold', en: 'Arnold press', group: 'shoulders', weightMode: 'per_dumbbell', pattern: 'push', equipment: 'dumbbell', difficulty: 'intermediate', secondary: ['triceps'] },
   { es: 'Press de hombro en máquina', en: 'Machine shoulder press', group: 'shoulders', pattern: 'push', equipment: 'machine', difficulty: 'beginner', secondary: ['triceps'] },
+  { es: 'Press de hombro en multipower', en: 'Smith machine shoulder press', group: 'shoulders', pattern: 'push', equipment: 'machine', difficulty: 'beginner', secondary: ['triceps'] },
+  { es: 'Press Arnold', en: 'Arnold press', group: 'shoulders', weightMode: 'per_dumbbell', pattern: 'push', equipment: 'dumbbell', difficulty: 'intermediate', secondary: ['triceps'] },
   // Sin `bar`: en landmine se carga un solo extremo, así que la calculadora de
   // discos (que asume barra simétrica) daría un total equivocado.
   { es: 'Press landmine', en: 'Landmine press', group: 'shoulders', pattern: 'push', equipment: 'barbell', unilateral: true, difficulty: 'intermediate', secondary: ['chest', 'core'] },
-  { es: 'Elevaciones laterales', en: 'Lateral raise', group: 'shoulders', weightMode: 'per_dumbbell', pattern: 'isolation', equipment: 'dumbbell', difficulty: 'beginner' },
+  { es: 'Elevaciones laterales con mancuernas', en: 'Dumbbell lateral raise', group: 'shoulders', weightMode: 'per_dumbbell', pattern: 'isolation', equipment: 'dumbbell', difficulty: 'beginner', aliases: ['Elevaciones laterales', 'Lateral raise'] },
   { es: 'Elevaciones laterales en polea', en: 'Cable lateral raise', group: 'shoulders', pattern: 'isolation', equipment: 'cable', difficulty: 'beginner' },
   { es: 'Elevación lateral unilateral en polea', en: 'Single-arm cable lateral raise', group: 'shoulders', pattern: 'isolation', equipment: 'cable', unilateral: true, difficulty: 'beginner' },
-  { es: 'Elevaciones frontales', en: 'Front raise', group: 'shoulders', weightMode: 'per_dumbbell', pattern: 'isolation', equipment: 'dumbbell', difficulty: 'beginner' },
-  { es: 'Pájaros (deltoide posterior)', en: 'Rear delt fly', group: 'shoulders', weightMode: 'per_dumbbell', pattern: 'isolation', equipment: 'dumbbell', difficulty: 'beginner', secondary: ['back'] },
+  { es: 'Elevaciones laterales en máquina', en: 'Machine lateral raise', group: 'shoulders', pattern: 'isolation', equipment: 'machine', difficulty: 'beginner' },
+  { es: 'Elevaciones frontales con mancuernas', en: 'Dumbbell front raise', group: 'shoulders', weightMode: 'per_dumbbell', pattern: 'isolation', equipment: 'dumbbell', difficulty: 'beginner', aliases: ['Elevaciones frontales', 'Front raise'] },
+  { es: 'Elevaciones frontales en polea', en: 'Cable front raise', group: 'shoulders', pattern: 'isolation', equipment: 'cable', difficulty: 'beginner' },
+  { es: 'Pájaros con mancuernas', en: 'Dumbbell rear delt fly', group: 'shoulders', weightMode: 'per_dumbbell', pattern: 'isolation', equipment: 'dumbbell', difficulty: 'beginner', secondary: ['back'], aliases: ['Pájaros (deltoide posterior)', 'Rear delt fly'] },
+  { es: 'Pájaros en máquina (contractor inverso)', en: 'Reverse pec deck', group: 'shoulders', pattern: 'isolation', equipment: 'machine', difficulty: 'beginner', secondary: ['back'] },
+  { es: 'Pájaros en polea', en: 'Cable rear delt fly', group: 'shoulders', pattern: 'isolation', equipment: 'cable', difficulty: 'beginner', secondary: ['back'] },
   { es: 'Y-raise', en: 'Y-raise', group: 'shoulders', weightMode: 'per_dumbbell', pattern: 'isolation', equipment: 'dumbbell', difficulty: 'beginner', secondary: ['back'] },
   { es: 'Rotación externa con banda', en: 'Band external rotation', group: 'shoulders', pattern: 'isolation', equipment: 'band', unilateral: true, difficulty: 'beginner' },
-  { es: 'Remo al mentón', en: 'Upright row', group: 'shoulders', bar: true, pattern: 'pull', equipment: 'barbell', difficulty: 'intermediate', secondary: ['back'] },
+  { es: 'Rotación externa en polea', en: 'Cable external rotation', group: 'shoulders', pattern: 'isolation', equipment: 'cable', unilateral: true, difficulty: 'beginner' },
+  { es: 'Remo al mentón con barra', en: 'Barbell upright row', group: 'shoulders', bar: true, pattern: 'pull', equipment: 'barbell', difficulty: 'intermediate', secondary: ['back'], aliases: ['Remo al mentón', 'Upright row'] },
+  { es: 'Remo al mentón en polea', en: 'Cable upright row', group: 'shoulders', pattern: 'pull', equipment: 'cable', difficulty: 'beginner', secondary: ['back'] },
 
   // ── BÍCEPS ──
   { es: 'Curl con barra', en: 'Barbell curl', group: 'biceps', bar: true, pattern: 'isolation', equipment: 'barbell', difficulty: 'beginner' },
+  { es: 'Curl con barra Z', en: 'EZ-bar curl', group: 'biceps', bar: true, pattern: 'isolation', equipment: 'barbell', difficulty: 'beginner' },
   { es: 'Curl con mancuernas', en: 'Dumbbell curl', group: 'biceps', weightMode: 'per_dumbbell', pattern: 'isolation', equipment: 'dumbbell', difficulty: 'beginner' },
   { es: 'Curl martillo', en: 'Hammer curl', group: 'biceps', weightMode: 'per_dumbbell', pattern: 'isolation', equipment: 'dumbbell', difficulty: 'beginner' },
+  { es: 'Curl martillo en polea con cuerda', en: 'Rope hammer curl (cable)', group: 'biceps', pattern: 'isolation', equipment: 'cable', difficulty: 'beginner' },
   { es: 'Curl concentrado', en: 'Concentration curl', group: 'biceps', weightMode: 'per_side', pattern: 'isolation', equipment: 'dumbbell', unilateral: true, difficulty: 'beginner' },
-  { es: 'Curl predicador', en: 'Preacher curl', group: 'biceps', pattern: 'isolation', equipment: 'machine', difficulty: 'beginner' },
+  { es: 'Curl predicador con barra Z', en: 'EZ-bar preacher curl', group: 'biceps', bar: true, pattern: 'isolation', equipment: 'barbell', difficulty: 'beginner' },
+  { es: 'Curl predicador en máquina', en: 'Machine preacher curl', group: 'biceps', pattern: 'isolation', equipment: 'machine', difficulty: 'beginner', aliases: ['Curl predicador', 'Preacher curl'] },
   { es: 'Curl en polea', en: 'Cable curl', group: 'biceps', pattern: 'isolation', equipment: 'cable', difficulty: 'beginner' },
   { es: 'Curl inclinado', en: 'Incline dumbbell curl', group: 'biceps', weightMode: 'per_side', pattern: 'isolation', equipment: 'dumbbell', difficulty: 'beginner' },
   { es: 'Curl araña', en: 'Spider curl', group: 'biceps', weightMode: 'per_dumbbell', pattern: 'isolation', equipment: 'dumbbell', difficulty: 'beginner' },
+  { es: 'Curl inverso con barra', en: 'Reverse barbell curl', group: 'biceps', bar: true, pattern: 'isolation', equipment: 'barbell', difficulty: 'beginner' },
 
   // ── TRÍCEPS ──
-  { es: 'Extensión de tríceps en polea', en: 'Triceps pushdown', group: 'triceps', pattern: 'isolation', equipment: 'cable', difficulty: 'beginner' },
+  { es: 'Extensión de tríceps en polea (barra)', en: 'Triceps pushdown (bar)', group: 'triceps', pattern: 'isolation', equipment: 'cable', difficulty: 'beginner', aliases: ['Extensión de tríceps en polea', 'Triceps pushdown'] },
+  { es: 'Extensión en polea con cuerda', en: 'Rope pushdown', group: 'triceps', pattern: 'isolation', equipment: 'cable', difficulty: 'beginner' },
+  { es: 'Extensión de tríceps en máquina', en: 'Machine triceps extension', group: 'triceps', pattern: 'isolation', equipment: 'machine', difficulty: 'beginner' },
   { es: 'Extensión unilateral en polea', en: 'Single-arm cable pushdown', group: 'triceps', pattern: 'isolation', equipment: 'cable', unilateral: true, difficulty: 'beginner' },
   { es: 'Pressdown agarre inverso', en: 'Reverse-grip pushdown', group: 'triceps', pattern: 'isolation', equipment: 'cable', difficulty: 'beginner' },
-  { es: 'Press francés', en: 'Skull crusher', group: 'triceps', bar: true, pattern: 'isolation', equipment: 'barbell', difficulty: 'intermediate' },
+  { es: 'Press francés con barra Z', en: 'EZ-bar skull crusher', group: 'triceps', bar: true, pattern: 'isolation', equipment: 'barbell', difficulty: 'intermediate', aliases: ['Press francés', 'Skull crusher'] },
+  { es: 'Press francés con mancuernas', en: 'Dumbbell skull crusher', group: 'triceps', weightMode: 'per_dumbbell', pattern: 'isolation', equipment: 'dumbbell', difficulty: 'beginner' },
   { es: 'Extensión sobre la cabeza', en: 'Overhead triceps extension', group: 'triceps', pattern: 'isolation', equipment: 'cable', difficulty: 'beginner' },
   { es: 'Extensión unilateral sobre la cabeza', en: 'Single-arm overhead extension', group: 'triceps', weightMode: 'per_dumbbell', pattern: 'isolation', equipment: 'dumbbell', unilateral: true, difficulty: 'beginner' },
   { es: 'Fondos en banco', en: 'Bench dips', group: 'triceps', weightMode: 'bodyweight', pattern: 'push', equipment: 'bodyweight', difficulty: 'beginner' },
   { es: 'Fondos asistidos', en: 'Assisted dips', group: 'triceps', pattern: 'push', equipment: 'machine', difficulty: 'beginner', secondary: ['chest', 'shoulders'] },
   { es: 'Patada de tríceps', en: 'Triceps kickback', group: 'triceps', weightMode: 'per_dumbbell', pattern: 'isolation', equipment: 'dumbbell', unilateral: true, difficulty: 'beginner' },
   { es: 'Press cerrado', en: 'Close-grip bench press', group: 'triceps', bar: true, pattern: 'push', equipment: 'barbell', difficulty: 'intermediate', secondary: ['chest', 'shoulders'] },
-  { es: 'Extensión en polea con cuerda', en: 'Rope pushdown', group: 'triceps', pattern: 'isolation', equipment: 'cable', difficulty: 'beginner' },
 
   // ── PIERNA ──
-  { es: 'Sentadilla', en: 'Squat', group: 'legs', bar: true, pattern: 'squat', equipment: 'barbell', difficulty: 'intermediate', secondary: ['core'] },
+  { es: 'Sentadilla con barra', en: 'Barbell squat', group: 'legs', bar: true, pattern: 'squat', equipment: 'barbell', difficulty: 'intermediate', secondary: ['core'], aliases: ['Sentadilla', 'Squat'] },
   { es: 'Sentadilla frontal', en: 'Front squat', group: 'legs', bar: true, pattern: 'squat', equipment: 'barbell', difficulty: 'advanced', secondary: ['core'] },
+  { es: 'Sentadilla en multipower', en: 'Smith machine squat', group: 'legs', pattern: 'squat', equipment: 'machine', difficulty: 'beginner', secondary: ['core'] },
+  { es: 'Sentadilla hack (máquina)', en: 'Hack squat (machine)', group: 'legs', pattern: 'squat', equipment: 'machine', difficulty: 'beginner' },
   { es: 'Sentadilla goblet', en: 'Goblet squat', group: 'legs', weightMode: 'per_side', pattern: 'squat', equipment: 'dumbbell', difficulty: 'beginner', secondary: ['core'] },
-  { es: 'Sentadilla búlgara', en: 'Bulgarian split squat', group: 'legs', weightMode: 'per_side', pattern: 'lunge', equipment: 'dumbbell', unilateral: true, difficulty: 'intermediate', secondary: ['core'] },
+  { es: 'Sentadilla búlgara con mancuernas', en: 'Dumbbell Bulgarian split squat', group: 'legs', weightMode: 'per_side', pattern: 'lunge', equipment: 'dumbbell', unilateral: true, difficulty: 'intermediate', secondary: ['core'], aliases: ['Sentadilla búlgara', 'Bulgarian split squat'] },
+  { es: 'Sentadilla búlgara con barra', en: 'Barbell Bulgarian split squat', group: 'legs', bar: true, pattern: 'lunge', equipment: 'barbell', unilateral: true, difficulty: 'advanced', secondary: ['core'] },
   { es: 'Prensa de piernas', en: 'Leg press', group: 'legs', pattern: 'squat', equipment: 'machine', difficulty: 'beginner' },
-  { es: 'Zancadas', en: 'Lunges', group: 'legs', weightMode: 'per_side', pattern: 'lunge', equipment: 'dumbbell', unilateral: true, difficulty: 'beginner', secondary: ['core'] },
+  { es: 'Prensa horizontal', en: 'Horizontal leg press', group: 'legs', pattern: 'squat', equipment: 'machine', difficulty: 'beginner' },
+  { es: 'Zancadas con mancuernas', en: 'Dumbbell lunges', group: 'legs', weightMode: 'per_side', pattern: 'lunge', equipment: 'dumbbell', unilateral: true, difficulty: 'beginner', secondary: ['core'], aliases: ['Zancadas', 'Lunges'] },
+  { es: 'Zancadas con barra', en: 'Barbell lunges', group: 'legs', bar: true, pattern: 'lunge', equipment: 'barbell', unilateral: true, difficulty: 'intermediate', secondary: ['core'] },
   { es: 'Zancada caminando con peso', en: 'Walking lunge (loaded)', group: 'legs', weightMode: 'per_side', trackingMode: 'distance', pattern: 'lunge', equipment: 'dumbbell', unilateral: true, difficulty: 'intermediate', secondary: ['core'] },
   { es: 'Step-up', en: 'Step-up', group: 'legs', weightMode: 'per_side', pattern: 'lunge', equipment: 'dumbbell', unilateral: true, difficulty: 'beginner', secondary: ['core'] },
-  { es: 'Hip thrust', en: 'Hip thrust', group: 'legs', bar: true, pattern: 'hinge', equipment: 'barbell', difficulty: 'beginner' },
+  { es: 'Hip thrust con barra', en: 'Barbell hip thrust', group: 'legs', bar: true, pattern: 'hinge', equipment: 'barbell', difficulty: 'beginner', aliases: ['Hip thrust'] },
+  { es: 'Hip thrust en máquina', en: 'Machine hip thrust', group: 'legs', pattern: 'hinge', equipment: 'machine', difficulty: 'beginner' },
   { es: 'Puente de glúteo', en: 'Glute bridge', group: 'legs', weightMode: 'bodyweight', pattern: 'hinge', equipment: 'bodyweight', difficulty: 'beginner', secondary: ['core'] },
+  { es: 'Patada de glúteo en polea', en: 'Cable glute kickback', group: 'legs', pattern: 'hinge', equipment: 'cable', unilateral: true, difficulty: 'beginner' },
   { es: 'Peso muerto sumo', en: 'Sumo deadlift', group: 'legs', bar: true, pattern: 'hinge', equipment: 'barbell', difficulty: 'intermediate', secondary: ['back'] },
   { es: 'Peso muerto a una pierna', en: 'Single-leg deadlift', group: 'legs', weightMode: 'per_side', pattern: 'hinge', equipment: 'dumbbell', unilateral: true, difficulty: 'intermediate', secondary: ['core', 'back'] },
   { es: 'Extensión de cuádriceps', en: 'Leg extension', group: 'legs', pattern: 'isolation', equipment: 'machine', difficulty: 'beginner' },
-  { es: 'Curl femoral', en: 'Leg curl', group: 'legs', pattern: 'isolation', equipment: 'machine', difficulty: 'beginner' },
+  { es: 'Curl femoral tumbado', en: 'Lying leg curl', group: 'legs', pattern: 'isolation', equipment: 'machine', difficulty: 'beginner', aliases: ['Curl femoral', 'Leg curl'] },
+  { es: 'Curl femoral sentado', en: 'Seated leg curl', group: 'legs', pattern: 'isolation', equipment: 'machine', difficulty: 'beginner' },
   { es: 'Curl nórdico', en: 'Nordic curl', group: 'legs', weightMode: 'bodyweight', pattern: 'isolation', equipment: 'bodyweight', difficulty: 'advanced', secondary: ['core'] },
   { es: 'Gemelos de pie', en: 'Standing calf raise', group: 'legs', pattern: 'isolation', equipment: 'machine', difficulty: 'beginner' },
   { es: 'Gemelos sentado', en: 'Seated calf raise', group: 'legs', pattern: 'isolation', equipment: 'machine', difficulty: 'beginner' },
+  { es: 'Gemelos en prensa', en: 'Calf press on leg press', group: 'legs', pattern: 'isolation', equipment: 'machine', difficulty: 'beginner' },
   { es: 'Tibial anterior', en: 'Tibialis raise', group: 'legs', weightMode: 'bodyweight', pattern: 'isolation', equipment: 'bodyweight', difficulty: 'beginner' },
   { es: 'Abductores', en: 'Hip abduction', group: 'legs', pattern: 'isolation', equipment: 'machine', difficulty: 'beginner' },
   { es: 'Aductores', en: 'Hip adduction', group: 'legs', pattern: 'isolation', equipment: 'machine', difficulty: 'beginner' },
@@ -213,12 +256,13 @@ export const EXERCISE_LIBRARY: LibExercise[] = [
   { es: 'Isométrico de cuello', en: 'Neck isometric hold', group: 'core', weightMode: 'bodyweight', trackingMode: 'time', pattern: 'antirotation', equipment: 'bodyweight', difficulty: 'beginner' },
   { es: 'Elevación de piernas', en: 'Leg raise', group: 'core', weightMode: 'bodyweight', pattern: 'isolation', equipment: 'bodyweight', difficulty: 'beginner' },
   { es: 'Elevación de rodillas colgado', en: 'Hanging knee raise', group: 'core', weightMode: 'bodyweight', pattern: 'isolation', equipment: 'bodyweight', difficulty: 'intermediate' },
+  { es: 'Elevación de piernas colgado', en: 'Hanging leg raise', group: 'core', weightMode: 'bodyweight', pattern: 'isolation', equipment: 'bodyweight', difficulty: 'advanced' },
   { es: 'Crunch', en: 'Crunch', group: 'core', weightMode: 'bodyweight', pattern: 'isolation', equipment: 'bodyweight', difficulty: 'beginner' },
   { es: 'Crunch en polea', en: 'Cable crunch', group: 'core', pattern: 'isolation', equipment: 'cable', difficulty: 'beginner' },
+  { es: 'Crunch en máquina', en: 'Machine crunch', group: 'core', pattern: 'isolation', equipment: 'machine', difficulty: 'beginner' },
   { es: 'Rueda abdominal', en: 'Ab wheel', group: 'core', weightMode: 'bodyweight', pattern: 'antirotation', equipment: 'bodyweight', difficulty: 'advanced' },
   { es: 'Russian twist', en: 'Russian twist', group: 'core', weightMode: 'bodyweight', pattern: 'rotation', equipment: 'bodyweight', difficulty: 'beginner' },
   { es: 'Mountain climbers', en: 'Mountain climbers', group: 'core', weightMode: 'bodyweight', pattern: 'isolation', equipment: 'bodyweight', difficulty: 'beginner' },
-  { es: 'Elevación de piernas colgado', en: 'Hanging leg raise', group: 'core', weightMode: 'bodyweight', pattern: 'isolation', equipment: 'bodyweight', difficulty: 'advanced' },
 
   // ── POTENCIA ──
   { es: 'Cargada de fuerza', en: 'Power clean', group: 'power', bar: true, pattern: 'hinge', equipment: 'barbell', difficulty: 'advanced', secondary: ['legs', 'back'] },
@@ -229,10 +273,10 @@ export const EXERCISE_LIBRARY: LibExercise[] = [
   { es: 'Sentadilla con salto', en: 'Jump squat', group: 'power', weightMode: 'bodyweight', pattern: 'jump', equipment: 'bodyweight', difficulty: 'intermediate', secondary: ['legs'] },
   { es: 'Zancada con salto', en: 'Jumping lunge', group: 'power', weightMode: 'bodyweight', pattern: 'jump', equipment: 'bodyweight', unilateral: true, difficulty: 'intermediate', secondary: ['legs'] },
   { es: 'Salto lateral', en: 'Lateral bound', group: 'power', weightMode: 'bodyweight', pattern: 'jump', equipment: 'bodyweight', unilateral: true, difficulty: 'intermediate', secondary: ['legs', 'core'] },
+  { es: 'Salto horizontal', en: 'Broad jump', group: 'power', weightMode: 'bodyweight', pattern: 'jump', equipment: 'bodyweight', difficulty: 'intermediate', secondary: ['legs'] },
   { es: 'Golpe de balón medicinal', en: 'Medicine ball slam', group: 'power', weightMode: 'bodyweight', pattern: 'rotation', equipment: 'ball', difficulty: 'beginner', secondary: ['core'] },
   { es: 'Lanzamiento de balón medicinal', en: 'Medicine ball throw', group: 'power', weightMode: 'bodyweight', pattern: 'rotation', equipment: 'ball', difficulty: 'beginner', secondary: ['core'] },
   { es: 'Lanzamiento rotacional con balón', en: 'Rotational med ball throw', group: 'power', weightMode: 'bodyweight', pattern: 'rotation', equipment: 'ball', unilateral: true, difficulty: 'intermediate', secondary: ['core'] },
-  { es: 'Salto horizontal', en: 'Broad jump', group: 'power', weightMode: 'bodyweight', pattern: 'jump', equipment: 'bodyweight', difficulty: 'intermediate', secondary: ['legs'] },
   { es: 'Empuje de trineo', en: 'Sled push', group: 'power', trackingMode: 'distance', pattern: 'carry', equipment: 'sled', difficulty: 'intermediate', secondary: ['legs', 'core'] },
   { es: 'Arrastre de trineo', en: 'Sled pull', group: 'power', trackingMode: 'distance', pattern: 'carry', equipment: 'sled', difficulty: 'intermediate', secondary: ['legs', 'back'] },
 
@@ -272,7 +316,16 @@ const normNoAccent = (s: string) =>
 
 const BY_NAME: Map<string, LibExercise> = (() => {
   const m = new Map<string, LibExercise>();
+  // Primero los nombres canónicos, para que un alias nunca pise a un nombre
+  // real (p. ej. "Hip thrust" es alias de la variante con barra, pero si algún
+  // día existiera un ejercicio llamado así, mandaría el canónico).
   EXERCISE_LIBRARY.forEach((e) => { m.set(normNoAccent(e.es), e); m.set(normNoAccent(e.en), e); });
+  EXERCISE_LIBRARY.forEach((e) => {
+    (e.aliases || []).forEach((a) => {
+      const k = normNoAccent(a);
+      if (!m.has(k)) m.set(k, e);
+    });
+  });
   return m;
 })();
 

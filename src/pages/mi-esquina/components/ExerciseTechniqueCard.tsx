@@ -16,19 +16,26 @@ export default function ExerciseTechniqueCard({ name }: Props) {
 
   return (
     <div className="mt-2 rounded-xl border border-white/10 bg-white/[0.02] p-3.5 space-y-3">
-      {/* Chips: músculos secundarios + material */}
+      {/* Chips: músculos secundarios + material.
+          Ya no son texto escrito a mano en la ficha: vienen de la biblioteca
+          (LibExercise.secondary / .equipment) y se traducen aquí. Así no pueden
+          contradecir a los filtros, que leen esos mismos campos. */}
       <div className="flex flex-wrap gap-1.5">
         {f.secondary.map((m) => (
-          <span key={m} className="text-[10px] font-semibold text-zinc-300 bg-white/[0.05] border border-white/10 px-2 py-0.5 rounded-full capitalize">
-            {m}
+          <span key={m} className="text-[10px] font-semibold text-zinc-300 bg-white/[0.05] border border-white/10 px-2 py-0.5 rounded-full">
+            {t(`mc_str_mg_${m}`)}
           </span>
         ))}
-        <span className="text-[10px] font-semibold text-[#C9A84C] bg-[#C9A84C]/12 border border-[#C9A84C]/25 px-2 py-0.5 rounded-full flex items-center gap-1">
-          <i className="ri-tools-line text-[10px]" />{f.equipment}
-        </span>
+        {f.equipment && (
+          <span className="text-[10px] font-semibold text-[#C9A84C] bg-[#C9A84C]/12 border border-[#C9A84C]/25 px-2 py-0.5 rounded-full flex items-center gap-1">
+            <i className="ri-tools-line text-[10px]" />{t(`mc_eq_${f.equipment}`)}
+          </span>
+        )}
       </div>
 
-      {/* Técnica */}
+      {/* Técnica. Se oculta si el ejercicio aún no tiene texto escrito: los
+          chips de arriba siguen siendo útiles por sí solos. */}
+      {f.technique.length > 0 && (
       <div>
         <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-green-400 mb-1.5 flex items-center gap-1.5">
           <i className="ri-checkbox-circle-line" />{t('mc_ex_tech_title')}
@@ -41,8 +48,10 @@ export default function ExerciseTechniqueCard({ name }: Props) {
           ))}
         </ul>
       </div>
+      )}
 
       {/* Errores */}
+      {f.mistakes.length > 0 && (
       <div>
         <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-red-400 mb-1.5 flex items-center gap-1.5">
           <i className="ri-error-warning-line" />{t('mc_ex_tech_mistakes')}
@@ -55,6 +64,7 @@ export default function ExerciseTechniqueCard({ name }: Props) {
           ))}
         </ul>
       </div>
+      )}
     </div>
   );
 }

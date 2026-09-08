@@ -1337,6 +1337,7 @@ export default {
   mc_mob_title: 'Mobility & stretching',
   mc_mob_sub: 'Routines by area for before and after training. Reference only.',
   mc_mob_per_side: 'per side',
+  mc_mob_how: 'How to do it',
   mc_mob_mark_done: 'Mark done today',
   mc_mob_done: 'Done today',
   mc_mob_done_today: 'Done today',

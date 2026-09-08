@@ -1341,6 +1341,7 @@ export default {
   mc_mob_title: 'Movilidad y estiramientos',
   mc_mob_sub: 'Rutinas por zona para antes y después de entrenar. Solo consulta.',
   mc_mob_per_side: 'por lado',
+  mc_mob_how: 'Cómo se hace',
   mc_mob_mark_done: 'Marcar hecho hoy',
   mc_mob_done: 'Hecho hoy',
   mc_mob_done_today: 'Hecho hoy',
