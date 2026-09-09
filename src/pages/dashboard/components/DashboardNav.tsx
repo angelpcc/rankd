@@ -3,9 +3,9 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { Profile } from '@/lib/supabase';
-import { isAdminEmail } from '@/lib/admin';
 import LanguageSelector from '@/components/feature/LanguageSelector';
 import NotificationBell from '@/components/feature/NotificationBell';
+import AdminJump from '@/components/feature/AdminJump';
 
 function RankdLogo() {
   return (
@@ -38,11 +38,10 @@ const roleConfig: Record<string, { label: string; icon: string; badge: string; d
 };
 
 export default function DashboardNav({ profile }: Props) {
-  const { user, signOut, isViewingAs } = useAuth();
+  const { signOut } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
-  const isAdmin = isAdminEmail(user?.email) && !isViewingAs;
 
   const handleSignOut = async () => {
     await signOut();
@@ -99,6 +98,8 @@ export default function DashboardNav({ profile }: Props) {
           <div className="hidden md:block">
             <LanguageSelector dark />
           </div>
+          {/* Solo para el administrador: vuelta al panel sin escribir la URL. */}
+          <AdminJump />
           <NotificationBell userId={profile.id} />
           {/* Avatar + name button */}
           <div className="relative">
@@ -158,16 +159,9 @@ export default function DashboardNav({ profile }: Props) {
                       <i className="ri-group-line text-zinc-500"></i>
                       {t('nav_directory')}
                     </Link>
-                    {isAdmin && (
-                      <Link
-                        to="/admin"
-                        onClick={() => setMenuOpen(false)}
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-[#C9A84C] hover:text-[#dcc06a] hover:bg-zinc-800 transition-colors cursor-pointer"
-                      >
-                        <i className="ri-shield-star-line"></i>
-                        {t('nav_admin')}
-                      </Link>
-                    )}
+                    {/* El acceso al panel ESTABA aquí, dentro del menú del
+                        avatar: había que saber que existía y abrirlo. Ahora
+                        vive en la propia barra (AdminJump), a la vista. */}
                   </div>
 
                   <div className="border-t border-zinc-800 py-1">

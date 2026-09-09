@@ -27,6 +27,7 @@ import GymLink from '@/pages/mi-esquina/components/GymLink';
 import NutritionHub from '@/pages/mi-esquina/components/NutritionHub';
 import Reveal from '@/components/base/Reveal';
 import PageBreadcrumb from '@/components/base/PageBreadcrumb';
+import AdminJump from '@/components/feature/AdminJump';
 import NotificationBell from '@/components/feature/NotificationBell';
 import SettingsModal from '@/pages/mi-esquina/components/SettingsModal';
 
@@ -285,6 +286,9 @@ export default function MiEsquinaPage() {
             </span>
           </div>
           <div className="flex items-center gap-2.5">
+            {/* Solo lo ve el administrador: sin esto, entrar aquí le dejaba
+                sin ninguna forma de volver al panel. */}
+            <AdminJump className="!w-9 !h-9" />
             <button
               onClick={() => setShowSettings(true)}
               aria-label={t('mc_set_title')}

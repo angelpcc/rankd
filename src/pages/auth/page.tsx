@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase, UserType } from '@/lib/supabase';
 import { sendWelcomeEmail } from '@/lib/email';
+import { isAdminEmail } from '@/lib/admin';
 
 type AuthMode = 'login' | 'register';
 
@@ -157,8 +158,16 @@ export default function AuthPage() {
   // manda sobre el enrutado normal por rol.
   const pendingInvite = () => { try { return localStorage.getItem('rankd_pending_invite'); } catch { return null; } };
 
-  const redirectByRole = (ut: string, isNewUser = false) => {
+  // `who` = correo con el que se acaba de entrar. En email/contraseña es el
+  // del formulario; con Google llega del propio usuario de la sesión.
+  const redirectByRole = (ut: string, isNewUser = false, who = email) => {
     if (pendingInvite()) { navigate('/unirse'); return; }
+    // El administrador entra a su panel, que es a lo que viene. Su cuenta
+    // además tiene un tipo normal (peleador, marca…), así que sin esto
+    // aterrizaba en el panel de ese tipo — y ni los dashboards ni Mi Esquina
+    // pintan la barra con el enlace a /admin, así que se quedaba sin forma de
+    // llegar salvo escribiendo la URL a mano.
+    if (isAdminEmail(who)) { navigate('/admin'); return; }
     if (ut === 'coach') { navigate('/club'); return; }
     if (isNewUser) {
       switch (ut) {
@@ -180,10 +189,11 @@ export default function AuthPage() {
     }
   };
 
-  const routeByProfile = (ut: string, aMode: string | null, isNew = false) => {
+  const routeByProfile = (ut: string, aMode: string | null, isNew = false, who = email) => {
     if (pendingInvite()) { navigate('/unirse'); return; }
+    if (isAdminEmail(who)) { navigate('/admin'); return; }
     if (ut === 'fighter' && aMode === 'hobby') { navigate('/mi-esquina'); return; }
-    redirectByRole(ut, isNew);
+    redirectByRole(ut, isNew, who);
   };
 
   // Al volver del redirect de Google, Supabase deja la sesión lista. Si el
@@ -198,7 +208,7 @@ export default function AuthPage() {
       const { data: prof } = await supabase
         .from('profiles').select('user_type, athlete_mode').eq('id', u.id).maybeSingle();
       if (!alive) return;
-      if (prof?.user_type) routeByProfile(prof.user_type, prof.athlete_mode ?? null);
+      if (prof?.user_type) routeByProfile(prof.user_type, prof.athlete_mode ?? null, false, u.email || '');
       else { setOauthUser(u); setMode('register'); setStep(1); setExpanded(null); setError(''); }
     };
     supabase.auth.getSession().then(({ data: { session } }) => { if (session?.user) handle(session.user); });
