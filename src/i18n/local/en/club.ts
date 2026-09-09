@@ -53,6 +53,7 @@ export default {
   cl_sum_no_upcoming: 'No sessions planned ahead.',
   cl_sum_quick_plan: 'Plan the week',
   cl_sum_quick_roster: 'My boxers',
+  cl_sum_quick_roster_own: 'My students',
   cl_sum_quick_timer: 'Round timer',
 
   // ── Club plan ──

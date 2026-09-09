@@ -53,6 +53,7 @@ export default {
   cl_sum_no_upcoming: 'No hay sesiones planificadas por delante.',
   cl_sum_quick_plan: 'Planificar la semana',
   cl_sum_quick_roster: 'Mis boxeadores',
+  cl_sum_quick_roster_own: 'Mis alumnos',
   cl_sum_quick_timer: 'Temporizador de asaltos',
 
   // ── Plan del club ──

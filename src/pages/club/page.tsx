@@ -316,7 +316,7 @@ export default function ClubPage() {
               <div className="grid sm:grid-cols-3 gap-3">
                 {[
                   { s: 'plan' as Section, icon: 'ri-calendar-todo-line', label: t('cl_sum_quick_plan') },
-                  { s: 'roster' as Section, icon: 'ri-group-line', label: t('cl_sum_quick_roster') },
+                  { s: 'roster' as Section, icon: 'ri-group-line', label: t(freelance ? 'cl_sum_quick_roster_own' : 'cl_sum_quick_roster') },
                   { s: 'timer' as Section, icon: 'ri-timer-flash-line', label: t('cl_sum_quick_timer') },
                 ].map((c) => (
                   <button key={c.s} onClick={() => (c.s === 'timer' ? navigate('/mi-esquina/timer') : setSection(c.s))} className="rk-card text-left group flex items-center gap-3.5" style={{ padding: 18, cursor: 'pointer' }}>
