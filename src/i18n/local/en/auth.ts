@@ -7,6 +7,25 @@ export default {
   auth_login_btn: 'Sign In',
   auth_login_loading: 'Signing in...',
   auth_login_no_account: 'Don\'t have an account?',
+
+  // Password recovery
+  auth_forgot_link: 'Forgotten your password?',
+  auth_forgot_title: 'Get back in',
+  auth_forgot_subtitle: 'Enter your email and we will send you a link to set a new password.',
+  auth_forgot_btn: 'Send me the link',
+  auth_forgot_sending: 'Sending…',
+  // Same message whether or not the account exists: saying "that email is not
+  // registered" would turn this form into a way to find out who has an account.
+  auth_forgot_sent: 'If that email has a RANKD account, a link will arrive within a minute. Check your spam folder too.',
+  auth_forgot_back: 'Back to sign in',
+  auth_reset_title: 'New password',
+  auth_reset_subtitle: 'Choose the password you will sign in with from now on.',
+  auth_reset_new: 'New password',
+  auth_reset_hint: 'At least 6 characters.',
+  auth_reset_btn: 'Save and sign in',
+  auth_reset_saving: 'Saving…',
+  auth_reset_expired: 'This link is no longer valid: it has either expired or already been used. Request another from "Forgotten your password?".',
+  auth_reset_error: 'The password could not be changed. Please try again.',
   auth_login_register_link: 'Register for free',
   auth_register_step1_title: 'Who are you?',
   auth_register_step1_subtitle: 'Select your account type',

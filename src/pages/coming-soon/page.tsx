@@ -5,9 +5,16 @@
 // real para revisar/grabar la app es la ruta no enlazada de `PreviewEntry`
 // (ver ACCESO_DEMO.md), no un formulario aquí.
 //
-// Sí lleva un enlace a /auth: quien ya tiene cuenta debe poder entrar desde
-// aquí. Sin él, cerrar sesión en la app instalada en el móvil (standalone, sin
-// barra de direcciones) te deja fuera sin remedio.
+// SIN enlace a /auth, a propósito: mientras no esté lanzada, esta pantalla no
+// insinúa que haya nada detrás. Se probó a poner uno ("Ya tengo cuenta") y se
+// quitó por decisión del dueño.
+//
+// OJO al efecto secundario: la puerta se abre con la marca de PreviewEntry O
+// con sesión iniciada. Quien entra por la sesión (la app instalada en el móvil)
+// no tiene la marca en ese dispositivo, así que el día que se le cierre la
+// sesión cae aquí — y en modo standalone no hay barra de direcciones donde
+// escribir /vista-previa-rk28. La salida entonces es abrir
+// rankd-black.vercel.app/vista-previa-rk28 en el navegador normal del móvil.
 export default function ComingSoonPage() {
   return (
     <div
@@ -52,29 +59,6 @@ export default function ComingSoonPage() {
         <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 'clamp(16px, 3vw, 19px)', color: 'rgba(255,255,255,0.6)', lineHeight: 1.6, maxWidth: 420, margin: '0 auto' }}>
           La plataforma que conecta peleadores, promotoras y marcas del deporte de contacto. Volvemos pronto.
         </p>
-
-        {/* Entrar.
-            Esta página no tenía NADA pulsable, y eso dejaba tirado a quien ya
-            tiene cuenta: la puerta se abre con sesión iniciada o con la marca
-            de PreviewEntry, pero si se te cierra la sesión en la app instalada
-            en el móvil (standalone, sin barra de direcciones) no hay forma de
-            escribir ninguna URL ni de volver a entrar. /auth no está cerrada,
-            así que al iniciar sesión la puerta se abre sola.
-            No se filtra nada: sin credenciales de aquí no se pasa. */}
-        <a
-          href="/auth"
-          style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            marginTop: 40, minHeight: 48, padding: '0 26px', borderRadius: 100,
-            border: '1px solid rgba(255,255,255,0.18)', background: 'rgba(255,255,255,0.06)',
-            color: 'rgba(255,255,255,0.85)', textDecoration: 'none',
-            fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 700,
-            letterSpacing: 1.5, textTransform: 'uppercase',
-          }}
-        >
-          <i className="ri-login-circle-line" style={{ fontSize: 17 }} />
-          Ya tengo cuenta
-        </a>
 
         {/* Footer mini */}
         <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.3)', letterSpacing: 3, textTransform: 'uppercase', marginTop: 48 }}>

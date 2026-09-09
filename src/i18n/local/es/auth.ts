@@ -7,6 +7,25 @@ export default {
   auth_login_btn: 'Iniciar Sesión',
   auth_login_loading: 'Entrando...',
   auth_login_no_account: '¿No tienes cuenta?',
+
+  // Recuperar contraseña
+  auth_forgot_link: '¿Has olvidado la contraseña?',
+  auth_forgot_title: 'Recuperar el acceso',
+  auth_forgot_subtitle: 'Escribe tu correo y te mandamos un enlace para poner una contraseña nueva.',
+  auth_forgot_btn: 'Enviarme el enlace',
+  auth_forgot_sending: 'Enviando…',
+  // Mismo mensaje exista o no la cuenta: si dijéramos "ese correo no está
+  // registrado", este formulario serviría para averiguar quién tiene cuenta.
+  auth_forgot_sent: 'Si ese correo tiene cuenta en RANKD, te llega un enlace en un minuto. Mira también la carpeta de spam.',
+  auth_forgot_back: 'Volver a iniciar sesión',
+  auth_reset_title: 'Nueva contraseña',
+  auth_reset_subtitle: 'Elige la contraseña con la que entrarás a partir de ahora.',
+  auth_reset_new: 'Contraseña nueva',
+  auth_reset_hint: 'Mínimo 6 caracteres.',
+  auth_reset_btn: 'Guardar y entrar',
+  auth_reset_saving: 'Guardando…',
+  auth_reset_expired: 'Este enlace ya no vale: o ha caducado o se ha usado. Pide otro desde "¿Has olvidado la contraseña?".',
+  auth_reset_error: 'No se ha podido cambiar la contraseña. Inténtalo otra vez.',
   auth_login_register_link: 'Regístrate gratis',
   auth_register_step1_title: '¿Quién eres?',
   auth_register_step1_subtitle: 'Selecciona tu tipo de cuenta',

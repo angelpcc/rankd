@@ -6,7 +6,24 @@ import { supabase, UserType } from '@/lib/supabase';
 import { sendWelcomeEmail } from '@/lib/email';
 import { isAdminEmail } from '@/lib/admin';
 
-type AuthMode = 'login' | 'register';
+// 'forgot' = pedir el correo de recuperación. 'reset' = poner la contraseña
+// nueva, al volver desde el enlace de ese correo.
+type AuthMode = 'login' | 'register' | 'forgot' | 'reset';
+
+/**
+ * ¿Venimos del enlace del correo de recuperación?
+ *
+ * Supabase manda al `redirectTo` con el token en el hash (`type=recovery`).
+ * Se mira ANTES de montar nada para no redirigir al usuario a su panel por el
+ * SIGNED_IN que dispara el propio enlace: si lo hiciéramos, nunca llegaría a
+ * la pantalla de cambiar la contraseña.
+ */
+function isRecoveryUrl(): boolean {
+  if (typeof window === 'undefined') return false;
+  const { search, hash } = window.location;
+  return new URLSearchParams(search).get('recuperar') === '1'
+    || hash.includes('type=recovery');
+}
 
 // Logo de Google en sus colores, para el botón de acceso.
 function GoogleIcon() {
@@ -128,7 +145,10 @@ const TYPE_LABEL_KEYS: Record<string, string> = {
 export default function AuthPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [mode, setMode] = useState<AuthMode>('login');
+  const [mode, setMode] = useState<AuthMode>(() => (isRecoveryUrl() ? 'reset' : 'login'));
+  // Contraseña nueva (solo en modo 'reset').
+  const [newPassword, setNewPassword] = useState('');
+  const [recovering] = useState(isRecoveryUrl);
   const [userType, setUserType] = useState<UserType | null>(null);
   const [athleteMode, setAthleteMode] = useState<'competitor' | 'hobby'>('competitor');
   const [expanded, setExpanded] = useState<'fighter' | 'coaching' | 'org' | null>(null);
@@ -151,7 +171,7 @@ export default function AuthPage() {
   // Abrir directamente en registro (p. ej. desde una invitación de entrenador).
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
-    if (p.get('register') === '1') { setMode('register'); setStep(1); }
+    if (p.get('register') === '1' && !isRecoveryUrl()) { setMode('register'); setStep(1); }
   }, []);
 
   // Si el usuario venía de aceptar una invitación de entrenador, esa intención
@@ -204,6 +224,9 @@ export default function AuthPage() {
     let alive = true;
     const handle = async (u: User) => {
       if (!alive) return;
+      // El enlace de recuperación también deja sesión: si enrutáramos aquí,
+      // el usuario iría a su panel sin llegar a cambiar la contraseña.
+      if (recovering) return;
       if ((u.app_metadata?.provider || 'email') === 'email') return;
       const { data: prof } = await supabase
         .from('profiles').select('user_type, athlete_mode').eq('id', u.id).maybeSingle();
@@ -276,14 +299,55 @@ export default function AuthPage() {
     }
     if (data.user) {
       const { data: prof } = await supabase.from('profiles').select('user_type, athlete_mode').eq('id', data.user.id).maybeSingle();
-      if (pendingInvite()) {
-        navigate('/unirse');
-      } else if (prof?.user_type === 'fighter' && prof?.athlete_mode === 'hobby') {
-        navigate('/mi-esquina');
-      } else {
-        redirectByRole(prof?.user_type ?? '');
-      }
+      // Por routeByProfile, que ya cubre invitación pendiente, administrador,
+      // aficionado y el resto de roles. Antes esto repetía esos casos a mano y
+      // el atajo del aficionado se saltaba la comprobación de administrador.
+      routeByProfile(prof?.user_type ?? '', prof?.athlete_mode ?? null, false, data.user.email || email);
     }
+    setLoading(false);
+  };
+
+  /**
+   * Paso 1: pedir el correo con el enlace.
+   *
+   * Se responde SIEMPRE lo mismo, exista o no la cuenta. Decir "ese correo no
+   * está registrado" convierte este formulario en una forma de averiguar quién
+   * tiene cuenta en RANKD.
+   */
+  const handleForgot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/auth?recuperar=1`,
+    });
+    setSuccess(t('auth_forgot_sent'));
+    setLoading(false);
+  };
+
+  /** Paso 2: guardar la contraseña nueva con la sesión que trae el enlace. */
+  const handleReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 6) { setError(t('error_password_short')); return; }
+    setLoading(true);
+    setError('');
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      // Enlace caducado o ya usado: Supabase no ha dejado sesión.
+      setError(t('auth_reset_expired'));
+      setLoading(false);
+      return;
+    }
+    const { error: err } = await supabase.auth.updateUser({ password: newPassword });
+    if (err) {
+      setError(err.message.toLowerCase().includes('password') ? t('error_password_short') : t('auth_reset_error'));
+      setLoading(false);
+      return;
+    }
+    // Con la contraseña ya cambiada, la sesión del enlace vale: se entra.
+    const { data: prof } = await supabase.from('profiles')
+      .select('user_type, athlete_mode').eq('id', session.user.id).maybeSingle();
+    routeByProfile(prof?.user_type ?? '', prof?.athlete_mode ?? null, false, session.user.email || '');
     setLoading(false);
   };
 
@@ -401,8 +465,10 @@ export default function AuthPage() {
       </div>
 
       <div className="relative z-10 w-full max-w-[440px]">
-        {/* Tabs (ocultas cuando un usuario de Google elige su tipo de cuenta) */}
-        {!oauthChoose && (
+        {/* Tabs. Ocultas cuando un usuario de Google elige su tipo de cuenta, y
+            durante la recuperación de contraseña: ahí solo hay una cosa que
+            hacer, y saltar a otra pestaña deja el proceso a medias. */}
+        {!oauthChoose && mode !== 'forgot' && mode !== 'reset' && (
         <div className="flex bg-[#141414] rounded-2xl p-1 mb-6 sm:mb-8 border border-white/[0.06]">
           <button onClick={() => { setMode('login'); setStep(1); setExpanded(null); setError(''); }} className={`flex-1 py-3 text-sm font-semibold rounded-xl transition-all cursor-pointer whitespace-nowrap font-inter ${mode === 'login' ? 'bg-[#E10600] text-white' : 'text-white/55 hover:text-white/85'}`}>
             {t('auth_tab_login')}
@@ -438,10 +504,68 @@ export default function AuthPage() {
               <button type="submit" disabled={loading} className="w-full bg-[#E10600] hover:bg-red-700 text-white font-semibold py-3.5 rounded-xl transition-colors cursor-pointer whitespace-nowrap disabled:opacity-60 font-inter mt-2">
                 {loading ? t('auth_login_loading') : t('auth_login_btn')}
               </button>
-              <p className="text-center text-white/50 text-sm font-inter pt-1">
+              <p className="text-center pt-1">
+                <button type="button" onClick={() => { setMode('forgot'); setError(''); setSuccess(''); }}
+                  className="text-white/50 hover:text-white/80 text-sm cursor-pointer font-inter transition-colors">
+                  {t('auth_forgot_link')}
+                </button>
+              </p>
+              <p className="text-center text-white/50 text-sm font-inter">
                 {t('auth_login_no_account')}{' '}
                 <button type="button" onClick={() => setMode('register')} className="text-[#E10600] hover:text-red-400 cursor-pointer font-inter transition-colors">{t('auth_login_register_link')}</button>
               </p>
+            </form>
+          ) : mode === 'forgot' ? (
+            <form onSubmit={handleForgot} className="space-y-5">
+              <div className="mb-6">
+                <h1 className="text-xl font-bold text-white mb-1 font-unbounded">{t('auth_forgot_title')}</h1>
+                <p className="text-white/55 text-sm font-inter">{t('auth_forgot_subtitle')}</p>
+              </div>
+              <div>
+                <label className="block text-xs text-white/60 mb-2 font-inter uppercase tracking-wide font-semibold">{t('label_email')}</label>
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="tu@email.com"
+                  style={{ fontSize: 16 }}
+                  className="w-full bg-white/[0.04] border border-white/[0.08] text-white text-sm rounded-xl px-4 py-3.5 focus:outline-none focus:border-[#E10600] placeholder-white/20 font-inter transition-colors" />
+              </div>
+              {success && (
+                <p className="text-emerald-300 text-sm bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3 font-inter leading-relaxed">{success}</p>
+              )}
+              {error && <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 font-inter">{error}</p>}
+              <button type="submit" disabled={loading} style={{ minHeight: 48 }}
+                className="w-full bg-[#E10600] hover:bg-red-700 text-white font-semibold rounded-xl transition-colors cursor-pointer disabled:opacity-60 font-inter">
+                {loading ? t('auth_forgot_sending') : t('auth_forgot_btn')}
+              </button>
+              <p className="text-center pt-1">
+                <button type="button" onClick={() => { setMode('login'); setError(''); setSuccess(''); }}
+                  className="text-white/50 hover:text-white/80 text-sm cursor-pointer font-inter transition-colors">
+                  {t('auth_forgot_back')}
+                </button>
+              </p>
+            </form>
+          ) : mode === 'reset' ? (
+            <form onSubmit={handleReset} className="space-y-5">
+              <div className="mb-6">
+                <h1 className="text-xl font-bold text-white mb-1 font-unbounded">{t('auth_reset_title')}</h1>
+                <p className="text-white/55 text-sm font-inter">{t('auth_reset_subtitle')}</p>
+              </div>
+              <div>
+                <label className="block text-xs text-white/60 mb-2 font-inter uppercase tracking-wide font-semibold">{t('auth_reset_new')}</label>
+                <div className="relative">
+                  <input type={showPassword ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+                    required minLength={6} placeholder="••••••••" autoComplete="new-password" style={{ fontSize: 16 }}
+                    className="w-full bg-white/[0.04] border border-white/[0.08] text-white text-sm rounded-xl px-4 py-3.5 pr-11 focus:outline-none focus:border-[#E10600] placeholder-white/20 font-inter transition-colors" />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={t('auth_reset_new')}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80 cursor-pointer transition-colors">
+                    <i className={showPassword ? 'ri-eye-off-line' : 'ri-eye-line'}></i>
+                  </button>
+                </div>
+                <p className="text-white/35 text-xs mt-2 font-inter">{t('auth_reset_hint')}</p>
+              </div>
+              {error && <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 font-inter">{error}</p>}
+              <button type="submit" disabled={loading} style={{ minHeight: 48 }}
+                className="w-full bg-[#E10600] hover:bg-red-700 text-white font-semibold rounded-xl transition-colors cursor-pointer disabled:opacity-60 font-inter">
+                {loading ? t('auth_reset_saving') : t('auth_reset_btn')}
+              </button>
             </form>
           ) : (
             <>
