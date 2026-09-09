@@ -11,6 +11,15 @@ export default {
   cl_nav_roster: 'Boxeadores',
   cl_nav_timer: 'Temporizador',
   cl_nav_messages: 'Mensajes',
+  cl_nav_plan_own: 'Mi plan',
+  cl_nav_roster_own: 'Alumnos',
+  cl_here_root_own: 'Mi espacio',
+  cl_roster_eyebrow_own: 'Tu gente',
+  cl_roster_title_2_own: 'alumnos',
+  cl_roster_sub_own: 'Lleva a quien entrenas y sigue su trabajo — solo si te lo comparten.',
+  cl_roster_add_own: 'Añadir alumno',
+  cl_roster_empty_title_own: 'Todavía no tienes alumnos',
+  cl_roster_empty_desc_own: 'Añade al primero para planificarle la semana y seguir su trabajo.',
 
   // Entrenador por su cuenta: elección al entrar sin gimnasio
   cl_setup_title: '¿Cómo trabajas?',

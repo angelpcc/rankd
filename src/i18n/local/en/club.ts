@@ -11,6 +11,15 @@ export default {
   cl_nav_roster: 'Boxers',
   cl_nav_timer: 'Round timer',
   cl_nav_messages: 'Messages',
+  cl_nav_plan_own: 'My plan',
+  cl_nav_roster_own: 'Students',
+  cl_here_root_own: 'My space',
+  cl_roster_eyebrow_own: 'Your people',
+  cl_roster_title_2_own: 'students',
+  cl_roster_sub_own: 'Look after who you train and follow their work — only if they share it.',
+  cl_roster_add_own: 'Add student',
+  cl_roster_empty_title_own: 'No students yet',
+  cl_roster_empty_desc_own: 'Add your first one to plan their week and follow their work.',
 
   // Freelance coach: the choice shown when there is no gym
   cl_setup_title: 'How do you work?',

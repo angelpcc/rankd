@@ -6,6 +6,8 @@ import { isMissingTable, writeDroppingMissingColumns } from '@/lib/dbState';
 interface Props {
   orgId: string;
   showToast: (msg: string, type?: 'success' | 'error') => void;
+  /** Entrenador por su cuenta: son sus alumnos, no los boxeadores de un club. */
+  freelance?: boolean;
 }
 
 interface Activity { last_session: string | null; sessions_week: number; minutes_week: number; }
@@ -36,7 +38,7 @@ function ageFrom(birth?: string | null): number | null {
   return age >= 0 && age < 120 ? age : null;
 }
 
-export default function ClubRoster({ orgId, showToast }: Props) {
+export default function ClubRoster({ orgId, showToast, freelance = false }: Props) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
 
@@ -91,14 +93,14 @@ export default function ClubRoster({ orgId, showToast }: Props) {
     <div className="space-y-6 max-w-3xl">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <p className="rk-eyebrow">{t('cl_roster_eyebrow')}</p>
+          <p className="rk-eyebrow">{t(freelance ? 'cl_roster_eyebrow_own' : 'cl_roster_eyebrow')}</p>
           <h2 className="rk-h2" style={{ fontSize: 'clamp(1.8rem,4vw,2.4rem)', color: '#fff', margin: '4px 0 0' }}>
-            {t('cl_roster_title')} <span className="rk-red-glow">{t('cl_roster_title_2')}</span>
+            {t('cl_roster_title')} <span className="rk-red-glow">{t(freelance ? 'cl_roster_title_2_own' : 'cl_roster_title_2')}</span>
           </h2>
-          <p className="text-zinc-400 text-sm mt-1.5 max-w-md">{t('cl_roster_sub')}</p>
+          <p className="text-zinc-400 text-sm mt-1.5 max-w-md">{t(freelance ? 'cl_roster_sub_own' : 'cl_roster_sub')}</p>
         </div>
         <button onClick={() => setAdding(true)} className="rk-btn rk-btn-primary flex items-center gap-2 flex-shrink-0" style={{ fontSize: '0.85rem', padding: '0.6rem 1.1rem' }}>
-          <i className="ri-user-add-line" />{t('cl_roster_add')}
+          <i className="ri-user-add-line" />{t(freelance ? 'cl_roster_add_own' : 'cl_roster_add')}
         </button>
       </div>
 
@@ -107,9 +109,9 @@ export default function ClubRoster({ orgId, showToast }: Props) {
           <div className="w-14 h-14 mx-auto mb-4 flex items-center justify-center rounded-2xl bg-red-600/10 border border-red-500/25">
             <i className="ri-group-line text-2xl text-red-400" />
           </div>
-          <h3 className="text-base font-bold text-white">{t('cl_roster_empty_title')}</h3>
-          <p className="text-sm text-zinc-500 mt-1.5 max-w-xs mx-auto">{t('cl_roster_empty_desc')}</p>
-          <button onClick={() => setAdding(true)} className="rk-btn rk-btn-primary mt-4" style={{ fontSize: '0.8rem', padding: '0.6rem 1.3rem' }}>{t('cl_roster_add')}</button>
+          <h3 className="text-base font-bold text-white">{t(freelance ? 'cl_roster_empty_title_own' : 'cl_roster_empty_title')}</h3>
+          <p className="text-sm text-zinc-500 mt-1.5 max-w-xs mx-auto">{t(freelance ? 'cl_roster_empty_desc_own' : 'cl_roster_empty_desc')}</p>
+          <button onClick={() => setAdding(true)} className="rk-btn rk-btn-primary mt-4" style={{ fontSize: '0.8rem', padding: '0.6rem 1.3rem' }}>{t(freelance ? 'cl_roster_add_own' : 'cl_roster_add')}</button>
         </div>
       ) : (
         <div className="space-y-2.5">

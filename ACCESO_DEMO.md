@@ -34,7 +34,8 @@ Contraseña de **todas**: `Rankd-demo-2026`
 | `demo.promotora@rankd.test` | Promotora | `/dashboard/org` |
 | `demo.gym@rankd.test` | Gimnasio | `/dashboard/org` + `/club` |
 | `demo.manager@rankd.test` | Manager | `/dashboard/org` |
-| `demo.coach@rankd.test` | Entrenador | `/club` |
+| `demo.coach@rankd.test` | Entrenador (de un gimnasio) | `/club` |
+| `demo.freelance@rankd.test` | Entrenador por su cuenta | `/club` (club de uno) |
 
 ## Crear / rellenar las cuentas
 
@@ -71,7 +72,7 @@ DOM real ya autenticado).
 
 ## ⚠️ Antes del lanzamiento público
 
-- [ ] Borrar las 7 cuentas demo (`supabase` → Auth → Users, buscar `@rankd.test`)
+- [ ] Borrar las 8 cuentas demo (`supabase` → Auth → Users, buscar `@rankd.test`)
       y sus filas en `profiles` / `fighters` / `organizations` / `brands`.
 - [ ] Borrar `scripts/seed-demo-accounts.mjs` y este `ACCESO_DEMO.md`.
 - [ ] Quitar `PublicGate` del router y la ruta `/vista-previa-rk28`

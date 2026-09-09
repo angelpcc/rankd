@@ -17,13 +17,18 @@ type Section = 'resumen' | 'plan' | 'roster' | 'mensajes' | 'timer';
 interface SectionDef { id: Section; labelKey: string; icon: string }
 // Mensajes usa la mensajería que ya existe en los paneles (MessagesPanel), no
 // una nueva: es la misma bandeja, vista desde aquí.
-const SECTIONS: SectionDef[] = [
-  { id: 'resumen', labelKey: 'cl_nav_summary', icon: 'ri-dashboard-line' },
-  { id: 'plan', labelKey: 'cl_nav_plan', icon: 'ri-calendar-todo-line' },
-  { id: 'roster', labelKey: 'cl_nav_roster', icon: 'ri-group-line' },
-  { id: 'mensajes', labelKey: 'cl_nav_messages', icon: 'ri-chat-3-line' },
-  { id: 'timer', labelKey: 'cl_nav_timer', icon: 'ri-timer-flash-line' },
-];
+//
+// Quien trabaja por su cuenta no tiene "club" ni "boxeadores del club": tiene
+// alumnos y su propio plan. Es el mismo sitio con el nombre que le toca.
+function sectionsFor(freelance: boolean): SectionDef[] {
+  return [
+    { id: 'resumen', labelKey: 'cl_nav_summary', icon: 'ri-dashboard-line' },
+    { id: 'plan', labelKey: freelance ? 'cl_nav_plan_own' : 'cl_nav_plan', icon: 'ri-calendar-todo-line' },
+    { id: 'roster', labelKey: freelance ? 'cl_nav_roster_own' : 'cl_nav_roster', icon: 'ri-group-line' },
+    { id: 'mensajes', labelKey: 'cl_nav_messages', icon: 'ri-chat-3-line' },
+    { id: 'timer', labelKey: 'cl_nav_timer', icon: 'ri-timer-flash-line' },
+  ];
+}
 
 function weekStartISO(): string {
   const d = new Date(); d.setHours(0, 0, 0, 0);
@@ -207,6 +212,7 @@ export default function ClubPage() {
   }
 
   const isOwner = profile.user_type === 'gym';
+  const SECTIONS = sectionsFor(freelance);
 
   return (
     <div className="min-h-screen bg-[#070707] text-white">
@@ -274,7 +280,7 @@ export default function ClubPage() {
           {/* Migas de pan: dónde estoy dentro del club y cómo volver (bloque 4). */}
           {section !== 'resumen' && (
             <PageBreadcrumb
-              root={t('cl_here_root')}
+              root={t(freelance ? 'cl_here_root_own' : 'cl_here_root')}
               section={t(SECTIONS.find((s) => s.id === section)?.labelKey || 'cl_nav_summary')}
               onRoot={() => setSection('resumen')}
             />
@@ -324,7 +330,7 @@ export default function ClubPage() {
           )}
 
           {section === 'plan' && <ClubPlan orgId={orgId} coachId={profile.id} showToast={showToast} />}
-          {section === 'roster' && <ClubRoster orgId={orgId} showToast={showToast} />}
+          {section === 'roster' && <ClubRoster orgId={orgId} showToast={showToast} freelance={freelance} />}
           {section === 'mensajes' && (
             <div className="max-w-4xl">
               <div className="mb-5">
