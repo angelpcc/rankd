@@ -69,6 +69,19 @@ const MAIN_TYPES = [
     color: '#E10600',
     hasSubtypes: true,
   },
+  // Entrenar es una cuenta distinta de "organización": el entrenador por su
+  // cuenta no representa a nadie más que a sí mismo, y el gimnasio sí gestiona
+  // a varios entrenadores. Antes solo existía "Gimnasio / Club" dentro de
+  // Organización y no había forma de registrarse como entrenador.
+  {
+    key: 'coaching',
+    userType: null,
+    icon: 'ri-user-voice-line',
+    titleKey: 'auth_at_coaching_title',
+    descKey: 'auth_at_coaching_desc',
+    color: '#E10600',
+    hasSubtypes: true,
+  },
   {
     key: 'org',
     userType: null,
@@ -89,10 +102,16 @@ const MAIN_TYPES = [
   },
 ];
 
+// Gimnasio sale de aquí y pasa a "Entrenamiento", junto al entrenador por su
+// cuenta: es ahí donde la elección entre los dos tiene que ser explícita.
 const ORG_SUBTYPES = [
   { userType: 'promoter' as UserType, icon: 'ri-trophy-line', labelKey: 'auth_sub_promoter_label', descKey: 'auth_sub_promoter_desc' },
-  { userType: 'gym' as UserType, icon: 'ri-building-4-line', labelKey: 'auth_sub_gym_label', descKey: 'auth_sub_gym_desc' },
   { userType: 'manager' as UserType, icon: 'ri-user-star-line', labelKey: 'auth_sub_manager_label', descKey: 'auth_sub_manager_desc' },
+];
+
+const COACHING_SUBTYPES = [
+  { userType: 'coach' as UserType, icon: 'ri-user-voice-line', labelKey: 'auth_sub_coach_label', descKey: 'auth_sub_coach_desc' },
+  { userType: 'gym' as UserType, icon: 'ri-building-4-line', labelKey: 'auth_sub_gym_label', descKey: 'auth_sub_gym_desc' },
 ];
 
 const FIGHTER_MODES = [
@@ -102,7 +121,7 @@ const FIGHTER_MODES = [
 
 // TYPE_LABELS reutiliza las claves de tipo ya definidas arriba.
 const TYPE_LABEL_KEYS: Record<string, string> = {
-  fighter: 'auth_at_fighter_title', promoter: 'auth_sub_promoter_label', gym: 'auth_sub_gym_label', manager: 'auth_sub_manager_label', brand: 'auth_at_brand_title',
+  fighter: 'auth_at_fighter_title', promoter: 'auth_sub_promoter_label', gym: 'auth_sub_gym_label', manager: 'auth_sub_manager_label', brand: 'auth_at_brand_title', coach: 'auth_sub_coach_label',
 };
 
 export default function AuthPage() {
@@ -111,7 +130,7 @@ export default function AuthPage() {
   const [mode, setMode] = useState<AuthMode>('login');
   const [userType, setUserType] = useState<UserType | null>(null);
   const [athleteMode, setAthleteMode] = useState<'competitor' | 'hobby'>('competitor');
-  const [expanded, setExpanded] = useState<'fighter' | 'org' | null>(null);
+  const [expanded, setExpanded] = useState<'fighter' | 'coaching' | 'org' | null>(null);
   const [step, setStep] = useState<1 | 2>(1);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -437,7 +456,7 @@ export default function AuthPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          if (tp.hasSubtypes) { setExpanded(isOpen ? null : (tp.key as 'fighter' | 'org')); }
+                          if (tp.hasSubtypes) { setExpanded(isOpen ? null : (tp.key as 'fighter' | 'coaching' | 'org')); }
                           else { setExpanded(null); selectType(tp.userType!); }
                         }}
                         className="w-full text-left rounded-2xl border transition-all cursor-pointer p-4 flex items-center gap-4 group"
@@ -472,6 +491,27 @@ export default function AuthPage() {
                               <div className="flex-1 min-w-0">
                                 <p className="text-white font-semibold text-sm font-inter">{t(fm.labelKey)}</p>
                                 <p className="text-white/50 text-xs font-inter">{t(fm.descKey)}</p>
+                              </div>
+                              <i className="ri-arrow-right-line" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}></i>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Sub-opciones de Entrenamiento: por tu cuenta o gimnasio */}
+                      {tp.key === 'coaching' && isOpen && (
+                        <div className="mt-2 ml-4 pl-4 border-l-2 border-[#E10600]/30 space-y-2">
+                          {COACHING_SUBTYPES.map((sub) => (
+                            <button
+                              key={sub.userType}
+                              type="button"
+                              onClick={() => selectType(sub.userType)}
+                              className="w-full text-left rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-[#E10600]/[0.07] hover:border-[#E10600]/40 transition-all cursor-pointer px-4 py-3 flex items-center gap-3"
+                            >
+                              <i className={sub.icon} style={{ color: '#E10600', fontSize: 16, flexShrink: 0 }}></i>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-white font-semibold text-sm font-inter">{t(sub.labelKey)}</p>
+                                <p className="text-white/50 text-xs font-inter leading-relaxed">{t(sub.descKey)}</p>
                               </div>
                               <i className="ri-arrow-right-line" style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}></i>
                             </button>

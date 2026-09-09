@@ -21,8 +21,8 @@ del `localStorage` (DevTools → Application → Local Storage).
 Tipos reales hoy (comprobado en `src/pages/auth/page.tsx` → `MAIN_TYPES` /
 `ORG_SUBTYPES` y `src/lib/supabase.ts` → `UserType`):
 **fighter** (competidor · aficionado), **brand**, **promoter**, **gym**,
-**manager**, **coach** (este último no se registra directo; en producción se
-llega aceptando una invitación de gimnasio).
+**manager**, **coach** (entrenador por su cuenta: se registra en Entrenamiento
+→ "Entrenador por mi cuenta", o aceptando la invitación de un gimnasio).
 
 Contraseña de **todas**: `Rankd-demo-2026`
 

@@ -112,7 +112,7 @@ export const VIEW_AS_PRESETS: {
   {
     id: 'coach', userType: 'coach', athleteMode: null,
     labelKey: 'va_preset_coach', descKey: 'va_preset_coach_desc',
-    icon: 'ri-whistle-line', color: '#f472b6', landing: '/club',
+    icon: 'ri-user-voice-line', color: '#f472b6', landing: '/club',
   },
   {
     id: 'brand', userType: 'brand', athleteMode: null,

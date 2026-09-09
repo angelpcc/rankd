@@ -101,7 +101,7 @@ export default function GymCoaches({ profile, showToast }: Props) {
     return (
       <div className="rk-card text-center max-w-lg mx-auto" style={{ padding: '40px 24px' }}>
         <div className="w-14 h-14 mx-auto mb-4 flex items-center justify-center rounded-2xl bg-red-600/10 border border-red-500/25">
-          <i className="ri-whistle-line text-2xl text-red-400" />
+          <i className="ri-user-voice-line text-2xl text-red-400" />
         </div>
         <p className="text-sm text-zinc-400 leading-relaxed">{t('cl_coaches_unavailable')}</p>
       </div>
@@ -118,7 +118,7 @@ export default function GymCoaches({ profile, showToast }: Props) {
           <p className="text-zinc-400 text-sm mt-1 max-w-md">{t('cl_coaches_sub')}</p>
         </div>
         <button onClick={() => navigate('/club')} className="rk-btn rk-btn-ghost flex items-center gap-2 flex-shrink-0" style={{ fontSize: '0.82rem', padding: '0.55rem 1rem' }}>
-          <i className="ri-whistle-line" />{t('cl_coaches_open_space')}
+          <i className="ri-user-voice-line" />{t('cl_coaches_open_space')}
         </button>
       </div>
 

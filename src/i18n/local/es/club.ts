@@ -10,6 +10,20 @@ export default {
   cl_nav_plan: 'Plan del club',
   cl_nav_roster: 'Boxeadores',
   cl_nav_timer: 'Temporizador',
+  cl_nav_messages: 'Mensajes',
+
+  // Entrenador por su cuenta: elección al entrar sin gimnasio
+  cl_setup_title: '¿Cómo trabajas?',
+  cl_setup_desc: 'Puedes montar tu propio espacio ahora mismo o entrar en el gimnasio que te haya invitado. Se cambia cuando quieras.',
+  cl_setup_own: 'Por mi cuenta',
+  cl_setup_own_desc: 'Tus alumnos, tu plan y tus herramientas, sin depender de nadie',
+  cl_setup_join: 'Tengo un código de un gimnasio',
+  cl_setup_join_desc: 'Entras a su plantilla y trabajas con su gente',
+  cl_setup_switch_note: 'Si empiezas por tu cuenta y luego te invita un gimnasio, pasas a su espacio sin perder nada.',
+
+  // Mensajes (la bandeja de siempre, vista desde el club)
+  cl_msg_eyebrow: 'HABLA CON TU GENTE',
+  cl_msg_desc: 'La misma bandeja que en el resto de RANKD. Escribe a tus alumnos, a otros entrenadores o a quien te haya escrito.',
   cl_loading: 'Cargando tu espacio…',
 
   // ── Guard: coach sin gimnasio ──
@@ -22,6 +36,9 @@ export default {
   cl_sum_title: 'Dirige el trabajo de tu grupo',
   cl_sum_sub: 'Planifica la semana, gestiona tus boxeadores y usa el temporizador con el grupo en el gimnasio.',
   cl_sum_boxers: 'Boxeadores',
+  cl_sum_students: 'Alumnos',
+  cl_sum_eyebrow_own: 'Por tu cuenta',
+  cl_sum_sub_own: 'Planifica la semana, lleva a tus alumnos y usa el temporizador cuando entrenes con ellos.',
   cl_sum_sessions_week: 'Sesiones esta semana',
   cl_sum_upcoming: 'Próximas sesiones',
   cl_sum_no_upcoming: 'No hay sesiones planificadas por delante.',
@@ -75,6 +92,16 @@ export default {
   cl_roster_manual_ph: 'Nombre del boxeador',
   cl_roster_manual_hint: 'Para boxeadores que aún no están en RANKD: solo quedará en tu lista.',
   cl_roster_note_ph: 'Nota (categoría, nivel…)',
+  cl_roster_basics: 'Ficha básica (opcional)',
+  cl_roster_basics_hint: 'Solo lo ve tu club. No aparece en ningún perfil público.',
+  cl_roster_phone_ph: 'Teléfono de contacto',
+  cl_roster_birth: 'Nacimiento',
+  cl_roster_weight: 'Peso (kg)',
+  cl_roster_years: '{{n}} años',
+  cl_roster_level_principiante: 'Principiante',
+  cl_roster_level_amateur: 'Amateur',
+  cl_roster_level_competidor: 'Competidor',
+  cl_roster_level_profesional: 'Profesional',
   cl_roster_add_btn: 'Añadir al club',
   cl_roster_added: 'Boxeador añadido',
   cl_roster_removed: 'Boxeador quitado del club',

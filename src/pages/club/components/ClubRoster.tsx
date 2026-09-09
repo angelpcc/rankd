@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, GymRosterEntry } from '@/lib/supabase';
-import { isMissingTable } from '@/lib/dbState';
+import { isMissingTable, writeDroppingMissingColumns } from '@/lib/dbState';
 
 interface Props {
   orgId: string;
@@ -20,6 +20,21 @@ const SESSION_TYPES = [
 ];
 
 interface SearchResult { id: string; full_name: string | null; avatar_url: string | null; }
+
+// Mismo vocabulario que fighter_physical.level: un solo lenguaje para el nivel.
+const LEVELS = ['principiante', 'amateur', 'competidor', 'profesional'] as const;
+
+/** Edad a partir de la fecha de nacimiento, para pintarla en la ficha. */
+function ageFrom(birth?: string | null): number | null {
+  if (!birth) return null;
+  const b = new Date(birth + 'T12:00:00');
+  if (Number.isNaN(b.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - b.getFullYear();
+  const m = now.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < b.getDate())) age--;
+  return age >= 0 && age < 120 ? age : null;
+}
 
 export default function ClubRoster({ orgId, showToast }: Props) {
   const { t, i18n } = useTranslation();
@@ -115,6 +130,21 @@ export default function ClubRoster({ orgId, showToast }: Props) {
                       </span>
                     </div>
                     {r.note && <p className="text-[11px] text-zinc-500 mt-0.5 truncate">{r.note}</p>}
+                    {/* Ficha básica: lo que el entrenador necesita de un
+                        vistazo. Solo lo que esté relleno. */}
+                    {(r.level || r.weight_kg || r.birth_date || r.phone) && (
+                      <div className="flex items-center gap-2.5 mt-1 flex-wrap text-[11px] text-zinc-500">
+                        {r.level && <span className="text-zinc-300">{t(`cl_roster_level_${r.level}`)}</span>}
+                        {r.weight_kg != null && <span>{r.weight_kg} kg</span>}
+                        {ageFrom(r.birth_date) !== null && <span>{t('cl_roster_years', { n: ageFrom(r.birth_date) })}</span>}
+                        {r.phone && (
+                          <a href={`tel:${r.phone}`} onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 text-zinc-400 hover:text-white cursor-pointer">
+                            <i className="ri-phone-line" />{r.phone}
+                          </a>
+                        )}
+                      </div>
+                    )}
                     {/* Actividad: solo si el boxeador la comparte */}
                     {linked && (
                       act ? (
@@ -165,6 +195,13 @@ function AddBoxerModal({ orgId, onClose, onAdded }: { orgId: string; onClose: ()
   const [manualName, setManualName] = useState('');
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
+  // Ficha básica (migración 0051). Plegada: dar de alta a alguien sigue siendo
+  // escribir un nombre y pulsar; esto es para cuando se sepan los datos.
+  const [basicsOpen, setBasicsOpen] = useState(false);
+  const [phone, setPhone] = useState('');
+  const [birth, setBirth] = useState('');
+  const [weight, setWeight] = useState('');
+  const [level, setLevel] = useState('');
 
   useEffect(() => {
     if (tab !== 'search') return;
@@ -180,11 +217,31 @@ function AddBoxerModal({ orgId, onClose, onAdded }: { orgId: string; onClose: ()
     return () => { alive = false; clearTimeout(id); };
   }, [query, tab]);
 
+  // Los campos de la ficha viven en la 0051. Si no está aplicada, se guardan
+  // los de siempre en vez de perder el alta entera: writeDroppingMissingColumns
+  // quita SOLO la columna que falta, una a una.
+  const basics = () => ({
+    phone: phone.trim() || null,
+    birth_date: birth || null,
+    weight_kg: weight ? Number(weight.replace(',', '.')) : null,
+    level: level || null,
+  });
+
+  const insertRow = async (row: Record<string, unknown>) => {
+    const { result } = await writeDroppingMissingColumns(
+      [row],
+      (rows) => supabase.from('gym_roster').insert(rows),
+      ['org_profile_id', 'display_name', 'status'],
+    );
+    return result.error;
+  };
+
   const addLinked = async (r: SearchResult) => {
     setSaving(true);
-    const { error } = await supabase.from('gym_roster').insert({
+    const error = await insertRow({
       org_profile_id: orgId, fighter_profile_id: r.id,
       display_name: r.full_name || t('cl_roster_rankd'), note: note.trim() || null, status: 'active',
+      ...basics(),
     });
     setSaving(false);
     if (error) return;
@@ -194,9 +251,10 @@ function AddBoxerModal({ orgId, onClose, onAdded }: { orgId: string; onClose: ()
   const addManual = async () => {
     if (!manualName.trim()) return;
     setSaving(true);
-    const { error } = await supabase.from('gym_roster').insert({
+    const error = await insertRow({
       org_profile_id: orgId, fighter_profile_id: null,
       display_name: manualName.trim(), note: note.trim() || null, status: 'active',
+      ...basics(),
     });
     setSaving(false);
     if (error) return;
@@ -248,6 +306,49 @@ function AddBoxerModal({ orgId, onClose, onAdded }: { orgId: string; onClose: ()
           )}
 
           <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={80} className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500" placeholder={t('cl_roster_note_ph')} />
+
+          {/* Ficha básica, plegada. Dar de alta sigue siendo un nombre y
+              pulsar; esto se rellena si se sabe, y se puede completar después
+              desde la ficha del alumno. */}
+          <div className="rounded-xl border border-white/10 overflow-hidden">
+            <button type="button" onClick={() => setBasicsOpen((v) => !v)}
+              className="w-full flex items-center justify-between gap-2 px-4 text-xs font-semibold text-zinc-300 bg-white/[0.03] hover:bg-white/[0.06] cursor-pointer transition-colors"
+              style={{ minHeight: 44 }}>
+              <span className="flex items-center gap-1.5"><i className="ri-id-card-line text-zinc-500" />{t('cl_roster_basics')}</span>
+              <i className={`ri-arrow-down-s-line transition-transform ${basicsOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {basicsOpen && (
+              <div className="p-3 space-y-2.5 border-t border-white/[0.06]">
+                <input value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" inputMode="tel" maxLength={30}
+                  className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 focus:outline-none focus:border-red-500"
+                  style={{ minHeight: 44, fontSize: 16 }} placeholder={t('cl_roster_phone_ph')} />
+                <div className="grid grid-cols-2 gap-2.5">
+                  <label className="block">
+                    <span className="block text-[10px] uppercase tracking-wider text-zinc-500 mb-1">{t('cl_roster_birth')}</span>
+                    <input value={birth} onChange={(e) => setBirth(e.target.value)} type="date"
+                      className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-3 focus:outline-none focus:border-red-500 [color-scheme:dark]"
+                      style={{ minHeight: 44, fontSize: 16 }} />
+                  </label>
+                  <label className="block">
+                    <span className="block text-[10px] uppercase tracking-wider text-zinc-500 mb-1">{t('cl_roster_weight')}</span>
+                    <input value={weight} onChange={(e) => setWeight(e.target.value)} type="number" inputMode="decimal" min={20} max={250} step={0.5}
+                      className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-3 focus:outline-none focus:border-red-500"
+                      style={{ minHeight: 44, fontSize: 16 }} placeholder="72" />
+                  </label>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {LEVELS.map((lv) => (
+                    <button key={lv} type="button" onClick={() => setLevel(level === lv ? '' : lv)}
+                      style={{ minHeight: 40 }}
+                      className={`px-3 rounded-xl text-[11px] font-semibold border transition-all cursor-pointer ${level === lv ? 'bg-red-600 border-red-600 text-white' : 'bg-white/[0.03] border-white/12 text-zinc-300 hover:border-white/30'}`}>
+                      {t(`cl_roster_level_${lv}`)}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[10px] text-zinc-600 leading-relaxed">{t('cl_roster_basics_hint')}</p>
+              </div>
+            )}
+          </div>
 
           {tab === 'manual' && (
             <button onClick={addManual} disabled={saving || !manualName.trim()} className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50" style={{ fontSize: '0.9rem' }}>

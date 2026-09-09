@@ -10,14 +10,18 @@ import { isMissingTable } from '@/lib/dbState';
 import PageBreadcrumb from '@/components/base/PageBreadcrumb';
 import ClubPlan from './components/ClubPlan';
 import ClubRoster from './components/ClubRoster';
+import MessagesPanel from '@/pages/dashboard/components/messages/MessagesPanel';
 
-type Section = 'resumen' | 'plan' | 'roster' | 'timer';
+type Section = 'resumen' | 'plan' | 'roster' | 'mensajes' | 'timer';
 
 interface SectionDef { id: Section; labelKey: string; icon: string }
+// Mensajes usa la mensajería que ya existe en los paneles (MessagesPanel), no
+// una nueva: es la misma bandeja, vista desde aquí.
 const SECTIONS: SectionDef[] = [
   { id: 'resumen', labelKey: 'cl_nav_summary', icon: 'ri-dashboard-line' },
   { id: 'plan', labelKey: 'cl_nav_plan', icon: 'ri-calendar-todo-line' },
   { id: 'roster', labelKey: 'cl_nav_roster', icon: 'ri-group-line' },
+  { id: 'mensajes', labelKey: 'cl_nav_messages', icon: 'ri-chat-3-line' },
   { id: 'timer', labelKey: 'cl_nav_timer', icon: 'ri-timer-flash-line' },
 ];
 
@@ -37,6 +41,11 @@ export default function ClubPage() {
   const [resolving, setResolving] = useState(true);
   const [orgId, setOrgId] = useState<string | null>(null);
   const [orgName, setOrgName] = useState('');
+  // Entrenador que trabaja por su cuenta (su club es él mismo).
+  const [freelance, setFreelance] = useState(false);
+  // Entrenador sin gimnasio Y sin haber elegido todavía cómo trabaja.
+  const [freelanceChoice, setFreelanceChoice] = useState(false);
+  const [starting, setStarting] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [stats, setStats] = useState({ boxers: 0, sessionsWeek: 0 });
 
@@ -49,11 +58,24 @@ export default function ClubPage() {
 
   useEffect(() => { if (!authLoading && !user && !isViewingAs()) navigate('/esquina'); }, [authLoading, user, navigate]);
 
-  // Resuelve a qué gimnasio pertenece: el dueño es su propio org; el coach lo
-  // encuentra por su vínculo en gym_staff.
+  /**
+   * ¿De qué "club" es este espacio?
+   *
+   *  · Gimnasio  → él mismo es el club.
+   *  · Entrenador de un gimnasio → el gimnasio al que le vincula gym_staff.
+   *  · Entrenador POR SU CUENTA → él mismo. Es un club de uno: se apunta con
+   *    una fila de gym_staff consigo mismo, que es lo que deja constancia de
+   *    que ha elegido trabajar así. No hace falta nada más en la base porque
+   *    rk_is_gym_staff(org) ya da permiso cuando org = auth.uid(), así que la
+   *    lista de alumnos, el plan y las asignaciones funcionan igual.
+   *
+   * Si es entrenador y todavía no ha elegido, `freelanceChoice` pone la
+   * pantalla de elección en vez del callejón sin salida de antes.
+   */
   const resolveOrg = useCallback(async () => {
     if (!profile) return;
     setResolving(true);
+    setFreelanceChoice(false);
     if (profile.user_type === 'gym') {
       setOrgId(profile.id);
       const { data } = await supabase.from('organizations').select('org_name').eq('profile_id', profile.id).maybeSingle();
@@ -62,13 +84,44 @@ export default function ClubPage() {
       return;
     }
     const { data, error } = await supabase.from('gym_staff').select('org_profile_id')
-      .eq('coach_profile_id', profile.id).eq('status', 'active').limit(1).maybeSingle();
-    if (isMissingTable(error) || !data) { setOrgId(null); setResolving(false); return; }
-    setOrgId(data.org_profile_id);
-    const { data: org } = await supabase.from('organizations').select('org_name').eq('profile_id', data.org_profile_id).maybeSingle();
-    setOrgName(org?.org_name || '');
+      .eq('coach_profile_id', profile.id).eq('status', 'active');
+    if (isMissingTable(error)) { setOrgId(null); setResolving(false); return; }
+
+    const rows = data || [];
+    // Un gimnasio de verdad manda sobre el espacio propio: si le han invitado,
+    // lo normal es que quiera trabajar allí.
+    const gym = rows.find((r) => r.org_profile_id !== profile.id);
+    if (gym) {
+      setOrgId(gym.org_profile_id);
+      const { data: org } = await supabase.from('organizations').select('org_name').eq('profile_id', gym.org_profile_id).maybeSingle();
+      setOrgName(org?.org_name || '');
+      setResolving(false);
+      return;
+    }
+    if (rows.some((r) => r.org_profile_id === profile.id)) {
+      setOrgId(profile.id);
+      setOrgName(profile.full_name || '');
+      setFreelance(true);
+      setResolving(false);
+      return;
+    }
+    setOrgId(null);
+    setFreelanceChoice(profile.user_type === 'coach');
     setResolving(false);
   }, [profile]);
+
+  // Empezar a trabajar por su cuenta: deja la fila consigo mismo y entra.
+  const startFreelance = useCallback(async () => {
+    if (!profile) return;
+    setStarting(true);
+    const { error } = await supabase.from('gym_staff').upsert({
+      org_profile_id: profile.id, coach_profile_id: profile.id,
+      role: 'owner', status: 'active',
+    }, { onConflict: 'org_profile_id,coach_profile_id' });
+    setStarting(false);
+    if (error) { showToast(t('error_save'), 'error'); return; }
+    await resolveOrg();
+  }, [profile, resolveOrg, t]);
 
   useEffect(() => { resolveOrg(); }, [resolveOrg]);
 
@@ -92,7 +145,52 @@ export default function ClubPage() {
 
   const firstName = (profile.full_name || '').split(' ')[0] || 'RANKD';
 
-  // Coach sin gimnasio: estado cuidado, sin errores.
+  // Entrenador sin gimnasio: ANTES era un callejón sin salida ("aún no
+  // perteneces a ningún club, espera la invitación"). Ahora elige: montar su
+  // propio espacio o meter el código que le hayan pasado.
+  if (!orgId && freelanceChoice) {
+    return (
+      <div className="min-h-screen bg-[#070707] text-white flex items-center justify-center px-5 py-10">
+        <div className="rk-card max-w-md w-full" style={{ padding: '32px 24px' }}>
+          <div className="w-16 h-16 mx-auto mb-5 flex items-center justify-center rounded-2xl bg-red-600/10 border border-red-500/25 anim-float">
+            <i className="ri-user-voice-line text-3xl text-red-400" />
+          </div>
+          <h2 className="rk-h3 text-center" style={{ fontSize: '1.4rem', color: '#fff' }}>{t('cl_setup_title')}</h2>
+          <p className="text-sm text-zinc-400 mt-2 leading-relaxed text-center">{t('cl_setup_desc')}</p>
+
+          <div className="space-y-2.5 mt-6">
+            <button onClick={startFreelance} disabled={starting}
+              className="w-full text-left rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-red-600/[0.07] hover:border-red-500/40 transition-all cursor-pointer px-4 py-4 flex items-center gap-3 disabled:opacity-60"
+              style={{ minHeight: 64 }}>
+              <i className="ri-user-star-line text-red-400 text-lg flex-shrink-0" />
+              <span className="flex-1 min-w-0">
+                <span className="block text-white font-bold text-sm">{t('cl_setup_own')}</span>
+                <span className="block text-white/50 text-xs leading-relaxed mt-0.5">{t('cl_setup_own_desc')}</span>
+              </span>
+              {starting
+                ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                : <i className="ri-arrow-right-line text-zinc-600 flex-shrink-0" />}
+            </button>
+
+            <button onClick={() => navigate('/unirse')}
+              className="w-full text-left rounded-xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/25 transition-all cursor-pointer px-4 py-4 flex items-center gap-3"
+              style={{ minHeight: 64 }}>
+              <i className="ri-building-4-line text-zinc-400 text-lg flex-shrink-0" />
+              <span className="flex-1 min-w-0">
+                <span className="block text-white font-bold text-sm">{t('cl_setup_join')}</span>
+                <span className="block text-white/50 text-xs leading-relaxed mt-0.5">{t('cl_setup_join_desc')}</span>
+              </span>
+              <i className="ri-arrow-right-line text-zinc-600 flex-shrink-0" />
+            </button>
+          </div>
+
+          <p className="text-[11px] text-zinc-600 mt-4 text-center leading-relaxed">{t('cl_setup_switch_note')}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Cualquier otro caso sin club (p. ej. un tipo de cuenta que no toca aquí).
   if (!orgId) {
     return (
       <div className="min-h-screen bg-[#070707] text-white flex items-center justify-center px-5">
@@ -154,7 +252,7 @@ export default function ClubPage() {
             ))}
           </nav>
           <div className="mt-4 p-4 rounded-2xl bg-gradient-to-br from-zinc-900 to-zinc-950 border border-zinc-800">
-            <p className="text-xs font-bold text-white flex items-center gap-1.5"><i className="ri-whistle-line text-red-400" />{firstName}</p>
+            <p className="text-xs font-bold text-white flex items-center gap-1.5"><i className="ri-user-voice-line text-red-400" />{firstName}</p>
             <p className="text-[11px] text-zinc-500 mt-1 leading-relaxed">{t('cl_sum_sub')}</p>
           </div>
         </aside>
@@ -183,19 +281,24 @@ export default function ClubPage() {
           )}
           {section === 'resumen' && (
             <div className="space-y-6 max-w-3xl">
+              {/* Quien trabaja por su cuenta no tiene "club": tiene alumnos.
+                  Hablarle de gimnasio sería hablarle de algo que no existe. */}
               <div>
-                <p className="rk-eyebrow">{t('cl_sum_eyebrow')}{orgName ? ` · ${orgName}` : ''}</p>
+                <p className="rk-eyebrow">
+                  {freelance ? t('cl_sum_eyebrow_own') : t('cl_sum_eyebrow')}
+                  {!freelance && orgName ? ` · ${orgName}` : ''}
+                </p>
                 <h1 className="rk-h1" style={{ margin: '4px 0 0', color: '#fff' }}>
                   {t('cl_sum_welcome')}, <span className="rk-red-glow">{firstName.toUpperCase()}</span>
                 </h1>
-                <p className="text-zinc-400 text-sm mt-2 max-w-md">{t('cl_sum_sub')}</p>
+                <p className="text-zinc-400 text-sm mt-2 max-w-md">{freelance ? t('cl_sum_sub_own') : t('cl_sum_sub')}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <button onClick={() => setSection('roster')} className="rk-card text-left cursor-pointer" style={{ padding: '22px 18px' }}>
                   <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-600/10 border border-red-500/25 text-red-400 mb-3"><i className="ri-group-line text-lg" /></div>
                   <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(28px,5vw,40px)', lineHeight: 1, color: '#fff' }}>{stats.boxers}</p>
-                  <p className="text-[11px] text-zinc-400 mt-1 uppercase tracking-wider">{t('cl_sum_boxers')}</p>
+                  <p className="text-[11px] text-zinc-400 mt-1 uppercase tracking-wider">{freelance ? t('cl_sum_students') : t('cl_sum_boxers')}</p>
                 </button>
                 <button onClick={() => setSection('plan')} className="rk-card text-left cursor-pointer" style={{ padding: '22px 18px' }}>
                   <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 mb-3"><i className="ri-calendar-todo-line text-lg" /></div>
@@ -222,6 +325,18 @@ export default function ClubPage() {
 
           {section === 'plan' && <ClubPlan orgId={orgId} coachId={profile.id} showToast={showToast} />}
           {section === 'roster' && <ClubRoster orgId={orgId} showToast={showToast} />}
+          {section === 'mensajes' && (
+            <div className="max-w-4xl">
+              <div className="mb-5">
+                <p className="rk-eyebrow">{t('cl_msg_eyebrow')}</p>
+                <h2 className="rk-h2" style={{ fontSize: 'clamp(1.8rem,4vw,2.4rem)', color: '#fff', margin: '4px 0 0' }}>
+                  {t('cl_nav_messages')}
+                </h2>
+                <p className="text-sm text-zinc-400 mt-2 max-w-lg leading-relaxed">{t('cl_msg_desc')}</p>
+              </div>
+              <MessagesPanel currentUserId={profile.id} />
+            </div>
+          )}
         </main>
       </div>
     </div>

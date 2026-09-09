@@ -10,6 +10,20 @@ export default {
   cl_nav_plan: 'Club plan',
   cl_nav_roster: 'Boxers',
   cl_nav_timer: 'Round timer',
+  cl_nav_messages: 'Messages',
+
+  // Freelance coach: the choice shown when there is no gym
+  cl_setup_title: 'How do you work?',
+  cl_setup_desc: 'You can set up your own space right now, or join the gym that invited you. You can switch whenever you like.',
+  cl_setup_own: 'On my own',
+  cl_setup_own_desc: 'Your students, your plan and your tools, with nobody in between',
+  cl_setup_join: 'I have a code from a gym',
+  cl_setup_join_desc: 'You join their staff and work with their people',
+  cl_setup_switch_note: 'If you start on your own and a gym invites you later, you move into their space without losing anything.',
+
+  // Messages (the same inbox, seen from the club)
+  cl_msg_eyebrow: 'TALK TO YOUR PEOPLE',
+  cl_msg_desc: 'The same inbox as everywhere else in RANKD. Write to your students, to other coaches, or to whoever wrote to you.',
   cl_loading: 'Loading your space…',
 
   // ── Guard: coach with no gym ──
@@ -22,6 +36,9 @@ export default {
   cl_sum_title: 'Lead your group’s work',
   cl_sum_sub: 'Plan the week, manage your boxers and use the timer with the group at the gym.',
   cl_sum_boxers: 'Boxers',
+  cl_sum_students: 'Students',
+  cl_sum_eyebrow_own: 'On your own',
+  cl_sum_sub_own: 'Plan the week, look after your students and use the timer when you train with them.',
   cl_sum_sessions_week: 'Sessions this week',
   cl_sum_upcoming: 'Upcoming sessions',
   cl_sum_no_upcoming: 'No sessions planned ahead.',
@@ -75,6 +92,16 @@ export default {
   cl_roster_manual_ph: 'Boxer name',
   cl_roster_manual_hint: 'For boxers not on RANKD yet: it stays on your list only.',
   cl_roster_note_ph: 'Note (weight class, level…)',
+  cl_roster_basics: 'Basic details (optional)',
+  cl_roster_basics_hint: 'Only your club sees this. It never shows on a public profile.',
+  cl_roster_phone_ph: 'Contact phone',
+  cl_roster_birth: 'Born',
+  cl_roster_weight: 'Weight (kg)',
+  cl_roster_years: '{{n}} years old',
+  cl_roster_level_principiante: 'Beginner',
+  cl_roster_level_amateur: 'Amateur',
+  cl_roster_level_competidor: 'Competitor',
+  cl_roster_level_profesional: 'Professional',
   cl_roster_add_btn: 'Add to the club',
   cl_roster_added: 'Boxer added',
   cl_roster_removed: 'Boxer removed from the club',

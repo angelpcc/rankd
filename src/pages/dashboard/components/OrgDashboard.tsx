@@ -260,7 +260,7 @@ export default function OrgDashboard({ profile }: Props) {
     { id: 'applicants', label: t('dash_org_tab_applicants'), icon: 'ri-user-received-line', badge: totalApplicants || undefined },
     { id: 'fighters', label: t('dash_org_tab_fighters'), icon: 'ri-search-line' },
     ...(isGym ? [{ id: 'gallery' as ActiveTab, label: t('dash_org_tab_gallery'), icon: 'ri-image-2-line' }] : []),
-    ...(isGym ? [{ id: 'coaches' as ActiveTab, label: t('cl_coaches_tab'), icon: 'ri-whistle-line' }] : []),
+    ...(isGym ? [{ id: 'coaches' as ActiveTab, label: t('cl_coaches_tab'), icon: 'ri-user-voice-line' }] : []),
     ...(isPromoter ? [{ id: 'events' as ActiveTab, label: t('dash_org_tab_events'), icon: 'ri-calendar-event-line' }] : []),
     { id: 'messages', label: t('dash_org_tab_messages'), icon: 'ri-message-3-line', badge: unreadMessages || undefined },
     { id: 'verification', label: t('dash_org_tab_verification'), icon: 'ri-verified-badge-line' },
@@ -288,7 +288,7 @@ export default function OrgDashboard({ profile }: Props) {
       key: 'gimnasio', label: t('dash_grp_gym'), icon: 'ri-building-4-line',
       items: [
         { id: 'gallery', label: t('dash_org_tab_gallery'), icon: 'ri-image-2-line' },
-        { id: 'coaches', label: t('cl_coaches_tab'), icon: 'ri-whistle-line' },
+        { id: 'coaches', label: t('cl_coaches_tab'), icon: 'ri-user-voice-line' },
       ],
     }] : []),
     {

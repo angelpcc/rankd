@@ -61,7 +61,7 @@ export default function ClubInvitePage() {
     <div className="min-h-screen bg-[#070707] text-white flex items-center justify-center px-5">
       <div className="rk-card w-full max-w-md text-center" style={{ padding: '44px 28px' }}>
         <div className="w-16 h-16 mx-auto mb-5 flex items-center justify-center rounded-2xl bg-red-600/10 border border-red-500/25 anim-float">
-          <i className="ri-whistle-line text-3xl text-red-400" />
+          <i className="ri-user-voice-line text-3xl text-red-400" />
         </div>
 
         {!info ? (

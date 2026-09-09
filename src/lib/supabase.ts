@@ -302,6 +302,11 @@ export interface GymRosterEntry {
   status: 'active' | 'left';
   shares_activity: boolean;
   created_at: string;
+  // Ficha básica (migración 0051). Todo opcional y ausente si no está aplicada.
+  phone?: string | null;
+  birth_date?: string | null;
+  weight_kg?: number | null;
+  level?: 'principiante' | 'amateur' | 'competidor' | 'profesional' | null;
 }
 
 export interface ClubSession {

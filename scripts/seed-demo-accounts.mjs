@@ -45,8 +45,8 @@ const iso = (daysAgo = 0) => new Date(Date.now() - daysAgo * 86400000).toISOStri
 // ── Tipos de cuenta REALES hoy (comprobado en src/pages/auth/page.tsx:
 //    MAIN_TYPES / ORG_SUBTYPES, y src/lib/supabase.ts UserType) ──
 //    fighter (competitor | hobby) · brand · promoter · gym · manager
-//    coach: no se registra directo; se crea aquí con user_type='coach' (en
-//    producción se llega aceptando una invitación de gimnasio).
+//    coach: ya se registra directo (Entrenamiento → "Entrenador por mi
+//    cuenta"), y también se llega aceptando la invitación de un gimnasio.
 const ACCOUNTS = [
   {
     email: 'demo.fighter@rankd.test', label: 'Fighter — competidor',
@@ -132,12 +132,13 @@ async function run() {
     // el paso salía en verde y luego todo lo demás fallaba con "violates
     // foreign key constraint" porque el perfil no existía. Con upsert la
     // fila se crea si falta y se actualiza si ya está.
-    // `profiles.user_type` tiene un CHECK que en esta base admite
-    // fighter/brand/promoter/gym/manager. 'coach' llega en una migración
-    // pendiente; hasta que se aplique, la cuenta se crea como 'gym' para que
-    // exista el perfil (y con él el espacio de entrenador). El email sigue
-    // siendo demo.coach@rankd.test.
-    const userType = acc.user_type === 'coach' ? 'gym' : acc.user_type;
+    // 'coach' lo admite el CHECK de profiles.user_type desde la migración
+    // 0052. Antes NO, y por eso esta cuenta se creaba como 'gym': un apaño
+    // que hacía que demo.coach@rankd.test no fuese realmente un entrenador y
+    // que el espacio de entrenador por su cuenta no se pudiera probar. Si al
+    // ejecutar esto sale un error 23514 sobre profiles_user_type_check, es que
+    // falta aplicar la 0052.
+    const userType = acc.user_type;
     await step('profiles', async () => {
       const { error } = await db.from('profiles').upsert({
         id,
