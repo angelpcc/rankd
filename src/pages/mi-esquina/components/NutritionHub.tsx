@@ -10,6 +10,7 @@ import NutritionTracker from '@/pages/mi-esquina/components/NutritionTracker';
 import SupplementTracker from '@/pages/mi-esquina/components/SupplementTracker';
 import SectionHero from '@/pages/mi-esquina/components/SectionHero';
 import NutritionSummary from '@/pages/mi-esquina/components/NutritionSummary';
+import MealPlanner from '@/pages/mi-esquina/components/MealPlanner';
 import PhotoCard from '@/components/base/PhotoCard';
 
 function todayISO(): string {
@@ -49,10 +50,19 @@ export default function NutritionHub({ profile, showToast, isHobby, onGoWeight }
   // compacto), 'work' = pantalla de trabajo con pestañas. El Asesor de
   // nutrición se retiró de aquí: ahora hay una sección "Asesor" de primer nivel.
   const [view, setView] = useState<'summary' | 'work'>('summary');
-  const [tab, setTab] = useState<'diario' | 'foto' | 'agua' | 'suplementos' | 'guia'>('diario');
+  // Sube cuando el Asesor de comida apunta un plato en el diario. El resumen
+  // de macros de arriba está montado siempre y carga una sola vez: sin esto
+  // seguía diciendo 0 kcal después de apuntar y parecía que no había pasado
+  // nada. (MealLog no lo necesita: se desmonta al cambiar de pestaña y vuelve
+  // a cargar solo.)
+  const [diaryKey, setDiaryKey] = useState(0);
+  const [tab, setTab] = useState<'diario' | 'plan' | 'foto' | 'agua' | 'suplementos' | 'guia'>('diario');
 
+  // "Plan" va justo detrás del diario: es lo que se consulta a diario para
+  // saber qué toca comer, antes que la foto o el agua.
   const TABS: HubTab[] = [
     { id: 'diario', labelKey: 'mc_ng_tab_diary', icon: 'ri-restaurant-line' },
+    { id: 'plan', labelKey: 'mc_ng_tab_planner', icon: 'ri-calendar-check-line' },
     { id: 'foto', labelKey: 'mc_ng_tab_photo', icon: 'ri-camera-line' },
     { id: 'agua', labelKey: 'mc_ng_tab_water', icon: 'ri-drop-line' },
     { id: 'suplementos', labelKey: 'mc_ng_tab_supplements', icon: 'ri-capsule-line' },
@@ -110,7 +120,7 @@ export default function NutritionHub({ profile, showToast, isHobby, onGoWeight }
       </div>
 
       {/* Resumen del día — compacto en una línea. */}
-      <TodayMacrosSummary profile={profile} />
+      <TodayMacrosSummary profile={profile} refreshKey={diaryKey} />
 
       <HubTabs tabs={TABS} active={tab} onChange={(id) => setTab(id as typeof tab)} />
 
@@ -138,6 +148,14 @@ export default function NutritionHub({ profile, showToast, isHobby, onGoWeight }
               {t('mc_ng_summary_go_weight')}<i className="ri-arrow-right-line" />
             </button>
           </div>
+        </div>
+      )}
+
+      {/* ── PLAN DE COMIDAS ── */}
+      {tab === 'plan' && (
+        <div className="mt-6">
+          <MealPlanner profile={profile} showToast={showToast}
+            onMealLogged={() => setDiaryKey((k) => k + 1)} />
         </div>
       )}
 
@@ -204,7 +222,7 @@ interface DayMacros { calories: number; protein: number; carbs: number; fat: num
  * | grasas". Suma real de meal_entries (migración 0036) — comidas escritas a
  * mano sin macros cuentan en el total de comidas pero no en los gramos/kcal.
  */
-function TodayMacrosSummary({ profile }: { profile: Profile }) {
+function TodayMacrosSummary({ profile, refreshKey = 0 }: { profile: Profile; refreshKey?: number }) {
   const { t } = useTranslation();
   const [data, setData] = useState<DayMacros | null>(null);
 
@@ -224,7 +242,7 @@ function TodayMacrosSummary({ profile }: { profile: Profile }) {
       setData({ ...sum, withMacros: withMacros.length, total: list.length });
     })();
     return () => { alive = false; };
-  }, [profile.id]);
+  }, [profile.id, refreshKey]);
 
   if (!data) return null;
 
