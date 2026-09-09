@@ -30,8 +30,9 @@ interface PlatformStats {
   conversations: number | null;
   waitlist: number | null;
   newThisWeek: number;
-  pendingBrands: number;
-  openTickets: number;
+  /** null = no se ha podido contar (tabla sin migrar o RLS), no cero. */
+  pendingBrands: number | null;
+  openTickets: number | null;
   liveEvents: number | null;
 }
 
@@ -126,9 +127,11 @@ export default function AdminPage() {
       conversations: convosRes.error ? null : (convosRes.count ?? 0),
       waitlist: waitRes.error ? null : (waitRes.count ?? 0),
       liveEvents: eventRes.error ? null : (eventRes.count ?? 0),
-      // Si la tabla aún no existe (migración sin aplicar), 0 en vez de romper.
-      pendingBrands: brandRes.error ? 0 : (brandRes.count ?? 0),
-      openTickets: ticketRes.error ? 0 : (ticketRes.count ?? 0),
+      // Si la consulta falla (tabla sin migrar, RLS), va `null`, no 0.
+      // Un 0 se lee como "no hay ninguna" y es mentira: lo cierto es que no se
+      // ha podido contar. La tarjeta pinta un guion en ese caso.
+      pendingBrands: brandRes.error ? null : (brandRes.count ?? 0),
+      openTickets: ticketRes.error ? null : (ticketRes.count ?? 0),
     });
     setStatsLoading(false);
   }, []);

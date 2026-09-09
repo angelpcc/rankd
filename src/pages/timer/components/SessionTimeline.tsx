@@ -68,20 +68,40 @@ export default function SessionTimeline({ schedule, elapsedTotal = 0, live = fal
         )}
       </div>
 
-      {/* Leyenda */}
-      <div className="flex items-center gap-4 mt-2.5 flex-wrap">
-        {/* Concatenaba el número con la palabra SIEMPRE en singular y salía
-            "3 asalto". Con más de uno se usa el plural, que ya existe. */}
-        {(() => {
-          const n = schedule.filter((s) => s.type === 'round').length;
-          const word = (n === 1 ? t('tm_phase_round') : t('tm_rounds')).toLowerCase();
-          return <Legend color="#E10600" label={`${n} ${word}`} />;
-        })()}
-        {schedule.some((s) => s.type === 'rest') && <Legend color="#22c55e" label={t('tm_phase_rest')} />}
-        {schedule.some((s) => s.bursts.length > 0) && <Legend striped label={t('tm_burst_title')} />}
-      </div>
+      {/* Leyenda. Durante la sesión la leyenda ya no aporta (los colores se
+          han visto al montarla) y en cambio falta el dato que sí importa:
+          cuánto queda de sesión entera. Así que en directo se sustituye. */}
+      {live ? (
+        <div className="flex items-center justify-between gap-3 mt-2.5">
+          <span className="text-[11px] uppercase tracking-[0.14em] text-zinc-500">{t('tm_session_left')}</span>
+          <span className="tabular-nums text-white" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 1 }}>
+            {fmtLeft(Math.max(0, total - elapsedTotal))}
+          </span>
+        </div>
+      ) : (
+        <div className="flex items-center gap-4 mt-2.5 flex-wrap">
+          {/* Concatenaba el número con la palabra SIEMPRE en singular y salía
+              "3 asalto". Con más de uno se usa el plural, que ya existe. */}
+          {(() => {
+            const n = schedule.filter((s) => s.type === 'round').length;
+            const word = (n === 1 ? t('tm_phase_round') : t('tm_rounds')).toLowerCase();
+            return <Legend color="#E10600" label={`${n} ${word}`} />;
+          })()}
+          {schedule.some((s) => s.type === 'rest') && <Legend color="#22c55e" label={t('tm_phase_rest')} />}
+          {schedule.some((s) => s.bursts.length > 0) && <Legend striped label={t('tm_burst_title')} />}
+        </div>
+      )}
     </div>
   );
+}
+
+/** m:ss, o h:mm:ss si la sesión pasa de la hora. */
+function fmtLeft(sec: number) {
+  const s = Math.ceil(sec);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const ss = String(s % 60).padStart(2, '0');
+  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
 }
 
 function Legend({ color, striped, label }: { color?: string; striped?: boolean; label: string }) {

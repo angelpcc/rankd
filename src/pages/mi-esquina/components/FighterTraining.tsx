@@ -37,6 +37,22 @@ interface ActSession {
   created_at: string;
 }
 
+/**
+ * Niveles de inclinación para la cinta.
+ *
+ * En una sesión la inclinación va cambiando, así que pedir la media exacta es
+ * pedir un dato que el usuario no tiene. Cada nivel guarda el valor CENTRAL de
+ * su tramo: es una aproximación, y se dice que lo es. `min`/`max` sirven para
+ * saber qué pastilla marcar cuando el valor viene de un registro anterior o se
+ * ha escrito a mano.
+ */
+const INCLINE_LEVELS = [
+  { id: 'flat', labelKey: 'mc_av_incl_flat', value: 0, min: 0, max: 0.9, hint: '0%' },
+  { id: 'soft', labelKey: 'mc_av_incl_soft', value: 2, min: 1, max: 2.9, hint: '1-3%' },
+  { id: 'mid', labelKey: 'mc_av_incl_mid', value: 4, min: 3, max: 5.9, hint: '3-6%' },
+  { id: 'hard', labelKey: 'mc_av_incl_hard', value: 8, min: 6, max: 40, hint: '6%+' },
+];
+
 function startOfMonth(): Date { const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d; }
 
 /** Lunes (ISO local) de esta semana, o `offsetWeeks` semanas atrás. */
@@ -504,11 +520,11 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
                     a la vez convertía "apuntar que he corrido" en rellenar un
                     formulario de ocho casillas. */}
                 <div className="grid grid-cols-2 gap-3 items-start">
-                  <ActField label={t('mc_av_date')}>
+                  <ActField label={t('mc_av_date')} wide>
                     <input type="date" value={date} max={todayISO()} onChange={(e) => setDate(e.target.value)}
                       className={`${numCls} cursor-pointer [color-scheme:dark]`} style={{ fontSize: 16, minHeight: 44 }} />
                   </ActField>
-                  <ActField label={t('mc_av_duration')}>
+                  <ActField label={t('mc_av_duration')} wide>
                     <StepperInput value={duration} onChange={setDuration} step={5} min={1} max={600}
                       placeholder="30" unit={t('mc_av_unit_min')} ariaLabel={t('mc_av_duration')} />
                   </ActField>
@@ -557,18 +573,41 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
                       </ActField>
                     )}
                     {cfg.fields.includes('incline') && (
-                      <ActField label={t('mc_av_field_incline')} hint={optText}>
+                      <ActField label={t('mc_av_field_incline')} wide
+                        hint={t('mc_av_incline_hint')}>
+                        {/* Nadie sabe la inclinación MEDIA exacta de una sesión
+                            en cinta: sube y baja. Se elige un nivel y se guarda
+                            el valor central de ese tramo, que es la mejor
+                            aproximación honesta. El campo exacto sigue debajo
+                            para quien sí lo sepa. */}
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {INCLINE_LEVELS.map((lv) => {
+                            const cur = parseFloat((incline || '').replace(',', '.'));
+                            const active = Number.isFinite(cur) && cur >= lv.min && cur <= lv.max;
+                            return (
+                              <button key={lv.id} type="button" style={{ minHeight: 44 }}
+                                onClick={() => setIncline(active ? '' : String(lv.value))}
+                                className={`px-3 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${active ? 'bg-red-600 border-red-600 text-white' : 'bg-white/[0.03] border-white/12 text-zinc-300 hover:border-white/30'}`}>
+                                {t(lv.labelKey)}
+                                <span className="block text-[10px] font-normal opacity-70">{lv.hint}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
                         <StepperInput value={incline} onChange={setIncline} step={0.5} min={0} max={40}
                           placeholder="3" unit="%" ariaLabel={t('mc_av_field_incline')} />
                       </ActField>
                     )}
+                    {/* Los campos con −/+ van a ancho completo: en media
+                        columna (145 px) los dos botones dejaban 45 px de hueco
+                        y el número se montaba sobre la unidad. */}
                     {cfg.fields.includes('round_duration') && (
-                      <ActField label={t('mc_av_field_round_dur')} hint={optText}>
+                      <ActField label={t('mc_av_field_round_dur')} hint={optText} wide>
                         <StepperInput value={roundDur} onChange={setRoundDur} step={10} min={10} max={600}
                           placeholder="180" unit="s" ariaLabel={t('mc_av_field_round_dur')} />
                       </ActField>
                     )}
-                    <ActField label={t('mc_av_field_hr')} hint={optText}>
+                    <ActField label={t('mc_av_field_hr')} hint={optText} wide>
                       <StepperInput value={avgHr} onChange={setAvgHr} step={5} min={30} max={230}
                         placeholder="145" unit="ppm" ariaLabel={t('mc_av_field_hr')} />
                     </ActField>
@@ -795,8 +834,12 @@ function StepperInput({ value, onChange, step, min, max, placeholder, unit, aria
       <div className="flex-1 min-w-0 relative">
         <input inputMode="decimal" type="number" min={min} max={max} step={step} value={value}
           onChange={(e) => onChange(e.target.value)} aria-label={ariaLabel} placeholder={placeholder}
-          className="w-full bg-white/[0.04] border border-white/10 text-white text-center rounded-xl px-2 py-2.5 focus:outline-none focus:border-red-500"
-          style={{ fontSize: 16, minHeight: 44 }} />
+          className="w-full bg-white/[0.04] border border-white/10 text-white text-center rounded-xl py-2.5 focus:outline-none focus:border-red-500"
+          // Con la unidad en posición absoluta y el número centrado, en los
+          // campos estrechos (pulso, en rejilla de dos columnas) el "145" se
+          // montaba encima del "ppm". Se reserva el mismo hueco a los dos
+          // lados: la unidad cabe a la derecha y el número sigue centrado.
+          style={{ fontSize: 16, minHeight: 44, paddingLeft: unit ? 28 : 8, paddingRight: unit ? 28 : 8 }} />
         {unit && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-zinc-500 pointer-events-none">{unit}</span>}
       </div>
       <button type="button" onClick={() => bump(1)} className={btn} style={{ minHeight: 44 }}

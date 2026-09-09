@@ -25,7 +25,7 @@ export default function HubTabs({ tabs, active, onChange }: Props) {
     'linear-gradient(to right, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%)';
   return (
     <div
-      className="overflow-x-auto -mx-1 px-1 mb-6"
+      className="overflow-x-auto rk-noscroll-x -mx-1 px-1 mb-6"
       style={{ WebkitMaskImage: fade, maskImage: fade }}
     >
       <div className="inline-flex gap-1 p-1 rounded-2xl bg-zinc-900/70 border border-zinc-800 min-w-max">

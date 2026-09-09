@@ -1,3 +1,4 @@
+import DateField from '@/components/base/DateField';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, type Profile } from '@/lib/supabase';
@@ -100,9 +101,7 @@ export default function StrengthProgram({ profile, showToast }: Props) {
       <div className="rk-card flex flex-col sm:flex-row sm:items-end gap-3" style={{ padding: 18 }}>
         <div className="flex-1 min-w-0">
           <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_strp_date')}</label>
-          <input type="date" value={date} min={todayISO()} onChange={(e) => setDate(e.target.value)}
-            style={{ fontSize: 16, minHeight: 44 }}
-            className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500 cursor-pointer [color-scheme:dark]" />
+          <DateField value={date} min={todayISO()} onChange={setDate} ariaLabel={t('mc_strp_date')} />
         </div>
         <button onClick={() => setBuilderOpen(true)}
           className="rk-btn rk-btn-primary rk-press w-full sm:w-auto flex items-center justify-center gap-2"

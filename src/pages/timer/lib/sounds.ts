@@ -10,6 +10,7 @@
 //   · warn          → tic corto y seco (cuenta atrás final). Mínimo.
 //   · restStart     → doble campana suave (empieza el descanso).
 //   · finish        → triple campana (fin de la sesión).
+//   · pause/resume  → dos tonos que bajan / suben. Pareja espejo.
 //
 // Todo se genera por código con Web Audio: cero archivos, cero red.
 //
@@ -199,6 +200,26 @@ export class TimerSounds {
     const base = ctx.currentTime;
     this.tone(560, base, 0.16, 0.44, 'triangle');
     this.tone(360, base + 0.16, 0.24, 0.44, 'triangle');
+  }
+
+  /** PAUSA: dos tonos que caen, secos y cortos. Dice "se ha parado" sin
+   *  parecerse a ninguna campana de asalto. */
+  pause() {
+    const ctx = this.ready();
+    if (!ctx) return;
+    const base = ctx.currentTime;
+    this.tone(520, base, 0.1, 0.38, 'triangle');
+    this.tone(330, base + 0.1, 0.18, 0.38, 'triangle');
+  }
+
+  /** REANUDAR: los mismos dos tonos al revés (suben). Espejo de `pause()`,
+   *  para que parar y seguir no se confundan de oído. */
+  resume() {
+    const ctx = this.ready();
+    if (!ctx) return;
+    const base = ctx.currentTime;
+    this.tone(330, base, 0.1, 0.38, 'triangle');
+    this.tone(520, base + 0.1, 0.18, 0.4, 'triangle');
   }
 
   /** Cuenta atrás final: tic corto y seco. */

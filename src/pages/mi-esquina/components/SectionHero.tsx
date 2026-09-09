@@ -32,6 +32,10 @@ interface Props {
   action?: { label: string; icon?: string; onClick: () => void };
 }
 
+// El chip del eyebrow va arriba del todo, donde el degradado de legibilidad de
+// PhotoCard no llega: con fondo blanco al 10 % sobre una foto clara
+// desaparecía. Va en negro translúcido + desenfoque, que funciona sobre
+// cualquier imagen.
 export default function SectionHero({ kind, eyebrow, title, subtitle, action }: Props) {
   const h = HERO[kind];
   return (
@@ -41,7 +45,7 @@ export default function SectionHero({ kind, eyebrow, title, subtitle, action }: 
       icon={h.icon}
       aspect="21 / 7"
       chips={eyebrow ? (
-        <span style={{ background: 'rgba(255,255,255,0.1)', color: 'var(--t-1)', borderRadius: 'var(--r-pill)', padding: '4px 12px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+        <span style={{ background: 'rgba(10,10,11,0.62)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', border: '1px solid rgba(255,255,255,0.16)', color: '#fff', borderRadius: 'var(--r-pill)', padding: '4px 12px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
           {eyebrow}
         </span>
       ) : undefined}

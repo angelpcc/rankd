@@ -21,6 +21,16 @@ const IDLE: EngineState = {
   segRemaining: 0, segDuration: 0, elapsedTotal: 0, inBurst: false, burstRemaining: 0,
 };
 
+/**
+ * Vibración corta del móvil. Tercer canal de aviso, además del color y el
+ * sonido: con guantes, música alta o el móvil en el suelo, el zumbido es lo
+ * que se nota. Android lo soporta; iOS Safari no expone `vibrate` y
+ * simplemente no pasa nada.
+ */
+function buzz(pattern: number | number[]) {
+  try { navigator.vibrate?.(pattern); } catch { /* no soportado */ }
+}
+
 // Motor del cronómetro. Trabaja con marcas de tiempo absolutas (Date.now) en
 // lugar de ir restando 1 por tick: así, si el móvil ralentiza el temporizador
 // en segundo plano, al volver recupera el tiempo real sin desfasarse.
@@ -50,10 +60,11 @@ export function useTimerEngine(config: TimerConfig, muted: boolean) {
     prevSecRef.current = seg.durationSec;
     inBurstRef.current = false;
     tenWarnedRef.current = false;
-    // Señal de entrada según la fase.
+    // Señal de entrada según la fase. Cada cambio de fase vibra, con un
+    // patrón distinto: asalto = golpe largo, descanso = dos toques suaves.
     const s = soundsRef.current;
-    if (seg.type === 'round') s.roundStart();
-    else if (seg.type === 'rest') s.restStart();
+    if (seg.type === 'round') { s.roundStart(); buzz([0, 220]); }
+    else if (seg.type === 'rest') { s.restStart(); buzz([0, 90, 90, 90]); }
   }, []);
 
   const publish = useCallback((remaining: number) => {
@@ -95,6 +106,7 @@ export function useTimerEngine(config: TimerConfig, muted: boolean) {
         if (nextIndex >= sch.length) {
           statusRef.current = 'done';
           soundsRef.current.finish();
+          buzz([0, 300, 120, 300]);
           setState((st) => ({ ...st, status: 'done', segRemaining: 0, elapsedTotal: sch.reduce((a, s) => a + s.durationSec, 0), inBurst: false, burstRemaining: 0 }));
           return;
         }
@@ -113,7 +125,7 @@ export function useTimerEngine(config: TimerConfig, muted: boolean) {
       const elapsedInSeg = cur.durationSec - remaining;
       const active = cur.type === 'round'
         && cur.bursts.some((b) => elapsedInSeg >= b.startSec && elapsedInSeg < b.endSec);
-      if (active && !inBurstRef.current) s.accelerate();
+      if (active && !inBurstRef.current) { s.accelerate(); buzz([0, 70, 60, 70, 60, 70]); }
       else if (!active && inBurstRef.current) s.easeOff();
       inBurstRef.current = active;
 
@@ -151,6 +163,8 @@ export function useTimerEngine(config: TimerConfig, muted: boolean) {
     if (statusRef.current !== 'running') return;
     remainingRef.current = Math.max(0, (segEndAtRef.current - Date.now()) / 1000);
     statusRef.current = 'paused';
+    soundsRef.current.pause();
+    buzz(45);
     setState((st) => ({ ...st, status: 'paused' }));
   }, []);
 
@@ -159,6 +173,8 @@ export function useTimerEngine(config: TimerConfig, muted: boolean) {
     soundsRef.current.unlock();
     segEndAtRef.current = Date.now() + remainingRef.current * 1000;
     statusRef.current = 'running';
+    soundsRef.current.resume();
+    buzz(45);
     setState((st) => ({ ...st, status: 'running' }));
   }, []);
 

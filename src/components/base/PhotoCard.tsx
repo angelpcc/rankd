@@ -27,8 +27,16 @@ interface Props {
   className?: string;
 }
 
+// Franja oscura bajo el texto. Antes bajaba a 0.4 en el 52 %, y en las cards
+// bajas (heroes 21/7) el título caía justo en esa zona clara: sobre una foto
+// con partes brillantes no se leía. Ahora la rampa es más larga y más densa
+// donde va el texto, y sigue dejando ver la foto arriba.
 const LEGIBILITY =
-  'linear-gradient(to top, rgba(10,10,11,0.94) 0%, rgba(10,10,11,0.4) 52%, rgba(10,10,11,0.05) 100%)';
+  'linear-gradient(to top, rgba(10,10,11,0.96) 0%, rgba(10,10,11,0.78) 34%, rgba(10,10,11,0.42) 68%, rgba(10,10,11,0.08) 100%)';
+
+// Cinturón de seguridad: aunque el degradado falle sobre una foto muy clara,
+// el texto sigue teniendo borde propio.
+const TEXT_SHADOW = '0 2px 10px rgba(0,0,0,0.85)';
 
 /**
  * Card con imagen a sangre + degradado de legibilidad + texto encima. Es el
@@ -80,10 +88,10 @@ export default function PhotoCard({
 
       {/* Texto (en flujo, alineado abajo por el flex del contenedor) */}
       <div className="relative p-5">
-        <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 26, lineHeight: 1.05, color: 'var(--t-1)', letterSpacing: '0.01em' }}>
+        <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 26, lineHeight: 1.05, color: 'var(--t-1)', letterSpacing: '0.01em', textShadow: TEXT_SHADOW }}>
           {title}
         </p>
-        {subtitle && <p className="mt-1" style={{ fontSize: 13, color: 'var(--t-2)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{subtitle}</p>}
+        {subtitle && <p className="mt-1" style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', textShadow: TEXT_SHADOW, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{subtitle}</p>}
         {footer && <div className="mt-4">{footer}</div>}
       </div>
     </div>

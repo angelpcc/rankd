@@ -180,6 +180,8 @@ export default {
 
   // ── Controles ──
   tm_pause: 'Pausa',
+  tm_paused: 'En pausa',
+  tm_session_left: 'Queda de sesión',
   tm_resume: 'Reanudar',
   tm_reset: 'Reiniciar',
   tm_mute: 'Silenciar',

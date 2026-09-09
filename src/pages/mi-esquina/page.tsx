@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
@@ -212,6 +212,26 @@ export default function MiEsquinaPage() {
     load();
   }, [profile?.id, section, refreshKey]);
 
+  // La tira de secciones del móvil es más ancha que la pantalla. Si entras a
+  // una sección desde otro sitio (un botón del resumen, la barra lateral), la
+  // pestaña activa se quedaba fuera de vista y parecía que no había pasado
+  // nada. La traemos al centro en cada cambio.
+  //
+  // Va aquí arriba, antes de los `return` de carga: un hook detrás de un
+  // return condicional rompe el orden de hooks de React.
+  const mobileNavRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const box = mobileNavRef.current;
+    const el = box?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!box || !el) return;
+    // Salto directo, sin `behavior:'smooth'` ni `scroll-behavior` en el CSS:
+    // hay contextos (WebViews, navegadores con las animaciones desactivadas)
+    // donde el desplazamiento suave no hace absolutamente nada y la pestaña
+    // se queda fuera de vista. Comprobado: aquí `scrollTo` suave devolvía
+    // scrollLeft = 0. Mejor un salto que se ve siempre.
+    box.scrollLeft = Math.max(0, el.offsetLeft - (box.clientWidth - el.offsetWidth) / 2);
+  }, [section]);
+
   // Mientras rehidrata la sesión, spinner: aún no sabemos si hay usuario.
   if (authLoading) {
     return (
@@ -340,8 +360,15 @@ export default function MiEsquinaPage() {
             a Peso, Fuerza o Nutrición. Los separadores agrupan (hoy · lo que
             registras · herramientas) sin esconder nada. */}
         <div
+          ref={mobileNavRef}
           className="lg:hidden fixed left-0 right-0 z-30 bg-zinc-950/95 backdrop-blur border-t border-zinc-800 overflow-x-auto rk-noscroll-x"
-          style={{ bottom: 0, paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+          style={{
+            bottom: 0, paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+            // Difuminado en el borde derecho: aviso de que la tira sigue. No
+            // esconde nada (todo se alcanza deslizando), solo lo anuncia.
+            WebkitMaskImage: 'linear-gradient(to right, #000 0, #000 calc(100% - 26px), transparent 100%)',
+            maskImage: 'linear-gradient(to right, #000 0, #000 calc(100% - 26px), transparent 100%)',
+          }}
         >
           <div className="flex items-stretch px-2 py-1.5 gap-1 min-w-max">
             {SECTIONS.map((s, i) => {

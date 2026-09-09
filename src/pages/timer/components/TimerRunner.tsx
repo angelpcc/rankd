@@ -123,14 +123,32 @@ export default function TimerRunner({ config, muted, onToggleMute, onExit, onSav
       ) : (
         <div className="relative flex-1 flex flex-col items-center justify-center px-4 min-h-0">
           {/* Fase (re-entra con animación en cada cambio) */}
-          <div key={`lbl-${phaseKey}`} className="text-center mb-2 tm-phase-in">
-            <p className="font-bold uppercase" style={{ fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.28em', fontSize: 'clamp(15px,4vw,22px)', color: phase.color, textShadow: `0 0 24px ${phase.color}88` }}>
+          {/* La fase iba en rojo sobre negro y a 15 px: en el gimnasio, de
+              lejos y de reojo, no se leía. Ahora es una chapa con fondo
+              teñido y borde del color de la fase, más grande. */}
+          <div key={`lbl-${phaseKey}`} className="text-center mb-3 tm-phase-in">
+            <span className="inline-flex items-center gap-2 rounded-full font-bold uppercase"
+              style={{
+                fontFamily: "'Barlow Condensed', sans-serif",
+                letterSpacing: '0.26em', fontSize: 'clamp(17px,4.6vw,26px)',
+                padding: '6px 20px 5px',
+                color: '#fff',
+                background: `${phase.color}26`,
+                border: `1.5px solid ${phase.color}`,
+                boxShadow: `0 0 26px ${phase.color}55`,
+              }}>
               {isBurst ? t('tm_phase_burst') : state.segType === 'round' ? `${t('tm_phase_round')} ${state.round}` : t(phase.key)}
-            </p>
+            </span>
           </div>
 
-          {/* Reloj */}
-          <div className="relative flex items-center justify-center" style={{ width: 'min(78vw, 340px)', height: 'min(78vw, 340px)' }}>
+          {/* Reloj. En pausa se apaga: un temporizador parado NO puede verse
+              igual que uno en marcha. */}
+          <div className="relative flex items-center justify-center"
+            style={{
+              width: 'min(78vw, 340px)', height: 'min(78vw, 340px)',
+              opacity: running ? 1 : 0.45,
+              transition: 'opacity 0.25s ease',
+            }}>
             {/* Halo del reloj, del color de la fase; se intensifica en explosión. */}
             <div className="absolute rounded-full pointer-events-none" style={{ inset: '6%', background: `radial-gradient(circle, ${phase.color}22 0%, transparent 70%)`, filter: 'blur(8px)', opacity: isBurst ? 0.9 : 0.5, transition: 'opacity 0.4s, background 0.4s' }} />
             <svg className="absolute inset-0 -rotate-90 w-full h-full" viewBox="0 0 300 300" style={{ filter: `drop-shadow(0 0 10px ${phase.color}66)` }}>
@@ -144,11 +162,25 @@ export default function TimerRunner({ config, muted, onToggleMute, onExit, onSav
                 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(72px,20vw,120px)', lineHeight: 1, color: finalCountdown ? phase.color : '#fff', letterSpacing: 2, transition: 'color 0.3s', textShadow: finalCountdown ? `0 0 40px ${phase.color}` : 'none' }}>
                 {fmt(state.segRemaining)}
               </p>
-              <p className="text-zinc-500 text-sm" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+              {/* "Asalto 1 de 3" en zinc-500 era casi invisible sobre el
+                  fondo oscuro. Sube a zinc-300 y a mayúsculas espaciadas. */}
+              <p className="text-zinc-300 uppercase" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 'clamp(13px,3.4vw,16px)', letterSpacing: '0.12em' }}>
                 {state.segType === 'prep' ? t('tm_get_ready') : t('tm_round_of', { n: displayRound, total: config.rounds })}
               </p>
             </div>
           </div>
+
+          {/* PAUSADO, escrito. El icono del botón cambia, pero el botón está
+              abajo del todo y la vista se va al reloj: hacía falta decirlo
+              donde se está mirando. */}
+          {!running && (
+            <div className="mt-4 anim-scale-in">
+              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full font-bold uppercase tracking-[0.2em]"
+                style={{ background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.22)', color: '#fff', fontSize: 'clamp(12px,3.2vw,15px)' }}>
+                <i className="ri-pause-circle-line" />{t('tm_paused')}
+              </span>
+            </div>
+          )}
 
           {/* Señal de explosión */}
           {isBurst && (

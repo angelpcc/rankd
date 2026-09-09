@@ -110,17 +110,22 @@ export default function ViewAsBar() {
           </>
         )}
 
+        {/* Salir tiene que ser SIEMPRE alcanzable: es la única forma de volver
+            a tu cuenta. 40 px de alto y 44 de ancho mínimo, como el resto de
+            objetivos táctiles de la app; antes eran 32 y en el móvil costaba
+            acertar. */}
         <button
           onClick={exit}
+          aria-label={t('va_bar_exit')}
           style={{
-            flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6,
-            background: '#0a0a0a', color: '#fff', border: 'none', borderRadius: 8,
-            padding: '6px 12px', cursor: 'pointer',
-            fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12.5, fontWeight: 700,
+            flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            background: '#0a0a0a', color: '#fff', border: 'none', borderRadius: 10,
+            padding: '0 12px', minHeight: 40, minWidth: 44, cursor: 'pointer',
+            fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700,
             letterSpacing: 0.5, whiteSpace: 'nowrap',
           }}
         >
-          <i className="ri-logout-box-line" style={{ fontSize: 13 }} />
+          <i className="ri-logout-box-line" style={{ fontSize: 15 }} />
           <span className="va-hide-sm">{t('va_bar_exit')}</span>
           <span className="va-only-sm">{t('va_bar_exit_short')}</span>
         </button>
@@ -152,6 +157,9 @@ export default function ViewAsBar() {
         @media (max-width: 640px) {
           .va-hide-sm { display: none !important; }
           .va-only-sm { display: inline !important; }
+          /* Más alta en el móvil: con 38 px el botón de salir no llegaba al
+             mínimo táctil y el texto quedaba apretado contra los bordes. */
+          :root { --rk-viewas-h: 52px; }
         }
       `}</style>
     </>

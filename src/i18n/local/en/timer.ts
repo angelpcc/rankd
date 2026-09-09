@@ -179,6 +179,8 @@ export default {
 
   // ── Controls ──
   tm_pause: 'Pause',
+  tm_paused: 'Paused',
+  tm_session_left: 'Session left',
   tm_resume: 'Resume',
   tm_reset: 'Reset',
   tm_mute: 'Mute',
