@@ -4,6 +4,7 @@ import { supabase, Profile } from '@/lib/supabase';
 import { isMissingColumn } from '@/lib/dbState';
 import VoiceButton from '@/components/feature/VoiceButton';
 import CommonFoodPicker, { type PickedFood } from '@/pages/mi-esquina/components/CommonFoodPicker';
+import { reconcileDayTicks } from '@/pages/mi-esquina/lib/planTicks';
 
 interface Props {
   profile: Profile;
@@ -110,6 +111,10 @@ export default function MealLog({ profile, showToast }: Props) {
         .select('id, entry_date, meal_type, description, created_at').maybeSingle());
     }
     if (error || !data) return null;
+    // La comida registrada aparece también en la Agenda de ese día, igual que
+    // fuerza y actividad: la Agenda es el historial de lo que hiciste, no solo
+    // de lo que planeaste. Best-effort, no bloquea el guardado.
+    void reconcileDayTicks(profile.id, (data as Meal).entry_date);
     return data as Meal;
   };
 
@@ -152,9 +157,12 @@ export default function MealLog({ profile, showToast }: Props) {
   };
 
   const remove = async (id: string) => {
+    const day = meals.find((m) => m.id === id)?.entry_date;
     const { error } = await supabase.from('meal_entries').delete().eq('id', id);
     if (error) { showToast(t('error_save'), 'error'); return; }
     setMeals((prev) => prev.filter((m) => m.id !== id));
+    // Al borrar, el bloque automático de la Agenda de ese día se retira solo.
+    if (day) void reconcileDayTicks(profile.id, day);
     loadFrequent();
   };
 

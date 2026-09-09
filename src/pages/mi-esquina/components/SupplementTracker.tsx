@@ -19,6 +19,8 @@ interface Props {
 interface CommonSupplement {
   id: string; name: string; category: string;
   description: string | null; benefits: string[] | null; timing: string | null;
+  /** Explicación larga (migración 0049). Ausente = migración sin aplicar. */
+  detail?: string | null;
 }
 interface UserSupplement {
   id: string; supplement_id: string | null; custom_name: string | null;
@@ -76,6 +78,7 @@ export default function SupplementTracker({ profile, showToast }: Props) {
       ...c,
       benefits: Array.isArray((c as { benefits?: unknown }).benefits) ? (c as { benefits: string[] }).benefits : null,
       timing: (c as { timing?: string | null }).timing ?? null,
+      detail: (c as { detail?: string | null }).detail ?? null,
     })) as CommonSupplement[]);
     // Esta pantalla es "mi rutina AHORA", así que solo lista los vigentes hoy.
     // Los que se dejaron de tomar siguen en la base para que la Agenda pueda
@@ -326,6 +329,17 @@ export default function SupplementTracker({ profile, showToast }: Props) {
         {sheet?.kind === 'ficha' && (
           <div className="space-y-4">
             {sheet.sup.description && <p className="text-sm text-zinc-300 leading-relaxed">{sheet.sup.description}</p>}
+            {/* Explicación larga: qué hace de verdad, para quién tiene sentido y
+                qué NO hace. La línea de arriba sola no da para decidir nada.
+                Sin ella (migración 0049 sin aplicar) el resto se ve igual. */}
+            {sheet.sup.detail && (
+              <div className="rounded-xl px-3.5 py-3" style={{ background: 'var(--s-2)', border: '1px solid var(--s-3)' }}>
+                <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5" style={{ color: 'var(--t-3)' }}>
+                  {t('mc_sup_detail')}
+                </p>
+                <p className="text-xs text-zinc-300 leading-relaxed">{sheet.sup.detail}</p>
+              </div>
+            )}
             {sheet.sup.benefits && sheet.sup.benefits.length > 0 && (
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-green-400 mb-1.5">{t('mc_sup_benefits')}</p>

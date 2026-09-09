@@ -117,6 +117,10 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
   const [showForm, setShowForm] = useState(false);
   const [formKey, setFormKey] = useState(0);
   const [formInitialGroup, setFormInitialGroup] = useState<MuscleGroup | undefined>(undefined);
+  // Grupos del entreno PLANIFICADO para hoy, si lo hay. Alimentan el botón
+  // "Registrar pecho y espalda" y abren el formulario ya con esos bloques.
+  const [formInitialGroups, setFormInitialGroups] = useState<MuscleGroup[] | undefined>(undefined);
+  const [plannedToday, setPlannedToday] = useState<MuscleGroup[]>([]);
   // Edición de una sesión ya guardada: editCtx = qué día+franja se está
   // editando (para borrar sus filas al guardar); editData = lo que pinta el form.
   const [editCtx, setEditCtx] = useState<{ date: string; slot: SessionSlot | null } | null>(null);
@@ -136,6 +140,24 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
     setEditCtx(null);
     setEditData(undefined);
     setFormInitialGroup(group);
+    setFormInitialGroups(undefined);
+    setFormKey((k) => k + 1);
+    setShowForm(true);
+  };
+
+  /**
+   * Abre el formulario con los grupos que YA planificaste para hoy.
+   *
+   * Si el lunes dejaste puesto "pecho y espalda", al entrar en Fuerza el botón
+   * dice "Registrar pecho y espalda" y entra directo con esos dos bloques
+   * puestos: no tiene sentido volver a elegirlos. Al guardar, el tick del plan
+   * se marca solo (reconcileDayTicks ya lo hace).
+   */
+  const openFormForPlan = (groups: MuscleGroup[]) => {
+    setEditCtx(null);
+    setEditData(undefined);
+    setFormInitialGroup(undefined);
+    setFormInitialGroups(groups);
     setFormKey((k) => k + 1);
     setShowForm(true);
   };
@@ -154,6 +176,29 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
   }, [profile.id]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Entreno de fuerza PLANIFICADO para hoy y todavía sin hacer. Es lo que
+  // convierte el botón genérico "Registrar" en "Registrar pecho y espalda".
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const { data, error } = await supabase.from('day_plan_items')
+        .select('payload, completed')
+        .eq('fighter_profile_id', profile.id)
+        .eq('plan_date', todayISO())
+        .eq('kind', 'strength');
+      if (!alive || isMissingTable(error) || !data) return;
+      const groups = (data as { payload: { groups?: string[] }; completed: boolean }[])
+        .filter((r) => !r.completed)
+        .flatMap((r) => r.payload?.groups || [])
+        .filter((g): g is MuscleGroup => MUSCLE_GROUPS.includes(g as MuscleGroup));
+      setPlannedToday([...new Set(groups)]);
+    })();
+    return () => { alive = false; };
+  }, [profile.id, rows]);
+
+  /** "Pecho + Espalda" a partir de los grupos del plan. */
+  const plannedLabel = plannedToday.map((g) => t(`mc_str_mg_${g}`)).join(' + ');
 
   const groupOfRow = useCallback(
     (r: StrengthSet): GroupKey =>
@@ -580,7 +625,13 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
       <SectionHero kind="strength" eyebrow={t('mc_str_eyebrow')}
         title={`${t('mc_str_title')} ${t('mc_str_title_2')}`}
         subtitle={rows.length ? t('mc_str_hero_sub', { n: sessions.length }) : undefined}
-        action={hideRegisterCta ? undefined : { label: t('mc_str_new'), icon: 'ri-add-line', onClick: () => openForm() }} />
+        action={hideRegisterCta ? undefined : (
+          // Con plan para hoy, el botón dice QUÉ vas a registrar y entra
+          // directo con esos grupos. Sin plan, el botón genérico de siempre.
+          plannedToday.length > 0
+            ? { label: t('mc_str_register_planned', { groups: plannedLabel }), icon: 'ri-play-fill', onClick: () => openFormForPlan(plannedToday) }
+            : { label: t('mc_str_new'), icon: 'ri-add-line', onClick: () => openForm() }
+        )} />
 
       {rows.length === 0 ? (
         <div className="rk-card text-center" style={{ padding: '48px 28px' }}>
@@ -890,6 +941,7 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
         showToast={showToast}
         slotsByDate={slotsByDate}
         initialGroup={formInitialGroup}
+        initialGroups={formInitialGroups}
         initialSession={editData}
         duplicateFrom={duplicateData}
       />

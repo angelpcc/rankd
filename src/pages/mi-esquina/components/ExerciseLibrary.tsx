@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   MUSCLE_GROUPS, exLabel, filterExercises, availableEquipment, availablePatterns,
+  focusesForGroup,
   type MuscleGroup, type Equipment, type MovementPattern, type LibExercise,
 } from '../lib/exercises';
 import { hasTechnique } from '../lib/exerciseTechnique';
@@ -26,19 +27,29 @@ export default function ExerciseLibrary() {
   const [equipment, setEquipment] = useState<Equipment | 'all'>('all');
   const [pattern, setPattern] = useState<MovementPattern | 'all'>('all');
   const [unilateralOnly, setUnilateralOnly] = useState(false);
+  // Zona dentro del grupo (tirón vertical, femoral, dorsal aislado...). Es el
+  // filtro que hace usable la lista: con 165 ejercicios, "espalda" a secas
+  // devuelve 30 y encontrar el que buscas cuesta más que no filtrar.
+  const [focus, setFocus] = useState<string>('all');
   const [open, setOpen] = useState<string | null>(null);
 
   const equipments = useMemo(() => availableEquipment(), []);
   const patterns = useMemo(() => availablePatterns(), []);
-  const hasFilters = group !== 'all' || equipment !== 'all' || pattern !== 'all' || unilateralOnly || q.trim() !== '';
+  // Solo las zonas que existen en el grupo elegido: filtrar "pierna" no debe
+  // ofrecer "tirón vertical".
+  const focuses = useMemo(() => focusesForGroup(group), [group]);
+  // Al cambiar de grupo, la zona anterior deja de tener sentido.
+  useEffect(() => { setFocus('all'); }, [group]);
+
+  const hasFilters = group !== 'all' || equipment !== 'all' || pattern !== 'all' || focus !== 'all' || unilateralOnly || q.trim() !== '';
 
   const list = useMemo(
-    () => filterExercises({ group, equipment, pattern, unilateralOnly, query: q })
+    () => filterExercises({ group, equipment, pattern, focus, unilateralOnly, query: q })
       .sort((a, b) => exLabel(a, lang).localeCompare(exLabel(b, lang), lang)),
-    [q, group, equipment, pattern, unilateralOnly, lang],
+    [q, group, equipment, pattern, focus, unilateralOnly, lang],
   );
 
-  const clearAll = () => { setGroup('all'); setEquipment('all'); setPattern('all'); setUnilateralOnly(false); setQ(''); };
+  const clearAll = () => { setGroup('all'); setEquipment('all'); setPattern('all'); setFocus('all'); setUnilateralOnly(false); setQ(''); };
 
   const chip = (active: boolean, label: string, onClick: () => void, key: string) => (
     <button key={key} onClick={onClick} aria-pressed={active}
@@ -117,6 +128,19 @@ export default function ExerciseLibrary() {
         {chip(group === 'all', t('mc_exlib_all'), () => setGroup('all'), 'g-all')}
         {MUSCLE_GROUPS.map((g) => chip(group === g, t(`mc_str_mg_${g}`), () => setGroup(g), `g-${g}`))}
       </div>
+
+      {/* Zona dentro del grupo. Va JUSTO debajo del grupo porque es el filtro
+          que de verdad reduce la lista: eliges "espalda" y luego "tirón
+          vertical" o "remo", en vez de leerte los treinta. */}
+      {focuses.length > 1 && (
+        <div>
+          <p className="rk-label mb-1.5">{t('mc_exlib_f_focus')}</p>
+          <div className="flex gap-1.5 overflow-x-auto pb-1 rk-noscroll-x" role="group" aria-label={t('mc_exlib_f_focus')}>
+            {chip(focus === 'all', t('mc_exlib_all'), () => setFocus('all'), 'f-all')}
+            {focuses.map((x) => chip(focus === x, t(`mc_focus_${x}`), () => setFocus(x), `f-${x}`))}
+          </div>
+        </div>
+      )}
 
       {/* Material */}
       <div>

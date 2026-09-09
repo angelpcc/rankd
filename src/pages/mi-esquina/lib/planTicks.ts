@@ -22,12 +22,12 @@
 
 import { supabase } from '@/lib/supabase';
 import { isMissingTable } from '@/lib/dbState';
-import type { StrengthPayload, ActivityPayload } from './dayPlan';
+import type { StrengthPayload, ActivityPayload, MealPayload, MealSlot } from './dayPlan';
 
 interface PlanRow {
   id: string;
   kind: string;
-  payload: StrengthPayload | ActivityPayload;
+  payload: StrengthPayload | ActivityPayload | MealPayload;
   completed: boolean;
   /** manual | advisor | template | logged. Solo se limpian los 'logged'. */
   source?: string;
@@ -50,21 +50,25 @@ export async function reconcileDayTicks(fighterProfileId: string, date: string):
       .select('id, kind, payload, completed, source')
       .eq('fighter_profile_id', fighterProfileId)
       .eq('plan_date', date)
-      .in('kind', ['strength', 'activity']);
+      .in('kind', ['strength', 'activity', 'meal']);
     if (isMissingTable(error)) return 0;
     const plan = (items || []) as PlanRow[];
 
-    const [setsRes, actsRes] = await Promise.all([
+    const [setsRes, actsRes, mealsRes] = await Promise.all([
       supabase.from('strength_sets')
         .select('muscle_group, exercise_label')
         .eq('fighter_profile_id', fighterProfileId).eq('session_date', date),
       supabase.from('activity_sessions')
         .select('kind, duration_min')
         .eq('fighter_profile_id', fighterProfileId).eq('session_date', date),
+      supabase.from('meal_entries')
+        .select('meal_type, description')
+        .eq('fighter_profile_id', fighterProfileId).eq('entry_date', date),
     ]);
 
     const setRows = (setsRes.data || []) as { muscle_group: string | null; exercise_label: string }[];
     const actRows = (actsRes.data || []) as { kind: string; duration_min: number | null }[];
+    const mealRows = (mealsRes.data || []) as { meal_type: string | null; description: string }[];
 
     const loggedGroups = [...new Set(setRows.map((s) => s.muscle_group).filter((g): g is string => !!g))];
     const loggedExercises = [...new Set(setRows.map((s) => s.exercise_label.trim()).filter(Boolean))];
@@ -137,6 +141,33 @@ export async function reconcileDayTicks(fighterProfileId: string, date: string):
       });
     });
 
+    // Comidas: un bloque por FRANJA (desayuno, comida, cena, snack) con lo que
+    // se comió. Si ya había una comida planificada en esa franja no se toca:
+    // el plan manda y añadir otra sería duplicar la misma franja.
+    const planMealSlots = new Set(
+      plan.filter((i) => i.kind === 'meal').map((i) => (i.payload as MealPayload)?.slot).filter(Boolean),
+    );
+    const mealBySlot = new Map<string, string[]>();
+    mealRows.forEach((m) => {
+      const slot = (m.meal_type || 'snack').trim();
+      const txt = (m.description || '').trim();
+      if (!txt) return;
+      mealBySlot.set(slot, [...(mealBySlot.get(slot) || []), txt]);
+    });
+    mealBySlot.forEach((descs, slot) => {
+      if (planMealSlots.has(slot as MealSlot)) return;
+      inserts.push({
+        fighter_profile_id: fighterProfileId,
+        plan_date: date,
+        kind: 'meal',
+        payload: { slot: slot as MealSlot, text: descs.join(', ') } as MealPayload,
+        // Las comidas no llevan tick en el modelo, pero se marcan igual: es la
+        // señal de que vienen de un registro y no de una previsión.
+        completed: true,
+        source: 'logged',
+      });
+    });
+
     if (inserts.length > 0) {
       const ins = await supabase.from('day_plan_items').insert(inserts);
       // `source: 'logged'` es valor nuevo. Si la base tuviera un CHECK que no
@@ -159,6 +190,10 @@ export async function reconcileDayTicks(fighterProfileId: string, date: string):
         if (i.kind === 'strength') {
           const groups = (i.payload as StrengthPayload)?.groups || [];
           return !groups.some((g) => loggedGroups.includes(g));
+        }
+        if (i.kind === 'meal') {
+          const slot = (i.payload as MealPayload)?.slot;
+          return !slot || !mealBySlot.has(slot);
         }
         const k = (i.payload as ActivityPayload)?.kind;
         return !k || !actRows.some((a) => a.kind === k);

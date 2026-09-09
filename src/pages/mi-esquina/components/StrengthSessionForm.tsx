@@ -7,7 +7,7 @@ import VoiceButton from '@/components/feature/VoiceButton';
 import { parseStrengthSessionFromSpeech } from '@/lib/dictation';
 import {
   MUSCLE_GROUPS, exercisesByGroup, exerciseDictationTerms, muscleGroupOf,
-  weightModeOf, trackingModeOf, usesBar, equipmentOf,
+  weightModeOf, trackingModeOf, usesBar, equipmentOf, filterExercises, exLabel, focusesForGroup,
   type MuscleGroup, type WeightMode, type TrackingMode,
 } from '../lib/exercises';
 import { hasTechnique } from '../lib/exerciseTechnique';
@@ -107,6 +107,8 @@ interface FExercise {
   techOpen?: boolean; note?: string; noteOpen?: boolean;
   /** Máquina/polea concreta. Solo se pide en ejercicios de polea o máquina. */
   machine?: string;
+  /** Zona elegida en el buscador de ejercicios ('all' = sin acotar). */
+  zone?: string;
   machineOpen?: boolean;
 }
 interface FBlock { group: MuscleGroup; exercises: FExercise[] }
@@ -147,6 +149,13 @@ interface Props {
    * de grupos. undefined = flujo normal (paso 1, elegir grupo(s) a mano).
    */
   initialGroup?: MuscleGroup;
+  /**
+   * Grupos con los que abrir, en bloque. Es lo que usa "Registrar pecho y
+   * espalda" cuando ese día hay un entreno planificado: se salta el paso de
+   * elegir grupos porque YA los elegiste al planificar. Tiene prioridad sobre
+   * `initialGroup`, que solo admite uno (viene del muñeco muscular).
+   */
+  initialGroups?: MuscleGroup[];
   /**
    * Sesión existente a editar (día+franja). Abre en el paso 2 con todo
    * pre-relleno; al guardar, el padre reemplaza las filas en vez de crear una
@@ -195,7 +204,7 @@ function blocksFromDraft(d: StrengthDraft): FBlock[] {
 
 interface ExPerf { perf: LastPerformance; suggestion: Suggestion; tracking: TrackingMode }
 
-export default function StrengthSessionForm({ open, onClose, saving, onSave, ownExercises, fighterProfileId, showToast, slotsByDate, initialGroup, initialSession, duplicateFrom }: Props) {
+export default function StrengthSessionForm({ open, onClose, saving, onSave, ownExercises, fighterProfileId, showToast, slotsByDate, initialGroup, initialGroups, initialSession, duplicateFrom }: Props) {
   const { t, i18n } = useTranslation();
   const lang: 'es' | 'en' = i18n.language === 'en' ? 'en' : 'es';
   // Términos de reconocimiento, no solo los nombres: incluyen la forma sin el
@@ -203,11 +212,17 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
   const library = useMemo(() => exerciseDictationTerms(lang), [lang]);
   const prefill = initialSession ?? duplicateFrom;
 
-  const [step, setStep] = useState<1 | 2>(prefill || initialGroup ? 2 : 1);
+  // Grupos con los que arrancar: los del plan del día si vienen, si no el del
+  // muñeco muscular. Con cualquiera de los dos se salta el paso 1.
+  const startGroups: MuscleGroup[] = (initialGroups && initialGroups.length > 0)
+    ? initialGroups
+    : (initialGroup ? [initialGroup] : []);
+
+  const [step, setStep] = useState<1 | 2>(prefill || startGroups.length > 0 ? 2 : 1);
   const [date, setDate] = useState(initialSession?.date ?? todayISO());
   const [blocks, setBlocks] = useState<FBlock[]>(
     prefill ? blocksFromEdit(prefill)
-      : initialGroup ? [{ group: initialGroup, exercises: [] }] : [],
+      : startGroups.map((g) => ({ group: g, exercises: [] as FExercise[] })),
   );
   const [freeText, setFreeText] = useState('');
   const [interpreted, setInterpreted] = useState(false);
@@ -562,9 +577,21 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
 
   const totalExercises = blocks.reduce((a, b) => a + b.exercises.filter((e) => e.label.trim()).length, 0);
 
-  const suggestFor = (group: MuscleGroup, query: string): string[] => {
+  /**
+   * Ejercicios sugeridos para un grupo, opcionalmente acotados por ZONA.
+   *
+   * Con 30 ejercicios de espalda, la lista sin filtrar no ayuda: hay que
+   * leérsela entera. La zona (tirón vertical, remo, dorsal aislado...) la parte
+   * en trozos de 4-8, que es lo que se puede mirar de un vistazo. Lo que el
+   * usuario ya ha registrado va SIEMPRE primero, y no se filtra por zona: es
+   * suyo y puede no estar en la biblioteca.
+   */
+  const suggestFor = (group: MuscleGroup, query: string, zone: string): string[] => {
     const own = ownExercises.filter((e) => e.group === group).map((e) => e.label);
-    const pool = [...new Set([...own, ...exercisesByGroup(group, lang)])];
+    const lib = zone === 'all'
+      ? exercisesByGroup(group, lang)
+      : filterExercises({ group, focus: zone }).map((e) => exLabel(e, lang));
+    const pool = [...new Set([...own, ...lib])];
     const q = norm(query);
     return (q ? pool.filter((x) => norm(x).includes(q) && norm(x) !== q) : pool).slice(0, 30);
   };
@@ -764,17 +791,38 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
                     </div>
                     {e.techOpen && <ExerciseTechniqueCard name={e.label} />}
                     {e.open && (() => {
-                      const sug = suggestFor(b.group, e.query || e.label);
-                      if (sug.length === 0) return null;
+                      const zone = e.zone || 'all';
+                      const sug = suggestFor(b.group, e.query || e.label, zone);
+                      const zones = focusesForGroup(b.group);
                       return (
-                        <div className="mt-1.5 rounded-xl border border-white/10 bg-white/[0.02] p-1.5 max-h-40 overflow-y-auto">
-                          {sug.map((c) => (
-                            <button key={c} onMouseDown={(ev) => ev.preventDefault()}
-                              onClick={() => { patchExercise(b.group, e.id, { label: c, open: false }); applyHistory(b.group, e.id, c, e.machine); }}
-                              className="w-full text-left text-sm text-zinc-300 hover:text-white hover:bg-white/[0.05] px-3 py-2 rounded-lg cursor-pointer flex items-center gap-2">
-                              <i className="ri-search-line text-xs text-zinc-600"></i>{c}
-                            </button>
-                          ))}
+                        <div className="mt-1.5 rounded-xl border border-white/10 bg-white/[0.02] p-1.5">
+                          {/* Acotar por zona antes de leer la lista. Con 30
+                              ejercicios de espalda, "tirón vertical" o "remo"
+                              la dejan en 5 y se elige de un vistazo. */}
+                          {zones.length > 1 && (
+                            <div className="flex gap-1 overflow-x-auto pb-1.5 mb-1 rk-noscroll-x">
+                              {['all', ...zones].map((z) => (
+                                <button key={z} type="button" onMouseDown={(ev) => ev.preventDefault()}
+                                  onClick={() => patchExercise(b.group, e.id, { zone: z })}
+                                  aria-pressed={zone === z} style={{ minHeight: 30 }}
+                                  className={`text-[11px] font-bold whitespace-nowrap px-2.5 rounded-lg cursor-pointer transition-colors ${
+                                    zone === z ? 'bg-white/[0.14] text-white' : 'bg-white/[0.04] text-zinc-400 hover:text-white'}`}>
+                                  {z === 'all' ? t('mc_exlib_all') : t(`mc_focus_${z}`)}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          <div className="max-h-40 overflow-y-auto">
+                            {sug.length === 0
+                              ? <p className="text-xs px-3 py-2" style={{ color: 'var(--t-3)' }}>{t('mc_exlib_no_results')}</p>
+                              : sug.map((c) => (
+                                <button key={c} onMouseDown={(ev) => ev.preventDefault()}
+                                  onClick={() => { patchExercise(b.group, e.id, { label: c, open: false }); applyHistory(b.group, e.id, c, e.machine); }}
+                                  className="w-full text-left text-sm text-zinc-300 hover:text-white hover:bg-white/[0.05] px-3 py-2 rounded-lg cursor-pointer flex items-center gap-2">
+                                  <i className="ri-search-line text-xs text-zinc-600"></i>{c}
+                                </button>
+                              ))}
+                          </div>
                         </div>
                       );
                     })()}

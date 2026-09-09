@@ -61,6 +61,39 @@ export interface DayLog {
 
 const EMPTY_LOG: DayLog = { acts: [], strGroups: new Set(), strSessions: [], weight: null, meals: [] };
 
+/** ¿Se registró algo ese día? (los suplementos van aparte, no son por día). */
+function hasAnyLog(l: DayLog): boolean {
+  return l.strSessions.length > 0 || l.acts.length > 0 || l.weight != null || l.meals.length > 0;
+}
+
+/**
+ * Resumen corto de lo REGISTRADO un día, para las vistas de semana y mes.
+ *
+ * Devuelve etiquetas cortas con su color, en el mismo orden que los bloques del
+ * plan, para que una celda de semana diga "Pecho + Espalda · Correr" en vez de
+ * "Día libre" cuando en realidad ese día se entrenó.
+ */
+function logSummary(l: DayLog, t: (k: string, o?: Record<string, unknown>) => string): { hex: string; text: string }[] {
+  const out: { hex: string; text: string }[] = [];
+  l.strSessions.forEach((s) => {
+    const label = s.groups.length > 0
+      ? s.groups.map((g) => t(`mc_str_mg_${g}`, { defaultValue: g })).join(' + ')
+      : t('mc_dp_kind_strength');
+    out.push({ hex: KIND_META.strength.hex, text: label });
+  });
+  l.acts.forEach((a) => {
+    const cfg = activityKindCfg(a.kind);
+    out.push({ hex: cfg.hex, text: `${t(cfg.labelKey)} · ${a.duration_min}′` });
+  });
+  if (l.meals.length > 0) {
+    out.push({ hex: KIND_META.meal.hex, text: t('mc_ag_day_meals', { count: l.meals.length }) });
+  }
+  if (l.weight != null) {
+    out.push({ hex: '#C9A84C', text: `${l.weight} kg` });
+  }
+  return out;
+}
+
 function iso(d: Date): string { return isoOf(d); }
 const todayISO = () => iso(new Date());
 function mondayOf(d: Date): Date {
@@ -434,6 +467,7 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
               const evs = compByDate.get(dISO) || [];
               const isToday = dISO === todayISO();
               const preview = list.slice(0, 2);
+              const dayLog = logSummary(loggedByDate.get(dISO) || EMPTY_LOG, t);
               const doneCount = list.filter((x) => TICK_KINDS.includes(x.kind) && x.completed).length;
               const hasFight = evs.some((e) => e.kind === 'fight');
               const hasWeigh = evs.some((e) => e.kind === 'weigh_in');
@@ -464,7 +498,26 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
                       </div>
                     ))}
                     {list.length > 2 && <span className="text-[10px] text-zinc-600">{t('mc_ag_more_count', { n: list.length - 2 })}</span>}
-                    {list.length === 0 && evs.length === 0 && <span className="text-[11px] text-zinc-700">{t('mc_wp_free_day')}</span>}
+
+                    {/* Lo que se REGISTRÓ ese día. Va con el tic verde delante
+                        para distinguirlo de lo previsto. Solo se pinta si no
+                        estaba ya planificado (si lo estaba, la línea de arriba
+                        aparece tachada y sería repetirlo). */}
+                    {list.length === 0 && dayLog.slice(0, 2).map((s, si) => (
+                      <div key={`l${si}`} className="flex items-center gap-1.5 min-w-0">
+                        <i className="ri-check-line text-[10px] flex-shrink-0 text-green-500" />
+                        <span className="text-[11px] truncate text-zinc-300">{s.text}</span>
+                      </div>
+                    ))}
+                    {list.length === 0 && dayLog.length > 2 && (
+                      <span className="text-[10px] text-zinc-600">{t('mc_ag_more_count', { n: dayLog.length - 2 })}</span>
+                    )}
+
+                    {/* "Día libre" SOLO si de verdad no hay nada: ni previsto,
+                        ni competición, ni nada registrado. */}
+                    {list.length === 0 && evs.length === 0 && dayLog.length === 0 && (
+                      <span className="text-[11px] text-zinc-700">{t('mc_wp_free_day')}</span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2 mt-1.5 flex-wrap">
@@ -527,6 +580,9 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
             const allDone = tickables.length > 0 && tickables.every((x) => x.completed);
             const hasFight = evs.some((e) => e.kind === 'fight');
             const hasWeigh = evs.some((e) => e.kind === 'weigh_in');
+            // Registrado ese día aunque no estuviera planificado: el mes tiene
+            // que enseñar en qué días entrenaste de verdad, no solo lo previsto.
+            const didLog = hasAnyLog(loggedByDate.get(date) || EMPTY_LOG);
             return (
               <button key={date} onClick={() => openDay(date)}
                 className={`relative aspect-square rounded-lg flex flex-col items-center justify-start p-1 transition-all cursor-pointer border ${
@@ -536,7 +592,9 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
                 <div className="flex flex-wrap items-center justify-center gap-0.5 mt-auto mb-0.5">
                   {mode === 'pro' && hasFight && <i className="ri-sword-line text-[10px]" style={{ color: '#ff2d2d' }}></i>}
                   {mode === 'pro' && hasWeigh && <i className="ri-scales-2-line text-[10px]" style={{ color: '#C9A84C' }}></i>}
-                  {allDone
+                  {/* Verde = ese día entrenaste (planificado o no).
+                      Rojo = hay algo previsto que aún no has hecho. */}
+                  {allDone || didLog
                     ? <i className="ri-check-line text-[11px] text-green-500"></i>
                     : list.length > 0 && <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#E10600' }} />}
                 </div>
@@ -644,60 +702,6 @@ function DayView({ supps, suppNames, date, locale, items, comp, logged, mode, on
         </div>
       )}
 
-      {empty ? (
-        <div className="rk-card text-center" style={{ padding: '44px 24px' }}>
-          <div className="w-14 h-14 mx-auto mb-4 flex items-center justify-center rounded-2xl bg-white/[0.04] border border-white/10">
-            <i className="ri-calendar-line text-2xl text-zinc-600"></i>
-          </div>
-          <p className="text-white font-bold">{t('mc_ag_day_empty_title')}</p>
-          <p className="text-sm text-zinc-400 mt-1.5 max-w-xs mx-auto leading-relaxed">{t('mc_ag_day_empty_desc')}</p>
-          <button onClick={onPlanThisDay} className="rk-btn rk-btn-primary mt-5" style={{ fontSize: '0.85rem', padding: '0.7rem 1.5rem' }}>
-            <i className="ri-add-line mr-1"></i> {t('mc_ag_day_plan_this')}
-          </button>
-          {onPlanWeek && (
-            <button onClick={onPlanWeek} className="block mx-auto mt-3 text-xs text-zinc-500 hover:text-white transition-colors cursor-pointer">
-              {t('mc_pl_btn')} →
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {KIND_ORDER.map((k) => {
-            const list = byKind(k);
-            if (list.length === 0) return null;
-            const meta = KIND_META[k];
-            return (
-              <div key={k} className="rk-card" style={{ padding: '16px 18px' }}>
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-[11px] font-bold tracking-[0.18em] uppercase flex items-center gap-2" style={{ color: meta.hex }}>
-                    <i className={meta.icon}></i>{t(meta.labelKey)}
-                  </p>
-                  <button onClick={() => onAdd(k)} aria-label={t('mc_ag_add_item')}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer">
-                    <i className="ri-add-line"></i>
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {list.map((it) => (
-                    <DayItemRow key={it.id} item={it} onRemove={() => onRemove(it.id)} onMove={onMove ? () => onMove(it) : undefined} />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Añadir un bloque que aún no existe */}
-          <div className="flex flex-wrap gap-2">
-            {KIND_ORDER.filter((k) => byKind(k).length === 0).map((k) => (
-              <button key={k} onClick={() => onAdd(k)}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-400 border border-dashed border-white/15 rounded-lg px-3 py-2 hover:border-white/30 hover:text-white transition-colors cursor-pointer">
-                <i className="ri-add-line" style={{ color: KIND_META[k].hex }}></i>{t(KIND_META[k].labelKey)}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* ── LO QUE HICISTE ESE DÍA ──
           Va SIEMPRE, tenga o no plan. Antes vivía dentro de la rama "hay algo
           planificado", así que un día sin plan no mostraba nada: ni el entreno
@@ -788,6 +792,63 @@ function DayView({ supps, suppNames, date, locale, items, comp, logged, mode, on
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* El cartel de "día sin planificar" SOLO cuando el día está de verdad
+          vacío. Si entrenaste y lo registraste, el día tiene contenido: decir
+          que está sin planificar sería mentir y tapaba lo que sí hiciste. */}
+      {empty && !hasLog ? (
+        <div className="rk-card text-center" style={{ padding: '44px 24px' }}>
+          <div className="w-14 h-14 mx-auto mb-4 flex items-center justify-center rounded-2xl bg-white/[0.04] border border-white/10">
+            <i className="ri-calendar-line text-2xl text-zinc-600"></i>
+          </div>
+          <p className="text-white font-bold">{t('mc_ag_day_empty_title')}</p>
+          <p className="text-sm text-zinc-400 mt-1.5 max-w-xs mx-auto leading-relaxed">{t('mc_ag_day_empty_desc')}</p>
+          <button onClick={onPlanThisDay} className="rk-btn rk-btn-primary mt-5" style={{ fontSize: '0.85rem', padding: '0.7rem 1.5rem' }}>
+            <i className="ri-add-line mr-1"></i> {t('mc_ag_day_plan_this')}
+          </button>
+          {onPlanWeek && (
+            <button onClick={onPlanWeek} className="block mx-auto mt-3 text-xs text-zinc-500 hover:text-white transition-colors cursor-pointer">
+              {t('mc_pl_btn')} →
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {KIND_ORDER.map((k) => {
+            const list = byKind(k);
+            if (list.length === 0) return null;
+            const meta = KIND_META[k];
+            return (
+              <div key={k} className="rk-card" style={{ padding: '16px 18px' }}>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[11px] font-bold tracking-[0.18em] uppercase flex items-center gap-2" style={{ color: meta.hex }}>
+                    <i className={meta.icon}></i>{t(meta.labelKey)}
+                  </p>
+                  <button onClick={() => onAdd(k)} aria-label={t('mc_ag_add_item')}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-500 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer">
+                    <i className="ri-add-line"></i>
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {list.map((it) => (
+                    <DayItemRow key={it.id} item={it} onRemove={() => onRemove(it.id)} onMove={onMove ? () => onMove(it) : undefined} />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Añadir un bloque que aún no existe */}
+          <div className="flex flex-wrap gap-2">
+            {KIND_ORDER.filter((k) => byKind(k).length === 0).map((k) => (
+              <button key={k} onClick={() => onAdd(k)}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-400 border border-dashed border-white/15 rounded-lg px-3 py-2 hover:border-white/30 hover:text-white transition-colors cursor-pointer">
+                <i className="ri-add-line" style={{ color: KIND_META[k].hex }}></i>{t(KIND_META[k].labelKey)}
+              </button>
+            ))}
           </div>
         </div>
       )}

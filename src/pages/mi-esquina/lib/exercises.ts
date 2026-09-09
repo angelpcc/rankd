@@ -415,6 +415,8 @@ export interface ExerciseFilter {
   group?: MuscleGroup | 'all';
   equipment?: Equipment | 'all';
   pattern?: MovementPattern | 'all';
+  /** Zona dentro del grupo: tirón vertical, femoral, dorsal aislado… */
+  focus?: string | 'all';
   /** true = solo unilaterales. undefined/false = no filtra. */
   unilateralOnly?: boolean;
   difficulty?: Difficulty | 'all';
@@ -433,6 +435,7 @@ export function filterExercises(f: ExerciseFilter): LibExercise[] {
     if (f.group && f.group !== 'all' && e.group !== f.group) return false;
     if (f.equipment && f.equipment !== 'all' && e.equipment !== f.equipment) return false;
     if (f.pattern && f.pattern !== 'all' && e.pattern !== f.pattern) return false;
+    if (f.focus && f.focus !== 'all' && FOCUS[e.en.toLowerCase()] !== f.focus) return false;
     if (f.difficulty && f.difficulty !== 'all' && e.difficulty !== f.difficulty) return false;
     if (f.unilateralOnly && !e.unilateral) return false;
     if (needle && !normNoAccent(e.es).includes(needle) && !normNoAccent(e.en).includes(needle)) return false;
@@ -450,4 +453,210 @@ export function availableEquipment(): Equipment[] {
 export function availablePatterns(): MovementPattern[] {
   const set = new Set(EXERCISE_LIBRARY.map((e) => e.pattern).filter(Boolean) as MovementPattern[]);
   return MOVEMENT_PATTERNS.filter((x) => set.has(x));
+}
+
+// ── ZONA / ENFOQUE dentro del grupo muscular ──
+//
+// Con 165 ejercicios, filtrar solo por "espalda" devuelve 30 y encontrar el que
+// buscas cuesta más que antes. Este eje parte cada grupo por DÓNDE trabaja o en
+// qué dirección tira, que es como se piensa en el gimnasio: "hoy toca tirón
+// vertical", "quiero algo de dorsal aislado", "me falta femoral".
+//
+// No es una opinión sobre qué es mejor: es la dirección del movimiento y la
+// región que carga. Un ejercicio sin clasificar simplemente no se filtra.
+export type ExerciseFocus =
+  // Espalda
+  | 'vertical_pull' | 'horizontal_pull' | 'lat_isolation' | 'upper_back'
+  // Pecho
+  | 'chest_upper' | 'chest_mid' | 'chest_lower' | 'chest_isolation'
+  // Hombro
+  | 'delt_front' | 'delt_side' | 'delt_rear' | 'rotator' | 'traps'
+  // Brazo
+  | 'curl_standard' | 'curl_stretch' | 'curl_peak' | 'curl_forearm'
+  | 'tri_pushdown' | 'tri_overhead' | 'tri_compound'
+  // Pierna
+  | 'quad' | 'hamstring' | 'glute' | 'calf' | 'adductor' | 'abductor'
+  // Core
+  | 'anti_extension' | 'anti_rotation' | 'rotation' | 'flexion' | 'carry'
+  // Compartido
+  | 'hinge';
+
+/** Clave inglesa del ejercicio → zona. Lo que no aparece, no se clasifica. */
+const FOCUS: Record<string, ExerciseFocus> = {
+  // ESPALDA
+  'pull-ups': 'vertical_pull',
+  'weighted pull-ups': 'vertical_pull',
+  'assisted pull-up (machine)': 'vertical_pull',
+  'lat pulldown (cable)': 'vertical_pull',
+  'lat pulldown (plate-loaded machine)': 'vertical_pull',
+  'v-bar pulldown (cable)': 'vertical_pull',
+  'close-grip pulldown (cable)': 'vertical_pull',
+  'neutral-grip pulldown (cable)': 'vertical_pull',
+  'single-arm pulldown (cable)': 'vertical_pull',
+  'barbell row': 'horizontal_pull',
+  'dumbbell row': 'horizontal_pull',
+  'two-dumbbell row': 'horizontal_pull',
+  't-bar row': 'horizontal_pull',
+  'seated cable row': 'horizontal_pull',
+  'wide-grip cable row': 'horizontal_pull',
+  'machine row': 'horizontal_pull',
+  'chest-supported row (machine)': 'horizontal_pull',
+  'chest-supported dumbbell row': 'horizontal_pull',
+  'smith machine row': 'horizontal_pull',
+  'single-arm cable row': 'horizontal_pull',
+  'straight-arm pulldown': 'lat_isolation',
+  'machine pullover': 'lat_isolation',
+  'face pull': 'upper_back',
+  'barbell shrug': 'traps',
+  'dumbbell shrug': 'traps',
+  'machine shrug': 'traps',
+  deadlift: 'hinge',
+  'romanian deadlift': 'hinge',
+  'dumbbell romanian deadlift': 'hinge',
+  'back extension': 'hinge',
+
+  // PECHO
+  'incline barbell press': 'chest_upper',
+  'incline dumbbell press': 'chest_upper',
+  'incline machine press': 'chest_upper',
+  'low-to-high cable crossover': 'chest_upper',
+  'incline dumbbell fly': 'chest_upper',
+  'barbell bench press': 'chest_mid',
+  'dumbbell bench press': 'chest_mid',
+  'machine chest press': 'chest_mid',
+  'smith machine bench press': 'chest_mid',
+  'push-ups': 'chest_mid',
+  'single-arm cable press': 'chest_mid',
+  'decline barbell press': 'chest_lower',
+  'decline machine press': 'chest_lower',
+  'chest dips': 'chest_lower',
+  'high-to-low cable crossover': 'chest_lower',
+  'dumbbell fly': 'chest_isolation',
+  'cable fly': 'chest_isolation',
+  'pec deck': 'chest_isolation',
+  'dumbbell pullover': 'chest_isolation',
+
+  // HOMBRO
+  'overhead barbell press': 'delt_front',
+  'dumbbell shoulder press': 'delt_front',
+  'machine shoulder press': 'delt_front',
+  'smith machine shoulder press': 'delt_front',
+  'arnold press': 'delt_front',
+  'landmine press': 'delt_front',
+  'dumbbell front raise': 'delt_front',
+  'cable front raise': 'delt_front',
+  'dumbbell lateral raise': 'delt_side',
+  'cable lateral raise': 'delt_side',
+  'single-arm cable lateral raise': 'delt_side',
+  'machine lateral raise': 'delt_side',
+  'barbell upright row': 'delt_side',
+  'cable upright row': 'delt_side',
+  'dumbbell rear delt fly': 'delt_rear',
+  'reverse pec deck': 'delt_rear',
+  'cable rear delt fly': 'delt_rear',
+  'y-raise': 'delt_rear',
+  'band external rotation': 'rotator',
+  'cable external rotation': 'rotator',
+
+  // BÍCEPS
+  'barbell curl': 'curl_standard',
+  'ez-bar curl': 'curl_standard',
+  'dumbbell curl': 'curl_standard',
+  'cable curl': 'curl_standard',
+  'incline dumbbell curl': 'curl_stretch',
+  'ez-bar preacher curl': 'curl_peak',
+  'machine preacher curl': 'curl_peak',
+  'concentration curl': 'curl_peak',
+  'spider curl': 'curl_peak',
+  'hammer curl': 'curl_forearm',
+  'rope hammer curl (cable)': 'curl_forearm',
+  'reverse barbell curl': 'curl_forearm',
+
+  // TRÍCEPS
+  'triceps pushdown (bar)': 'tri_pushdown',
+  'rope pushdown': 'tri_pushdown',
+  'machine triceps extension': 'tri_pushdown',
+  'single-arm cable pushdown': 'tri_pushdown',
+  'reverse-grip pushdown': 'tri_pushdown',
+  'triceps kickback': 'tri_pushdown',
+  'ez-bar skull crusher': 'tri_overhead',
+  'dumbbell skull crusher': 'tri_overhead',
+  'overhead triceps extension': 'tri_overhead',
+  'single-arm overhead extension': 'tri_overhead',
+  'bench dips': 'tri_compound',
+  'assisted dips': 'tri_compound',
+  'close-grip bench press': 'tri_compound',
+
+  // PIERNA
+  'barbell squat': 'quad',
+  'front squat': 'quad',
+  'smith machine squat': 'quad',
+  'hack squat (machine)': 'quad',
+  'goblet squat': 'quad',
+  'leg press': 'quad',
+  'horizontal leg press': 'quad',
+  'leg extension': 'quad',
+  'dumbbell bulgarian split squat': 'glute',
+  'barbell bulgarian split squat': 'glute',
+  'dumbbell lunges': 'glute',
+  'barbell lunges': 'glute',
+  'walking lunge (loaded)': 'glute',
+  'step-up': 'glute',
+  'barbell hip thrust': 'glute',
+  'machine hip thrust': 'glute',
+  'glute bridge': 'glute',
+  'cable glute kickback': 'glute',
+  'lying leg curl': 'hamstring',
+  'seated leg curl': 'hamstring',
+  'nordic curl': 'hamstring',
+  'single-leg deadlift': 'hamstring',
+  'sumo deadlift': 'hinge',
+  'standing calf raise': 'calf',
+  'seated calf raise': 'calf',
+  'calf press on leg press': 'calf',
+  'tibialis raise': 'calf',
+  'hip abduction': 'abductor',
+  'hip adduction': 'adductor',
+  "farmer's walk": 'carry',
+
+  // CORE
+  plank: 'anti_extension',
+  'hollow hold': 'anti_extension',
+  'ab wheel': 'anti_extension',
+  'side plank': 'anti_rotation',
+  'pallof press': 'anti_rotation',
+  'neck isometric hold': 'anti_rotation',
+  'cable chop (high to low)': 'rotation',
+  'cable lift (low to high)': 'rotation',
+  'cable rotation': 'rotation',
+  'russian twist': 'rotation',
+  'leg raise': 'flexion',
+  'hanging knee raise': 'flexion',
+  'hanging leg raise': 'flexion',
+  crunch: 'flexion',
+  'cable crunch': 'flexion',
+  'machine crunch': 'flexion',
+  'mountain climbers': 'flexion',
+  'suitcase carry': 'carry',
+};
+
+/** Zona del ejercicio, o null si no está clasificado. */
+export function focusOf(nameOrKey: string): ExerciseFocus | null {
+  const e = libExerciseOf(nameOrKey);
+  return e ? (FOCUS[e.en.toLowerCase()] ?? null) : null;
+}
+
+/**
+ * Zonas disponibles dentro de un grupo, en el orden en que aparecen. Sirve para
+ * pintar solo las pastillas que tienen ejercicios: filtrar "espalda" ofrece
+ * tirón vertical / horizontal / dorsal / trapecio, y nada más.
+ */
+export function focusesForGroup(group: MuscleGroup | 'all'): ExerciseFocus[] {
+  const out: ExerciseFocus[] = [];
+  EXERCISE_LIBRARY.forEach((e) => {
+    if (group !== 'all' && e.group !== group) return;
+    const f = FOCUS[e.en.toLowerCase()];
+    if (f && !out.includes(f)) out.push(f);
+  });
+  return out;
 }
