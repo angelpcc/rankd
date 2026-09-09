@@ -7,6 +7,7 @@ import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis
 import { ACTIVITY_KINDS, activityKindCfg, computePace, paceLabel, paceToSec, todayISO } from '../lib/dayPlan';
 import ActivityGlyph from './ActivityGlyph';
 import StreakRow from './StreakRow';
+import WeekBars, { last7Days } from '@/components/base/WeekBars';
 import CountUp from '@/components/base/CountUp';
 import { reconcileDayTicks } from '../lib/planTicks';
 import SectionHero from './SectionHero';
@@ -239,6 +240,18 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
     showToast(t('mc_av_deleted'));
   };
 
+  // Minutos por día de los últimos 7, para la tira de barras. Sin consulta
+  // extra: se agrega sobre lo que ya está en memoria. Va aquí arriba, con el
+  // resto de hooks: después de los `return` tempranos rompería el orden de
+  // llamada entre renders.
+  const weekBarDays = useMemo(() => {
+    const m = new Map<string, number>();
+    sessions.forEach((s) => {
+      m.set(s.session_date, (m.get(s.session_date) || 0) + (s.duration_min || 0));
+    });
+    return last7Days(m);
+  }, [sessions]);
+
   const registeredKinds = useMemo(() => {
     const set = new Set(sessions.map((s) => s.kind));
     return ACTIVITY_KINDS.filter((k) => set.has(k.value));
@@ -357,6 +370,7 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
   // Días con actividad + racha viva, para la fila de marcas. Se derivan de las
   // sesiones ya cargadas; no hay consulta extra.
   const activeDates = new Set(sessions.map((s) => s.session_date));
+
   const streakDays = (() => {
     const d = new Date(); d.setHours(0, 0, 0, 0);
     const key = (x: Date) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
@@ -382,6 +396,19 @@ export default function FighterTraining({ profile, showToast, initialDate }: Pro
       {/* ── Racha en marcas, no en número suelto ── */}
       {sessions.length > 0 && (
         <StreakRow activeDates={activeDates} streak={streakDays} />
+      )}
+
+      {/* ── La semana en barras ──
+          El número de sesiones no dice CÓMO ha ido repartida la semana. Siete
+          barras sí: se ve de un vistazo si has entrenado seguido o si llevas
+          tres días parado. Minutos reales, y hueco gris el día sin registrar. */}
+      {sessions.length > 0 && (
+        <Reveal>
+          <div className="rk-card" style={{ padding: 16 }}>
+            <p className="rk-label mb-3">{t('mc_av_week_bars')}</p>
+            <WeekBars days={weekBarDays} unit="min" />
+          </div>
+        </Reveal>
       )}
 
       {/* ── Resumen semanal (parte superior) ── */}

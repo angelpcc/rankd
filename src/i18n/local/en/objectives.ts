@@ -168,4 +168,7 @@ export default {
   rp_avg_fat: 'Fat/day',
   rp_nutrition_note: 'Average based on {{n}} of {{total}} logged meals with macros (analyzed photo).',
   rp_section_progress: 'Progress & personal records',
+  rp_section_daily: 'Day by day',
+  rp_strength: 'Strength',
+  rp_meals: 'Meals',
 };

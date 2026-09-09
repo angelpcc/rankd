@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 
 interface Props {
@@ -31,15 +32,29 @@ export default function BottomSheet({ open, onClose, title, children, footer }: 
 
   if (!open) return null;
 
-  return (
+  // PORTAL a <body>, no en el sitio donde se declara.
+  //
+  // `position: fixed` deja de medirse contra la pantalla en cuanto un ancestro
+  // tiene `transform`, `filter` o `perspective` — y en Mi Esquina los hay por
+  // todas partes (.rk-press, .rk-lift, las animaciones de entrada). El
+  // resultado era una hoja dibujada cientos de píxeles por debajo del área
+  // visible: parecía que el formulario "se quedaba enganchado" y el botón de
+  // guardar no se alcanzaba nunca. Colgando de <body> no hay ancestro que
+  // pueda capturarla.
+  return createPortal((
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      className="fixed inset-x-0 top-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      // `100dvh`, no `100vh`: en el móvil `vh` cuenta la barra del navegador
+      // aunque esté visible, así que el pie de la hoja (donde vive el botón de
+      // guardar) quedaba POR DEBAJO de la pantalla y parecía que el formulario
+      // se quedaba colgado. `dvh` sigue a la altura real visible.
+      style={{ height: '100vh', maxHeight: '100dvh' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
       <div
-        className="relative w-full sm:max-w-md max-h-[90vh] flex flex-col bg-[#0c0c0c] border border-white/[0.1] rounded-t-3xl sm:rounded-3xl anim-scale-in"
-        style={{ boxShadow: '0 32px 90px rgba(0,0,0,0.8)' }}
+        className="relative w-full sm:max-w-md flex flex-col bg-[#0c0c0c] border border-white/[0.1] rounded-t-3xl sm:rounded-3xl anim-scale-in"
+        style={{ boxShadow: '0 32px 90px rgba(0,0,0,0.8)', maxHeight: '92%' }}
       >
         <div className="flex items-center justify-between gap-3 px-6 pt-6 pb-4 flex-shrink-0">
           {title ? <h3 className="rk-h3" style={{ fontSize: '1.15rem', color: '#fff' }}>{title}</h3> : <span />}
@@ -63,5 +78,5 @@ export default function BottomSheet({ open, onClose, title, children, footer }: 
         )}
       </div>
     </div>
-  );
+  ), document.body);
 }

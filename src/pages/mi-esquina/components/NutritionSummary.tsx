@@ -4,6 +4,7 @@ import { supabase, type Profile } from '@/lib/supabase';
 import Reveal from '@/components/base/Reveal';
 import SegmentedProgress from '@/components/base/SegmentedProgress';
 import MacroRings from './MacroRings';
+import WeekBars, { last7Days } from '@/components/base/WeekBars';
 
 // Nutrición · NIVEL 1 (resumen). Solo consulta: anillos de macros, barra de
 // calorías segmentada y diario del día compacto (4 franjas). Un botón lleva al
@@ -37,18 +38,42 @@ export default function NutritionSummary({ profile, onEnter }: Props) {
   // queda listo para cuando exista el objetivo.
   const [kcalGoal] = useState<number | null>(null);
 
+  // Últimos 7 días para la tira semanal. Una cifra suelta de hoy no dice si
+  // estás siendo constante; siete barras sí.
+  const [week, setWeek] = useState<{ entry_date: string; calories: number | null }[]>([]);
+
   useEffect(() => {
     let alive = true;
     (async () => {
-      const meals = await supabase.from('meal_entries')
-        .select('meal_type, description, calories, protein_g, carbs_g, fat_g')
-        .eq('fighter_profile_id', profile.id).eq('entry_date', todayISO());
+      const since = new Date(); since.setDate(since.getDate() - 6);
+      const sinceISO = `${since.getFullYear()}-${String(since.getMonth() + 1).padStart(2, '0')}-${String(since.getDate()).padStart(2, '0')}`;
+      const [meals, weekRes] = await Promise.all([
+        supabase.from('meal_entries')
+          .select('meal_type, description, calories, protein_g, carbs_g, fat_g')
+          .eq('fighter_profile_id', profile.id).eq('entry_date', todayISO()),
+        supabase.from('meal_entries')
+          .select('entry_date, calories')
+          .eq('fighter_profile_id', profile.id).gte('entry_date', sinceISO),
+      ]);
       if (!alive) return;
       setRows((meals.data || []) as MealRow[]);
+      setWeek((weekRes.data || []) as { entry_date: string; calories: number | null }[]);
       setLoading(false);
     })();
     return () => { alive = false; };
   }, [profile.id]);
+
+  // Si no hay macros guardadas, la barra cuenta COMIDAS registradas: sigue
+  // diciendo si has apuntado o no, que es lo que importa para la constancia.
+  const weekBars = useMemo(() => {
+    const anyKcal = week.some((r) => (r.calories || 0) > 0);
+    const m = new Map<string, number>();
+    week.forEach((r) => {
+      const add = anyKcal ? (r.calories || 0) : 1;
+      m.set(r.entry_date, (m.get(r.entry_date) || 0) + add);
+    });
+    return { days: last7Days(m), unit: anyKcal ? 'kcal' : undefined };
+  }, [week]);
 
   const totals = useMemo(() => {
     const withMacros = rows.filter((r) => r.calories !== null);
@@ -98,6 +123,14 @@ export default function NutritionSummary({ profile, onEnter }: Props) {
             {kcalGoal ? t('mc_ns_cal_goal_hint') : t('mc_ns_cal_no_goal_hint', { n: slotsLogged, total: SLOTS.length })}
           </p>
           <MacroRings protein={totals.protein} carbs={totals.carbs} fat={totals.fat} />
+        </div>
+      </Reveal>
+
+      {/* ── LA SEMANA DE UN VISTAZO ── */}
+      <Reveal delay={60}>
+        <div className="rk-card" style={{ padding: 16 }}>
+          <p className="rk-label mb-3">{t('mc_ns_week')}</p>
+          <WeekBars days={weekBars.days} unit={weekBars.unit} color="#4ade80" />
         </div>
       </Reveal>
 

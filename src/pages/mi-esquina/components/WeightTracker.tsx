@@ -5,6 +5,7 @@ import { isMissingTable, isMissingColumn } from '@/lib/dbState';
 import Reveal from '@/components/base/Reveal';
 import SegmentedProgress from '@/components/base/SegmentedProgress';
 import StateBlock from '@/components/base/StateBlock';
+import SectionArt from '@/components/base/SectionArt';
 import CountUp from '@/components/base/CountUp';
 import GoalGauge from '@/components/base/GoalGauge';
 import EmptyArt from '@/components/base/EmptyArt';
@@ -309,18 +310,27 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
 
   return (
     <div className="space-y-5 max-w-4xl">
-      <div className="flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <p className="rk-eyebrow">{isPro ? t('mc_w_pro_eyebrow') : t('mc_w_hobby_eyebrow')}</p>
-          <h2 className="rk-h2" style={{ fontSize: 'clamp(1.8rem,4vw,2.4rem)', color: '#fff', margin: '4px 0 0' }}>
-            {isPro ? t('mc_w_title_pro') : t('mc_w_title_hobby')}{' '}
-            <span className="rk-red-glow">{isPro ? t('mc_w_title_pro_2') : t('mc_w_title_hobby_2')}</span>
-          </h2>
-          <p className="text-zinc-400 text-sm mt-1.5 max-w-md">{isPro ? t('mc_w_sub_pro') : t('mc_w_sub_hobby')}</p>
+      {/* Cabecera con la ilustración de báscula: la sección era la única de Mi
+          Esquina que entraba con un título a pelo, sin nada visual. */}
+      <div className="relative overflow-hidden"
+        style={{ borderRadius: 'var(--r-card)', background: 'linear-gradient(150deg, var(--s-1) 0%, #0d0d0d 100%)', border: '1px solid var(--s-3)' }}>
+        <SectionArt kind="weight" className="absolute inset-0 w-full h-full" />
+        <div className="absolute inset-0 pointer-events-none"
+          style={{ background: 'linear-gradient(100deg, rgba(10,10,11,0.97) 0%, rgba(10,10,11,0.84) 48%, rgba(10,10,11,0.3) 100%)' }} />
+        <div className="relative p-5 flex items-end justify-between gap-3 flex-wrap">
+          <div>
+            <p className="rk-eyebrow">{isPro ? t('mc_w_pro_eyebrow') : t('mc_w_hobby_eyebrow')}</p>
+            <h2 className="rk-h2" style={{ fontSize: 'clamp(1.8rem,4vw,2.4rem)', color: '#fff', margin: '4px 0 0' }}>
+              {isPro ? t('mc_w_title_pro') : t('mc_w_title_hobby')}{' '}
+              <span className="rk-red-glow">{isPro ? t('mc_w_title_pro_2') : t('mc_w_title_hobby_2')}</span>
+            </h2>
+            <p className="text-zinc-400 text-sm mt-1.5" style={{ maxWidth: '32ch' }}>{isPro ? t('mc_w_sub_pro') : t('mc_w_sub_hobby')}</p>
+          </div>
+          <button onClick={openGoal} style={{ minHeight: 44 }}
+            className="rk-nav-btn rk-press inline-flex items-center gap-2">
+            <i className="ri-flag-line"></i> {isPro ? t('mc_w_goal_btn_pro') : t('mc_w_goal_btn_hobby')}
+          </button>
         </div>
-        <button onClick={openGoal} className="rk-btn rk-btn-ghost flex items-center gap-2" style={{ fontSize: '0.8rem', padding: '0.6rem 1.2rem' }}>
-          <i className="ri-flag-line"></i> {isPro ? t('mc_w_goal_btn_pro') : t('mc_w_goal_btn_hobby')}
-        </button>
       </div>
 
       {/* ── CARD PRINCIPAL: peso actual + progreso hacia el objetivo ── */}

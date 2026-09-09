@@ -168,4 +168,7 @@ export default {
   rp_avg_fat: 'Grasas/día',
   rp_nutrition_note: 'Media calculada sobre {{n}} de {{total}} comidas registradas con macros (foto analizada).',
   rp_section_progress: 'Progresión y marcas personales',
+  rp_section_daily: 'Día a día',
+  rp_strength: 'Fuerza',
+  rp_meals: 'Comidas',
 };

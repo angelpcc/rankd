@@ -20,6 +20,9 @@ interface Props {
   showToast: (msg: string, type?: 'success' | 'error') => void;
   onDefineGoal: () => void;
   onLogFirst: () => void;
+  /** Tras completar el perfil se ofrece montar el plan: a mano o con el Asesor. */
+  onGoPlanificar?: () => void;
+  onGoAsesor?: () => void;
 }
 
 interface Step {
@@ -31,7 +34,7 @@ interface Step {
   run: () => void;
 }
 
-export default function ActivationSteps({ profile, totalSessions, showToast, onDefineGoal, onLogFirst }: Props) {
+export default function ActivationSteps({ profile, totalSessions, showToast, onDefineGoal, onLogFirst, onGoPlanificar, onGoAsesor }: Props) {
   const { t } = useTranslation();
   const [ready, setReady] = useState(false);
   const [physicalPct, setPhysicalPct] = useState(0);
@@ -159,6 +162,8 @@ export default function ActivationSteps({ profile, totalSessions, showToast, onD
         profileId={profile.id}
         showToast={showToast}
         onSaved={() => reload()}
+        onGoPlanificar={onGoPlanificar}
+        onGoAsesor={onGoAsesor}
       />
     </>
   );

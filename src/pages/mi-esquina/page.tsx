@@ -469,7 +469,9 @@ export default function MiEsquinaPage() {
               <div className="rk-stack">
                 <ActivationSteps profile={profile} totalSessions={stats.total} showToast={showToast}
                   onDefineGoal={() => go('asesor')}
-                  onLogFirst={() => go('actividad', undefined, todayISO())} />
+                  onLogFirst={() => go('actividad', undefined, todayISO())}
+                  onGoPlanificar={() => go('agenda', 'planificar')}
+                  onGoAsesor={() => go('asesor')} />
                 <GymLink profile={profile} showToast={showToast} />
               </div>
 

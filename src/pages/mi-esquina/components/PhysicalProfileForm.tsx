@@ -16,6 +16,13 @@ interface Props {
   showToast: (msg: string, type?: 'success' | 'error') => void;
   /** Se llama tras guardar, con el perfil actualizado (para refrescar la card). */
   onSaved?: (p: FighterPhysical) => void;
+  /**
+   * Qué hacer después de guardar. Rellenar el perfil sin más no lleva a
+   * ninguna parte: en cuanto hay datos, lo lógico es montar un plan. Se ofrece
+   * hacerlo a mano o dejárselo al Asesor.
+   */
+  onGoPlanificar?: () => void;
+  onGoAsesor?: () => void;
 }
 
 const SEX_OPTS = ['male', 'female', 'other'] as const;
@@ -28,21 +35,29 @@ function num(v: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-export default function PhysicalProfileForm({ open, onClose, profileId, showToast, onSaved }: Props) {
+export default function PhysicalProfileForm({ open, onClose, profileId, showToast, onSaved, onGoPlanificar, onGoAsesor }: Props) {
   const { t } = useTranslation();
   const [p, setP] = useState<FighterPhysical>(emptyPhysical());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  // Tras guardar se muestra el "¿y ahora qué?" en la misma hoja, en vez de
+  // cerrarla y dejar al usuario donde estaba sin saber qué hacer con esos datos.
+  const [donePrompt, setDonePrompt] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     let alive = true;
     setLoading(true);
+    setDonePrompt(false);
     loadPhysical(profileId).then(({ data }) => { if (alive) { setP(data); setLoading(false); } });
     return () => { alive = false; };
   }, [open, profileId]);
 
   const set = <K extends keyof FighterPhysical>(k: K, v: FighterPhysical[K]) => setP((prev) => ({ ...prev, [k]: v }));
+
+  // Con esto ya se puede montar un plan con sentido. Sin ello, ofrecerlo sería
+  // ruido: el Asesor no tendría con qué trabajar.
+  const enoughToPlan = p.training_days_per_week != null && (p.level != null || p.sport != null);
 
   const save = async () => {
     setSaving(true);
@@ -51,6 +66,8 @@ export default function PhysicalProfileForm({ open, onClose, profileId, showToas
     if (!ok) { showToast(t('error_save'), 'error'); return; }
     showToast(t('mc_pp_saved'));
     onSaved?.(p);
+    // Solo se ofrece el siguiente paso si hay a dónde ir y datos suficientes.
+    if (enoughToPlan && (onGoPlanificar || onGoAsesor)) { setDonePrompt(true); return; }
     onClose();
   };
 
@@ -75,17 +92,52 @@ export default function PhysicalProfileForm({ open, onClose, profileId, showToas
     <BottomSheet
       open={open}
       onClose={onClose}
-      title={t('mc_pp_title')}
-      footer={
+      title={donePrompt ? t('mc_pp_done_title') : t('mc_pp_title')}
+      footer={donePrompt ? (
+        <button onClick={onClose} style={{ minHeight: 48 }}
+          className="rk-nav-btn w-full flex items-center justify-center gap-2">
+          {t('mc_pp_done_later')}
+        </button>
+      ) : (
         <button onClick={save} disabled={saving || loading} style={{ minHeight: 48 }}
           className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60">
           {saving
             ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {t('mc_saving')}</>
             : <><i className="ri-save-line"></i> {t('mc_pp_save')}</>}
         </button>
-      }
+      )}
     >
-      {loading ? (
+      {donePrompt ? (
+        <div className="space-y-4">
+          <div className="text-center py-2">
+            <div className="w-14 h-14 mx-auto mb-3 flex items-center justify-center rounded-2xl"
+              style={{ background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.3)' }}>
+              <i className="ri-check-line text-2xl" style={{ color: '#4ade80' }} />
+            </div>
+            <p className="text-sm text-zinc-300 leading-relaxed max-w-xs mx-auto">
+              {t('mc_pp_done_desc', { n: p.training_days_per_week ?? 0 })}
+            </p>
+          </div>
+          {onGoAsesor && (
+            <button onClick={() => { onClose(); onGoAsesor(); }} style={{ minHeight: 60 }}
+              className="w-full text-left rounded-xl border border-red-500/40 bg-red-600/[0.10] px-4 cursor-pointer hover:border-red-500/70 transition-colors">
+              <p className="text-sm font-bold text-white flex items-center gap-2">
+                <i className="ri-compass-3-line text-red-400" />{t('mc_pp_done_advisor')}
+              </p>
+              <p className="text-[11px] mt-0.5" style={{ color: 'var(--t-3)' }}>{t('mc_pp_done_advisor_sub')}</p>
+            </button>
+          )}
+          {onGoPlanificar && (
+            <button onClick={() => { onClose(); onGoPlanificar(); }} style={{ minHeight: 60 }}
+              className="w-full text-left rounded-xl border border-white/12 bg-white/[0.03] px-4 cursor-pointer hover:border-white/30 transition-colors">
+              <p className="text-sm font-bold text-white flex items-center gap-2">
+                <i className="ri-calendar-todo-line" style={{ color: 'var(--t-2)' }} />{t('mc_pp_done_self')}
+              </p>
+              <p className="text-[11px] mt-0.5" style={{ color: 'var(--t-3)' }}>{t('mc_pp_done_self_sub')}</p>
+            </button>
+          )}
+        </div>
+      ) : loading ? (
         <div className="flex items-center justify-center py-16"><div className="w-7 h-7 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div></div>
       ) : (
         <div className="space-y-5">
@@ -132,18 +184,44 @@ export default function PhysicalProfileForm({ open, onClose, profileId, showToas
             {chips(p.level, LEVEL_OPTS, (v) => set('level', v), 'mc_pp_level_')}
           </div>
 
-          {/* Días + minutos */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelCls}>{t('mc_pp_days')}</label>
-              <input value={p.training_days_per_week ?? ''} inputMode="numeric" placeholder="0" style={{ fontSize: 16, minHeight: 44 }}
-                onChange={(e) => set('training_days_per_week', num(e.target.value))} className={inputCls} />
+          {/* Días entrenables: pastillas del 1 al 7. Era un campo numérico
+              libre, y poner "5" o "6" obligaba a abrir el teclado para un dato
+              que solo tiene siete valores posibles. */}
+          <div>
+            <label className={labelCls}>{t('mc_pp_days')}</label>
+            <div className="flex flex-wrap gap-2">
+              {[1, 2, 3, 4, 5, 6, 7].map((n) => {
+                const active = p.training_days_per_week === n;
+                return (
+                  <button key={n} type="button" style={{ minHeight: 44, minWidth: 44 }}
+                    onClick={() => set('training_days_per_week', active ? null : n)}
+                    className={`rounded-xl text-sm font-bold border transition-all cursor-pointer ${active ? 'bg-red-600 border-red-600 text-white' : 'bg-white/[0.03] border-white/12 text-zinc-300 hover:border-white/30'}`}>
+                    {n}
+                  </button>
+                );
+              })}
             </div>
-            <div>
-              <label className={labelCls}>{t('mc_pp_minutes')}</label>
-              <input value={p.session_minutes ?? ''} inputMode="numeric" placeholder="0" style={{ fontSize: 16, minHeight: 44 }}
-                onChange={(e) => set('session_minutes', num(e.target.value))} className={inputCls} />
+          </div>
+
+          {/* Minutos por sesión: valores habituales de un toque, y campo libre
+              debajo para cualquier otro. */}
+          <div>
+            <label className={labelCls}>{t('mc_pp_minutes')}</label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {[30, 45, 60, 75, 90, 120].map((n) => {
+                const active = p.session_minutes === n;
+                return (
+                  <button key={n} type="button" style={{ minHeight: 44 }}
+                    onClick={() => set('session_minutes', active ? null : n)}
+                    className={`px-3.5 rounded-xl text-sm font-semibold border transition-all cursor-pointer ${active ? 'bg-red-600 border-red-600 text-white' : 'bg-white/[0.03] border-white/12 text-zinc-300 hover:border-white/30'}`}>
+                    {n}′
+                  </button>
+                );
+              })}
             </div>
+            <input value={p.session_minutes ?? ''} inputMode="numeric" placeholder={t('mc_pp_minutes_other')}
+              style={{ fontSize: 16, minHeight: 44 }}
+              onChange={(e) => set('session_minutes', num(e.target.value))} className={inputCls} />
           </div>
 
           {/* Material */}

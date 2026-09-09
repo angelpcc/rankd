@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { isViewingAs } from '@/lib/viewAs';
+import { isMissingColumn } from '@/lib/dbState';
 
 // Informe de progreso IMPRIMIBLE, por periodo (punto 6 del encargo).
 //
@@ -27,7 +28,14 @@ interface StrengthRow {
   muscle_group: string | null;
 }
 interface WeightRow { entry_date: string; weight_kg: number }
-interface MealRow { entry_date: string; calories: number | null; protein_g: number | null; carbs_g: number | null; fat_g: number | null }
+interface MealRow {
+  entry_date: string; meal_type: string | null; description: string | null;
+  calories: number | null; protein_g: number | null; carbs_g: number | null; fat_g: number | null;
+}
+interface ActRow {
+  session_date: string; kind: string; duration_min: number | null;
+  distance_km: number | null; rounds: number | null;
+}
 
 const MUSCLE_LABEL: Record<string, string> = {
   chest: 'Pecho', shoulders: 'Hombros', biceps: 'Bíceps', triceps: 'Tríceps',
@@ -65,6 +73,7 @@ export default function ReportPrintPage() {
   const [strengthBefore, setStrengthBefore] = useState<StrengthRow[]>([]);
   const [weightRows, setWeightRows] = useState<WeightRow[]>([]);
   const [mealRows, setMealRows] = useState<MealRow[]>([]);
+  const [actRows, setActRows] = useState<ActRow[]>([]);
 
   useEffect(() => {
     if (!authLoading && !user && !isViewingAs()) navigate('/esquina');
@@ -77,28 +86,40 @@ export default function ReportPrintPage() {
     let alive = true;
     setLoading(true);
     (async () => {
-      const [strengthRes, weightRes, mealRes] = await Promise.all([
+      // `session_slot` es de la migración 0033 y puede no estar aplicada. Sin
+      // este reintento la consulta ENTERA falla y el informe salía sin una sola
+      // sesión de fuerza, que es justo lo que se viene a ver.
+      const strQuery = (cols: string) => supabase.from('strength_sets')
+        .select(cols)
+        .eq('fighter_profile_id', profile.id).lte('session_date', end)
+        .order('session_date', { ascending: true }).limit(5000);
+      const [strFirst, weightRes, mealRes, actRes] = await Promise.all([
         // Trae también lo anterior al periodo (misma consulta, hasta 'end') para
         // poder comparar el mejor peso previo y detectar PRs conseguidos DENTRO
         // del periodo, no solo el máximo histórico.
-        supabase.from('strength_sets')
-          .select('exercise, exercise_label, session_date, session_slot, reps, weight_kg, muscle_group')
-          .eq('fighter_profile_id', profile.id).lte('session_date', end)
-          .order('session_date', { ascending: true }).limit(5000),
+        strQuery('exercise, exercise_label, session_date, session_slot, reps, weight_kg, muscle_group'),
         supabase.from('weight_entries')
           .select('entry_date, weight_kg')
           .eq('fighter_profile_id', profile.id).gte('entry_date', start).lte('entry_date', end)
           .order('entry_date', { ascending: true }),
         supabase.from('meal_entries')
-          .select('entry_date, calories, protein_g, carbs_g, fat_g')
+          .select('entry_date, meal_type, description, calories, protein_g, carbs_g, fat_g')
           .eq('fighter_profile_id', profile.id).gte('entry_date', start).lte('entry_date', end),
+        supabase.from('activity_sessions')
+          .select('session_date, kind, duration_min, distance_km, rounds')
+          .eq('fighter_profile_id', profile.id).gte('session_date', start).lte('session_date', end),
       ]);
+      const strengthRes = isMissingColumn(strFirst.error)
+        ? await strQuery('exercise, exercise_label, session_date, reps, weight_kg, muscle_group')
+        : strFirst;
       if (!alive) return;
-      const allStrength = (strengthRes.data || []) as StrengthRow[];
+      const allStrength = ((strengthRes.data || []) as unknown as StrengthRow[])
+        .map((r) => ({ ...r, session_slot: r.session_slot ?? null }));
       setStrengthRows(allStrength.filter((r) => r.session_date >= start));
       setStrengthBefore(allStrength.filter((r) => r.session_date < start));
       setWeightRows((weightRes.data || []) as WeightRow[]);
       setMealRows((mealRes.data || []) as MealRow[]);
+      setActRows((actRes.data || []) as ActRow[]);
       setLoading(false);
     })();
     return () => { alive = false; };
@@ -111,6 +132,57 @@ export default function ReportPrintPage() {
     const volume = strengthRows.reduce((sum, r) => sum + r.reps * r.weight_kg, 0);
     return { sessions: sessionKeys.size, groups: [...groups], volume: Math.round(volume) };
   }, [strengthRows]);
+
+  // ── DÍA A DÍA ──
+  //
+  // El informe resumía bien la tendencia (progresión, marcas, peso), pero no
+  // decía qué pasó CADA día. Para revisar con un entrenador o para mirar atrás
+  // uno mismo, eso es justo lo que hace falta: qué levantaste, qué corriste,
+  // qué comiste y cuánto pesabas ese día concreto.
+  const daily = useMemo(() => {
+    const byDate = new Map<string, {
+      date: string;
+      strength: { slot: string | null; groups: string[]; exercises: { label: string; sets: number; topKg: number; topReps: number }[] }[];
+      acts: ActRow[];
+      meals: MealRow[];
+      weight: number | null;
+    }>();
+    const get = (d: string) => {
+      let e = byDate.get(d);
+      if (!e) { e = { date: d, strength: [], acts: [], meals: [], weight: null }; byDate.set(d, e); }
+      return e;
+    };
+
+    // Fuerza agrupada por día + franja, y dentro por ejercicio.
+    const bySession = new Map<string, Map<string, StrengthRow[]>>();
+    strengthRows.forEach((r) => {
+      const key = `${r.session_date}|${r.session_slot || ''}`;
+      if (!bySession.has(key)) bySession.set(key, new Map());
+      const byEx = bySession.get(key)!;
+      byEx.set(r.exercise, [...(byEx.get(r.exercise) || []), r]);
+    });
+    bySession.forEach((byEx, key) => {
+      const [date, slot] = key.split('|');
+      const groups = new Set<string>();
+      const exercises: { label: string; sets: number; topKg: number; topReps: number }[] = [];
+      byEx.forEach((sets) => {
+        if (sets[0].muscle_group) groups.add(sets[0].muscle_group);
+        const topKg = Math.max(...sets.map((s) => Number(s.weight_kg) || 0));
+        const topReps = Math.max(...sets.map((s) => s.reps));
+        exercises.push({ label: sets[0].exercise_label, sets: sets.length, topKg, topReps });
+      });
+      get(date).strength.push({ slot: slot || null, groups: [...groups], exercises });
+    });
+
+    actRows.forEach((a) => get(a.session_date).acts.push(a));
+    mealRows.forEach((m) => get(m.entry_date).meals.push(m));
+    weightRows.forEach((w) => { get(w.entry_date).weight = Number(w.weight_kg); });
+
+    // Solo días con ALGO. Del más reciente al más antiguo.
+    return [...byDate.values()]
+      .filter((d) => d.strength.length > 0 || d.acts.length > 0 || d.meals.length > 0 || d.weight != null)
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }, [strengthRows, actRows, mealRows, weightRows]);
 
   // ── Progresión / PRs: mejor marca antes del periodo vs. mejor marca dentro ──
   const progression = useMemo(() => {
@@ -289,6 +361,50 @@ export default function ReportPrintPage() {
                 </div>
               </section>
             )}
+
+            {/* ── DÍA A DÍA ──
+                Lo último del informe, porque es lo más largo: primero se ve la
+                tendencia y luego, si hace falta, el detalle de cada jornada. */}
+            {daily.length > 0 && (
+              <section className="rk-print-week">
+                <h2 className="rk-print-week-title">{t('rp_section_daily')}</h2>
+                <div className="rk-print-daily">
+                  {daily.map((d) => (
+                    <div key={d.date} className="rk-print-dayrow">
+                      <p className="rk-print-dayrow-date">
+                        {new Date(`${d.date}T12:00:00`).toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })}
+                        {d.weight != null && <span className="rk-print-dayrow-w"> · {d.weight} kg</span>}
+                      </p>
+
+                      {d.strength.map((s, si) => (
+                        <p key={`s${si}`} className="rk-print-dayrow-line">
+                          <b>{s.groups.map((g) => MUSCLE_LABEL[g] || g).join(' + ') || t('rp_strength')}</b>
+                          {s.slot && <span className="rk-print-dim"> ({s.slot})</span>}
+                          {': '}
+                          {s.exercises.map((e) => `${e.label} ${e.sets}×${e.topReps}${e.topKg > 0 ? ` a ${e.topKg}kg` : ''}`).join(' · ')}
+                        </p>
+                      ))}
+
+                      {d.acts.map((a, ai) => (
+                        <p key={`a${ai}`} className="rk-print-dayrow-line">
+                          <b>{a.kind}</b>{': '}
+                          {[a.duration_min ? `${a.duration_min} min` : null,
+                            a.distance_km ? `${a.distance_km} km` : null,
+                            a.rounds ? `${a.rounds} asaltos` : null].filter(Boolean).join(' · ')}
+                        </p>
+                      ))}
+
+                      {d.meals.length > 0 && (
+                        <p className="rk-print-dayrow-line">
+                          <b>{t('rp_meals')}</b>{': '}
+                          {d.meals.map((m) => `${m.meal_type ? `${m.meal_type} — ` : ''}${m.description || ''}`.trim()).filter(Boolean).join(' · ')}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
           </>
         )}
 
@@ -323,6 +439,14 @@ export default function ReportPrintPage() {
         .rk-print-day { border: 1px solid #e8e8e8; border-radius: 4px; padding: 10px 12px; break-inside: avoid; border-left: 4px solid #E10600; }
         .rk-print-day-name { font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 1.5px; color: #111; margin-bottom: 6px; }
         .rk-print-footer { margin-top: 32px; padding-top: 14px; border-top: 1px solid #eee; }
+        /* Día a día: filas compactas, pensadas para que quepan muchas por
+           página sin partirse por la mitad al imprimir. */
+        .rk-print-daily { display: flex; flex-direction: column; gap: 10px; }
+        .rk-print-dayrow { border-left: 3px solid #E10600; padding: 6px 0 6px 10px; break-inside: avoid; page-break-inside: avoid; }
+        .rk-print-dayrow-date { font-weight: 700; font-size: 12px; text-transform: capitalize; margin: 0 0 3px; }
+        .rk-print-dayrow-w { color: #8a7330; font-weight: 600; }
+        .rk-print-dayrow-line { font-size: 11px; line-height: 1.45; margin: 0 0 2px; color: #333; }
+        .rk-print-dim { color: #888; }
         .rk-print-generated { font-size: 10px; color: #999; letter-spacing: 1px; text-transform: uppercase; margin: 8px 0 0; }
         @media print {
           .rk-plan-print { background: #fff; padding: 0; }
