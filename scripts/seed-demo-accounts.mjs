@@ -305,14 +305,25 @@ async function run() {
       : await db.from('brands').insert(payload);
     if (error) throw error;
   });
+  // OJO con `brand_profile_id`: a pesar del nombre NO apunta a `brands.id`,
+  // apunta a `profiles.id` (la FK es brand_products_brand_profile_id_fkey →
+  // profiles). Aquí se pasaba el id de la fila de `brands` y por eso el paso
+  // fallaba siempre con 23503 "Key is not present in table profiles" y la
+  // marca demo se quedaba sin productos. El panel de marca ya lo hacía bien
+  // (BrandProducts.tsx filtra y guarda por profile.id): el que estaba mal era
+  // este script.
   await step('brand_products (2)', async () => {
-    const { data: b } = await db.from('brands').select('id').eq('user_id', brandId).maybeSingle();
-    if (!b) throw new Error('sin fila en brands');
     const rows = [
-      { user_id: brandId, brand_profile_id: b.id, name: 'Guante Nébula Pro 12oz', category: 'Guantes', price: '69,90 €', external_link: 'https://example.com/pro12' },
-      { user_id: brandId, brand_profile_id: b.id, name: 'Vendas elásticas 4,5 m (par)', category: 'Vendas', price: '9,90 €', external_link: 'https://example.com/vendas' },
+      { user_id: brandId, brand_profile_id: brandId, name: 'Guante Nébula Pro 12oz', category: 'Guantes', price: '69,90 €', external_link: 'https://example.com/pro12' },
+      { user_id: brandId, brand_profile_id: brandId, name: 'Vendas elásticas 4,5 m (par)', category: 'Vendas', price: '9,90 €', external_link: 'https://example.com/vendas' },
     ];
-    const { error } = await db.from('brand_products').insert(rows);
+    // Idempotente: el script se re-ejecuta y no debe duplicar productos.
+    const { data: ex } = await db.from('brand_products')
+      .select('id, name').eq('brand_profile_id', brandId);
+    const have = new Set((ex || []).map((p) => p.name));
+    const missing = rows.filter((r) => !have.has(r.name));
+    if (missing.length === 0) return;
+    const { error } = await db.from('brand_products').insert(missing);
     if (error) throw error;
   });
 
