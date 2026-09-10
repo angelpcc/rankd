@@ -49,10 +49,17 @@ export type MovementPattern =
   | 'push' | 'pull' | 'squat' | 'hinge' | 'lunge'
   | 'carry' | 'rotation' | 'antirotation' | 'jump' | 'isolation';
 
-/** Material necesario. */
+/**
+ * Material necesario.
+ *
+ * `rope` (cuerdas de batalla y cuerda de trepa) y `odd` (mazo, neumático, saco
+ * de arena) se añadieron con el repertorio de peleador: son material de
+ * gimnasio de combate y meterlos a la fuerza en 'band' o 'ball' habría hecho
+ * inservible el filtro justo para quien más lo necesita.
+ */
 export type Equipment =
   | 'barbell' | 'dumbbell' | 'cable' | 'machine' | 'bodyweight'
-  | 'kettlebell' | 'band' | 'ball' | 'sled';
+  | 'kettlebell' | 'band' | 'ball' | 'sled' | 'rope' | 'odd';
 
 export type Difficulty = 'beginner' | 'intermediate' | 'advanced';
 
@@ -60,7 +67,7 @@ export const MOVEMENT_PATTERNS: MovementPattern[] = [
   'push', 'pull', 'squat', 'hinge', 'lunge', 'carry', 'rotation', 'antirotation', 'jump', 'isolation',
 ];
 export const EQUIPMENT_TYPES: Equipment[] = [
-  'barbell', 'dumbbell', 'cable', 'machine', 'bodyweight', 'kettlebell', 'band', 'ball', 'sled',
+  'barbell', 'dumbbell', 'cable', 'machine', 'bodyweight', 'kettlebell', 'band', 'ball', 'sled', 'rope', 'odd',
 ];
 
 export interface LibExercise {
@@ -81,6 +88,18 @@ export interface LibExercise {
   /** true = se trabaja un lado cada vez. */
   unilateral?: boolean;
   difficulty?: Difficulty;
+  /**
+   * Ejercicio del REPERTORIO DE PELEADOR: lo que se usa en un gimnasio de
+   * combate o en un campamento, no en una sala de máquinas. Dominadas y sus
+   * variantes, calistenia, cuerdas de batalla, pliometría, core rotacional,
+   * cuello, mazo y neumático, desplazamientos por el suelo…
+   *
+   * No es una categoría "mejor": es una etiqueta de DÓNDE se puede hacer. Mucha
+   * gente que compite no pisa un gimnasio convencional, y la biblioteca estaba
+   * escrita para quien sí. Marcar estos ejercicios permite darles visibilidad
+   * sin esconderle nada a nadie: el aficionado los ve igual.
+   */
+  fighter?: boolean;
   /** Músculos que acompañan al principal. */
   secondary?: MuscleGroup[];
   /**
@@ -104,8 +123,8 @@ export interface LibExercise {
 
 export const EXERCISE_LIBRARY: LibExercise[] = [
   // ── ESPALDA ──
-  { es: 'Dominadas', en: 'Pull-ups', group: 'back', weightMode: 'bodyweight', pattern: 'pull', equipment: 'bodyweight', difficulty: 'intermediate', secondary: ['biceps', 'core'] },
-  { es: 'Dominadas lastradas', en: 'Weighted pull-ups', group: 'back', weightMode: 'bodyweight', pattern: 'pull', equipment: 'bodyweight', difficulty: 'advanced', secondary: ['biceps', 'core'] },
+  { es: 'Dominadas', en: 'Pull-ups', group: 'back', weightMode: 'bodyweight', pattern: 'pull', equipment: 'bodyweight', fighter: true, difficulty: 'intermediate', secondary: ['biceps', 'core'] },
+  { es: 'Dominadas lastradas', en: 'Weighted pull-ups', group: 'back', weightMode: 'bodyweight', pattern: 'pull', equipment: 'bodyweight', fighter: true, difficulty: 'advanced', secondary: ['biceps', 'core'] },
   { es: 'Dominadas asistidas (máquina)', en: 'Assisted pull-up (machine)', group: 'back', pattern: 'pull', equipment: 'machine', difficulty: 'beginner', secondary: ['biceps'] },
   { es: 'Jalón al pecho (polea)', en: 'Lat pulldown (cable)', group: 'back', pattern: 'pull', equipment: 'cable', difficulty: 'beginner', secondary: ['biceps'], aliases: ['Jalón al pecho', 'Lat pulldown'] },
   { es: 'Jalón al pecho (máquina guiada)', en: 'Lat pulldown (plate-loaded machine)', group: 'back', pattern: 'pull', equipment: 'machine', difficulty: 'beginner', secondary: ['biceps'] },
@@ -152,8 +171,8 @@ export const EXERCISE_LIBRARY: LibExercise[] = [
   { es: 'Cruce de poleas alto-bajo', en: 'High-to-low cable crossover', group: 'chest', pattern: 'isolation', equipment: 'cable', difficulty: 'beginner', secondary: ['shoulders'] },
   { es: 'Cruce de poleas bajo-alto', en: 'Low-to-high cable crossover', group: 'chest', pattern: 'isolation', equipment: 'cable', difficulty: 'beginner', secondary: ['shoulders'] },
   { es: 'Contractor (peck deck)', en: 'Pec deck', group: 'chest', pattern: 'isolation', equipment: 'machine', difficulty: 'beginner', secondary: ['shoulders'] },
-  { es: 'Fondos en paralelas', en: 'Chest dips', group: 'chest', weightMode: 'bodyweight', pattern: 'push', equipment: 'bodyweight', difficulty: 'intermediate', secondary: ['triceps', 'shoulders'] },
-  { es: 'Flexiones', en: 'Push-ups', group: 'chest', weightMode: 'bodyweight', pattern: 'push', equipment: 'bodyweight', difficulty: 'beginner', secondary: ['triceps', 'core'] },
+  { es: 'Fondos en paralelas', en: 'Chest dips', group: 'chest', weightMode: 'bodyweight', pattern: 'push', equipment: 'bodyweight', fighter: true, difficulty: 'intermediate', secondary: ['triceps', 'shoulders'] },
+  { es: 'Flexiones', en: 'Push-ups', group: 'chest', weightMode: 'bodyweight', pattern: 'push', equipment: 'bodyweight', fighter: true, difficulty: 'beginner', secondary: ['triceps', 'core'] },
   { es: 'Pullover con mancuerna', en: 'Dumbbell pullover', group: 'chest', weightMode: 'per_side', pattern: 'isolation', equipment: 'dumbbell', difficulty: 'beginner', secondary: ['back'] },
 
   // ── HOMBRO ──
@@ -239,57 +258,125 @@ export const EXERCISE_LIBRARY: LibExercise[] = [
   { es: 'Tibial anterior', en: 'Tibialis raise', group: 'legs', weightMode: 'bodyweight', pattern: 'isolation', equipment: 'bodyweight', difficulty: 'beginner' },
   { es: 'Abductores', en: 'Hip abduction', group: 'legs', pattern: 'isolation', equipment: 'machine', difficulty: 'beginner' },
   { es: 'Aductores', en: 'Hip adduction', group: 'legs', pattern: 'isolation', equipment: 'machine', difficulty: 'beginner' },
-  { es: 'Paseo del granjero', en: "Farmer's walk", group: 'legs', weightMode: 'per_dumbbell', trackingMode: 'distance', pattern: 'carry', equipment: 'dumbbell', difficulty: 'intermediate', secondary: ['core', 'back'] },
+  { es: 'Paseo del granjero', en: "Farmer's walk", group: 'legs', weightMode: 'per_dumbbell', trackingMode: 'distance', pattern: 'carry', equipment: 'dumbbell', fighter: true, difficulty: 'intermediate', secondary: ['core', 'back'] },
 
   // ── CORE ──
   // Incluye el trabajo antirrotación, rotacional y de acarreo que sostiene el
   // golpeo y el agarre. El cuello va aquí (no hay grupo propio) y solo en su
   // versión isométrica, que es la que no obliga a forzar rango.
-  { es: 'Plancha', en: 'Plank', group: 'core', weightMode: 'bodyweight', trackingMode: 'time', pattern: 'antirotation', equipment: 'bodyweight', difficulty: 'beginner' },
-  { es: 'Plancha lateral', en: 'Side plank', group: 'core', weightMode: 'bodyweight', trackingMode: 'time', pattern: 'antirotation', equipment: 'bodyweight', unilateral: true, difficulty: 'beginner' },
-  { es: 'Hollow hold', en: 'Hollow hold', group: 'core', weightMode: 'bodyweight', trackingMode: 'time', pattern: 'antirotation', equipment: 'bodyweight', difficulty: 'intermediate' },
-  { es: 'Pallof press', en: 'Pallof press', group: 'core', trackingMode: 'time', pattern: 'antirotation', equipment: 'cable', unilateral: true, difficulty: 'intermediate' },
-  { es: 'Chop de arriba abajo', en: 'Cable chop (high to low)', group: 'core', pattern: 'rotation', equipment: 'cable', unilateral: true, difficulty: 'intermediate' },
-  { es: 'Lift de abajo arriba', en: 'Cable lift (low to high)', group: 'core', pattern: 'rotation', equipment: 'cable', unilateral: true, difficulty: 'intermediate' },
-  { es: 'Rotación con polea', en: 'Cable rotation', group: 'core', pattern: 'rotation', equipment: 'cable', unilateral: true, difficulty: 'beginner' },
-  { es: 'Paseo maleta', en: 'Suitcase carry', group: 'core', weightMode: 'per_dumbbell', trackingMode: 'distance', pattern: 'carry', equipment: 'dumbbell', unilateral: true, difficulty: 'beginner', secondary: ['legs'] },
-  { es: 'Isométrico de cuello', en: 'Neck isometric hold', group: 'core', weightMode: 'bodyweight', trackingMode: 'time', pattern: 'antirotation', equipment: 'bodyweight', difficulty: 'beginner' },
+  { es: 'Plancha', en: 'Plank', group: 'core', weightMode: 'bodyweight', trackingMode: 'time', pattern: 'antirotation', equipment: 'bodyweight', fighter: true, difficulty: 'beginner' },
+  { es: 'Plancha lateral', en: 'Side plank', group: 'core', weightMode: 'bodyweight', trackingMode: 'time', pattern: 'antirotation', equipment: 'bodyweight', unilateral: true, fighter: true, difficulty: 'beginner' },
+  { es: 'Hollow hold', en: 'Hollow hold', group: 'core', weightMode: 'bodyweight', trackingMode: 'time', pattern: 'antirotation', equipment: 'bodyweight', fighter: true, difficulty: 'intermediate' },
+  { es: 'Pallof press', en: 'Pallof press', group: 'core', trackingMode: 'time', pattern: 'antirotation', equipment: 'cable', unilateral: true, fighter: true, difficulty: 'intermediate' },
+  { es: 'Chop de arriba abajo', en: 'Cable chop (high to low)', group: 'core', pattern: 'rotation', equipment: 'cable', unilateral: true, fighter: true, difficulty: 'intermediate' },
+  { es: 'Lift de abajo arriba', en: 'Cable lift (low to high)', group: 'core', pattern: 'rotation', equipment: 'cable', unilateral: true, fighter: true, difficulty: 'intermediate' },
+  { es: 'Rotación con polea', en: 'Cable rotation', group: 'core', pattern: 'rotation', equipment: 'cable', unilateral: true, fighter: true, difficulty: 'beginner' },
+  { es: 'Paseo maleta', en: 'Suitcase carry', group: 'core', weightMode: 'per_dumbbell', trackingMode: 'distance', pattern: 'carry', equipment: 'dumbbell', unilateral: true, fighter: true, difficulty: 'beginner', secondary: ['legs'] },
+  { es: 'Isométrico de cuello', en: 'Neck isometric hold', group: 'core', weightMode: 'bodyweight', trackingMode: 'time', pattern: 'antirotation', equipment: 'bodyweight', fighter: true, difficulty: 'beginner' },
   { es: 'Elevación de piernas', en: 'Leg raise', group: 'core', weightMode: 'bodyweight', pattern: 'isolation', equipment: 'bodyweight', difficulty: 'beginner' },
-  { es: 'Elevación de rodillas colgado', en: 'Hanging knee raise', group: 'core', weightMode: 'bodyweight', pattern: 'isolation', equipment: 'bodyweight', difficulty: 'intermediate' },
-  { es: 'Elevación de piernas colgado', en: 'Hanging leg raise', group: 'core', weightMode: 'bodyweight', pattern: 'isolation', equipment: 'bodyweight', difficulty: 'advanced' },
+  { es: 'Elevación de rodillas colgado', en: 'Hanging knee raise', group: 'core', weightMode: 'bodyweight', pattern: 'isolation', equipment: 'bodyweight', fighter: true, difficulty: 'intermediate' },
+  { es: 'Elevación de piernas colgado', en: 'Hanging leg raise', group: 'core', weightMode: 'bodyweight', pattern: 'isolation', equipment: 'bodyweight', fighter: true, difficulty: 'advanced' },
   { es: 'Crunch', en: 'Crunch', group: 'core', weightMode: 'bodyweight', pattern: 'isolation', equipment: 'bodyweight', difficulty: 'beginner' },
   { es: 'Crunch en polea', en: 'Cable crunch', group: 'core', pattern: 'isolation', equipment: 'cable', difficulty: 'beginner' },
   { es: 'Crunch en máquina', en: 'Machine crunch', group: 'core', pattern: 'isolation', equipment: 'machine', difficulty: 'beginner' },
-  { es: 'Rueda abdominal', en: 'Ab wheel', group: 'core', weightMode: 'bodyweight', pattern: 'antirotation', equipment: 'bodyweight', difficulty: 'advanced' },
-  { es: 'Russian twist', en: 'Russian twist', group: 'core', weightMode: 'bodyweight', pattern: 'rotation', equipment: 'bodyweight', difficulty: 'beginner' },
-  { es: 'Mountain climbers', en: 'Mountain climbers', group: 'core', weightMode: 'bodyweight', pattern: 'isolation', equipment: 'bodyweight', difficulty: 'beginner' },
+  { es: 'Rueda abdominal', en: 'Ab wheel', group: 'core', weightMode: 'bodyweight', pattern: 'antirotation', equipment: 'bodyweight', fighter: true, difficulty: 'advanced' },
+  { es: 'Russian twist', en: 'Russian twist', group: 'core', weightMode: 'bodyweight', pattern: 'rotation', equipment: 'bodyweight', fighter: true, difficulty: 'beginner' },
+  { es: 'Mountain climbers', en: 'Mountain climbers', group: 'core', weightMode: 'bodyweight', pattern: 'isolation', equipment: 'bodyweight', fighter: true, difficulty: 'beginner' },
 
   // ── POTENCIA ──
   { es: 'Cargada de fuerza', en: 'Power clean', group: 'power', bar: true, pattern: 'hinge', equipment: 'barbell', difficulty: 'advanced', secondary: ['legs', 'back'] },
   { es: 'Push press', en: 'Push press', group: 'power', bar: true, pattern: 'push', equipment: 'barbell', difficulty: 'intermediate', secondary: ['legs', 'shoulders'] },
   { es: 'Tirón de cargada', en: 'Clean pull', group: 'power', bar: true, pattern: 'hinge', equipment: 'barbell', difficulty: 'advanced', secondary: ['back', 'legs'] },
-  { es: 'Balanceo con kettlebell', en: 'Kettlebell swing', group: 'power', weightMode: 'per_dumbbell', pattern: 'hinge', equipment: 'kettlebell', difficulty: 'intermediate', secondary: ['legs', 'core'] },
-  { es: 'Salto al cajón', en: 'Box jump', group: 'power', weightMode: 'bodyweight', pattern: 'jump', equipment: 'bodyweight', difficulty: 'beginner', secondary: ['legs'] },
-  { es: 'Sentadilla con salto', en: 'Jump squat', group: 'power', weightMode: 'bodyweight', pattern: 'jump', equipment: 'bodyweight', difficulty: 'intermediate', secondary: ['legs'] },
-  { es: 'Zancada con salto', en: 'Jumping lunge', group: 'power', weightMode: 'bodyweight', pattern: 'jump', equipment: 'bodyweight', unilateral: true, difficulty: 'intermediate', secondary: ['legs'] },
-  { es: 'Salto lateral', en: 'Lateral bound', group: 'power', weightMode: 'bodyweight', pattern: 'jump', equipment: 'bodyweight', unilateral: true, difficulty: 'intermediate', secondary: ['legs', 'core'] },
-  { es: 'Salto horizontal', en: 'Broad jump', group: 'power', weightMode: 'bodyweight', pattern: 'jump', equipment: 'bodyweight', difficulty: 'intermediate', secondary: ['legs'] },
-  { es: 'Golpe de balón medicinal', en: 'Medicine ball slam', group: 'power', weightMode: 'bodyweight', pattern: 'rotation', equipment: 'ball', difficulty: 'beginner', secondary: ['core'] },
-  { es: 'Lanzamiento de balón medicinal', en: 'Medicine ball throw', group: 'power', weightMode: 'bodyweight', pattern: 'rotation', equipment: 'ball', difficulty: 'beginner', secondary: ['core'] },
-  { es: 'Lanzamiento rotacional con balón', en: 'Rotational med ball throw', group: 'power', weightMode: 'bodyweight', pattern: 'rotation', equipment: 'ball', unilateral: true, difficulty: 'intermediate', secondary: ['core'] },
-  { es: 'Empuje de trineo', en: 'Sled push', group: 'power', trackingMode: 'distance', pattern: 'carry', equipment: 'sled', difficulty: 'intermediate', secondary: ['legs', 'core'] },
-  { es: 'Arrastre de trineo', en: 'Sled pull', group: 'power', trackingMode: 'distance', pattern: 'carry', equipment: 'sled', difficulty: 'intermediate', secondary: ['legs', 'back'] },
+  { es: 'Balanceo con kettlebell', en: 'Kettlebell swing', group: 'power', weightMode: 'per_dumbbell', pattern: 'hinge', equipment: 'kettlebell', fighter: true, difficulty: 'intermediate', secondary: ['legs', 'core'] },
+  { es: 'Salto al cajón', en: 'Box jump', group: 'power', weightMode: 'bodyweight', pattern: 'jump', equipment: 'bodyweight', fighter: true, difficulty: 'beginner', secondary: ['legs'] },
+  { es: 'Sentadilla con salto', en: 'Jump squat', group: 'power', weightMode: 'bodyweight', pattern: 'jump', equipment: 'bodyweight', fighter: true, difficulty: 'intermediate', secondary: ['legs'] },
+  { es: 'Zancada con salto', en: 'Jumping lunge', group: 'power', weightMode: 'bodyweight', pattern: 'jump', equipment: 'bodyweight', unilateral: true, fighter: true, difficulty: 'intermediate', secondary: ['legs'] },
+  { es: 'Salto lateral', en: 'Lateral bound', group: 'power', weightMode: 'bodyweight', pattern: 'jump', equipment: 'bodyweight', unilateral: true, fighter: true, difficulty: 'intermediate', secondary: ['legs', 'core'] },
+  { es: 'Salto horizontal', en: 'Broad jump', group: 'power', weightMode: 'bodyweight', pattern: 'jump', equipment: 'bodyweight', fighter: true, difficulty: 'intermediate', secondary: ['legs'] },
+  { es: 'Golpe de balón medicinal', en: 'Medicine ball slam', group: 'power', weightMode: 'bodyweight', pattern: 'rotation', equipment: 'ball', fighter: true, difficulty: 'beginner', secondary: ['core'] },
+  { es: 'Lanzamiento de balón medicinal', en: 'Medicine ball throw', group: 'power', weightMode: 'bodyweight', pattern: 'rotation', equipment: 'ball', fighter: true, difficulty: 'beginner', secondary: ['core'] },
+  { es: 'Lanzamiento rotacional con balón', en: 'Rotational med ball throw', group: 'power', weightMode: 'bodyweight', pattern: 'rotation', equipment: 'ball', unilateral: true, fighter: true, difficulty: 'intermediate', secondary: ['core'] },
+  { es: 'Empuje de trineo', en: 'Sled push', group: 'power', trackingMode: 'distance', pattern: 'carry', equipment: 'sled', fighter: true, difficulty: 'intermediate', secondary: ['legs', 'core'] },
+  { es: 'Arrastre de trineo', en: 'Sled pull', group: 'power', trackingMode: 'distance', pattern: 'carry', equipment: 'sled', fighter: true, difficulty: 'intermediate', secondary: ['legs', 'back'] },
 
   // ── FULL BODY ──
   { es: 'Thruster', en: 'Thruster', group: 'full_body', bar: true, pattern: 'squat', equipment: 'barbell', difficulty: 'intermediate', secondary: ['shoulders', 'legs'] },
-  { es: 'Burpee', en: 'Burpee', group: 'full_body', weightMode: 'bodyweight', pattern: 'jump', equipment: 'bodyweight', difficulty: 'beginner', secondary: ['chest', 'legs'] },
+  { es: 'Burpee', en: 'Burpee', group: 'full_body', weightMode: 'bodyweight', pattern: 'jump', equipment: 'bodyweight', fighter: true, difficulty: 'beginner', secondary: ['chest', 'legs'] },
   { es: 'Cargada y press', en: 'Clean and press', group: 'full_body', bar: true, pattern: 'hinge', equipment: 'barbell', difficulty: 'advanced', secondary: ['shoulders', 'legs'] },
   { es: 'Arrancada', en: 'Snatch', group: 'full_body', bar: true, pattern: 'hinge', equipment: 'barbell', difficulty: 'advanced', secondary: ['shoulders', 'legs'] },
   { es: 'Man maker', en: 'Man maker', group: 'full_body', weightMode: 'per_side', pattern: 'push', equipment: 'dumbbell', difficulty: 'advanced', secondary: ['back', 'chest'] },
   { es: 'Wall ball', en: 'Wall ball', group: 'full_body', weightMode: 'total', pattern: 'squat', equipment: 'ball', difficulty: 'beginner', secondary: ['shoulders', 'legs'] },
-  { es: 'Levantada turca', en: 'Turkish get-up', group: 'full_body', weightMode: 'per_side', pattern: 'carry', equipment: 'kettlebell', unilateral: true, difficulty: 'advanced', secondary: ['core', 'shoulders'] },
+  { es: 'Levantada turca', en: 'Turkish get-up', group: 'full_body', weightMode: 'per_side', pattern: 'carry', equipment: 'kettlebell', unilateral: true, fighter: true, difficulty: 'advanced', secondary: ['core', 'shoulders'] },
   { es: 'Devil press', en: 'Devil press', group: 'full_body', weightMode: 'per_side', pattern: 'hinge', equipment: 'dumbbell', difficulty: 'advanced', secondary: ['shoulders', 'chest'] },
   { es: 'Peso muerto con remo', en: 'Renegade row', group: 'full_body', weightMode: 'per_side', pattern: 'pull', equipment: 'dumbbell', unilateral: true, difficulty: 'advanced', secondary: ['core', 'back'] },
+
+  // ══════════════════════════════════════════════════════════════
+  // REPERTORIO DE PELEADOR
+  //
+  // Lo que se entrena en un gimnasio de combate o en un campamento: una barra
+  // de dominadas, el suelo, unas cuerdas, un neumático y poco más. Mucha gente
+  // que compite no pisa una sala de máquinas, y hasta ahora la biblioteca
+  // estaba escrita para quien sí.
+  //
+  // Va DENTRO de la misma lista, con los mismos metadatos y marcado con
+  // `fighter: true`, no en un catálogo aparte. Así funciona igual en el
+  // registro, en el dictado por voz, en las rutinas preescritas y en el
+  // planificador — y no hay dos listas que mantener en paralelo.
+  // ══════════════════════════════════════════════════════════════
+
+  // ── Barra de dominadas y tracción con el propio peso ──
+  { es: 'Dominadas supinas', en: 'Chin-ups', group: 'back', weightMode: 'bodyweight', pattern: 'pull', equipment: 'bodyweight', fighter: true, difficulty: 'intermediate', secondary: ['biceps', 'core'] },
+  { es: 'Dominadas agarre ancho', en: 'Wide-grip pull-ups', group: 'back', weightMode: 'bodyweight', pattern: 'pull', equipment: 'bodyweight', fighter: true, difficulty: 'advanced', secondary: ['biceps'] },
+  { es: 'Dominadas agarre neutro', en: 'Neutral-grip pull-ups', group: 'back', weightMode: 'bodyweight', pattern: 'pull', equipment: 'bodyweight', fighter: true, difficulty: 'intermediate', secondary: ['biceps'] },
+  { es: 'Dominadas en toalla', en: 'Towel pull-ups', group: 'back', weightMode: 'bodyweight', pattern: 'pull', equipment: 'bodyweight', fighter: true, difficulty: 'advanced', secondary: ['biceps', 'core'] },
+  { es: 'Remo australiano', en: 'Inverted row', group: 'back', weightMode: 'bodyweight', pattern: 'pull', equipment: 'bodyweight', fighter: true, difficulty: 'beginner', secondary: ['biceps', 'core'] },
+  { es: 'Trepa de cuerda', en: 'Rope climb', group: 'back', weightMode: 'bodyweight', pattern: 'pull', equipment: 'rope', fighter: true, difficulty: 'advanced', secondary: ['biceps', 'core'] },
+  { es: 'Colgarse de la barra', en: 'Dead hang', group: 'back', weightMode: 'bodyweight', trackingMode: 'time', pattern: 'pull', equipment: 'bodyweight', fighter: true, difficulty: 'beginner', secondary: ['core'] },
+
+  // ── Empuje con el propio peso ──
+  { es: 'Flexiones hindúes', en: 'Hindu push-ups', group: 'chest', weightMode: 'bodyweight', pattern: 'push', equipment: 'bodyweight', fighter: true, difficulty: 'intermediate', secondary: ['shoulders', 'triceps'] },
+  { es: 'Flexiones con pies elevados', en: 'Feet-elevated push-ups', group: 'chest', weightMode: 'bodyweight', pattern: 'push', equipment: 'bodyweight', fighter: true, difficulty: 'intermediate', secondary: ['shoulders', 'triceps'] },
+  { es: 'Flexiones diamante', en: 'Diamond push-ups', group: 'triceps', weightMode: 'bodyweight', pattern: 'push', equipment: 'bodyweight', fighter: true, difficulty: 'intermediate', secondary: ['chest', 'shoulders'] },
+  { es: 'Flexiones en pica', en: 'Pike push-ups', group: 'shoulders', weightMode: 'bodyweight', pattern: 'push', equipment: 'bodyweight', fighter: true, difficulty: 'intermediate', secondary: ['triceps', 'core'] },
+  { es: 'Flexiones en vertical', en: 'Handstand push-ups', group: 'shoulders', weightMode: 'bodyweight', pattern: 'push', equipment: 'bodyweight', fighter: true, difficulty: 'advanced', secondary: ['triceps', 'core'] },
+
+  // ── Hombro de asalto: sostener la guardia arriba hasta el final ──
+  { es: 'Sombra con mancuernas', en: 'Shadow boxing with dumbbells', group: 'shoulders', weightMode: 'per_dumbbell', trackingMode: 'time', pattern: 'push', equipment: 'dumbbell', fighter: true, difficulty: 'beginner', secondary: ['core'] },
+  { es: 'Círculos con cuerdas', en: 'Battle rope circles', group: 'shoulders', weightMode: 'bodyweight', trackingMode: 'time', pattern: 'rotation', equipment: 'rope', fighter: true, difficulty: 'intermediate', secondary: ['core'] },
+
+  // ── Pierna sin máquinas ──
+  { es: 'Sentadilla hindú', en: 'Hindu squat', group: 'legs', weightMode: 'bodyweight', pattern: 'squat', equipment: 'bodyweight', fighter: true, difficulty: 'beginner', secondary: ['core'] },
+  { es: 'Sentadilla a una pierna', en: 'Pistol squat', group: 'legs', weightMode: 'bodyweight', pattern: 'squat', equipment: 'bodyweight', unilateral: true, fighter: true, difficulty: 'advanced', secondary: ['core'] },
+  { es: 'Sentadilla isométrica en pared', en: 'Wall sit', group: 'legs', weightMode: 'bodyweight', trackingMode: 'time', pattern: 'squat', equipment: 'bodyweight', fighter: true, difficulty: 'beginner' },
+  { es: 'Andar en cuclillas', en: 'Duck walk', group: 'legs', weightMode: 'bodyweight', trackingMode: 'distance', pattern: 'squat', equipment: 'bodyweight', fighter: true, difficulty: 'intermediate', secondary: ['core'] },
+  { es: 'Saltos de rana', en: 'Frog jumps', group: 'legs', weightMode: 'bodyweight', pattern: 'jump', equipment: 'bodyweight', fighter: true, difficulty: 'intermediate', secondary: ['core'] },
+
+  // ── Core que aguanta el impacto y gira ──
+  { es: 'Limpiaparabrisas', en: 'Windshield wipers', group: 'core', weightMode: 'bodyweight', pattern: 'rotation', equipment: 'bodyweight', fighter: true, difficulty: 'advanced', secondary: ['back'] },
+  { es: 'Abdominales en V', en: 'V-ups', group: 'core', weightMode: 'bodyweight', pattern: 'isolation', equipment: 'bodyweight', fighter: true, difficulty: 'intermediate' },
+  { es: 'Plancha con toque de hombro', en: 'Shoulder tap plank', group: 'core', weightMode: 'bodyweight', trackingMode: 'time', pattern: 'antirotation', equipment: 'bodyweight', fighter: true, difficulty: 'beginner', secondary: ['shoulders'] },
+  { es: 'Bicho muerto', en: 'Dead bug', group: 'core', weightMode: 'bodyweight', pattern: 'antirotation', equipment: 'bodyweight', fighter: true, difficulty: 'beginner' },
+  { es: 'Perro-pájaro', en: 'Bird dog', group: 'core', weightMode: 'bodyweight', pattern: 'antirotation', equipment: 'bodyweight', unilateral: true, fighter: true, difficulty: 'beginner', secondary: ['back'] },
+  { es: 'Rotación en landmine', en: 'Landmine rotation', group: 'core', pattern: 'rotation', equipment: 'barbell', fighter: true, difficulty: 'intermediate', secondary: ['shoulders'] },
+  { es: 'Sit-up con balón medicinal', en: 'Med ball sit-up throw', group: 'core', pattern: 'isolation', equipment: 'ball', fighter: true, difficulty: 'intermediate', secondary: ['shoulders'] },
+  { es: 'Isométrico lateral de cuello', en: 'Lateral neck isometric', group: 'core', weightMode: 'bodyweight', trackingMode: 'time', pattern: 'antirotation', equipment: 'bodyweight', unilateral: true, fighter: true, difficulty: 'beginner' },
+  { es: 'Cuello con banda', en: 'Banded neck work', group: 'core', trackingMode: 'time', pattern: 'antirotation', equipment: 'band', fighter: true, difficulty: 'intermediate' },
+  { es: 'Puente de lucha', en: "Wrestler's bridge", group: 'core', weightMode: 'bodyweight', trackingMode: 'time', pattern: 'antirotation', equipment: 'bodyweight', fighter: true, difficulty: 'advanced', secondary: ['back'] },
+
+  // ── Potencia y golpeo ──
+  { es: 'Flexión pliométrica', en: 'Plyo push-up', group: 'power', weightMode: 'bodyweight', pattern: 'jump', equipment: 'bodyweight', fighter: true, difficulty: 'intermediate', secondary: ['chest', 'triceps'] },
+  { es: 'Flexiones con palmada', en: 'Clapping push-ups', group: 'power', weightMode: 'bodyweight', pattern: 'jump', equipment: 'bodyweight', fighter: true, difficulty: 'advanced', secondary: ['chest', 'triceps'] },
+  { es: 'Salto en profundidad', en: 'Depth jump', group: 'power', weightMode: 'bodyweight', pattern: 'jump', equipment: 'bodyweight', fighter: true, difficulty: 'advanced', secondary: ['legs'] },
+  { es: 'Mazo sobre neumático', en: 'Sledgehammer strikes', group: 'power', trackingMode: 'time', pattern: 'rotation', equipment: 'odd', unilateral: true, fighter: true, difficulty: 'intermediate', secondary: ['core', 'back'] },
+  { es: 'Volteo de neumático', en: 'Tyre flip', group: 'power', pattern: 'hinge', equipment: 'odd', fighter: true, difficulty: 'advanced', secondary: ['legs', 'back'] },
+  { es: 'Olas alternas con cuerdas', en: 'Alternating rope waves', group: 'power', weightMode: 'bodyweight', trackingMode: 'time', pattern: 'push', equipment: 'rope', fighter: true, difficulty: 'beginner', secondary: ['shoulders', 'core'] },
+  { es: 'Olas dobles con cuerdas', en: 'Double rope waves', group: 'power', weightMode: 'bodyweight', trackingMode: 'time', pattern: 'push', equipment: 'rope', fighter: true, difficulty: 'intermediate', secondary: ['shoulders', 'core'] },
+  { es: 'Latigazo con cuerdas', en: 'Rope slams', group: 'power', weightMode: 'bodyweight', trackingMode: 'time', pattern: 'hinge', equipment: 'rope', fighter: true, difficulty: 'intermediate', secondary: ['core', 'back'] },
+  { es: 'Golpeo con banda', en: 'Banded punch', group: 'power', trackingMode: 'time', pattern: 'rotation', equipment: 'band', unilateral: true, fighter: true, difficulty: 'beginner', secondary: ['chest', 'core'] },
+
+  // ── Suelo y desplazamiento ──
+  { es: 'Oso caminando', en: 'Bear crawl', group: 'full_body', weightMode: 'bodyweight', trackingMode: 'distance', pattern: 'carry', equipment: 'bodyweight', fighter: true, difficulty: 'beginner', secondary: ['core', 'shoulders'] },
+  { es: 'Sprawl', en: 'Sprawl', group: 'full_body', weightMode: 'bodyweight', pattern: 'jump', equipment: 'bodyweight', fighter: true, difficulty: 'beginner', secondary: ['core', 'legs'] },
 ];
 
 type Lang = 'es' | 'en';
@@ -419,6 +506,8 @@ export interface ExerciseFilter {
   focus?: string | 'all';
   /** true = solo unilaterales. undefined/false = no filtra. */
   unilateralOnly?: boolean;
+  /** true = solo repertorio de peleador. undefined/false = no filtra. */
+  fighterOnly?: boolean;
   difficulty?: Difficulty | 'all';
   /** Texto libre; casa contra el nombre en ES y EN, con o sin tildes. */
   query?: string;
@@ -438,9 +527,20 @@ export function filterExercises(f: ExerciseFilter): LibExercise[] {
     if (f.focus && f.focus !== 'all' && FOCUS[e.en.toLowerCase()] !== f.focus) return false;
     if (f.difficulty && f.difficulty !== 'all' && e.difficulty !== f.difficulty) return false;
     if (f.unilateralOnly && !e.unilateral) return false;
+    if (f.fighterOnly && !e.fighter) return false;
     if (needle && !normNoAccent(e.es).includes(needle) && !normNoAccent(e.en).includes(needle)) return false;
     return true;
   });
+}
+
+/** ¿Este ejercicio es del repertorio de peleador? */
+export function isFighterExercise(nameOrKey: string): boolean {
+  return libExerciseOf(nameOrKey)?.fighter === true;
+}
+
+/** Cuántos ejercicios del repertorio de peleador hay. Para el contador del filtro. */
+export function fighterExerciseCount(): number {
+  return EXERCISE_LIBRARY.filter((e) => e.fighter).length;
 }
 
 /** Materiales presentes en la biblioteca (para no pintar filtros vacíos). */
@@ -638,6 +738,38 @@ const FOCUS: Record<string, ExerciseFocus> = {
   'machine crunch': 'flexion',
   'mountain climbers': 'flexion',
   'suitcase carry': 'carry',
+
+  // ── REPERTORIO DE PELEADOR ──
+  // Se clasifica igual que el resto: la zona no depende de dónde entrenes.
+  'chin-ups': 'vertical_pull',
+  'wide-grip pull-ups': 'vertical_pull',
+  'neutral-grip pull-ups': 'vertical_pull',
+  'towel pull-ups': 'vertical_pull',
+  'rope climb': 'vertical_pull',
+  'dead hang': 'vertical_pull',
+  'inverted row': 'horizontal_pull',
+  'hindu push-ups': 'chest_mid',
+  'feet-elevated push-ups': 'chest_upper',
+  'diamond push-ups': 'tri_compound',
+  'pike push-ups': 'delt_front',
+  'handstand push-ups': 'delt_front',
+  'shadow boxing with dumbbells': 'delt_side',
+  'battle rope circles': 'delt_side',
+  'hindu squat': 'quad',
+  'pistol squat': 'quad',
+  'wall sit': 'quad',
+  'duck walk': 'quad',
+  'frog jumps': 'quad',
+  'windshield wipers': 'rotation',
+  'v-ups': 'flexion',
+  'shoulder tap plank': 'anti_rotation',
+  'dead bug': 'anti_extension',
+  'bird dog': 'anti_rotation',
+  'landmine rotation': 'rotation',
+  'med ball sit-up throw': 'flexion',
+  'lateral neck isometric': 'anti_rotation',
+  'banded neck work': 'anti_rotation',
+  "wrestler's bridge": 'anti_extension',
 };
 
 /** Zona del ejercicio, o null si no está clasificado. */

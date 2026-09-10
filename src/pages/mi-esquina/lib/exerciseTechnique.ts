@@ -21,6 +21,7 @@
 // antiguo) y el nombre en inglés.
 
 import { EXERCISE_LIBRARY, type Equipment, type MovementPattern, type MuscleGroup } from './exercises';
+import { FICHAS_FIGHTER } from './exerciseTechniqueFighter';
 
 type Lang = 'es' | 'en';
 
@@ -40,7 +41,11 @@ const f = (tEs: string[], tEn: string[], mEs: string[], mEn: string[]): FichaRaw
 
 // ── DICCIONARIO DE FICHAS ──
 // Clave: nombre en inglés en minúsculas (coincide con EXERCISE_LIBRARY[i].en).
-const FICHAS: Record<string, FichaRaw> = {
+//
+// Las fichas del REPERTORIO DE PELEADOR viven en `exerciseTechniqueFighter.ts`
+// y se fusionan más abajo: son cuarenta más y aquí dentro habrían hecho el
+// archivo irrevisable. Para el resto de la app no hay diferencia.
+const FICHAS_BASE: Record<string, FichaRaw> = {
   // ══ ESPALDA ══
   'pull-ups': f(
     ['Cuélgate de la barra con las manos algo más abiertas que los hombros y los brazos estirados', 'Activa los hombros hacia abajo antes de tirar: hunde las escápulas, no te quedes colgado muerto', 'Tira llevando los codos hacia el suelo hasta que la barbilla pase la barra', 'Baja despacio hasta estirar del todo, sin soltarte de golpe'],
@@ -1046,6 +1051,15 @@ const FICHAS: Record<string, FichaRaw> = {
     ['Rotating the hips on every row', 'Feet too close together and losing stability', 'Round dumbbells that roll under the hand'],
   ),
 };
+
+/**
+ * El diccionario completo: gimnasio convencional + repertorio de peleador.
+ *
+ * Si algún día una clave coincidiera, mandaría la del peleador. Hoy no ocurre
+ * (los nombres son distintos) y `techniqueCoverage()` avisaría de cualquier
+ * hueco antes de que lo notara nadie.
+ */
+const FICHAS: Record<string, FichaRaw> = { ...FICHAS_BASE, ...FICHAS_FIGHTER };
 
 // ── Resolución de nombres ──
 

@@ -20,7 +20,7 @@ import AgendaHub from '@/pages/mi-esquina/components/AgendaHub';
 import WeightTracker from '@/pages/mi-esquina/components/WeightTracker';
 import FuerzaSection from '@/pages/mi-esquina/components/FuerzaSection';
 import FighterTraining from '@/pages/mi-esquina/components/FighterTraining';
-import ObjectiveWizard from '@/pages/mi-esquina/components/ObjectiveWizard';
+import AsesorHub from '@/pages/mi-esquina/components/AsesorHub';
 import RingHub from '@/pages/mi-esquina/components/RingHub';
 import { GearReplacementAlert } from '@/pages/mi-esquina/components/GearChecklist';
 import GymLink from '@/pages/mi-esquina/components/GymLink';
@@ -115,6 +115,9 @@ export default function MiEsquinaPage() {
   const [pendingTab, setPendingTab] = useState<string | undefined>(undefined);
   // Día concreto para Progreso › Actividad (llega del "+" o de un día del calendario).
   const [pendingDate, setPendingDate] = useState<string | undefined>(undefined);
+  // Tipo de actividad ya elegido: lo manda quien viene a resolver un bloque
+  // planificado ("hoy toca correr") para no obligar a repetir la selección.
+  const [pendingKind, setPendingKind] = useState<string | undefined>(undefined);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [stats, setStats] = useState({
@@ -264,9 +267,10 @@ export default function MiEsquinaPage() {
     SECTIONS.some((s) => s.id === resolved) || EXTRA_SECTIONS.includes(resolved) ? resolved : 'resumen';
 
   // Navega a una sección y, opcionalmente, abre un hub en una pestaña concreta
-  // (y, para Actividad, con un día ya puesto).
-  const go = (s: Section, tab?: string, date?: string) => {
-    setPendingTab(tab); setPendingDate(date); setSection(SECTION_ALIAS[s] ?? s);
+  // (y, para Actividad, con un día y un tipo ya puestos).
+  const go = (s: Section, tab?: string, date?: string, kind?: string) => {
+    setPendingTab(tab); setPendingDate(date); setPendingKind(kind);
+    setSection(SECTION_ALIAS[s] ?? s);
   };
 
   return (
@@ -471,11 +475,12 @@ export default function MiEsquinaPage() {
 
               {/* HOY / tu siguiente acción — el elemento principal, con su CTA */}
               <Reveal delay={80}>
-                <TodayCard profile={profile} mode={mode}
+                <TodayCard profile={profile} mode={mode} refreshKey={refreshKey}
                   onStart={() => go('agenda', 'plan')}
-                  onCreatePlan={() => go('asesor')}
+                  onCreatePlan={() => go('asesor', 'plan')}
                   onLogWeight={() => go('peso')}
-                  onLogToday={() => go('actividad', undefined, todayISO())} />
+                  onGoStrength={() => go('fuerza', 'registrar')}
+                  onLogToday={(kind) => go('actividad', undefined, todayISO(), kind)} />
               </Reveal>
 
               {/* Métricas 2×2 — a la vista, no detrás de un desplegable */}
@@ -486,7 +491,7 @@ export default function MiEsquinaPage() {
 
               {/* Plan activo */}
               <Reveal delay={200}>
-                <SummaryAiLine profile={profile} onOpen={() => go('asesor')} />
+                <SummaryAiLine profile={profile} onOpen={() => go('asesor', 'plan')} />
               </Reveal>
 
               {/* Próxima pelea (PRO; el componente devuelve null si no hay combate) */}
@@ -499,10 +504,10 @@ export default function MiEsquinaPage() {
               {/* Ruta de activación (solo primer uso) + gimnasio */}
               <div className="rk-stack">
                 <ActivationSteps profile={profile} totalSessions={stats.total} showToast={showToast}
-                  onDefineGoal={() => go('asesor')}
+                  onDefineGoal={() => go('asesor', 'plan')}
                   onLogFirst={() => go('actividad', undefined, todayISO())}
                   onGoPlanificar={() => go('agenda', 'planificar')}
-                  onGoAsesor={() => go('asesor')} />
+                  onGoAsesor={() => go('asesor', 'plan')} />
                 <GymLink profile={profile} showToast={showToast} />
               </div>
 
@@ -522,7 +527,8 @@ export default function MiEsquinaPage() {
           {activeSection === 'agenda' && (
             <AgendaHub profile={profile} showToast={showToast} mode={mode}
               onLogged={() => setRefreshKey((k) => k + 1)} initialTab={pendingTab}
-              onGoActivity={(date) => go('actividad', undefined, date)} />
+              onGoStrength={(date) => go('fuerza', 'registrar', date)}
+              onGoActivity={(date, kind) => go('actividad', undefined, date, kind)} />
           )}
 
           {/* Peso — sin patrón de dos niveles (se mantiene tal cual) */}
@@ -532,18 +538,26 @@ export default function MiEsquinaPage() {
 
           {/* Fuerza — resumen (nivel 1) → pantalla de trabajo (nivel 2) */}
           {activeSection === 'fuerza' && (
-            <FuerzaSection profile={profile} showToast={showToast} onGoAsesor={() => go('asesor')} />
+            <FuerzaSection profile={profile} showToast={showToast} onGoAsesor={() => go('asesor', 'plan')}
+              initialTab={pendingTab} initialDate={pendingDate}
+              onLogged={() => setRefreshKey((k) => k + 1)} />
           )}
 
           {/* Actividad — sin patrón de dos niveles (se mantiene tal cual) */}
           {activeSection === 'actividad' && (
-            <FighterTraining profile={profile} showToast={showToast} initialDate={pendingDate} />
+            <FighterTraining profile={profile} showToast={showToast} initialDate={pendingDate}
+              initialKind={pendingKind} refreshKey={refreshKey}
+              onLogged={() => setRefreshKey((k) => k + 1)}
+              onGoAgenda={() => go('agenda', 'plan')} />
           )}
 
-          {/* Asesor — antes "Progreso › Objetivos" */}
+          {/* Asesor — Consulta abierta (punto 18) + Plan por objetivo.
+              `pendingTab` permite que quien viene a por el plan entre
+              directamente en esa pestaña sin pasar por la consulta. */}
           {activeSection === 'asesor' && (
-            <ObjectiveWizard profile={profile} showToast={showToast}
-              onGoPlan={() => go('agenda', 'planificar')} />
+            <AsesorHub profile={profile} showToast={showToast} initialTab={pendingTab}
+              onGoPlan={() => go('agenda', 'planificar')}
+              onGoAgenda={() => go('agenda', 'plan')} />
           )}
 
           {/* Ring: sparring + combates + notas técnicas (R12-T0, solo competición) */}

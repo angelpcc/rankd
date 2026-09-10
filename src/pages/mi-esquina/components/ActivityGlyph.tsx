@@ -34,6 +34,20 @@ function Glyph({ kind }: { kind: string }) {
           <path d="M18 14l-6 2M18 14l6 4" {...common} />
         </>
       );
+    // Cinta: la misma zancada, pero sobre la banda y la consola de la máquina.
+    // Se distingue de "correr" por lo que hay DEBAJO, que es justo la
+    // diferencia real entre las dos.
+    case 'cinta':
+      return (
+        <>
+          <circle cx="17" cy="6" r="2.5" {...common} />
+          <path d="M15.5 10.5l-2.5 5 3.5 2.5 1 4.5" {...common} />
+          <path d="M16.5 18l-4 4" {...common} />
+          <path d="M15.5 12.5l-4 1.5M15.5 12.5l4.5 3" {...common} />
+          <path d="M4 27h22l3-9" {...common} />
+          <path d="M26 27l3-9" {...common} opacity="0.6" />
+        </>
+      );
     // Guante de boxeo: puño con el pulgar y la muñequera.
     case 'boxeo':
       return (
@@ -53,6 +67,29 @@ function Glyph({ kind }: { kind: string }) {
           <path d="M8 22l6-10h6l4 10" {...common} />
           <path d="M14 12h5" {...common} />
           <path d="M12 22h6" {...common} />
+        </>
+      );
+    // Elíptica: los dos brazos largos y el arco que describen los pedales.
+    case 'eliptica':
+      return (
+        <>
+          <circle cx="16" cy="6" r="2.5" {...common} />
+          <path d="M8 8l8 4 8-4" {...common} />
+          <path d="M16 12v6" {...common} />
+          <path d="M16 18l-6 6M16 18l6 6" {...common} />
+          <path d="M4 26c4 3 20 3 24 0" {...common} opacity="0.6" />
+        </>
+      );
+    // Remo: el remero flexionado y la pala tocando el agua.
+    case 'remo':
+      return (
+        <>
+          <circle cx="12" cy="8" r="2.5" {...common} />
+          <path d="M11 11l-2 6h6" {...common} />
+          <path d="M15 17l4 4" {...common} />
+          <path d="M10 13l10 3" {...common} />
+          <path d="M22 14l6 3" {...common} />
+          <path d="M3 26c3-2 6-2 9 0s6 2 9 0 6-2 9 0" {...common} opacity="0.6" />
         </>
       );
     // Natación: brazada por encima del agua + dos crestas de ola.

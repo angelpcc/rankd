@@ -4,6 +4,7 @@ import { supabase, type Profile } from '@/lib/supabase';
 import { isMissingTable, isMissingColumn } from '@/lib/dbState';
 import { MUSCLE_GROUPS, muscleGroupOf, type MuscleGroup } from '../lib/exercises';
 import { exerciseLines, type StrengthPayload } from '../lib/dayPlan';
+import { loadTodayTraining, type TodayTraining } from '../lib/todayTraining';
 import MuscleMap, { type MapGroup, type TrainState } from './MuscleMap';
 import Reveal from '@/components/base/Reveal';
 import { SkeletonBox, SkeletonList } from '@/components/base/Skeleton';
@@ -16,6 +17,11 @@ interface Props {
   profile: Profile;
   onEnter: (tab?: string) => void;
   onGoAsesor: () => void;
+  /**
+   * Sube al registrar o borrar una sesión. Fuerza a releer el día: lo que se
+   * acaba de entrenar tiene que dejar de salir como pendiente al momento.
+   */
+  refreshKey?: number;
 }
 
 type GroupKey = MuscleGroup | 'other';
@@ -29,12 +35,14 @@ function iso(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export default function StrengthSummary({ profile, onEnter, onGoAsesor }: Props) {
+export default function StrengthSummary({ profile, onEnter, onGoAsesor, refreshKey = 0 }: Props) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
 
   const [rows, setRows] = useState<Row[]>([]);
-  const [today, setToday] = useState<StrengthPayload[] | null>(null);
+  // Pendiente y hecho vienen ya separados por la regla compartida: aquí no se
+  // vuelve a decidir qué cuenta como pendiente (ver lib/todayTraining.ts).
+  const [today, setToday] = useState<TodayTraining | null>(null);
   const [hasPlan, setHasPlan] = useState(false);
   const [loading, setLoading] = useState(true);
   const [unavailable, setUnavailable] = useState(false);
@@ -47,10 +55,9 @@ export default function StrengthSummary({ profile, onEnter, onGoAsesor }: Props)
       // sin ella: entonces no hay dropsets guardados y nada que descontar.
       const setsQuery = (cols: string) => supabase.from('strength_sets').select(cols)
         .eq('fighter_profile_id', profile.id).order('session_date', { ascending: false }).limit(1200);
-      const [setsFirst, planRes, activeRes] = await Promise.all([
+      const [setsFirst, todayRes, activeRes] = await Promise.all([
         setsQuery('session_date, muscle_group, exercise_label, drop_step'),
-        supabase.from('day_plan_items').select('payload')
-          .eq('fighter_profile_id', profile.id).eq('kind', 'strength').eq('plan_date', todayI),
+        loadTodayTraining(profile.id, ['strength'], todayI),
         supabase.from('objective_plans').select('id')
           .eq('fighter_profile_id', profile.id).eq('status', 'active').limit(1).maybeSingle(),
       ]);
@@ -62,16 +69,12 @@ export default function StrengthSummary({ profile, onEnter, onGoAsesor }: Props)
       // Las bajadas de una serie descendente no son series: se descartan aquí
       // una sola vez, así ni el volumen semanal ni el recuento las cuentan.
       setRows(((setsRes.data || []) as unknown as Row[]).filter((r) => !r.drop_step || r.drop_step === 1));
-      if (!isMissingTable(planRes.error)) {
-        setToday(((planRes.data || []) as { payload: StrengthPayload }[]).map((r) => r.payload));
-      } else {
-        setToday([]);
-      }
+      setToday(todayRes);
       setHasPlan(!!activeRes.data);
       setLoading(false);
     })();
     return () => { alive = false; };
-  }, [profile.id]);
+  }, [profile.id, refreshKey]);
 
   const groupOf = (r: Row): GroupKey =>
     (r.muscle_group && ORDER.includes(r.muscle_group as GroupKey) ? (r.muscle_group as GroupKey) : (muscleGroupOf(r.exercise_label) || 'other'));
@@ -151,7 +154,19 @@ export default function StrengthSummary({ profile, onEnter, onGoAsesor }: Props)
     );
   }
 
-  const todayItems = today || [];
+  // ÚNICA condición de la tarjeta "Hoy toca": entradas PLANIFICADAS para hoy y
+  // sin completar.
+  //
+  // `pendingStrength`, no `pending`: esta pantalla es Fuerza y no debe enseñar
+  // jamás un bloque de cardio, aunque la consulta llegara a traerlo. La
+  // separación se pide explícita para que no dependa de que el `kinds` de la
+  // llamada esté bien.
+  const todayItems = today?.pendingStrength ?? [];
+  // Y si no queda nada pero hoy SÍ se ha entrenado, se confirma en vez de
+  // dejar el hueco vacío. Sale de las sesiones reales, no de la Agenda.
+  const doneLabel = (today?.trainedGroups ?? [])
+    .map((g) => t(`mc_str_mg_${g}`, { defaultValue: g }))
+    .join(' + ');
 
   return (
     <div className="rk-blocks max-w-3xl">
@@ -162,8 +177,11 @@ export default function StrengthSummary({ profile, onEnter, onGoAsesor }: Props)
       <Reveal>
         {todayItems.length > 0 ? (
           <div className="card-primary" style={{ padding: 20 }}>
-            <p className="text-[11px] font-bold tracking-[0.22em] uppercase text-red-400 mb-1.5">{t('mc_strs_today')}</p>
-            {todayItems.map((p, i) => {
+            <p className="text-[11px] font-bold tracking-[0.22em] uppercase text-red-400 mb-1.5">
+              {t('mc_strs_today')}
+            </p>
+            {todayItems.map((x, i) => {
+              const p = x.payload as StrengthPayload;
               const groups = (p.groups || []).map((g) => t(`mc_str_mg_${g}`, { defaultValue: g })).join(' + ');
               const lines = exerciseLines(p.exercises, t);
               return (
@@ -175,6 +193,21 @@ export default function StrengthSummary({ profile, onEnter, onGoAsesor }: Props)
             })}
             <button onClick={() => onEnter('registrar')} className="rk-cta w-full flex items-center justify-center gap-2 mt-4">
               <i className="ri-play-fill text-lg" />{t('mc_strs_start')}
+            </button>
+          </div>
+        ) : today?.trainedStrength ? (
+          /* ── Hoy ya está hecho ──
+             Sin "Empezar": no hay nada pendiente que empezar. El acceso a
+             registrar sigue estando, en tono secundario, por si se mete una
+             segunda sesión. */
+          <div className="rk-card" style={{ padding: 18, borderColor: 'rgba(74,222,128,0.3)' }}>
+            <p className="text-[11px] font-bold tracking-[0.22em] uppercase text-green-400 mb-1.5 flex items-center gap-1.5">
+              <i className="ri-check-double-line" />{t('mc_strs_done_today')}
+            </p>
+            <p className="text-base font-bold text-white">{doneLabel || t('mc_dp_kind_strength')}</p>
+            <p className="text-xs text-zinc-400 mt-1">{t('mc_strs_done_today_desc')}</p>
+            <button onClick={() => onEnter('registrar')} className="rk-nav-btn text-xs mt-3 inline-flex items-center gap-1.5" style={{ padding: '0.5rem 1rem' }}>
+              <i className="ri-add-line" />{t('mc_strs_done_today_more')}
             </button>
           </div>
         ) : hasPlan ? (

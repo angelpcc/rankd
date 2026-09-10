@@ -46,7 +46,14 @@ export default function AgendaWeekStrip({ profile }: Props) {
   items.forEach((e) => { const l = byDate.get(e.plan_date) || []; l.push(e); byDate.set(e.plan_date, l); });
   for (const list of byDate.values()) list.sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind));
 
-  const upcoming = [...items].sort((a, b) => a.plan_date.localeCompare(b.plan_date)).slice(0, 3);
+  // "Lo siguiente" es lo que QUEDA, no lo que ya está. La Agenda guarda en la
+  // misma tabla el plan y lo registrado (un entreno sin planificar entra ya
+  // marcado como hecho): sin este filtro, acabar de entrenar hacía que la
+  // sesión apareciera en "próximo".
+  const upcoming = items
+    .filter((e) => !e.completed)
+    .sort((a, b) => a.plan_date.localeCompare(b.plan_date))
+    .slice(0, 3);
   const dayLabel = (d: Date) => d.toLocaleDateString(locale, { weekday: 'narrow' }).toUpperCase();
   const relLabel = (dateISO: string) => {
     if (dateISO === todayISO) return t('mc_today');
@@ -88,10 +95,16 @@ export default function AgendaWeekStrip({ profile }: Props) {
             <p className="text-xs" style={{ color: 'var(--t-3)' }}>{t('mc_aws_free_day')}</p>
           ) : (
             <div className="space-y-1.5">
+              {/* Lo hecho se sigue viendo —el día es también un resumen de lo
+                  que pasó— pero tachado y con su check, no como pendiente. */}
               {(byDate.get(expanded) || []).map((e) => (
-                <div key={e.id} className="flex items-center gap-2 text-xs" style={{ color: 'var(--t-2)' }}>
-                  <i className={KIND_META[e.kind].icon} style={{ color: 'var(--t-3)' }}></i>
-                  <span className="font-semibold truncate">{summarizeItem(e, t)}</span>
+                <div key={e.id} className="flex items-center gap-2 text-xs"
+                  style={{ color: e.completed ? 'var(--t-3)' : 'var(--t-2)' }}>
+                  <i className={e.completed ? 'ri-check-line' : KIND_META[e.kind].icon}
+                    style={{ color: e.completed ? '#4ade80' : 'var(--t-3)' }}></i>
+                  <span className={`font-semibold truncate ${e.completed ? 'line-through' : ''}`}>
+                    {summarizeItem(e, t)}
+                  </span>
                 </div>
               ))}
             </div>

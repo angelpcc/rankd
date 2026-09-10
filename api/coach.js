@@ -186,6 +186,38 @@ Marcas de referencia (mismo criterio que la guía de RANKD; úsalo, no te lo inv
 - No inventes modelos exactos con precios cerrados; habla de gamas y características a buscar.
 - TU ÁMBITO es el MATERIAL. Si te pregunta de lleno por su entrenamiento, dile en una línea que para eso tiene el Coach de Entrenamiento; si es por su dieta, el Coach de Nutrición (ambos en Mi Esquina). No planifiques entrenos ni dietas: céntrate en el equipamiento.
 - Responde SIEMPRE en español y con formato claro (listas, negritas con **).`,
+
+  // ── CONSULTA ABIERTA (punto 18) ──
+  // Los tres asesores de arriba están acotados a su ámbito a propósito y se
+  // derivan entre ellos. Esto es lo contrario: una sola puerta para CUALQUIER
+  // duda, sin flujo ni formulario. El usuario pregunta y se le contesta, y
+  // puede seguir tirando del hilo sobre la misma respuesta.
+  //
+  // La diferencia de tono importa: aquí NO se contesta con un plan de seis
+  // semanas a quien pregunta qué cenar. Respuesta corta, concreta y accionable,
+  // y si hace falta más, se ofrece.
+  general: (p) => `Eres el Asesor de RANKD: el que resuelve dudas sueltas de un peleador, al momento y sin rodeos. Boxeo, MMA, kickboxing, Muay Thai, fuerza, cardio, nutrición del día a día, descanso, material, cabeza antes de competir… lo que te pregunte.
+
+${fighterContext(p)}
+
+Cómo respondes:
+- DIRECTO Y CORTO. Esto es una consulta, no un plan: 3-8 líneas bastan casi siempre. Si la respuesta pide más, da lo esencial y ofrece desarrollarlo ("si quieres te lo desgloso").
+- CONCRETO. "Con eso te haces una tortilla de tres huevos con la patata cocida y un puñado de espinacas" sirve; "procura incluir proteína de calidad" no sirve.
+- Usa lo que ya sabes de él (arriba) sin repetírselo: si sabes su peso y su disciplina, la respuesta ya viene ajustada sin tener que anunciarlo.
+- MANTÉN EL HILO. Si pregunta por algo que acabas de decir, continúa desde ahí; no vuelvas a empezar ni repitas lo ya dicho.
+- Si la pregunta es ambigua y la respuesta cambia mucho según el caso, haz UNA pregunta corta y espera. Una, no un cuestionario.
+- Si no tienes suficiente información pero puedes dar una respuesta útil con un supuesto razonable, DALA diciendo el supuesto. Es mejor que un interrogatorio.
+- TÉCNICA EN VÍDEO: cuando expliques un gesto técnico o un ejercicio concreto, añade justo después el marcador EXACTO [VIDEO: nombre del gesto] — por ejemplo "el gancho al hígado [VIDEO: gancho al higado boxeo tecnica]". NO inventes URLs. Máximo 2 por respuesta.
+- Si lo que pregunta encaja mejor en una herramienta que ya tiene, dilo en una línea AL FINAL y sigue habiendo respondido: protocolos de cardio por tramos y rutinas preescritas en Actividad y Fuerza, plan de comidas en Nutrición, plan por objetivo en el propio Asesor, cronómetro de asaltos en el Temporizador.
+
+Límites (no negociables):
+- No eres médico ni fisioterapeuta. Ante una lesión que pinta seria, dolor que no baja, un golpe en la cabeza o síntomas raros: dilo claro y derívalo a un profesional, sin diagnosticar.
+- Corte de peso: SIEMPRE gradual y con cabeza. Nunca dietas muy bajas en calorías, ayunos extremos, deshidratación ni trucos de última hora, ni aunque te los pida.
+- Si aparece una patología (diabetes, hipertensión, problema renal o digestivo), embarazo o lactancia, o señales de un trastorno de la conducta alimentaria (obsesión con el peso, restricción extrema, purgas, culpa con la comida): con tacto y sin alarmar, recomiéndale acudir a un médico o a un dietista-nutricionista colegiado, y no des pautas concretas en ese punto.
+- Nada de sustancias dopantes ni de "ayudas" para pasar un control.
+- Si te pregunta algo que no tiene nada que ver con su mundo, contéstale con naturalidad y brevedad si puedes ayudar; si no, dilo sin dramatizar y vuelve a lo tuyo.
+
+- Responde SIEMPRE en español, de tú a tú, con formato claro (listas cortas, negritas con ** solo donde aporte).`,
 };
 
 // Instrucciones extra que se añaden al asesor de Material SOLO cuando tiene
@@ -365,6 +397,334 @@ Reglas:
 - "plan_name": un título corto ("Rutina importada" si no hay nombre en la foto). "summary": 1 frase de qué es. "disclaimer": recuerda que es una transcripción y que ante dudas consulte con quien se lo dio o con un profesional.
 - Idioma: español.`;
 
+// ── PROTOCOLO DE ACTIVIDAD (punto 16) ──
+// Lee un texto pegado (o una foto) con una sesión escrita POR TRAMOS —el
+// clásico "minuto · inclinación · velocidad" de las tablas de cardio— y lo
+// convierte en el modelo de la app. Vale para cualquier tipo de actividad: las
+// variables admitidas se le pasan en el system, y todo lo demás se ignora.
+//
+// Es transcripción, no creación: si el documento no dice una cadencia, no se
+// inventa una.
+const PROTOCOL_VALUE_KEYS = [
+  'speed_kmh', 'incline_pct', 'resistance', 'cadence_rpm',
+  'pace_sec_100m', 'pace_sec_500m', 'stroke_rate', 'effort',
+];
+
+const PROTOCOL_SCHEMA = {
+  type: 'object',
+  properties: {
+    name: { type: 'string', description: 'Título corto del protocolo. "Protocolo importado" si el documento no trae nombre.' },
+    note: { type: ['string', 'null'], description: 'Nota general del documento, si la hay. Null si no.' },
+    segments: {
+      type: 'array',
+      description: 'Los tramos, EN ORDEN, tal y como aparecen en el documento. Máximo 60.',
+      items: {
+        type: 'object',
+        properties: {
+          label: { type: ['string', 'null'], description: 'Nombre del tramo si el documento lo da ("Calentamiento", "Serie 3"). Null si no.' },
+          minutes: { type: 'number', description: 'Duración del tramo EN MINUTOS (admite decimales: 0.5 = 30 s). 0 solo si el tramo se mide por distancia.' },
+          meters: { type: ['number', 'null'], description: 'Metros del tramo si se mide por distancia en vez de por tiempo. Null si va por tiempo.' },
+          note: { type: ['string', 'null'], description: 'Aclaración corta del tramo. Null si no la hay.' },
+          values: {
+            type: 'object',
+            description: 'Valores del tramo. Rellena SOLO las variables que apliquen a este tipo de actividad y que el documento indique; el resto van a null.',
+            properties: {
+              speed_kmh: { type: ['number', 'null'], description: 'Velocidad en km/h' },
+              incline_pct: { type: ['number', 'null'], description: 'Inclinación en %' },
+              resistance: { type: ['number', 'null'], description: 'Nivel de resistencia de la máquina' },
+              cadence_rpm: { type: ['number', 'null'], description: 'Cadencia en rpm' },
+              pace_sec_100m: { type: ['number', 'null'], description: 'Ritmo en SEGUNDOS por 100 m (2:00 → 120)' },
+              pace_sec_500m: { type: ['number', 'null'], description: 'Ritmo en SEGUNDOS por 500 m (2:05 → 125)' },
+              stroke_rate: { type: ['number', 'null'], description: 'Paladas o brazadas por minuto' },
+              effort: { type: ['number', 'null'], description: 'Esfuerzo percibido del 1 al 10' },
+            },
+            required: PROTOCOL_VALUE_KEYS,
+            additionalProperties: false,
+          },
+        },
+        required: ['label', 'minutes', 'meters', 'note', 'values'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['name', 'note', 'segments'],
+  additionalProperties: false,
+};
+
+function protocolSystem(kind, variables) {
+  const allowed = (Array.isArray(variables) && variables.length ? variables : ['effort'])
+    .filter((v) => PROTOCOL_VALUE_KEYS.includes(v));
+  return `Eres el entrenador de IA de RANKD. Te paso un documento con una sesión de actividad escrita POR TRAMOS (una tabla de cardio, el guion de un entrenador, un mensaje). Tu trabajo es TRANSCRIBIRLO a una estructura, no diseñar nada.
+
+Tipo de actividad: "${kind}".
+Variables admitidas para este tipo: ${allowed.join(', ')}. Cualquier otra variable va a null SIEMPRE, aunque el documento la mencione.
+
+Reglas:
+- Transcribe SOLO lo que aparece en el documento. NO inventes valores que no estén: si un tramo no dice la inclinación, va null.
+- Un tramo por cada fila o línea del documento. Respeta el ORDEN original.
+- DURACIONES: si el documento usa marcas acumuladas ("minuto 0-5", "5-10", "10-15"), la duración del tramo es la DIFERENCIA (5 minutos cada uno), no la marca. Si usa duraciones sueltas ("5 min"), es esa duración.
+- Si el último tramo no tiene un final claro, dale la misma duración que el anterior y dilo en su "note".
+- RITMOS: conviértelos a segundos ("2:05 /500m" → pace_sec_500m: 125).
+- Un tramo medido por distancia (400 m, 1 km) lleva "meters" y minutes: 0.
+- Si el documento no es una sesión por tramos o es ilegible, devuelve segments: [].
+- "name": el título del documento si lo tiene; si no, "Protocolo importado".
+- Idioma: español.`;
+}
+
+// ── RUTINA PREESCRITA (punto 17) ──
+// Lee una rutina de gimnasio escrita (días con nombre + ejercicios con series y
+// repeticiones) y la estructura para poder entrenarla con checklist en vivo.
+// Es el hermano de ROUTINE_PHOTO_SYSTEM, que lee un plan SEMANAL en prosa; este
+// baja al detalle de ejercicio y serie, que es lo que se puede ir marcando.
+const MUSCLE_GROUPS = ['back', 'chest', 'shoulders', 'biceps', 'triceps', 'legs', 'core', 'power', 'full_body'];
+
+const ROUTINE_SCHEMA = {
+  type: 'object',
+  properties: {
+    name: { type: 'string', description: 'Título corto de la rutina. "Rutina importada" si el documento no trae nombre.' },
+    note: { type: ['string', 'null'], description: 'Nota general del documento. Null si no la hay.' },
+    days: {
+      type: 'array',
+      description: 'Los días de la rutina, EN ORDEN. Máximo 14.',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Nombre del día tal y como lo llama el documento ("Push", "Pull", "Pierna", "Día 1").' },
+          note: { type: ['string', 'null'], description: 'Aclaración del día. Null si no la hay.' },
+          exercises: {
+            type: 'array',
+            description: 'Ejercicios del día, en orden. Máximo 30.',
+            items: {
+              type: 'object',
+              properties: {
+                name: { type: 'string', description: 'Nombre del ejercicio, tal cual lo escribe el documento.' },
+                group: { type: 'string', enum: MUSCLE_GROUPS, description: 'Grupo muscular principal.' },
+                sets: { type: 'integer', description: 'Número de series.' },
+                reps_min: { type: 'integer', description: 'Repeticiones, o el mínimo del rango. 0 si el ejercicio va por tiempo o distancia.' },
+                reps_max: { type: ['integer', 'null'], description: 'Máximo del rango ("8-10" → 10). Null si es un número fijo.' },
+                value: { type: ['integer', 'null'], description: 'Segundos (tracking_mode "time") o metros ("distance"). Null en repeticiones.' },
+                weight_kg: { type: ['number', 'null'], description: 'Peso prescrito en kg, SOLO si el documento lo indica. Null si no.' },
+                weight_mode: { type: 'string', enum: ['total', 'per_side', 'per_dumbbell', 'bodyweight'], description: 'Cómo se cuenta el peso.' },
+                tracking_mode: { type: 'string', enum: ['reps', 'time', 'distance'], description: 'Cómo se mide la serie.' },
+                note: { type: ['string', 'null'], description: 'Indicación corta ("hasta el fallo", "tempo 3-1-1"). Null si no la hay.' },
+              },
+              required: ['name', 'group', 'sets', 'reps_min', 'reps_max', 'value', 'weight_kg', 'weight_mode', 'tracking_mode', 'note'],
+              additionalProperties: false,
+            },
+          },
+        },
+        required: ['name', 'note', 'exercises'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['name', 'note', 'days'],
+  additionalProperties: false,
+};
+
+const ROUTINE_TEXT_SYSTEM = `Eres el entrenador de IA de RANKD. Te paso el documento de una RUTINA DE GIMNASIO (un PDF pegado como texto, una foto de un papel, un mensaje del entrenador). Tu trabajo es TRANSCRIBIRLA a una estructura de días y ejercicios, no diseñar una rutina nueva.
+
+Reglas:
+- Transcribe SOLO lo que aparece. NO añadas ejercicios, series ni pesos que el documento no diga.
+- Un DÍA por cada bloque con nombre ("Push", "Pull", "Pierna", "Día 1", "Lunes"). Respeta el orden y el nombre original.
+- "4x8-10" son 4 series con reps_min 8 y reps_max 10. "4x10" son 4 series con reps_min 10 y reps_max null.
+- "3x45s" es tracking_mode "time", value 45, reps_min 0. "4x20m" es tracking_mode "distance", value 20, reps_min 0.
+- weight_kg SOLO si el documento da un peso. Si dice "AMRAP", "al fallo" o similar, ponlo en "note" y usa el número de repeticiones que puedas deducir (o 8 si no hay ninguno).
+- weight_mode: "bodyweight" en dominadas, fondos, planchas y demás peso corporal; "per_dumbbell" cuando son dos mancuernas; "per_side" cuando el peso es por lado; "total" en el resto (barra, máquina, polea).
+- Si el documento no es una rutina de ejercicios o es ilegible, devuelve days: [].
+- "name": el título del documento si lo tiene; si no, "Rutina importada".
+- Idioma: español (mantén los nombres de ejercicio como estén escritos).`;
+
+// ── PLAN SEMANAL MULTI-MÓDULO (punto 21) ──
+// Una sola petición que combina fuerza + varios cardios + comidas. Devuelve las
+// tres cosas a la vez, ya repartidas por día de la semana, para que el front
+// las guarde como rutina + protocolos + bloques de agenda.
+//
+// Se usa también para los AJUSTES puntuales ("cambia el cardio del jueves"):
+// se le manda el plan anterior entero y se le pide que devuelva el mismo plan
+// con SOLO ese cambio aplicado. Rehacerlo desde cero perdería todo lo que el
+// usuario ya había dado por bueno.
+
+const WEEK_EXERCISE_SCHEMA = {
+  type: 'object',
+  properties: {
+    name: { type: 'string', description: 'Nombre del ejercicio. Usa los de la lista que se te da siempre que encaje.' },
+    group: { type: 'string', enum: MUSCLE_GROUPS },
+    sets: { type: 'integer', description: 'Número de series (2-6).' },
+    reps_min: { type: 'integer', description: 'Repeticiones, o el mínimo del rango. 0 si va por tiempo o distancia.' },
+    reps_max: { type: ['integer', 'null'], description: 'Máximo del rango ("8-12" → 12). Null si es un número fijo.' },
+    value: { type: ['integer', 'null'], description: 'Segundos (tracking "time") o metros ("distance"). Null en repeticiones.' },
+    weight_kg: { type: ['number', 'null'], description: 'Solo si tiene sentido prescribirlo. Null para dejar que lo ponga él.' },
+    weight_mode: { type: 'string', enum: ['total', 'per_side', 'per_dumbbell', 'bodyweight'] },
+    tracking_mode: { type: 'string', enum: ['reps', 'time', 'distance'] },
+    note: { type: ['string', 'null'], description: 'Indicación corta ("last set al fallo"). Null si no aporta.' },
+  },
+  required: ['name', 'group', 'sets', 'reps_min', 'reps_max', 'value', 'weight_kg', 'weight_mode', 'tracking_mode', 'note'],
+  additionalProperties: false,
+};
+
+const WEEK_SEGMENT_SCHEMA = {
+  type: 'object',
+  properties: {
+    label: { type: ['string', 'null'], description: 'Nombre del tramo ("Calentamiento", "Serie 3"). Null si no hace falta.' },
+    minutes: { type: 'number', description: 'Duración del tramo EN MINUTOS (admite decimales). 0 solo si va por distancia.' },
+    meters: { type: ['number', 'null'], description: 'Metros si el tramo se mide por distancia. Null si va por tiempo.' },
+    note: { type: ['string', 'null'] },
+    values: {
+      type: 'object',
+      description: 'Valores del tramo. Rellena SOLO las que apliquen al tipo de actividad; el resto van a null.',
+      properties: {
+        speed_kmh: { type: ['number', 'null'], description: 'Velocidad en km/h' },
+        incline_pct: { type: ['number', 'null'], description: 'Inclinación en %' },
+        resistance: { type: ['number', 'null'], description: 'Nivel de resistencia' },
+        cadence_rpm: { type: ['number', 'null'], description: 'Cadencia en rpm' },
+        pace_sec_100m: { type: ['number', 'null'], description: 'Ritmo en segundos por 100 m' },
+        pace_sec_500m: { type: ['number', 'null'], description: 'Ritmo en segundos por 500 m' },
+        stroke_rate: { type: ['number', 'null'], description: 'Paladas por minuto' },
+        effort: { type: ['number', 'null'], description: 'Esfuerzo percibido 1-10' },
+      },
+      required: PROTOCOL_VALUE_KEYS,
+      additionalProperties: false,
+    },
+  },
+  required: ['label', 'minutes', 'meters', 'note', 'values'],
+  additionalProperties: false,
+};
+
+const WEEK_PLAN_SCHEMA = {
+  type: 'object',
+  properties: {
+    summary: { type: 'string', description: '2-3 líneas explicando el enfoque de la semana y cómo encaja con lo que pidió.' },
+    disclaimer: { type: 'string', description: 'Aviso corto de que es orientativo.' },
+    training_days: { type: 'integer', description: 'Días de entreno que el usuario ha dicho tener ESTA semana. Si no lo dice, dedúcelo del texto; nunca inventes un número fijo.' },
+    exclusions: {
+      type: 'array',
+      description: 'Lo que el usuario ha pedido NO incluir, tal y como lo dijo ("boxeo", "fútbol", "nada de pierna el miércoles").',
+      items: { type: 'string' },
+    },
+    strength: {
+      type: 'array',
+      description: 'Un elemento por DÍA de fuerza. Tantos como días de entreno haya dicho, ni uno más.',
+      items: {
+        type: 'object',
+        properties: {
+          weekday: { type: 'integer', description: 'Día de la semana: 0 = lunes … 6 = domingo.' },
+          name: { type: 'string', description: 'Nombre del día ("Espalda y pecho", "Push", "Pierna").' },
+          groups: { type: 'array', description: 'Grupos musculares principales del día.', items: { type: 'string', enum: MUSCLE_GROUPS } },
+          note: { type: ['string', 'null'] },
+          exercises: { type: 'array', items: WEEK_EXERCISE_SCHEMA },
+        },
+        required: ['weekday', 'name', 'groups', 'note', 'exercises'],
+        additionalProperties: false,
+      },
+    },
+    protocols: {
+      type: 'array',
+      description: 'Un elemento por CADA cardio distinto que haya pedido. Si pide tres (tarde, mañana y post-entreno), devuelve tres.',
+      items: {
+        type: 'object',
+        properties: {
+          key: { type: 'string', description: 'Identificador corto y único dentro del plan ("cardio_tarde").' },
+          name: { type: 'string', description: 'Nombre con el que lo va a ver en Actividad ("Cardio tarde — grasa").' },
+          kind: { type: 'string', description: 'Tipo de actividad: cinta, correr, bici, eliptica, remo, natacion, cuerda, boxeo u otro.' },
+          when: { type: 'string', enum: ['morning', 'midday', 'afternoon', 'evening'] },
+          weekdays: { type: 'array', description: 'Días (0 = lunes) en los que toca este cardio.', items: { type: 'integer' } },
+          note: { type: ['string', 'null'] },
+          segments: { type: 'array', description: 'Los tramos, en orden. Minuto a minuto si el usuario lo pide así.', items: WEEK_SEGMENT_SCHEMA },
+        },
+        required: ['key', 'name', 'kind', 'when', 'weekdays', 'note', 'segments'],
+        additionalProperties: false,
+      },
+    },
+    nutrition: {
+      type: 'array',
+      description: 'Un elemento por día con comidas. SOLO las franjas que haya pedido.',
+      items: {
+        type: 'object',
+        properties: {
+          weekday: { type: 'integer', description: '0 = lunes … 6 = domingo.' },
+          meals: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                slot: { type: 'string', enum: ['desayuno', 'comida', 'cena', 'snack'] },
+                text: { type: 'string', description: 'Qué come, con cantidades orientativas. Una o dos frases.' },
+                minutes: { type: 'integer', description: 'Minutos de preparación estimados.' },
+              },
+              required: ['slot', 'text', 'minutes'],
+              additionalProperties: false,
+            },
+          },
+        },
+        required: ['weekday', 'meals'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['summary', 'disclaimer', 'training_days', 'exclusions', 'strength', 'protocols', 'nutrition'],
+  additionalProperties: false,
+};
+
+function weekPlanSystem(profile, ctx, previous, adjustments) {
+  const names = Array.isArray(ctx.exerciseNames) ? ctx.exerciseNames.slice(0, 400) : [];
+  const kinds = Array.isArray(ctx.activityKinds) && ctx.activityKinds.length
+    ? ctx.activityKinds.join(', ')
+    : 'cinta, correr, bici, eliptica, remo, natacion, cuerda, boxeo, otro';
+
+  const adjustBlock = (previous && adjustments)
+    ? `
+
+═══ AJUSTE PUNTUAL ═══
+El peleador YA tiene este plan y ha pedido UN CAMBIO concreto. Devuelve el plan ENTERO con SOLO ese cambio aplicado: todo lo demás debe quedar EXACTAMENTE igual (mismos días, mismos ejercicios, mismos tramos, mismas comidas, mismas claves de protocolo).
+
+Plan actual:
+${JSON.stringify(previous).slice(0, 14000)}
+
+Cambio que pide: "${adjustments}"
+
+Reglas del ajuste:
+- Toca solo lo que afecte a ese cambio. Si pide cambiar el cardio del jueves, la fuerza y las comidas NO se tocan.
+- Si el cambio choca con algo que ya había pedido (una exclusión, los días disponibles), aplícalo igual y dilo en "summary".
+- Mantén las mismas "key" de los protocolos que no cambian.`
+    : '';
+
+  return `Eres el Asesor de RANKD. Vas a resolver de UNA SOLA VEZ una petición que mezcla varios módulos: rutina de fuerza, uno o varios cardios con su guion por tramos, y pauta de comidas.
+
+${fighterContext(profile)}
+
+Contexto de la semana:
+- La semana empieza el LUNES ${ctx.weekStart}. Los días van 0 = lunes … 6 = domingo.
+- Hoy es ${ctx.today}. NO coloques nada en días de esta semana que ya hayan pasado.
+- Tipos de actividad válidos para "kind": ${kinds}.
+${names.length ? `- Nombres de ejercicio disponibles (úsalos tal cual siempre que encajen, para que la app los reconozca):\n${names.join(' · ')}` : ''}
+
+Cómo montas el plan:
+
+1. DÍAS. Usa EXACTAMENTE los días que diga tener esta semana. Si dice "esta semana tengo 5", son 5 días de fuerza, no 4 ni 6. Si no lo dice, dedúcelo de lo que escriba y refléjalo en "training_days"; nunca asumas un número por costumbre. Reparte los días de forma sensata (sin dos días seguidos del mismo grupo) y empezando por el próximo día que no haya pasado.
+
+2. EXCLUSIONES. Lo que diga que NO quiere es INNEGOCIABLE. Si dice "nada de boxeo ni fútbol", no aparece nada de eso aunque exista en la biblioteca. Copia sus exclusiones en "exclusions" con sus palabras, para que pueda comprobarlo de un vistazo.
+
+3. FUERZA. Un elemento de "strength" por día, con su nombre, sus grupos y sus ejercicios ya con series y rango de repeticiones. Ajusta el planteamiento al objetivo que pida (hipertrofia → 3-4 series de 8-12 con poco descanso; fuerza → menos repeticiones; resistencia → más). 4-7 ejercicios por día.
+
+4. CARDIOS. Un elemento de "protocols" por CADA cardio distinto que pida. Si pide tres, devuelve tres, cada uno con su nombre reconocible ("Cardio tarde — grasa", "Cardio mañana express", "Cardio post-entreno").
+   - Si pide el detalle "minuto a minuto", devuelve un tramo POR MINUTO con su inclinación y su velocidad. No lo resumas en bloques de cinco si te ha pedido minuto a minuto.
+   - Rellena solo las variables que apliquen a ese tipo: cinta → speed_kmh e incline_pct; bici y elíptica → resistance y cadence_rpm; natación → pace_sec_100m; remo → pace_sec_500m y stroke_rate; el resto → effort. Las demás, null.
+   - La suma de los minutos de los tramos debe dar la duración que pidió.
+   - Un cardio "para quemar grasa" en cinta es caminata con inclinación a intensidad sostenible, no series a tope: velocidades de 4,5 a 6,5 km/h e inclinaciones que suban y bajen entre 2 % y 12 %.
+   - "weekdays" son los días en los que toca ese cardio. Un cardio post-entreno va en los días de fuerza; uno de mañana, en los que diga.
+
+5. COMIDAS. Solo las franjas que pida. Si dice "el desayuno lo tengo resuelto", NO devuelvas desayunos. Si pide "comida y cena para 5 días", devuelve 5 días con esas dos franjas. Alimentos básicos, de supermercado y rápidos: si pide rapidez, que "minutes" sea de verdad bajo (10-20 min), no un guiso de una hora con la etiqueta de rápido.
+
+6. HONESTIDAD. Si algo de lo que pide no te cuadra (le da para tres días y pide cinco, o pide bajar mucho peso en poco tiempo), hazlo lo mejor posible y DILO en "summary" en una línea. No calles el problema ni te niegues a dar el plan.
+
+Límites:
+- No eres médico ni dietista colegiado. Nada de dietas muy bajas en calorías, ayunos extremos ni deshidratación, aunque los pida.
+- Si menciona una patología, embarazo o señales de trastorno de la conducta alimentaria, deja la parte de nutrición en pautas muy generales y recomiéndale un profesional en "summary".
+- Nada de sustancias dopantes.
+- Idioma: SIEMPRE español.${adjustBlock}`;
+}
+
 const FOOD_PHOTO_SYSTEM = `Eres un asistente nutricional especializado en deportes de combate. Analizas una foto de comida y das una estimación orientativa de sus macros.
 
 Reglas:
@@ -410,6 +770,32 @@ const FOOD_PHOTO_SCHEMA = {
 };
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+// ~5MB en base64 ≈ 6.8M caracteres. Defensa del servidor.
+const MAX_IMAGE_CHARS = 7_000_000;
+// Tope del texto pegado por el usuario en los importadores. Un PDF de rutina
+// entero cabe de sobra; lo que no cabe es un libro.
+const MAX_IMPORT_TEXT = 12_000;
+
+/**
+ * Construye el `content` de un mensaje que puede traer texto, imagen o ambos.
+ *
+ * Devuelve null cuando no hay nada válido que mandar: los importadores tienen
+ * que responder 400 antes de gastar cuota, no llamar al modelo con las manos
+ * vacías.
+ */
+function importContent({ text, imageBase64, mediaType }, prompt) {
+  const parts = [];
+  if (imageBase64) {
+    if (!ALLOWED_IMAGE_TYPES.includes(mediaType)) return { error: 'bad_image', message: 'Formato de imagen no válido. Usa JPEG, PNG o WebP.' };
+    if (imageBase64.length > MAX_IMAGE_CHARS) return { error: 'image_too_large', message: 'La foto debe pesar menos de 5MB.' };
+    parts.push({ type: 'image', source: { type: 'base64', media_type: mediaType, data: imageBase64 } });
+  }
+  const clean = typeof text === 'string' ? text.slice(0, MAX_IMPORT_TEXT).trim() : '';
+  if (clean) parts.push({ type: 'text', text: `Documento:\n\n${clean}` });
+  if (parts.length === 0) return { error: 'no_input', message: 'Pega el texto o sube una foto del documento.' };
+  parts.push({ type: 'text', text: prompt });
+  return { content: parts };
+}
 
 // ── Creator Studio: fábrica de contenido (solo admin) ──
 // Mismo modelo/cuota que el resto de la IA, pero con dos guardas extra:
@@ -553,10 +939,13 @@ export default async function handler(req, res) {
     return res.status(503).json({ error: 'not_configured', message: 'La IA aún no está configurada en el servidor.' });
   }
 
-  const { section, profile, messages, extract, timerCombos, foodPhoto, routinePhoto, creatorStudio, objectivePlan } = req.body || {};
+  const {
+    section, profile, messages, extract, timerCombos, foodPhoto, routinePhoto,
+    creatorStudio, objectivePlan, protocolText, routineText, weekPlan,
+  } = req.body || {};
   // Modos "estructurados": no usan `section` ni una conversación `messages`,
   // devuelven JSON validado. No deben pasar por las guardas de chat de abajo.
-  const structuredMode = !!(objectivePlan || foodPhoto || routinePhoto);
+  const structuredMode = !!(objectivePlan || foodPhoto || routinePhoto || protocolText || routineText || weekPlan);
 
   // ── CREATOR STUDIO: solo admin, gasto contabilizado aparte de las cuotas
   //    de Mi Esquina (section:'creator-studio' en ai_usage) ──
@@ -669,8 +1058,7 @@ export default async function handler(req, res) {
     if (!imageBase64 || !ALLOWED_IMAGE_TYPES.includes(mediaType)) {
       return res.status(400).json({ error: 'bad_image', message: 'Formato de imagen no válido. Usa JPEG, PNG o WebP.' });
     }
-    // Límite de tamaño (~5MB en base64 ≈ 6.8M caracteres). Defensa del servidor.
-    if (imageBase64.length > 7_000_000) {
+    if (imageBase64.length > MAX_IMAGE_CHARS) {
       return res.status(413).json({ error: 'image_too_large', message: 'La foto debe pesar menos de 5MB.' });
     }
     try {
@@ -712,7 +1100,7 @@ export default async function handler(req, res) {
     if (!imageBase64 || !ALLOWED_IMAGE_TYPES.includes(mediaType)) {
       return res.status(400).json({ error: 'bad_image', message: 'Formato de imagen no válido. Usa JPEG, PNG o WebP.' });
     }
-    if (imageBase64.length > 7_000_000) {
+    if (imageBase64.length > MAX_IMAGE_CHARS) {
       return res.status(413).json({ error: 'image_too_large', message: 'La foto debe pesar menos de 5MB.' });
     }
     try {
@@ -740,6 +1128,125 @@ export default async function handler(req, res) {
     } catch (err) {
       const status = err?.status === 429 ? 429 : 500;
       return res.status(status).json({ error: 'ia_error', message: status === 429 ? 'La IA está saturada, prueba en un momento.' : 'No se pudo leer la foto.' });
+    }
+  }
+
+  // ── MODO PROTOCOLO DE ACTIVIDAD (punto 16) ──
+  // Texto pegado o foto de una tabla por tramos → protocolo estructurado. Vale
+  // para cualquier tipo de actividad: el front dice qué variables admite ese
+  // tipo y el modelo se ciñe a ellas. Cuenta como 1 turno (section='training').
+  if (protocolText) {
+    const kind = String(protocolText.kind || 'otro').slice(0, 40);
+    const built = importContent(protocolText, 'Transcribe este documento a tramos. No inventes ningún valor que no aparezca.');
+    if (built.error) {
+      return res.status(built.error === 'image_too_large' ? 413 : 400).json({ error: built.error, message: built.message });
+    }
+    try {
+      const response = await anthropic.messages.create({
+        model: MODEL,
+        max_tokens: 4000,
+        system: protocolSystem(kind, protocolText.variables),
+        messages: [{ role: 'user', content: built.content }],
+        output_config: { format: { type: 'json_schema', name: 'protocolo_actividad', schema: PROTOCOL_SCHEMA } },
+      });
+      const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
+      let protocol;
+      try { protocol = JSON.parse(text); } catch { protocol = null; }
+      await recordUsage(gate.db, gate.user.id, 'training', 'chat', response.usage);
+      if (!protocol || !Array.isArray(protocol.segments) || protocol.segments.length === 0) {
+        return res.status(422).json({ error: 'no_protocol', message: 'No he podido leer una sesión por tramos en ese documento. Revísalo o mete los tramos a mano.' });
+      }
+      return res.status(200).json({ protocol, usage: response.usage });
+    } catch (err) {
+      const status = err?.status === 429 ? 429 : 500;
+      return res.status(status).json({ error: 'ia_error', message: status === 429 ? 'La IA está saturada, prueba en un momento.' : 'No se pudo leer el documento.' });
+    }
+  }
+
+  // ── MODO RUTINA PREESCRITA (punto 17) ──
+  // Texto pegado o foto de una rutina de gimnasio → días con ejercicios,
+  // series y repeticiones, listos para el checklist en vivo.
+  if (routineText) {
+    const built = importContent(routineText, 'Transcribe esta rutina a días y ejercicios. No añadas nada que no aparezca.');
+    if (built.error) {
+      return res.status(built.error === 'image_too_large' ? 413 : 400).json({ error: built.error, message: built.message });
+    }
+    try {
+      const response = await anthropic.messages.create({
+        model: MODEL,
+        max_tokens: 5000,
+        system: ROUTINE_TEXT_SYSTEM,
+        messages: [{ role: 'user', content: built.content }],
+        output_config: { format: { type: 'json_schema', name: 'rutina_preescrita', schema: ROUTINE_SCHEMA } },
+      });
+      const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
+      let routine;
+      try { routine = JSON.parse(text); } catch { routine = null; }
+      await recordUsage(gate.db, gate.user.id, 'training', 'chat', response.usage);
+      if (!routine || !Array.isArray(routine.days) || routine.days.length === 0) {
+        return res.status(422).json({ error: 'no_routine', message: 'No he podido leer una rutina en ese documento. Revísalo o métela a mano.' });
+      }
+      return res.status(200).json({ routine, usage: response.usage });
+    } catch (err) {
+      const status = err?.status === 429 ? 429 : 500;
+      return res.status(status).json({ error: 'ia_error', message: status === 429 ? 'La IA está saturada, prueba en un momento.' : 'No se pudo leer el documento.' });
+    }
+  }
+
+  // ── MODO PLAN SEMANAL MULTI-MÓDULO (punto 21) ──
+  // Una petición → fuerza por día + N protocolos de cardio + comidas. El mismo
+  // modo resuelve los ajustes puntuales: con `previous` + `adjustments` se le
+  // manda el plan entero y devuelve el mismo con ese cambio aplicado.
+  // Cuenta como 1 turno de la cuota (section='training').
+  if (weekPlan) {
+    const request = String(weekPlan.request || '').trim().slice(0, 4000);
+    const adjustments = String(weekPlan.adjustments || '').trim().slice(0, 600) || null;
+    const previous = weekPlan.previous || null;
+
+    if (!request && !adjustments) {
+      return res.status(400).json({ error: 'bad_request', message: 'Cuéntame qué quieres para esta semana.' });
+    }
+    const ctx = {
+      weekStart: String(weekPlan.weekStart || '').slice(0, 10),
+      today: String(weekPlan.today || '').slice(0, 10),
+      exerciseNames: weekPlan.exerciseNames,
+      activityKinds: weekPlan.activityKinds,
+    };
+    if (!ctx.weekStart || !ctx.today) {
+      return res.status(400).json({ error: 'bad_week', message: 'Falta la semana sobre la que planificar.' });
+    }
+
+    try {
+      const response = await anthropic.messages.create({
+        model: MODEL,
+        // El plan entero (fuerza de 5 días + tres cardios minuto a minuto + 10
+        // comidas) es mucho JSON: un tope corto lo cortaría por la mitad.
+        max_tokens: 16000,
+        system: weekPlanSystem(profile || {}, ctx, previous, adjustments),
+        messages: [{
+          role: 'user',
+          content: previous && adjustments
+            ? `Aquí tienes mi plan y el cambio que quiero. Devuélvemelo entero con ese cambio aplicado.`
+            : request,
+        }],
+        output_config: { format: { type: 'json_schema', name: 'plan_semanal', schema: WEEK_PLAN_SCHEMA } },
+      });
+      const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
+      let plan;
+      try { plan = JSON.parse(text); } catch { plan = null; }
+      await recordUsage(gate.db, gate.user.id, 'training', 'chat', response.usage);
+
+      const empty = !plan
+        || ((plan.strength || []).length === 0
+          && (plan.protocols || []).length === 0
+          && (plan.nutrition || []).length === 0);
+      if (empty) {
+        return res.status(422).json({ error: 'no_plan', message: 'No he podido montar un plan con eso. Dime cuántos días tienes y qué quieres en cada uno.' });
+      }
+      return res.status(200).json({ plan, usage: response.usage });
+    } catch (err) {
+      const status = err?.status === 429 ? 429 : 500;
+      return res.status(status).json({ error: 'ia_error', message: status === 429 ? 'La IA está saturada, prueba en un momento.' : 'No se pudo generar el plan de la semana.' });
     }
   }
 

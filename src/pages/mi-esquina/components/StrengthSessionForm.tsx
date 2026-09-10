@@ -157,6 +157,13 @@ interface Props {
    */
   initialGroups?: MuscleGroup[];
   /**
+   * Día con el que abrir. Lo manda quien viene a resolver un bloque de la
+   * Agenda de OTRO día: sin esto el formulario arrancaba siempre en hoy y ese
+   * entreno se guardaba con la fecha equivocada, en silencio.
+   * Solo se usa en altas nuevas: al editar manda la fecha de la sesión.
+   */
+  initialDate?: string;
+  /**
    * Sesión existente a editar (día+franja). Abre en el paso 2 con todo
    * pre-relleno; al guardar, el padre reemplaza las filas en vez de crear una
    * sesión nueva. undefined = alta normal.
@@ -204,7 +211,7 @@ function blocksFromDraft(d: StrengthDraft): FBlock[] {
 
 interface ExPerf { perf: LastPerformance; suggestion: Suggestion; tracking: TrackingMode }
 
-export default function StrengthSessionForm({ open, onClose, saving, onSave, ownExercises, fighterProfileId, showToast, slotsByDate, initialGroup, initialGroups, initialSession, duplicateFrom }: Props) {
+export default function StrengthSessionForm({ open, onClose, saving, onSave, ownExercises, fighterProfileId, showToast, slotsByDate, initialGroup, initialGroups, initialDate, initialSession, duplicateFrom }: Props) {
   const { t, i18n } = useTranslation();
   const lang: 'es' | 'en' = i18n.language === 'en' ? 'en' : 'es';
   // Términos de reconocimiento, no solo los nombres: incluyen la forma sin el
@@ -219,7 +226,9 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
     : (initialGroup ? [initialGroup] : []);
 
   const [step, setStep] = useState<1 | 2>(prefill || startGroups.length > 0 ? 2 : 1);
-  const [date, setDate] = useState(initialSession?.date ?? todayISO());
+  // Al editar manda la fecha de la sesión; si no, la que pida quien abre el
+  // formulario (un bloque de la Agenda de otro día); y en último término, hoy.
+  const [date, setDate] = useState(initialSession?.date ?? initialDate ?? todayISO());
   const [blocks, setBlocks] = useState<FBlock[]>(
     prefill ? blocksFromEdit(prefill)
       : startGroups.map((g) => ({ group: g, exercises: [] as FExercise[] })),

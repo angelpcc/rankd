@@ -3,10 +3,11 @@
 // Hace dos cosas, en este orden:
 //
 //   1. TICK: marca `completed` los bloques planificados de ese día que ya
-//      tienen un registro real que encaja. Criterio tolerante a propósito:
-//        · Fuerza    → mismo día + al menos un grupo muscular en común.
-//        · Actividad → mismo día + mismo tipo.
-//      No se exige que coincidan ejercicios, series, duración ni asaltos.
+//      tienen un registro real que encaja. Quién decide si "encaja" NO está
+//      aquí: está en `lib/planMatch.ts`, el mismo módulo que usa
+//      `todayTraining.ts` para esconder el aviso de "hoy toca". Tenerlo en dos
+//      sitios era el fallo: la Agenda daba el entreno por hecho y el Resumen
+//      seguía pidiéndolo, porque cada uno comparaba a su manera.
 //
 //   2. ALTA: si se ha entrenado algo que NO estaba planificado, se crea el
 //      bloque en la agenda de ese día, ya marcado como hecho y con
@@ -22,6 +23,8 @@
 
 import { supabase } from '@/lib/supabase';
 import { isMissingTable } from '@/lib/dbState';
+import { muscleGroupOf } from './exercises';
+import { activityFamily, buildDayFacts, coversPlanItem, isWildcardKind } from './planMatch';
 import type { StrengthPayload, ActivityPayload, MealPayload, MealSlot } from './dayPlan';
 
 interface PlanRow {
@@ -70,24 +73,31 @@ export async function reconcileDayTicks(fighterProfileId: string, date: string):
     const actRows = (actsRes.data || []) as { kind: string; duration_min: number | null }[];
     const mealRows = (mealsRes.data || []) as { meal_type: string | null; description: string }[];
 
-    const loggedGroups = [...new Set(setRows.map((s) => s.muscle_group).filter((g): g is string => !!g))];
+    // Los hechos del día, en la forma que entiende `planMatch`. `muscle_group`
+    // llega a null en filas anteriores a la 0029: se deduce del nombre.
+    const facts = buildDayFacts(setRows, actRows, muscleGroupOf);
+
+    const loggedGroups = [...facts.groups];
     const loggedExercises = [...new Set(setRows.map((s) => s.exercise_label.trim()).filter(Boolean))];
 
     // ── 1. Tick de lo planificado que encaja ──
+    //
+    // La comparación es la de `planMatch`, la misma que decide si el aviso de
+    // "hoy toca" desaparece. No hay una segunda opinión aquí.
     const toComplete = plan
       .filter((i) => !i.completed)
-      .filter((i) => {
-        if (i.kind === 'strength') {
-          const groups = (i.payload as StrengthPayload)?.groups || [];
-          return groups.some((g) => loggedGroups.includes(g));
-        }
-        const k = (i.payload as ActivityPayload)?.kind;
-        return !!k && actRows.some((a) => a.kind === k);
-      })
+      .filter((i) => coversPlanItem(i.kind, i.payload as StrengthPayload | ActivityPayload, facts))
       .map((i) => i.id);
 
     if (toComplete.length > 0) {
-      await supabase.from('day_plan_items').update({ completed: true }).in('id', toComplete);
+      const upd = await supabase.from('day_plan_items').update({ completed: true }).in('id', toComplete);
+      // Un tick perdido deja la Agenda enseñando como pendiente algo que ya se
+      // hizo, y la Agenda lee `completed` a pelo: no tiene la red de seguridad
+      // que sí tiene el aviso de "hoy toca". Un reintento cuesta nada y evita
+      // el caso más molesto (un corte de red justo al guardar).
+      if (upd.error) {
+        await supabase.from('day_plan_items').update({ completed: true }).in('id', toComplete);
+      }
     }
 
     // ── 2. Alta de lo que se hizo sin estar planificado ──
@@ -98,11 +108,18 @@ export async function reconcileDayTicks(fighterProfileId: string, date: string):
       plan.filter((i) => i.kind === 'strength')
         .map((i) => strengthSig((i.payload as StrengthPayload)?.groups || [])),
     );
-    const planActivityKinds = new Set(
+    // Por FAMILIA, no por tipo exacto: si había "correr" planificado y se
+    // registró "cinta", el bloque planificado ya se ha marcado arriba y dar de
+    // alta otro sería enseñar el mismo entreno dos veces en la Agenda.
+    const planActivityFamilies = new Set(
       plan.filter((i) => i.kind === 'activity')
         .map((i) => (i.payload as ActivityPayload)?.kind)
-        .filter(Boolean),
+        .filter(Boolean)
+        .map((k) => activityFamily(k)),
     );
+    /** ¿Hay algún bloque de actividad planificado que no concreta el tipo? */
+    const planHasWildcardActivity = plan.some((i) => i.kind === 'activity'
+      && isWildcardKind((i.payload as ActivityPayload)?.kind));
 
     const inserts: { fighter_profile_id: string; plan_date: string; kind: string; payload: unknown; completed: boolean; source: string }[] = [];
 
@@ -126,11 +143,19 @@ export async function reconcileDayTicks(fighterProfileId: string, date: string):
       }
     }
 
-    // Actividad: un bloque por TIPO distinto registrado ese día.
+    // Actividad: un bloque por TIPO distinto registrado ese día, salvo los que
+    // ya resuelven un bloque planificado.
     const actByKind = new Map<string, number>();
     actRows.forEach((a) => actByKind.set(a.kind, (actByKind.get(a.kind) || 0) + (a.duration_min || 0)));
+
+    // Un bloque planificado sin tipo concreto ("otro") se lo queda la PRIMERA
+    // actividad que no encaje en ningún otro bloque: es la que lo ha resuelto
+    // en el paso 1. Solo una — si ese día se hicieron bici y natación, la
+    // segunda sigue siendo un entreno extra y merece su propia línea.
+    let wildcardLibre = planHasWildcardActivity;
     actByKind.forEach((mins, kind) => {
-      if (planActivityKinds.has(kind)) return;
+      if (planActivityFamilies.has(activityFamily(kind))) return;
+      if (wildcardLibre) { wildcardLibre = false; return; }
       inserts.push({
         fighter_profile_id: fighterProfileId,
         plan_date: date,
@@ -187,16 +212,15 @@ export async function reconcileDayTicks(fighterProfileId: string, date: string):
     const stale = plan
       .filter((i) => i.source === 'logged')
       .filter((i) => {
-        if (i.kind === 'strength') {
-          const groups = (i.payload as StrengthPayload)?.groups || [];
-          return !groups.some((g) => loggedGroups.includes(g));
-        }
         if (i.kind === 'meal') {
           const slot = (i.payload as MealPayload)?.slot;
           return !slot || !mealBySlot.has(slot);
         }
-        const k = (i.payload as ActivityPayload)?.kind;
-        return !k || !actRows.some((a) => a.kind === k);
+        // Misma comparación que en el paso 1: un recibo sobrevive mientras
+        // siga habiendo una sesión que lo respalde. Si aquí se comparara de
+        // otra forma, un bloque recién creado podría borrarse a sí mismo en la
+        // siguiente pasada.
+        return !coversPlanItem(i.kind, i.payload as StrengthPayload | ActivityPayload, facts);
       })
       .map((i) => i.id);
 

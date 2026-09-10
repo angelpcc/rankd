@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingColumn } from '@/lib/dbState';
 
-type Section = 'training' | 'nutrition' | 'gear';
+// 'general' es la CONSULTA ABIERTA (punto 18): cualquier duda, sin flujo. Los
+// otros tres están acotados a su ámbito y se derivan entre ellos; este no.
+type Section = 'training' | 'nutrition' | 'gear' | 'general';
 type Accent = 'red' | 'gold' | 'sky';
 
 interface Props {
@@ -155,12 +157,15 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
   // Perfil físico del peleador = contexto de la IA
   useEffect(() => {
     const load = async () => {
-      // Objetivos y check-ins solo importan al Coach de Entrenamiento. Sus tablas
-      // pueden no existir aún (migración pendiente): si fallan, se ignoran.
-      const goalsQ = section === 'training'
+      // Objetivos y check-ins importan al Coach de Entrenamiento y a la consulta
+      // abierta: son los que permiten contestar "¿qué hago hoy?" sabiendo cómo
+      // llega el peleador esta semana. Sus tablas pueden no existir aún
+      // (migración pendiente): si fallan, se ignoran.
+      const wantsContext = section === 'training' || section === 'general';
+      const goalsQ = wantsContext
         ? supabase.from('fighter_goals').select('title, category, target_value, unit, deadline').eq('fighter_profile_id', profile.id).eq('status', 'active')
         : Promise.resolve({ data: null });
-      const checkinQ = section === 'training'
+      const checkinQ = wantsContext
         ? supabase.from('daily_checkins').select('entry_date, energy, soreness, sleep_hours')
             .eq('fighter_profile_id', profile.id).order('entry_date', { ascending: false }).limit(7)
         : Promise.resolve({ data: null });

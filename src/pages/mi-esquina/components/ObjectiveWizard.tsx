@@ -447,8 +447,16 @@ export default function ObjectiveWizard({ profile, showToast, onGoPlan }: Props)
             payload: groups.length ? { groups, exercises: s.day.training.slice(0, 200) } : { text: s.day.training.slice(0, 280) } });
         }
         if (s.day.cardio) {
+          // Si no se reconoce el tipo, 'otro' — NUNCA 'correr'.
+          //
+          // Poner 'correr' por defecto parecía inofensivo y no lo era: un
+          // "40 min de bici estática" que el detector no pillaba quedaba
+          // planificado como correr, y al registrar la bici el bloque no se
+          // marcaba nunca (los tipos no coincidían). El aviso de "actividad
+          // pendiente" se quedaba clavado en el Resumen sin forma de quitarlo.
+          // 'otro' es comodín en `planMatch`: lo resuelve cualquier actividad.
           rows.push({ ...base, kind: 'activity',
-            payload: { kind: detectActivityKind(s.day.cardio) || 'correr', duration_min: parseDuration(s.day.cardio), note: s.day.cardio.slice(0, 200) } });
+            payload: { kind: detectActivityKind(s.day.cardio) || 'otro', duration_min: parseDuration(s.day.cardio), note: s.day.cardio.slice(0, 200) } });
         }
         if (s.day.nutrition) {
           rows.push({ ...base, kind: 'meal', payload: { slot: 'comida', text: s.day.nutrition.slice(0, 200) } });

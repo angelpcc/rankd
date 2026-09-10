@@ -28,9 +28,30 @@ export interface ExerciseSpec {
   tracking_mode?: TrackingMode;
 }
 
+// ── ENLACE A LO EJECUTABLE (puntos 21 y 21bis) ──
+//
+// Un bloque de la Agenda puede apuntar a la rutina o al protocolo que lo va a
+// resolver. Con eso, tocar "Fuerza — Espalda y Pecho" en el viernes abre
+// directamente ESE día de ESA rutina con sus series listas para marcar, en vez
+// de obligar a ir a Fuerza a buscarla.
+//
+// Son campos OPCIONALES dentro de un payload jsonb: los bloques creados a mano
+// antes de esto siguen funcionando igual (solo no tienen acceso directo), y no
+// hace falta migrar nada.
+
 // exercises: los flujos antiguos (dictado, Asesor) escriben un string libre;
 // el planificador en detalle escribe ExerciseSpec[]. Los renderers aceptan ambos.
-export interface StrengthPayload { groups: string[]; exercises?: string | ExerciseSpec[]; note?: string }
+export interface StrengthPayload {
+  groups: string[];
+  exercises?: string | ExerciseSpec[];
+  note?: string;
+  /** Rutina preescrita (workout_routines) que resuelve este bloque. */
+  routine_id?: string;
+  /** Día concreto dentro de esa rutina. */
+  routine_day_id?: string;
+  /** Nombre legible, para poder enseñarlo sin cargar la rutina entera. */
+  routine_name?: string;
+}
 export interface ActivityPayload {
   kind: string;
   duration_min?: number;
@@ -40,8 +61,17 @@ export interface ActivityPayload {
   round_duration_sec?: number;
   pace_sec_per_km?: number;
   note?: string;
+  /** Protocolo (activity_protocols) que resuelve este bloque. */
+  protocol_id?: string;
+  /** Nombre legible del protocolo ("Cardio tarde — grasa"). */
+  protocol_name?: string;
 }
-export interface MealPayload { slot: MealSlot; text: string }
+export interface MealPayload {
+  slot: MealSlot;
+  text: string;
+  /** Minutos de preparación, si el plan los estimó. */
+  minutes?: number;
+}
 export interface SupplementPayload { name: string; time?: string }
 export interface NotePayload { text: string }
 
@@ -55,7 +85,15 @@ export interface DayPlanItem {
   kind: DayPlanKind;
   payload: DayPlanPayload;
   completed: boolean;
-  source: 'manual' | 'advisor' | 'template';
+  /**
+   * De dónde salió el bloque.
+   *
+   * `logged` faltaba en este tipo aunque `planTicks.ts` lo escribe desde el
+   * principio: es el bloque que la app crea SOLA al registrar un entreno que no
+   * estaba planificado. Distinguirlo importa — un `logged` nunca es "lo que
+   * toca", es el recibo de algo ya hecho (ver lib/todayTraining.ts).
+   */
+  source: 'manual' | 'advisor' | 'template' | 'logged';
   created_at?: string;
 }
 
@@ -73,6 +111,11 @@ export const KIND_META: Record<DayPlanKind, { icon: string; hex: string; labelKe
 // ── Tipos de actividad no-fuerza (activity_sessions + payload.kind de day_plan_items) ──
 // value = clave interna (se guarda en BD); labelKey = i18n; fields = qué inputs
 // pide cada tipo, más allá de la duración y la nota (comunes a todos).
+//
+// La lista crece sin migración: `kind` es texto libre en la base. Al añadir un
+// tipo aquí queda disponible en el registro, en la Agenda y en los PROTOCOLOS
+// (lib/protocols.ts decide qué variables pedirle; lo que no esté declarado
+// recibe la variable genérica de esfuerzo, así que ningún tipo se queda fuera).
 export type ActivityField = 'distance_km' | 'pace' | 'meters' | 'rounds' | 'round_duration' | 'incline';
 
 export interface ActivityKindCfg {
@@ -88,8 +131,11 @@ export interface ActivityKindCfg {
 
 export const ACTIVITY_KINDS: ActivityKindCfg[] = [
   { value: 'correr',   labelKey: 'mc_act_kind_correr',   icon: 'ri-run-line',         hex: '#22c55e', fields: ['distance_km', 'pace', 'incline'] },
+  { value: 'cinta',    labelKey: 'mc_act_kind_cinta',    icon: 'ri-run-line',         hex: '#16a34a', fields: ['distance_km', 'pace', 'incline'] },
   { value: 'boxeo',    labelKey: 'mc_act_kind_boxeo',    icon: 'ri-boxing-line',      hex: '#E10600', fields: ['rounds', 'round_duration'], rounds: true },
   { value: 'bici',     labelKey: 'mc_act_kind_bici',     icon: 'ri-riding-line',      hex: '#3b82f6', fields: ['distance_km', 'incline'] },
+  { value: 'eliptica', labelKey: 'mc_act_kind_eliptica', icon: 'ri-walk-line',        hex: '#8b5cf6', fields: ['distance_km'] },
+  { value: 'remo',     labelKey: 'mc_act_kind_remo',     icon: 'ri-ship-line',        hex: '#0ea5e9', fields: ['meters'] },
   { value: 'natacion', labelKey: 'mc_act_kind_natacion', icon: 'ri-drop-line',        hex: '#38bdf8', fields: ['meters'] },
   { value: 'cuerda',   labelKey: 'mc_act_kind_cuerda',   icon: 'ri-donut-chart-line', hex: '#a78bfa', fields: [] },
   { value: 'otro',     labelKey: 'mc_act_kind_otro',     icon: 'ri-more-line',        hex: '#6b7280', fields: [] },

@@ -7,7 +7,12 @@ import StateBlock from '@/components/base/StateBlock';
 import SegmentedProgress from '@/components/base/SegmentedProgress';
 import StrengthPlanBuilder from './StrengthPlanBuilder';
 import SectionHero from './SectionHero';
+import RoutineRunner from './RoutineRunner';
+import ProtocolPlayer from './ProtocolPlayer';
 import { activeSupplementsOn } from '../lib/supplements';
+import { loadRoutineById, saveRoutineSession, touchRoutine, type LoggedSet, type Routine, type RoutineDay } from '../lib/routines';
+import { finishRun, loadProtocolById, type Protocol } from '../lib/protocols';
+import { reconcileDayTicks } from '../lib/planTicks';
 import {
   type DayPlanItem, type DayPlanKind, type StrengthPayload, type ActivityPayload,
   type MealPayload, type SupplementPayload, type NotePayload, type MealSlot, type ExerciseSpec,
@@ -20,10 +25,21 @@ interface Props {
   showToast: (msg: string, type?: 'success' | 'error') => void;
   /** 'hobby' oculta pesaje y combate en los marcadores. */
   mode?: 'pro' | 'hobby';
-  /** Registrar lo que se hizo vive en Progreso › Actividad, no aquí. */
-  onGoActivity: (date?: string) => void;
+  /**
+   * Registrar lo que se hizo vive en Progreso › Actividad, no aquí.
+   * `kind` viaja cuando se sabe (un bloque planificado dice de qué es).
+   */
+  onGoActivity: (date?: string, kind?: string) => void;
+  /** Ir a Fuerza › Registrar para resolver un bloque planificado a mano. */
+  onGoStrength?: (date?: string) => void;
   /** Saltar a la pestaña Planificar (con una fecha opcional ya en mente). */
   onGoPlanificar?: (date?: string) => void;
+  /**
+   * Algo del día ha cambiado de estado desde aquí (se marcó hecho, se terminó
+   * una rutina). El Resumen lee la misma tabla, así que tiene que releer o se
+   * queda enseñando como pendiente lo que aquí ya está tachado.
+   */
+  onLogged?: () => void;
 }
 
 interface CompEvent { id: string; event_date: string; kind: 'fight' | 'weigh_in'; title: string }
@@ -106,7 +122,7 @@ function addDays(d: Date, n: number): Date { const x = new Date(d); x.setDate(x.
 
 const TICK_KINDS: DayPlanKind[] = ['strength', 'activity'];
 
-export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoActivity, onGoPlanificar }: Props) {
+export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoActivity, onGoStrength, onGoPlanificar, onLogged }: Props) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
 
@@ -134,6 +150,16 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
   // Reprogramar: id del elemento que se está moviendo de día.
   const [moveFor, setMoveFor] = useState<DayPlanItem | null>(null);
   const [duplicating, setDuplicating] = useState(false);
+
+  // ── ACCESO DIRECTO A LA EJECUCIÓN (punto 21bis) ──
+  // Un bloque que viene de un plan del Asesor sabe qué lo resuelve
+  // (routine_id / protocol_id). Al tocarlo se abre AQUÍ MISMO el checklist o el
+  // reproductor, en vez de mandar al usuario a Fuerza o Actividad a buscarlo.
+  const [runner, setRunner] = useState<{ item: DayPlanItem; routine: Routine; day: RoutineDay } | null>(null);
+  const [player, setPlayer] = useState<{ item: DayPlanItem; protocol: Protocol } | null>(null);
+  // id del bloque que se está abriendo, para que el botón muestre que va.
+  const [opening, setOpening] = useState<string | null>(null);
+  const [runSaving, setRunSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -285,6 +311,114 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
     if (error) { showToast(t('error_save'), 'error'); load(); } else showToast(t('mc_ag_item_removed'));
   };
 
+  // ── ACCESO DIRECTO A LA EJECUCIÓN (punto 21bis) ──
+
+  /** Marca (o desmarca) un bloque como hecho. Optimista: se pinta y se guarda. */
+  const setCompleted = useCallback(async (id: string, value: boolean) => {
+    setItems((p) => p.map((x) => (x.id === id ? { ...x, completed: value } : x)));
+    const { error } = await supabase.from('day_plan_items').update({ completed: value }).eq('id', id);
+    if (error) { showToast(t('error_save'), 'error'); load(); return; }
+    // El Resumen lee ESTA misma tabla para decidir qué está pendiente. Si no se
+    // le avisa, se queda con la foto anterior: aquí tachado, allí pendiente.
+    // Era justo el desajuste reportado, visto desde el otro lado.
+    onLogged?.();
+  }, [load, showToast, t, onLogged]);
+
+  /**
+   * Abre lo que resuelve ese bloque. Dos caminos, y SIEMPRE hay uno:
+   *
+   *   · Con rutina o protocolo detrás → se ejecuta aquí mismo (checklist en
+   *     vivo / reproductor de tramos) y al terminar el bloque queda hecho.
+   *   · Sin ellos (un entreno escrito a mano) → se va a la pantalla de registro
+   *     con el día puesto, y el tipo de actividad también. Antes esta rama no
+   *     existía y la fila simplemente no hacía nada.
+   *
+   * Si la rutina o el protocolo ya no existen (el usuario los borró después de
+   * generar el plan) no se deja al usuario tirado: se avisa y se cae al registro
+   * manual, que resuelve el bloque igual.
+   */
+  const openItem = useCallback(async (item: DayPlanItem) => {
+    setOpening(item.id);
+    try {
+      if (item.kind === 'strength') {
+        const p = item.payload as StrengthPayload;
+        if (p.routine_id) {
+          const routine = await loadRoutineById(profile.id, p.routine_id);
+          const day = routine?.days.find((d) => d.id === p.routine_day_id) ?? routine?.days[0] ?? null;
+          if (routine && day) { setRunner({ item, routine, day }); return; }
+          showToast(t('mc_ag_run_missing'), 'error');
+        }
+        onGoStrength?.(item.plan_date);
+        return;
+      }
+      if (item.kind === 'activity') {
+        const p = item.payload as ActivityPayload;
+        if (p.protocol_id) {
+          const protocol = await loadProtocolById(profile.id, p.protocol_id);
+          if (protocol) { setPlayer({ item, protocol }); return; }
+          showToast(t('mc_ag_run_missing'), 'error');
+        }
+        // El tipo va delante: llegar a Actividad con "correr" ya elegido ahorra
+        // el paso que el bloque ya había contestado.
+        onGoActivity(item.plan_date, p.kind);
+      }
+    } finally {
+      setOpening(null);
+    }
+  }, [profile.id, showToast, t, onGoStrength, onGoActivity]);
+
+  /** Cierre del checklist de fuerza abierto desde un día. */
+  const finishRoutine = async (date: string, slot: string | null, sets: LoggedSet[]) => {
+    if (!runner) return;
+    setRunSaving(true);
+    const res = await saveRoutineSession(profile.id, date, slot, sets);
+    setRunSaving(false);
+    if (!res.ok) { showToast(t('error_save'), 'error'); return; }
+
+    const item = runner.item;
+    setRunner(null);
+    void touchRoutine(profile.id, runner.routine);
+    // El tick del bloque se pone a mano además de dejar que `reconcileDayTicks`
+    // haga su trabajo: la heurística por grupo muscular acierta casi siempre,
+    // pero "casi" no vale cuando el usuario acaba de terminar ESE bloque.
+    await setCompleted(item.id, true);
+    void reconcileDayTicks(profile.id, date).then(() => onLogged?.());
+    showToast(t('mc_ag_run_done'));
+  };
+
+  /** Cierre del reproductor de cardio abierto desde un día. */
+  const finishProtocol = async (done: { secondsDone: number; segmentsDone: number; completed: boolean; distanceMeters: number }) => {
+    if (!player) return;
+    setRunSaving(true);
+    const res = await finishRun(profile.id, player.protocol, done, player.item.plan_date);
+    setRunSaving(false);
+    if (res.sessionFailed) { showToast(t('error_save'), 'error'); return; }
+
+    const item = player.item;
+    setPlayer(null);
+    // `setCompleted` ya avisa al Resumen. No se lanza aquí un
+    // `reconcileDayTicks`: `finishRun` lanza el suyo al guardar la sesión, y dos
+    // a la vez sobre el mismo día pueden pisarse y duplicar el bloque de
+    // recibo. Marcar el bloque a mano es lo que de verdad importa aquí.
+    await setCompleted(item.id, true);
+    showToast(t('mc_ag_run_done'));
+  };
+
+  /** Los dos ejecutores, montados una sola vez y compartidos por las vistas. */
+  const runnerOverlays = (
+    <>
+      {runner && (
+        <RoutineRunner profile={profile} routine={runner.routine} day={runner.day} saving={runSaving}
+          initialDate={runner.item.plan_date}
+          onExit={() => setRunner(null)} onFinish={finishRoutine} />
+      )}
+      {player && (
+        <ProtocolPlayer protocol={player.protocol} saving={runSaving}
+          onExit={() => setPlayer(null)} onFinish={finishProtocol} />
+      )}
+    </>
+  );
+
   // Sheets de planificación, compartidos por las vistas Día y Semana.
   const planSheets = (
     <>
@@ -387,9 +521,13 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
             onPlanThisDay={() => setStrengthSheet({ date: dayISO })}
             onPlanWeek={onGoPlanificar ? () => onGoPlanificar(dayISO) : undefined}
             onGoActivity={() => onGoActivity(dayISO)}
+            onRun={openItem}
+            opening={opening}
+            onToggleDone={setCompleted}
           />
         </div>
         {planSheets}
+        {runnerOverlays}
       </>
     );
   }
@@ -537,6 +675,7 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
           <WeekLegend t={t} mode={mode} />
         </div>
         {planSheets}
+        {runnerOverlays}
       </>
     );
   }
@@ -644,9 +783,15 @@ interface DayViewProps {
   onPlanThisDay: () => void;
   onPlanWeek?: () => void;
   onGoActivity: () => void;
+  /** Abrir lo que resuelve el bloque (checklist de fuerza o cardio en vivo). */
+  onRun?: (item: DayPlanItem) => void;
+  /** id del bloque que se está abriendo, para enseñar que va. */
+  opening?: string | null;
+  /** Marcar o desmarcar el bloque como hecho. */
+  onToggleDone?: (id: string, value: boolean) => void;
 }
 
-function DayView({ supps, suppNames, date, locale, items, comp, logged, mode, onPrev, onNext, onAdd, onRemove, onMove, onPlanThisDay, onPlanWeek, onGoActivity }: DayViewProps) {
+function DayView({ supps, suppNames, date, locale, items, comp, logged, mode, onPrev, onNext, onAdd, onRemove, onMove, onPlanThisDay, onPlanWeek, onGoActivity, onRun, opening, onToggleDone }: DayViewProps) {
   const { t } = useTranslation();
   const dObj = new Date(date + 'T12:00:00');
   const isToday = date === todayISO();
@@ -834,7 +979,12 @@ function DayView({ supps, suppNames, date, locale, items, comp, logged, mode, on
                 </div>
                 <div className="space-y-2">
                   {list.map((it) => (
-                    <DayItemRow key={it.id} item={it} onRemove={() => onRemove(it.id)} onMove={onMove ? () => onMove(it) : undefined} />
+                    <DayItemRow key={it.id} item={it}
+                      onRemove={() => onRemove(it.id)}
+                      onMove={onMove ? () => onMove(it) : undefined}
+                      onRun={onRun ? () => onRun(it) : undefined}
+                      opening={opening === it.id}
+                      onToggleDone={onToggleDone ? (v) => onToggleDone(it.id, v) : undefined} />
                   ))}
                 </div>
               </div>
@@ -862,23 +1012,65 @@ function DayView({ supps, suppNames, date, locale, items, comp, logged, mode, on
   );
 }
 
-function DayItemRow({ item, onRemove, onMove }: { item: DayPlanItem; onRemove: () => void; onMove?: () => void }) {
+function DayItemRow({ item, onRemove, onMove, onRun, opening, onToggleDone }: {
+  item: DayPlanItem;
+  onRemove: () => void;
+  onMove?: () => void;
+  /** Abrir lo que resuelve el bloque. Solo si hay algo que abrir. */
+  onRun?: () => void;
+  opening?: boolean;
+  onToggleDone?: (value: boolean) => void;
+}) {
   const { t } = useTranslation();
   const tickable = KIND_META[item.kind].tick;
-  const done = tickable && item.completed;
+  // Las comidas no llevan checkbox en el modelo, pero SÍ se pueden dar por
+  // hechas desde aquí (punto 21bis): el estado es el mismo `completed`, solo
+  // cambia que no se pinta la casilla a la izquierda.
+  const done = item.completed;
+
+  // ── ¿Hay algo que abrir? ──
+  //
+  // TODO bloque de entreno planificado y sin hacer se abre. Antes solo se abrían
+  // los que traían rutina o protocolo detrás (los del Asesor), así que un
+  // entreno escrito a mano era una línea muerta: se veía, no se podía tocar, y
+  // había que ir a buscar la sección correspondiente por el menú.
+  //
+  // Los que no tienen rutina ni protocolo llevan a la pantalla de registro con
+  // el día (y el tipo de actividad) ya puestos. Quien decide adónde es
+  // `openItem`; aquí solo se dice que la fila es tocable.
+  //
+  // Un bloque YA HECHO no se abre: es un registro, no una tarea. Y los
+  // `source: 'logged'` tampoco: son el recibo de algo que ya está en el
+  // historial.
+  const strengthPayload = item.kind === 'strength' ? (item.payload as StrengthPayload) : null;
+  const activityPayload = item.kind === 'activity' ? (item.payload as ActivityPayload) : null;
+  const isTraining = item.kind === 'strength' || item.kind === 'activity';
+  /** Con rutina/protocolo se ejecuta aquí mismo; sin ellos, se va a registrar. */
+  const runsInPlace = !!strengthPayload?.routine_id || !!activityPayload?.protocol_id;
+  // Un bloque de MAÑANA no se puede registrar: no ha pasado. Los formularios de
+  // registro no aceptan fechas futuras, así que ofrecer el atajo llevaría a una
+  // pantalla que rechaza lo que se acaba de pedir. Ejecutarlo en vivo sí se
+  // permite —quien le da al play lo está haciendo ahora—; lo que se corta es
+  // solo el atajo a "registrar a mano".
+  const future = item.plan_date > todayISO();
+  const runnable = !!onRun && isTraining && !done && item.source !== 'logged'
+    && (runsInPlace || !future);
 
   let main = '';
   let sub: string | null = null;
   let exLines: string[] = [];
   if (item.kind === 'strength') {
-    const p = item.payload as StrengthPayload;
+    const p = strengthPayload as StrengthPayload;
     main = (p.groups || []).map((g) => t(`mc_str_mg_${g}`, { defaultValue: g })).join(' + ') || t('mc_dp_kind_strength');
     exLines = exerciseLines(p.exercises, t);
     if (p.note) sub = p.note;
   } else if (item.kind === 'activity') {
-    const p = item.payload as ActivityPayload;
-    main = t(activityKindCfg(p.kind).labelKey);
+    const p = activityPayload as ActivityPayload;
+    // Con protocolo detrás manda SU nombre: "Cardio tarde — grasa" dice mucho
+    // más que "Cinta", que es lo único que se veía antes.
+    main = p.protocol_name || t(activityKindCfg(p.kind).labelKey);
     const bits: string[] = [];
+    if (p.protocol_name) bits.push(t(activityKindCfg(p.kind).labelKey));
     if (p.duration_min) bits.push(`${p.duration_min} min`);
     if (p.distance_km) bits.push(`${p.distance_km} km`);
     if (p.meters) bits.push(`${p.meters} m`);
@@ -898,6 +1090,30 @@ function DayItemRow({ item, onRemove, onMove }: { item: DayPlanItem; onRemove: (
     main = (item.payload as NotePayload).text;
   }
 
+  // El contenido del bloque. Cuando hay algo que abrir se envuelve en un botón:
+  // toda la fila es el acceso directo, no un icono escondido a la derecha.
+  const body = (
+    <>
+      <p className={`text-sm font-semibold flex items-center gap-1.5 ${done ? 'text-zinc-500 line-through' : 'text-white'}`}>
+        {main}
+        {runnable && (
+          <i className={runsInPlace ? 'ri-play-circle-line flex-shrink-0' : 'ri-edit-box-line flex-shrink-0'}
+            style={{ color: 'var(--accent)' }} />
+        )}
+      </p>
+      {sub && <p className="text-[11px] text-zinc-500 truncate">{sub}</p>}
+      {runnable && (
+        <p className="text-[10px] font-bold uppercase tracking-wider mt-0.5" style={{ color: 'var(--accent)' }}>
+          {opening
+            ? t('mc_ag_run_opening')
+            : runsInPlace
+              ? t(item.kind === 'strength' ? 'mc_ag_run_strength' : 'mc_ag_run_activity')
+              : t('mc_ag_go_log')}
+        </p>
+      )}
+    </>
+  );
+
   return (
     <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] px-3 py-2.5 group">
       <div className="flex items-center gap-3">
@@ -909,10 +1125,15 @@ function DayItemRow({ item, onRemove, onMove }: { item: DayPlanItem; onRemove: (
         ) : (
           <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: KIND_META[item.kind].hex }} />
         )}
-        <div className="flex-1 min-w-0">
-          <p className={`text-sm font-semibold ${done ? 'text-zinc-500 line-through' : 'text-white'}`}>{main}</p>
-          {sub && <p className="text-[11px] text-zinc-500 truncate">{sub}</p>}
-        </div>
+        {runnable ? (
+          <button onClick={onRun} disabled={opening}
+            className="flex-1 min-w-0 text-left cursor-pointer disabled:opacity-60"
+            style={{ minHeight: 40 }}>
+            {body}
+          </button>
+        ) : (
+          <div className="flex-1 min-w-0">{body}</div>
+        )}
         {tickable && (
           <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 inline-flex items-center gap-1 ${done ? 'text-green-500' : 'text-zinc-600'}`}>
             {done && (
@@ -923,6 +1144,19 @@ function DayItemRow({ item, onRemove, onMove }: { item: DayPlanItem; onRemove: (
             )}
             {done ? t('mc_ag_block_done') : t('mc_ag_block_pending')}
           </span>
+        )}
+        {/* Marcar a mano. Es la salida para cuando el entreno se hizo sin abrir
+            el checklist, y la ÚNICA para las comidas, que no tienen ejecutor.
+            Las observaciones quedan fuera: una nota no se "cumple". */}
+        {onToggleDone && item.kind !== 'note' && (
+          <button onClick={() => onToggleDone(!done)}
+            aria-pressed={done}
+            aria-label={t(done ? 'mc_sem_mark_undone' : 'mc_sem_mark_done')}
+            title={t(done ? 'mc_sem_mark_undone' : 'mc_sem_mark_done')}
+            className="w-7 h-7 flex items-center justify-center cursor-pointer flex-shrink-0 transition-colors"
+            style={{ color: done ? '#4ade80' : 'var(--t-3)' }}>
+            <i className={done ? 'ri-checkbox-circle-fill text-base' : 'ri-checkbox-circle-line text-base'} />
+          </button>
         )}
         {onMove && (
           <button onClick={onMove} aria-label={t('mc_ag_move_title')} title={t('mc_ag_move_title')}

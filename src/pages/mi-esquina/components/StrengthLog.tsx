@@ -6,8 +6,9 @@ import {
   MUSCLE_GROUPS, muscleGroupOf, weightModeOf, trackingModeOf,
   type MuscleGroup, type WeightMode, type TrackingMode,
 } from '../lib/exercises';
-import { fmtWeight, fmtSetCount, fmtSetValue } from '../lib/dayPlan';
+import { fmtWeight, fmtSetCount, fmtSetValue, type StrengthPayload } from '../lib/dayPlan';
 import { reconcileDayTicks } from '../lib/planTicks';
+import { loadTodayTraining } from '../lib/todayTraining';
 import { clearDraft } from '../lib/strengthDraft';
 import { computePRs, prKey, type PRHit } from '../lib/prs';
 import { groupSeries, isDropStep } from '../lib/strength';
@@ -29,6 +30,21 @@ interface Props {
   hideRegisterCta?: boolean;
   /** Enlace opcional "ver historial completo" cuando hideHistory. */
   onSeeHistory?: () => void;
+  /**
+   * Día con el que abrir el formulario de alta. Llega de un bloque de la Agenda
+   * que se ha tocado para resolverlo: sin esto, un entreno planificado para el
+   * martes se guardaba con la fecha de hoy sin avisar.
+   */
+  initialDate?: string;
+  /**
+   * Se llama DESPUÉS de que la Agenda se haya sincronizado con lo registrado.
+   *
+   * El orden importa: `reconcileDayTicks` es quien marca el bloque del día como
+   * hecho (o lo crea, si el entreno no estaba planificado). Avisar antes de que
+   * termine haría que las tarjetas de "hoy toca" se recargasen con los datos
+   * viejos y siguieran enseñando como pendiente lo que se acaba de hacer.
+   */
+  onLogged?: () => void;
 }
 
 interface StrengthSet {
@@ -107,7 +123,7 @@ function slotKey(s: SessionSlot | null): string { return s || '_none'; }
  * días agrupado por grupo muscular con su volumen, y la progresión por ejercicio.
  * Sigue guardando UNA FILA POR SERIE en strength_sets; nada se almacena derivado.
  */
-export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hideHistory, hideRegisterCta, onSeeHistory }: Props) {
+export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hideHistory, hideRegisterCta, onSeeHistory, onLogged, initialDate }: Props) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
 
@@ -179,18 +195,17 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
 
   // Entreno de fuerza PLANIFICADO para hoy y todavía sin hacer. Es lo que
   // convierte el botón genérico "Registrar" en "Registrar pecho y espalda".
+  //
+  // Usa la misma regla que las tarjetas de "hoy toca" (lib/todayTraining.ts):
+  // este botón es otra forma de decir "esto te queda", así que no puede tener
+  // su propio criterio de qué cuenta como pendiente.
   useEffect(() => {
     let alive = true;
     (async () => {
-      const { data, error } = await supabase.from('day_plan_items')
-        .select('payload, completed')
-        .eq('fighter_profile_id', profile.id)
-        .eq('plan_date', todayISO())
-        .eq('kind', 'strength');
-      if (!alive || isMissingTable(error) || !data) return;
-      const groups = (data as { payload: { groups?: string[] }; completed: boolean }[])
-        .filter((r) => !r.completed)
-        .flatMap((r) => r.payload?.groups || [])
+      const { pendingStrength } = await loadTodayTraining(profile.id, ['strength']);
+      if (!alive) return;
+      const groups = pendingStrength
+        .flatMap((b) => (b.payload as StrengthPayload).groups || [])
         .filter((g): g is MuscleGroup => MUSCLE_GROUPS.includes(g as MuscleGroup));
       setPlannedToday([...new Set(groups)]);
     })();
@@ -535,8 +550,9 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
       setEditCtx(null);
       setEditData(undefined);
       showToast(t('mc_str_session_updated'));
-      void reconcileDayTicks(profile.id, editCtx.date);
-      if (session.date !== editCtx.date) void reconcileDayTicks(profile.id, session.date);
+      void reconcileDayTicks(profile.id, editCtx.date)
+        .then(() => (session.date !== editCtx.date ? reconcileDayTicks(profile.id, session.date) : null))
+        .then(() => onLogged?.());
       return;
     }
 
@@ -574,8 +590,13 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
     showToast(t('mc_str_session_saved', { groups: groupNames, n: exCount }));
     void logToAgenda(session.date, session.blocks.flatMap((b) => b.exercises.map((e) => e.label)));
     // Tick automático del plan del día: marca los bloques de fuerza que
-    // comparten grupo muscular con lo que se acaba de registrar (Tarea 3).
-    void reconcileDayTicks(profile.id, session.date);
+    // comparten grupo muscular con lo que se acaba de registrar (Tarea 3), y
+    // da de alta el bloque si el entreno no estaba planificado.
+    //
+    // El aviso a las tarjetas de "hoy toca" va DESPUÉS de que esto termine: si
+    // se avisara antes, volverían a leer la Agenda sin el tick puesto y
+    // seguirían enseñando como pendiente lo que se acaba de hacer.
+    void reconcileDayTicks(profile.id, session.date).then(() => onLogged?.());
 
     // Marca personal: destello único de 600 ms sin loop.
     if (isPR) {
@@ -589,7 +610,11 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
     setRows((prev) => prev.filter((r) => r.session_date !== date));
     setConfirmDel(null);
     const { error } = await supabase.from('strength_sets').delete().in('id', ids);
-    if (error) { showToast(t('error_save'), 'error'); load(); }
+    if (error) { showToast(t('error_save'), 'error'); load(); return; }
+    // Borrar una sesión también cambia lo que toca hoy: `reconcileDayTicks`
+    // retira el bloque que se había creado solo y el día vuelve a estar
+    // pendiente. Sin esto, la Agenda seguiría diciendo que entrenaste.
+    void reconcileDayTicks(profile.id, date).then(() => onLogged?.());
   };
 
   // Esqueleto con la forma de la pantalla en vez de una ruedecita: se ve
@@ -942,6 +967,7 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
         slotsByDate={slotsByDate}
         initialGroup={formInitialGroup}
         initialGroups={formInitialGroups}
+        initialDate={initialDate}
         initialSession={editData}
         duplicateFrom={duplicateData}
       />

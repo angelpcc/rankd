@@ -1,0 +1,78 @@
+# ════════════════════════════════════════════════════════════════
+# RANKD · Comprobación de tipos y lint en cada push
+#
+# ── POR QUÉ EXISTE ──
+#
+# En la máquina de desarrollo no hay Node instalado, así que `npm run
+# type-check` y `npm run lint` no se pueden ejecutar en local. Sin esto, el
+# código se escribe y se revisa a mano pero NO se compila nunca, y los errores
+# de tipos aparecen en producción o no aparecen —que es peor—.
+#
+# Vercel no cubre este hueco: el build es `vite build`, y Vite transpila con
+# esbuild, que BORRA los tipos sin comprobarlos. Un despliegue verde no dice
+# nada sobre si los tipos cuadran. Por eso hace falta `tsc --noEmit` aparte.
+#
+# ── CÓMO LEERLO ──
+#
+# El lint se ejecuta aunque la comprobación de tipos falle, así que de una sola
+# vuelta se ve TODO lo que hay que arreglar. Si fuera secuencial, un error de
+# tipos esconderia los avisos de lint y habría que ir descubriéndolos de uno en
+# uno, esperando una vuelta completa cada vez.
+#
+# Lo que no se ejecuta es nada si falla la instalación: sin `node_modules` los
+# dos comandos fallan por el mismo motivo y el registro no diría nada útil.
+#
+# Se puede lanzar a mano desde la pestaña Actions ("Run workflow") sin tener que
+# hacer un push de mentira.
+# ════════════════════════════════════════════════════════════════
+
+name: Tipos y lint
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+# Un push nuevo sobre la misma rama cancela la comprobación anterior: interesa
+# el estado del último commit, no el de los tres de hace un minuto.
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    # De sobra; evita que un cuelgue consuma minutos en balde.
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          # Vite 8 exige Node >= 20.19. 22 es la LTS: conviene fijarla para que
+          # el entorno de comprobación no se mueva solo.
+          node-version: '22'
+          # Cachea ~/.npm para las vueltas siguientes. Necesita el
+          # package-lock.json, que existe.
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        id: install
+        # `npm ci` es reproducible, pero exige que el lock esté sincronizado con
+        # package.json. Si alguna vez se desincroniza, `npm install` saca la
+        # comprobación adelante en vez de dejarla roja por algo que no es el
+        # código. El aviso queda en el resumen para no enterarse por casualidad.
+        run: npm ci || (echo "::warning::package-lock.json desincronizado, usando npm install" && npm install)
+
+      - name: Comprobación de tipos (tsc --noEmit)
+        run: npm run type-check
+
+      - name: Lint (eslint, --max-warnings 0)
+        # Este `if` es lo que hace que el lint corra aunque los tipos hayan
+        # fallado (sin `if`, GitHub salta el paso al fallar el anterior), y a la
+        # vez lo salta si lo que falló fue la instalación.
+        if: steps.install.outcome == 'success'
+        run: npm run lint
