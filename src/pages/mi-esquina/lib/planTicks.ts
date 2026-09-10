@@ -1,4 +1,4 @@
-// Sincroniza la AGENDA con lo que se ha registrado de verdad.
+﻿// Sincroniza la AGENDA con lo que se ha registrado de verdad.
 //
 // Hace dos cosas, en este orden:
 //
@@ -25,7 +25,7 @@ import { supabase } from '@/lib/supabase';
 import { isMissingTable } from '@/lib/dbState';
 import { muscleGroupOf } from './exercises';
 import { activityFamily, buildDayFacts, coversPlanItem, isWildcardKind } from './planMatch';
-import type { StrengthPayload, ActivityPayload, MealPayload, MealSlot } from './dayPlan';
+import type { StrengthPayload, ActivityPayload, MealPayload, MealSlot, DoneSummary } from './dayPlan';
 
 interface PlanRow {
   id: string;
@@ -80,24 +80,71 @@ export async function reconcileDayTicks(fighterProfileId: string, date: string):
     const loggedGroups = [...facts.groups];
     const loggedExercises = [...new Set(setRows.map((s) => s.exercise_label.trim()).filter(Boolean))];
 
+    // ── Resumen de lo que se hizo de verdad ──
+    //
+    // Planificar dice "pecho y espalda"; esto dice "Press banca ×4 · Remo ×3".
+    // Va al bloque de la Agenda para que, de un vistazo al día, se vea qué se
+    // hizo sin tener que entrar en Fuerza. El plan original no se toca: se
+    // guarda al lado, en `payload.done`.
+    const setsByExercise = new Map<string, number>();
+    for (const s of setRows) {
+      const n = (s.exercise_label || '').trim();
+      if (n) setsByExercise.set(n, (setsByExercise.get(n) || 0) + 1);
+    }
+    const strengthDone: DoneSummary | null = setsByExercise.size > 0
+      ? {
+        // Cinco ejercicios como mucho: es un resumen, no el historial. El resto
+        // se cuenta ("+3") en vez de alargar la linea hasta hacerla ilegible.
+        text: [...setsByExercise.entries()].slice(0, 5).map(([n, c]) => `${n} ×${c}`).join(' · ')
+          + (setsByExercise.size > 5 ? ` +${setsByExercise.size - 5}` : ''),
+        total: setRows.length,
+      }
+      : null;
+
+    /** Resumen de actividad para el tipo concreto que resuelve un bloque. */
+    const activityDoneFor = (payload: ActivityPayload | null | undefined): DoneSummary | null => {
+      const relevantes = actRows.filter((a) => isWildcardKind(payload?.kind)
+        || activityFamily(a.kind) === activityFamily(payload?.kind)
+        || isWildcardKind(a.kind));
+      if (relevantes.length === 0) return null;
+      const mins = relevantes.reduce((acc, a) => acc + (a.duration_min || 0), 0);
+      const tipos = [...new Set(relevantes.map((a) => a.kind).filter(Boolean))];
+      return { text: tipos.join(' · ') + (mins > 0 ? ` · ${mins} min` : ''), total: mins };
+    };
+
     // ── 1. Tick de lo planificado que encaja ──
     //
     // La comparación es la de `planMatch`, la misma que decide si el aviso de
     // "hoy toca" desaparece. No hay una segunda opinión aquí.
-    const toComplete = plan
-      .filter((i) => !i.completed)
-      .filter((i) => coversPlanItem(i.kind, i.payload as StrengthPayload | ActivityPayload, facts))
-      .map((i) => i.id);
+    //
+    // Se actualiza uno a uno, no en bloque, porque cada bloque lleva SU resumen.
+    // Son uno o dos por día: no compensa complicarlo para ahorrar una consulta.
+    const pendientes = plan
+      .filter((i) => i.kind === 'strength' || i.kind === 'activity')
+      .filter((i) => coversPlanItem(i.kind, i.payload as StrengthPayload | ActivityPayload, facts));
 
-    if (toComplete.length > 0) {
-      const upd = await supabase.from('day_plan_items').update({ completed: true }).in('id', toComplete);
+    let tocados = 0;
+    for (const i of pendientes) {
+      const payload = i.payload as StrengthPayload & ActivityPayload;
+      const done = i.kind === 'strength' ? strengthDone : activityDoneFor(payload);
+
+      // Solo se escribe si algo cambia: sin esto, cada guardado reescribiría
+      // todos los bloques del día aunque no hubieran cambiado.
+      const yaEstaba = i.completed && JSON.stringify(payload?.done ?? null) === JSON.stringify(done);
+      if (yaEstaba) continue;
+
+      const nuevo = { ...payload, ...(done ? { done } : {}) };
+      const upd = await supabase.from('day_plan_items')
+        .update({ completed: true, payload: nuevo }).eq('id', i.id);
       // Un tick perdido deja la Agenda enseñando como pendiente algo que ya se
       // hizo, y la Agenda lee `completed` a pelo: no tiene la red de seguridad
       // que sí tiene el aviso de "hoy toca". Un reintento cuesta nada y evita
       // el caso más molesto (un corte de red justo al guardar).
       if (upd.error) {
-        await supabase.from('day_plan_items').update({ completed: true }).in('id', toComplete);
+        await supabase.from('day_plan_items')
+          .update({ completed: true, payload: nuevo }).eq('id', i.id);
       }
+      tocados++;
     }
 
     // ── 2. Alta de lo que se hizo sin estar planificado ──
@@ -228,7 +275,7 @@ export async function reconcileDayTicks(fighterProfileId: string, date: string):
       await supabase.from('day_plan_items').delete().in('id', stale);
     }
 
-    return toComplete.length + inserts.length + stale.length;
+    return tocados + inserts.length + stale.length;
   } catch {
     return 0;
   }

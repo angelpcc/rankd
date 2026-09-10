@@ -168,22 +168,54 @@ export default function StrengthPlanBuilder({ open, onClose, fighterProfileId, o
 
   const hasExercises = blocks.some((b) => b.exercises.some((e) => e.name.trim()));
 
+  /**
+   * Guarda solo los grupos, sin ejercicios.
+   *
+   * Planificar es decir QUÉ toca, no dejar la sesión escrita entera. "Mañana
+   * pecho y espalda" es un plan completo y válido; los ejercicios se deciden en
+   * el gimnasio. Obligar a escribirlos aquí convertía un gesto de dos toques en
+   * un formulario, y el resultado era no planificar nada.
+   *
+   * Al registrar la sesión de verdad, el bloque de la Agenda se rellena solo
+   * con lo que se hizo (ver lib/planTicks.ts).
+   */
+  const submitGroupsOnly = async () => {
+    if (blocks.length === 0) return;
+    setSaving(true);
+    await onSave({ groups: blocks.map((b) => b.group), exercises: [] });
+    setSaving(false);
+    reset();
+  };
+
   return (
     <>
       <BottomSheet open={open} onClose={handleClose}
         title={step === 1 ? t('mc_dp_str_title') : t('mc_dp_str_step2')}
         footer={
           step === 1 ? (
-            <button onClick={() => blocks.length && setStep(2)} disabled={blocks.length === 0} style={{ minHeight: 48 }}
-              className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50">
-              {t('mc_str_continue')} <i className="ri-arrow-right-line"></i>
-            </button>
+            // Dos salidas desde el paso 1. La de arriba es la rápida y la más
+            // habitual: dejar dicho "mañana pecho y espalda" y cerrar. Los
+            // ejercicios son un extra para quien ya los tenga decididos.
+            <div className="space-y-2">
+              <button onClick={submitGroupsOnly} disabled={saving || blocks.length === 0} style={{ minHeight: 48 }}
+                className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50">
+                {saving
+                  ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  : <><i className="ri-check-line"></i> {t('mc_dp_str_only_groups')}</>}
+              </button>
+              <button onClick={() => blocks.length && setStep(2)} disabled={saving || blocks.length === 0} style={{ minHeight: 44 }}
+                className="rk-nav-btn rk-press w-full flex items-center justify-center gap-2 disabled:opacity-50 text-sm">
+                {t('mc_dp_str_add_ex')} <i className="ri-arrow-right-line"></i>
+              </button>
+            </div>
           ) : (
-            <button onClick={submit} disabled={saving || !hasExercises} style={{ minHeight: 48 }}
+            // Sin ejercicios también se guarda: si has llegado hasta aquí y te
+            // has arrepentido, guardar los grupos sigue siendo un plan válido.
+            <button onClick={submit} disabled={saving} style={{ minHeight: 48 }}
               className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50">
               {saving
                 ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                : <><i className="ri-check-line"></i> {t('mc_dp_form_save')}</>}
+                : <><i className="ri-check-line"></i> {hasExercises ? t('mc_dp_form_save') : t('mc_dp_str_only_groups')}</>}
             </button>
           )
         }>

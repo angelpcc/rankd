@@ -50,4 +50,16 @@ export default {
   // It opens all the same, but leads to the logging screen instead of a live
   // player. The copy says so, so nobody expects a stopwatch.
   mc_ag_go_log: 'Tap to log',
+
+  // ── Planning strength without writing the whole session ──
+  // Planning is saying WHAT is due, not writing the workout out. "Chest and
+  // back tomorrow" is a complete plan; the exercises get decided at the gym.
+  // Hence saving just the groups is the PRIMARY button and adding exercises
+  // the secondary one: the other way round turned two taps into a form.
+  mc_dp_str_only_groups: 'Save as is',
+  mc_dp_str_add_ex: 'Add exercises (optional)',
+
+  // ── Agenda · summary of what was trained ──
+  mc_ag_done_sets_one: '1 set',
+  mc_ag_done_sets_other: '{{count}} sets',
 };

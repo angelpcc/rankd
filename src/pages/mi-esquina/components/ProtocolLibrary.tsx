@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type Profile } from '@/lib/supabase';
 import Reveal from '@/components/base/Reveal';
@@ -8,41 +8,31 @@ import ProtocolPlayer from '@/pages/mi-esquina/components/ProtocolPlayer';
 import { ACTIVITY_KINDS, activityKindCfg } from '@/pages/mi-esquina/lib/dayPlan';
 import {
   clock, deleteProtocol, emptyProtocol, finishRun, loadProtocols, loadRuns,
-  parseProtocolText, protocolTotals, protocolVarsFor, saveProtocol, formatVarValue,
+  protocolTotals, protocolVarsFor, saveProtocol, formatVarValue,
   type Protocol, type ProtocolRun,
 } from '@/pages/mi-esquina/lib/protocols';
-import { checkProtocolImportAvailable, importProtocol } from '@/services/protocolImport';
-
 // Biblioteca de protocolos de actividad (punto 16).
 //
 // Vive dentro de Actividad, como pestaña propia. Aquí se GUARDAN varios
 // protocolos y se eligen; el guion en vivo lo pinta ProtocolPlayer y la
 // edición, ProtocolEditor.
 //
-// Importar tiene DOS caminos a propósito:
-//   · Con el Asesor — pega el texto (o sube una foto) del PDF del entrenador y
-//     la IA lo estructura. Es lo cómodo.
-//   · Sin el Asesor — el mismo texto lo lee el propio navegador
-//     (`parseProtocolText`). Es lo que hace que la función siga existiendo con
-//     la IA en pausa, en vez de enseñar un "disponible pronto" y nada más.
+// ── IMPORTAR YA NO ESTÁ AQUÍ ──
+//
+// Meter un documento se hace en Planificar, en un solo sitio, y allí se detecta
+// solo si es fuerza, cardio, la semana entera o comidas. Tenerlo también aquí
+// obligaba a saber de qué era el documento ANTES de elegir la puerta, y un plan
+// con fuerza y cardio dentro no tenía puerta buena.
+//
+// Esta pantalla se queda con su tarea: USAR los protocolos que ya tienes. Meter
+// y usar son cosas distintas y cada una va donde tiene sentido — usar, aquí,
+// que es donde estás cuando vas a entrenar.
 
 interface Props {
   profile: Profile;
   showToast: (msg: string, type?: 'success' | 'error') => void;
   /** Avisa a Actividad de que hay una sesión nueva en el historial. */
   onSessionSaved?: () => void;
-}
-
-const MAX_BYTES = 5 * 1024 * 1024;
-const ACCEPT = 'image/jpeg,image/png,image/webp';
-
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || '').split(',')[1] || '');
-    reader.onerror = () => reject(new Error('read'));
-    reader.readAsDataURL(file);
-  });
 }
 
 export default function ProtocolLibrary({ profile, showToast, onSessionSaved }: Props) {
@@ -58,8 +48,6 @@ export default function ProtocolLibrary({ profile, showToast, onSessionSaved }: 
 
   const [editing, setEditing] = useState<Protocol | null>(null);
   const [playing, setPlaying] = useState<Protocol | null>(null);
-  const [importOpen, setImportOpen] = useState(false);
-  const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
 
   const load = useCallback(async () => {
     const [{ protocols: list, storedLocally }, runList] = await Promise.all([
@@ -73,11 +61,6 @@ export default function ProtocolLibrary({ profile, showToast, onSessionSaved }: 
   }, [profile.id]);
 
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => {
-    let alive = true;
-    checkProtocolImportAvailable().then((ok) => { if (alive) setAiAvailable(ok); });
-    return () => { alive = false; };
-  }, []);
 
   /** Última vez que se reprodujo cada protocolo. */
   const lastRunOf = useMemo(() => {
@@ -145,12 +128,13 @@ export default function ProtocolLibrary({ profile, showToast, onSessionSaved }: 
           style={{ fontSize: '0.85rem', minHeight: 46 }}>
           <i className="ri-add-line" />{t('mc_pt_new')}
         </button>
-        <button onClick={() => setImportOpen(true)}
-          className="rk-nav-btn flex items-center justify-center gap-2 flex-1 sm:flex-none text-xs"
-          style={{ padding: '0.6rem 1.1rem', minHeight: 46 }}>
-          <i className="ri-file-text-line" />{t('mc_pt_import')}
-        </button>
       </div>
+
+      {/* Importar un documento se hace en Planificar, en un solo sitio. Aquí se
+          dice dónde para que nadie lo busque por la sección equivocada. */}
+      <p className="text-[11px] text-zinc-500 leading-relaxed">
+        <i className="ri-information-line mr-1" />{t('mc_pt_import_moved')}
+      </p>
 
       {localOnly && (
         <p className="text-[11px] text-[#C9A84C] flex items-start gap-1.5 leading-relaxed">
@@ -254,168 +238,6 @@ export default function ProtocolLibrary({ profile, showToast, onSessionSaved }: 
           onExit={() => setPlaying(null)} onFinish={finish} />
       )}
 
-      {importOpen && (
-        <ImportPanel
-          aiAvailable={aiAvailable}
-          showToast={showToast}
-          onClose={() => setImportOpen(false)}
-          onImported={(p) => { setImportOpen(false); setEditing(p); }}
-        />
-      )}
-    </div>
-  );
-}
-
-// ── Importar ───────────────────────────────────────────────────
-
-function ImportPanel({ aiAvailable, showToast, onClose, onImported }: {
-  aiAvailable: boolean | null;
-  showToast: (msg: string, type?: 'success' | 'error') => void;
-  onClose: () => void;
-  onImported: (p: Protocol) => void;
-}) {
-  const { t } = useTranslation();
-  const [kind, setKind] = useState('cinta');
-  const [text, setText] = useState('');
-  const [file, setFile] = useState<File | null>(null);
-  const [busy, setBusy] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  const pickFile = (f: File | null) => {
-    if (!f) return;
-    if (!ACCEPT.split(',').includes(f.type)) { showToast(t('mc_food_photo_err_type'), 'error'); return; }
-    if (f.size > MAX_BYTES) { showToast(t('mc_food_photo_err_size'), 'error'); return; }
-    setFile(f);
-  };
-
-  const buildDraft = (name: string, segments: Protocol['segments'], note?: string): Protocol => ({
-    ...emptyProtocol(kind, name),
-    segments,
-    note,
-    source: 'import',
-  });
-
-  /** Camino sin IA: lo lee el propio navegador. */
-  const readHere = () => {
-    const { segments, warnings } = parseProtocolText(text, kind);
-    if (segments.length === 0) {
-      showToast(t('mc_pt_import_nothing'), 'error');
-      return;
-    }
-    // El aviso va por toast: el panel se cierra al abrir el editor, así que
-    // pintarlo aquí sería enseñárselo a nadie.
-    if (warnings.length > 0) showToast(t('mc_pt_import_warn'), 'error');
-    onImported(buildDraft(t('mc_pt_imported_name'), segments));
-  };
-
-  /** Camino con IA: se lo damos al Asesor. */
-  const readWithAi = async () => {
-    setBusy(true);
-    try {
-      let imageBase64: string | undefined;
-      if (file) imageBase64 = await fileToBase64(file);
-      const res = await importProtocol({
-        kind,
-        text: text.trim() || undefined,
-        imageBase64,
-        mediaType: file?.type,
-      });
-      if (res.protocol) {
-        onImported(buildDraft(res.protocol.name, res.protocol.segments, res.protocol.note));
-        return;
-      }
-      // Si la IA no ha podido, el texto todavía tiene una oportunidad aquí
-      // mismo: es mejor eso que devolver al usuario a la casilla de salida.
-      if (text.trim()) {
-        const { segments } = parseProtocolText(text, kind);
-        if (segments.length > 0) {
-          showToast(t('mc_pt_import_fallback'));
-          onImported(buildDraft(t('mc_pt_imported_name'), segments));
-          return;
-        }
-      }
-      showToast(res.error || t('mc_pt_import_nothing'), 'error');
-    } catch {
-      showToast(t('mc_pt_import_nothing'), 'error');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const soon = aiAvailable === false;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" />
-      <div className="relative rk-card w-full sm:max-w-lg flex flex-col"
-        style={{ padding: 0, transform: 'none', maxHeight: '92vh', borderRadius: '20px 20px 0 0' }}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07] flex-shrink-0">
-          <h3 className="rk-h3" style={{ fontSize: '1.05rem', color: '#fff', margin: 0 }}>{t('mc_pt_import_title')}</h3>
-          <button onClick={onClose} aria-label={t('mc_close')}
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-white/[0.05] text-zinc-400 hover:text-white cursor-pointer">
-            <i className="ri-close-line" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-          <p className="text-xs text-zinc-400 leading-relaxed">{t('mc_pt_import_desc')}</p>
-
-          {/* Tipo de actividad */}
-          <div>
-            <p className="text-xs text-zinc-400 mb-2">{t('mc_pt_import_kind')}</p>
-            <div className="grid grid-cols-3 gap-1.5">
-              {ACTIVITY_KINDS.map((k) => (
-                <button key={k.value} type="button" onClick={() => setKind(k.value)}
-                  className={`flex flex-col items-center gap-1 py-2.5 rounded-xl border text-[11px] font-semibold transition-all cursor-pointer ${
-                    kind === k.value ? 'border-red-500 bg-red-600/12 text-white' : 'border-white/10 bg-white/[0.02] text-zinc-300 hover:border-white/25'
-                  }`} style={{ minHeight: 56 }}>
-                  <ActivityGlyph kind={k.value} size={20} style={{ color: k.hex }} />
-                  {t(k.labelKey)}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Texto */}
-          <div>
-            <label className="block text-xs text-zinc-400 mb-1.5">{t('mc_pt_import_text')}</label>
-            <textarea value={text} onChange={(e) => setText(e.target.value)} rows={7}
-              placeholder={t('mc_pt_import_text_ph')}
-              className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 resize-y font-mono"
-              style={{ fontSize: 13 }} />
-          </div>
-
-          {/* Foto (solo tiene sentido con el Asesor activo) */}
-          <div>
-            <input ref={fileRef} type="file" accept={ACCEPT} className="hidden"
-              onChange={(e) => pickFile(e.target.files?.[0] || null)} />
-            <button onClick={() => fileRef.current?.click()} disabled={soon || busy}
-              className="w-full flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] text-xs font-semibold text-zinc-200 hover:border-white/25 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
-              style={{ minHeight: 46 }}>
-              <i className="ri-image-add-line" />{file ? file.name.slice(0, 28) : t('mc_pt_import_photo')}
-            </button>
-            {soon && <p className="text-[11px] text-zinc-500 mt-1.5 leading-relaxed">{t('mc_pt_import_ai_paused')}</p>}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-2 px-5 py-4 border-t border-white/[0.07] flex-shrink-0"
-          style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}>
-          <button onClick={readWithAi} disabled={busy || soon || (!text.trim() && !file)}
-            className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50"
-            style={{ minHeight: 48 }}>
-            {busy
-              ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{t('mc_pt_import_reading')}</>
-              : <><i className="ri-sparkling-2-line" />{t('mc_pt_import_with_ai')}</>}
-          </button>
-          <button onClick={readHere} disabled={busy || !text.trim()}
-            className="rk-nav-btn w-full text-xs flex items-center justify-center gap-2 disabled:opacity-50"
-            style={{ padding: '0.7rem 1rem', minHeight: 46 }}>
-            <i className="ri-scan-line" />{t('mc_pt_import_here')}
-          </button>
-          <p className="text-[10px] text-zinc-600 leading-relaxed text-center">{t('mc_pt_import_here_hint')}</p>
-        </div>
-      </div>
     </div>
   );
 }

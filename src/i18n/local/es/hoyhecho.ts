@@ -49,4 +49,16 @@ export default {
   // Se abre igual, pero llevando a la pantalla de registro en vez de a un
   // ejecutor en vivo. El texto lo dice para que nadie espere un cronómetro.
   mc_ag_go_log: 'Toca para registrar',
+
+  // ── Planificar fuerza sin escribir la sesión entera ──
+  // Planificar es decir QUÉ toca, no dejar el entreno escrito. "Mañana pecho y
+  // espalda" es un plan completo; los ejercicios se deciden en el gimnasio.
+  // Por eso guardar solo los grupos es el botón PRINCIPAL, y añadir ejercicios
+  // el secundario: al revés, un gesto de dos toques se volvía un formulario.
+  mc_dp_str_only_groups: 'Guardar así',
+  mc_dp_str_add_ex: 'Añadir ejercicios (opcional)',
+
+  // ── Agenda · resumen de lo entrenado ──
+  mc_ag_done_sets_one: '1 serie',
+  mc_ag_done_sets_other: '{{count}} series',
 };

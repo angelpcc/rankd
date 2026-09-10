@@ -5,6 +5,7 @@ import { isMissingTable, isMissingColumn } from '@/lib/dbState';
 import { parseWeekPlanFromSpeech, type WeekPlanLine, type WeekPlanKind } from '@/lib/dictation';
 import VoiceButton from '@/components/feature/VoiceButton';
 import BottomSheet from '@/components/base/BottomSheet';
+import PlanImport from './PlanImport';
 import { MUSCLE_GROUPS } from '../lib/exercises';
 import {
   type DayPlanKind, type MealSlot, KIND_ORDER, KIND_META, ACTIVITY_KINDS, MEAL_SLOTS, isoOf,
@@ -209,6 +210,22 @@ export default function PlanificarPanel({ profile, showToast, onLogged }: Props)
           <i className="ri-magic-line"></i> {t('mc_pl_btn')}
         </button>
       </div>
+
+      {/* ── LA ÚNICA PUERTA PARA METER UN DOCUMENTO ──
+          Antes esto estaba repartido: las rutinas se importaban desde Fuerza y
+          los protocolos de cardio desde Actividad, así que había que saber de
+          qué era el documento ANTES de entrar. Ahora se pega aquí y él decide;
+          si duda, pregunta. Las bibliotecas siguen en su sección, porque USAR
+          una rutina y METER una rutina son dos tareas distintas. */}
+      <PlanImport
+        profile={profile}
+        showToast={showToast}
+        onImported={onLogged}
+        // Un plan repartido por días no es un documento que archivar: es esta
+        // misma pantalla. Se le pasa el texto y sigue el camino de siempre.
+        onWeekText={(txt) => { setText(txt); setRows(parseWeekPlanFromSpeech(txt).map(lineToRow)); }}
+        onMealsText={(txt) => { setText(txt); setRows(parseWeekPlanFromSpeech(txt).map(lineToRow)); }}
+      />
 
       <SavedTemplates profile={profile} showToast={showToast} weekStart={weekStart} onApplied={onLogged} />
     </div>

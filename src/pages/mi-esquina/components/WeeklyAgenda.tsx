@@ -1045,6 +1045,9 @@ function DayItemRow({ item, onRemove, onMove, onRun, opening, onToggleDone }: {
   const strengthPayload = item.kind === 'strength' ? (item.payload as StrengthPayload) : null;
   const activityPayload = item.kind === 'activity' ? (item.payload as ActivityPayload) : null;
   const isTraining = item.kind === 'strength' || item.kind === 'activity';
+  // Resumen de lo realmente entrenado, si el bloque ya está resuelto. Lo escribe
+  // `lib/planTicks.ts` leyendo las sesiones; aquí solo se pinta.
+  const hecho = done ? (strengthPayload?.done || activityPayload?.done || null) : null;
   /** Con rutina/protocolo se ejecuta aquí mismo; sin ellos, se va a registrar. */
   const runsInPlace = !!strengthPayload?.routine_id || !!activityPayload?.protocol_id;
   // Un bloque de MAÑANA no se puede registrar: no ha pasado. Los formularios de
@@ -1102,6 +1105,25 @@ function DayItemRow({ item, onRemove, onMove, onRun, opening, onToggleDone }: {
         )}
       </p>
       {sub && <p className="text-[11px] text-zinc-500 truncate">{sub}</p>}
+      {/* ── Lo que se hizo DE VERDAD ──
+          Dos líneas como mucho: "Press banca ×4 · Remo ×3" y las series totales.
+          Es el resumen del día de un vistazo; el detalle sigue viviendo en
+          Fuerza (o en Actividad). Sin esto, un bloque planificado como "pecho y
+          espalda" quedaba tachado pero sin decir qué se habia hecho. */}
+      {hecho && (
+        <p className="text-[11px] mt-0.5 leading-snug" style={{ color: 'var(--accent)' }}>
+          <i className="ri-check-line mr-1" />
+          {hecho.text}
+          {hecho.total ? (
+            <span className="text-zinc-500">
+              {' · '}
+              {item.kind === 'strength'
+                ? t('mc_ag_done_sets', { count: hecho.total })
+                : t('mc_hoy_act_min', { n: hecho.total })}
+            </span>
+          ) : null}
+        </p>
+      )}
       {runnable && (
         <p className="text-[10px] font-bold uppercase tracking-wider mt-0.5" style={{ color: 'var(--accent)' }}>
           {opening
@@ -1267,19 +1289,33 @@ function AddItemSheet({ open, initialKind, onClose, onSubmit }: {
         </button>
       }>
       <div className="space-y-4">
-        <div>
-          <label className="block text-sm text-zinc-400 mb-2">{t('mc_dp_form_kind')}</label>
-          <div className="grid grid-cols-4 gap-1.5">
-            {KINDS.map((k) => (
-              <button key={k} onClick={() => setKind(k)}
-                className={`flex flex-col items-center gap-1 py-2.5 rounded-xl border text-[11px] font-semibold transition-all cursor-pointer ${kind === k ? 'border-white/30' : 'border-white/10 hover:border-white/20'}`}
-                style={{ background: kind === k ? `${KIND_META[k].hex}18` : 'rgba(255,255,255,0.02)', minHeight: 44 }}>
-                <i className={KIND_META[k].icon} style={{ color: KIND_META[k].hex, fontSize: 15 }}></i>
-                <span className="text-white text-center leading-tight">{t(KIND_META[k].labelKey)}</span>
-              </button>
-            ))}
+        {/* ── El selector de tipo solo sale si NO se sabe a qué has venido ──
+            Se entra aquí desde un botón que ya dice el tipo ("Actividad"), así
+            que volver a preguntarlo sobraba: elegías Actividad y la pantalla te
+            ofrecía comida, suplemento y nota, como si no te hubiera oído. Y
+            Fuerza, que tiene su propio planificador, ni siquiera aparecía en la
+            lista, con lo que el selector encima estaba incompleto.
+            Ahora, con el tipo ya sabido, se enseña como encabezado. */}
+        {initialKind && initialKind !== 'strength' ? (
+          <div className="flex items-center gap-2">
+            <i className={KIND_META[kind].icon} style={{ color: KIND_META[kind].hex, fontSize: 18 }}></i>
+            <span className="text-white font-bold">{t(KIND_META[kind].labelKey)}</span>
           </div>
-        </div>
+        ) : (
+          <div>
+            <label className="block text-sm text-zinc-400 mb-2">{t('mc_dp_form_kind')}</label>
+            <div className="grid grid-cols-4 gap-1.5">
+              {KINDS.map((k) => (
+                <button key={k} onClick={() => setKind(k)}
+                  className={`flex flex-col items-center gap-1 py-2.5 rounded-xl border text-[11px] font-semibold transition-all cursor-pointer ${kind === k ? 'border-white/30' : 'border-white/10 hover:border-white/20'}`}
+                  style={{ background: kind === k ? `${KIND_META[k].hex}18` : 'rgba(255,255,255,0.02)', minHeight: 44 }}>
+                  <i className={KIND_META[k].icon} style={{ color: KIND_META[k].hex, fontSize: 15 }}></i>
+                  <span className="text-white text-center leading-tight">{t(KIND_META[k].labelKey)}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {kind === 'activity' && (
           <>

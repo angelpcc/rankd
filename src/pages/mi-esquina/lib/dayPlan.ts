@@ -41,10 +41,30 @@ export interface ExerciseSpec {
 
 // exercises: los flujos antiguos (dictado, Asesor) escriben un string libre;
 // el planificador en detalle escribe ExerciseSpec[]. Los renderers aceptan ambos.
+/**
+ * Lo que se hizo DE VERDAD en un bloque ya completado.
+ *
+ * Va aparte de lo planificado, no lo pisa: el plan decía "pecho y espalda" y
+ * esto dice "Press banca ×4 · Remo ×3, 7 series". Así la Agenda puede enseñar
+ * un resumen de dos líneas de lo que pasó sin perder lo que se había previsto,
+ * y se pueden comparar los dos.
+ *
+ * Lo escribe `lib/planTicks.ts` al marcar el bloque, leyendo las sesiones
+ * reales. Nadie lo escribe a mano.
+ */
+export interface DoneSummary {
+  /** "Press banca ×4 · Remo ×3" o "Correr · 35 min". Ya listo para pintar. */
+  text: string;
+  /** Series totales (fuerza) o minutos totales (actividad). Para el detalle. */
+  total?: number;
+}
+
 export interface StrengthPayload {
   groups: string[];
   exercises?: string | ExerciseSpec[];
   note?: string;
+  /** Resumen de lo realmente entrenado. Solo en bloques completados. */
+  done?: DoneSummary;
   /** Rutina preescrita (workout_routines) que resuelve este bloque. */
   routine_id?: string;
   /** Día concreto dentro de esa rutina. */
@@ -65,6 +85,8 @@ export interface ActivityPayload {
   protocol_id?: string;
   /** Nombre legible del protocolo ("Cardio tarde — grasa"). */
   protocol_name?: string;
+  /** Resumen de lo realmente hecho. Solo en bloques completados. */
+  done?: DoneSummary;
 }
 export interface MealPayload {
   slot: MealSlot;
