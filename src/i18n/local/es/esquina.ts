@@ -1513,6 +1513,7 @@ export default {
   mc_wb_empty: 'Aún no hay nada registrado esta semana.',
   mc_ns_week: 'Calorías de la semana',
   mc_av_week_bars: 'Minutos de la semana',
+  mc_av_week_empty: 'Semana en blanco. En cuanto registres algo, aquí se ve cómo la repartes.',
   mc_ns_slot_empty: 'Sin registrar',
   mc_ns_slot_n: '{{n}} registrado',
   mc_ns_enter: 'Entrar a Nutrición',

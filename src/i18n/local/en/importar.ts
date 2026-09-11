@@ -66,4 +66,15 @@ export default {
   mc_land_skip: 'Not now',
   mc_land_added_one: 'Added to 1 day',
   mc_land_added_other: 'Added to {{count}} days',
+  // ── One-tap examples ──
+  // Reading examples inside a placeholder and then typing them out is work.
+  // As chips, one tap drops them into the box: they show that anything fits
+  // here —a week, a routine, a cardio table— and they fire the detection, so
+  // the mechanism is visible before you write anything of your own.
+  mc_imp_ej_week: 'My week',
+  mc_imp_ej_week_txt: 'Monday chest and back, three sets of everything.\nTuesday half an hour running.\nWednesday rest.\nThursday legs.\nFriday shoulders and arms.',
+  mc_imp_ej_routine: 'A routine',
+  mc_imp_ej_routine_txt: 'Day A — Push\nBench press 4x8\nOverhead press 4x10\nDips 3x12\n\nDay B — Pull\nPull-ups 4x8\nBarbell row 4x10\nBiceps curl 3x12',
+  mc_imp_ej_protocol: 'Cardio by blocks',
+  mc_imp_ej_protocol_txt: 'Treadmill\n0-5 min · incline 2 · speed 6\n5-15 min · incline 4 · speed 8\n15-20 min · incline 2 · speed 6',
 };

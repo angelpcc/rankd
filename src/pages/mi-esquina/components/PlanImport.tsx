@@ -54,6 +54,20 @@ interface Props {
 
 const KINDS: PlanKind[] = ['routine', 'protocol', 'week', 'meals'];
 
+/**
+ * Ejemplos de un toque.
+ *
+ * Cada uno es de un tipo distinto a propósito: enseñan de un vistazo que aquí
+ * cabe todo —la semana, una rutina, una tabla de cardio— sin tener que leer un
+ * párrafo explicándolo. Y al pulsarlos la detección se dispara sola, así que se
+ * ve el mecanismo funcionando antes de escribir nada propio.
+ */
+const EJEMPLOS: { icon: string; labelKey: string; textKey: string }[] = [
+  { icon: 'ri-calendar-todo-line', labelKey: 'mc_imp_ej_week',     textKey: 'mc_imp_ej_week_txt' },
+  { icon: 'ri-boxing-line',        labelKey: 'mc_imp_ej_routine',  textKey: 'mc_imp_ej_routine_txt' },
+  { icon: 'ri-timer-line',         labelKey: 'mc_imp_ej_protocol', textKey: 'mc_imp_ej_protocol_txt' },
+];
+
 /** Lee un archivo a base64 SIN el prefijo `data:…;base64,` que espera la API. */
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {

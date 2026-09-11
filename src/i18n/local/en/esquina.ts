@@ -1509,6 +1509,7 @@ export default {
   mc_wb_empty: 'Nothing logged this week yet.',
   mc_ns_week: 'Calories this week',
   mc_av_week_bars: 'Minutes this week',
+  mc_av_week_empty: 'Blank week. Log anything and you will see how you spread it out.',
   mc_ns_slot_empty: 'Not logged',
   mc_ns_slot_n: '{{n}} logged',
   mc_ns_enter: 'Enter Nutrition',

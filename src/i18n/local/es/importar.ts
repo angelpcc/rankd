@@ -65,4 +65,15 @@ export default {
   mc_land_skip: 'Ahora no',
   mc_land_added_one: 'Añadido a 1 día',
   mc_land_added_other: 'Añadido a {{count}} días',
+  // ── Ejemplos de un toque ──
+  // Leer ejemplos dentro de un placeholder y luego copiarlos a mano es
+  // trabajo. Como pastillas, un toque los mete en la caja: enseñan que aquí
+  // cabe todo —la semana, una rutina, una tabla de cardio— y disparan la
+  // detección, así que se ve el mecanismo antes de escribir nada propio.
+  mc_imp_ej_week: 'Mi semana',
+  mc_imp_ej_week_txt: 'Lunes pecho y espalda, tres series de todo.\nMartes correr media hora.\nMiércoles descanso.\nJueves pierna.\nViernes hombro y brazo.',
+  mc_imp_ej_routine: 'Una rutina',
+  mc_imp_ej_routine_txt: 'Día A — Empuje\nPress banca 4x8\nPress militar 4x10\nFondos 3x12\n\nDía B — Tirón\nDominadas 4x8\nRemo con barra 4x10\nCurl bíceps 3x12',
+  mc_imp_ej_protocol: 'Cardio por tramos',
+  mc_imp_ej_protocol_txt: 'Cinta\n0-5 min · inclinación 2 · velocidad 6\n5-15 min · inclinación 4 · velocidad 8\n15-20 min · inclinación 2 · velocidad 6',
 };

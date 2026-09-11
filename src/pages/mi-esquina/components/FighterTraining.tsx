@@ -484,20 +484,27 @@ export default function FighterTraining({ profile, showToast, initialDate, initi
             }}
             onGoAgenda={onGoAgenda} />
 
-          {/* ── Racha en marcas, no en número suelto ── */}
-          {sessions.length > 0 && (
-            <StreakRow activeDates={activeDates} streak={streakDays} />
-          )}
+          {/* ── Racha y semana: SIEMPRE, también sin una sola sesión ──
+              Antes los dos iban detrás de `sessions.length > 0`, así que quien
+              entraba por primera vez veía la foto de cabecera y nada más: una
+              pantalla vacía que no dice ni qué mide ni qué esperar. Fuerza no
+              tenía ese problema porque el muñeco muscular se pinta siempre, y
+              por eso aquélla "se ve bien" y ésta parecía sosa.
+              Los dos componentes ya saben pintarse a cero: la racha enseña los
+              siete huecos y las barras tienen su propio texto de semana vacía.
+              Un calendario vacío es información — te dice que llevas la semana
+              parado—, y además enseña la forma que tendrá cuando haya datos. */}
+          <StreakRow activeDates={activeDates} streak={streakDays} />
 
           {/* ── La semana en barras ──
               El número de sesiones no dice CÓMO ha ido repartida la semana. Siete
               barras sí: se ve de un vistazo si has entrenado seguido o si llevas
               tres días parado. Minutos reales, y hueco gris el día sin registrar. */}
-          {sessions.length > 0 && (
+          {(
             <Reveal>
               <div className="rk-card" style={{ padding: 16 }}>
                 <p className="rk-label mb-3">{t('mc_av_week_bars')}</p>
-                <WeekBars days={weekBarDays} unit="min" />
+                <WeekBars days={weekBarDays} unit="min" emptyLabel={t('mc_av_week_empty')} />
               </div>
             </Reveal>
           )}

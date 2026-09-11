@@ -5,6 +5,7 @@ import { isMissingTable, isMissingColumn } from '@/lib/dbState';
 import { parseWeekPlanFromSpeech, type WeekPlanLine, type WeekPlanKind } from '@/lib/dictation';
 import BottomSheet from '@/components/base/BottomSheet';
 import PlanImport from './PlanImport';
+import SectionHero from './SectionHero';
 import { MUSCLE_GROUPS } from '../lib/exercises';
 import {
   type DayPlanKind, type MealSlot, KIND_ORDER, KIND_META, ACTIVITY_KINDS, MEAL_SLOTS, isoOf,
@@ -181,14 +182,13 @@ export default function PlanificarPanel({ profile, showToast, onLogged }: Props)
 
   // ══════════ ENTRADA + PLANTILLAS ══════════
   return (
-    <div className="space-y-8 max-w-3xl">
-      <div>
-        <p className="rk-eyebrow">{t('mc_pl_eyebrow')}</p>
-        <h2 className="rk-h2" style={{ fontSize: 'clamp(1.8rem,4vw,2.4rem)', color: '#fff', margin: '4px 0 0' }}>
-          {t('mc_pl_title')} <span className="rk-red-glow">{t('mc_pl_title_2')}</span>
-        </h2>
-        <p className="text-zinc-400 text-sm mt-1.5 max-w-md">{t('mc_pl_sub')}</p>
-      </div>
+    <div className="rk-blocks max-w-3xl">
+      {/* Mismo hero que el resto de secciones. Planificar era la única con un
+          encabezado de texto suelto, y al lado de Fuerza o Actividad se notaba:
+          la pantalla donde empieza todo parecía la menos cuidada. */}
+      <SectionHero kind="agenda" eyebrow={t('mc_pl_eyebrow')}
+        title={`${t('mc_pl_title')} ${t('mc_pl_title_2')}`}
+        subtitle={t('mc_pl_week_of', { date: weekLabel })} />
 
       {/* ── LA ÚNICA PUERTA PARA METER UN DOCUMENTO ──
           Antes esto estaba repartido: las rutinas se importaban desde Fuerza y
