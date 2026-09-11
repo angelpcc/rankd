@@ -201,10 +201,7 @@ export default function PlanImport({ profile, showToast, onImported, onWeekText,
 
   return (
     <div className="rk-card" style={{ padding: 18 }}>
-      <p className="text-sm font-bold text-white">{t('mc_imp_title')}</p>
-      <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{t('mc_imp_desc')}</p>
-
-      <div className="relative mt-3">
+      <div className="relative">
         <textarea
           value={text}
           onChange={(e) => { setText(e.target.value); setForced(null); setActivityKind(null); setVerTodos(false); }}
@@ -300,7 +297,9 @@ export default function PlanImport({ profile, showToast, onImported, onWeekText,
         style={{ minHeight: 48 }}>
         {saving
           ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          : <><i className="ri-download-2-line" /> {t('mc_imp_go')}</>}
+          : kind === 'week' || kind === 'meals'
+            ? <><i className="ri-calendar-check-line" /> {t('mc_imp_go_week')}</>
+            : <><i className="ri-download-2-line" /> {t('mc_imp_go')}</>}
       </button>
 
       {/* Sin clave de IA sigue funcionando: conviene decirlo, porque si no

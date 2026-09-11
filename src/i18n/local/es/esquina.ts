@@ -1783,7 +1783,7 @@ export default {
   mc_pl_eyebrow: 'PLANIFICAR',
   mc_pl_title: 'Tu semana,',
   mc_pl_title_2: 'a tu manera',
-  mc_pl_sub: 'Ya sabes qué vas a hacer. Escríbelo o dítalo y lo reparto por días.',
+  mc_pl_sub: 'Escribe, dicta o pega lo que sea: tu semana, una rutina de pesas, una tabla de cinta o una pauta de comidas. Yo reconozco qué es.',
   mc_pl_input_label: 'Escribe o dicta tu semana',
   mc_pl_input_ph: 'Ej: Lunes hombro y espalda, tres series de todo. Martes correr media hora. Miércoles descanso. Toda la semana pollo y arroz de comida, y por la noche algo ligero. Creatina cada día y proteína después de entrenar. El viernes cena fuera.',
   mc_pl_btn: 'Planificar',

@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable, isMissingColumn } from '@/lib/dbState';
 import { parseWeekPlanFromSpeech, type WeekPlanLine, type WeekPlanKind } from '@/lib/dictation';
-import VoiceButton from '@/components/feature/VoiceButton';
 import BottomSheet from '@/components/base/BottomSheet';
 import PlanImport from './PlanImport';
 import { MUSCLE_GROUPS } from '../lib/exercises';
@@ -103,12 +102,6 @@ export default function PlanificarPanel({ profile, showToast, onLogged }: Props)
   const [rows, setRows] = useState<ReviewRow[] | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // ── Interpretar ──
-  const interpret = () => {
-    const lines = parseWeekPlanFromSpeech(text);
-    setRows(lines.map(lineToRow));
-  };
-
   const updateRow = (key: string, patch: Partial<ReviewRow>) =>
     setRows((rs) => (rs ? rs.map((r) => (r.key === key ? { ...r, ...patch } : r)) : rs));
   const removeRow = (key: string) => setRows((rs) => (rs ? rs.filter((r) => r.key !== key) : rs));
@@ -195,20 +188,6 @@ export default function PlanificarPanel({ profile, showToast, onLogged }: Props)
           {t('mc_pl_title')} <span className="rk-red-glow">{t('mc_pl_title_2')}</span>
         </h2>
         <p className="text-zinc-400 text-sm mt-1.5 max-w-md">{t('mc_pl_sub')}</p>
-      </div>
-
-      <div className="rk-card space-y-3" style={{ padding: '18px 20px' }}>
-        <div className="flex items-center justify-between gap-2">
-          <label className="text-sm font-bold text-white">{t('mc_pl_input_label')}</label>
-          <VoiceButton onResult={(dictated) => setText((prev) => (prev.trim() ? `${prev} ${dictated}` : dictated))} />
-        </div>
-        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={5} maxLength={1200}
-          placeholder={t('mc_pl_input_ph')} style={{ fontSize: 16 }}
-          className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 resize-y leading-relaxed" />
-        <button onClick={interpret} disabled={!text.trim()}
-          className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50" style={{ fontSize: '0.9rem', padding: '0.85rem' }}>
-          <i className="ri-magic-line"></i> {t('mc_pl_btn')}
-        </button>
       </div>
 
       {/* ── LA ÚNICA PUERTA PARA METER UN DOCUMENTO ──

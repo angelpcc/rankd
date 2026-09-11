@@ -12,8 +12,6 @@
 //
 // Módulo aparte de `esquina.ts`, que ya pasa de 90 KB.
 export default {
-  mc_imp_title: 'Meter un plan',
-  mc_imp_desc: 'Pega lo que te haya pasado tu entrenador, díctalo o escríbelo. Da igual el formato: una rutina de pesas, una tabla de cinta, la semana entera o una pauta de comidas.',
   mc_imp_placeholder: 'Pega aquí el plan…\n\nEjemplos:\nLunes pecho y espalda, press banca 4x8…\n0-5 min inclinación 2 velocidad 6…',
 
   // Lo que se ha entendido. "Detectado" cuando está claro; "pregunta" cuando no.
@@ -31,6 +29,9 @@ export default {
   mc_imp_which_activity: '¿De qué actividad es?',
 
   mc_imp_go: 'Meterlo',
+  // Repartir la semana por días y archivar una rutina son resultados
+  // distintos: el botón dice cuál de los dos va a pasar.
+  mc_imp_go_week: 'Repartir por días',
 
   mc_imp_no_routine: 'No he encontrado ejercicios ahí. Prueba a poner uno por línea.',
   mc_imp_no_protocol: 'No he encontrado tramos por minutos. Prueba con "0-5 min, inclinación 2, velocidad 6".',

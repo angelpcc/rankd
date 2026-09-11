@@ -12,8 +12,6 @@
 //
 // Its own module: `esquina.ts` is already over 90 KB.
 export default {
-  mc_imp_title: 'Bring in a plan',
-  mc_imp_desc: 'Paste whatever your coach sent you, dictate it or type it. Format does not matter: a weights routine, a treadmill table, a whole week or a meal plan.',
   mc_imp_placeholder: 'Paste the plan here…\n\nExamples:\nMonday chest and back, bench press 4x8…\n0-5 min incline 2 speed 6…',
 
   // What was understood. "This is" when clear; a question when not.
@@ -31,6 +29,9 @@ export default {
   mc_imp_which_activity: 'Which activity is it for?',
 
   mc_imp_go: 'Bring it in',
+  // Spreading a week across days and filing a routine are different
+  // outcomes: the button says which of the two is about to happen.
+  mc_imp_go_week: 'Spread across the days',
 
   mc_imp_no_routine: 'No exercises found in there. Try one per line.',
   mc_imp_no_protocol: 'No minute-by-minute blocks found. Try "0-5 min, incline 2, speed 6".',

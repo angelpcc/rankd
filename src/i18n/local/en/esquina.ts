@@ -1779,7 +1779,7 @@ export default {
   mc_pl_eyebrow: 'PLAN',
   mc_pl_title: 'Your week,',
   mc_pl_title_2: 'your way',
-  mc_pl_sub: 'You already know what you are going to do. Write it or dictate it and I spread it across the days.',
+  mc_pl_sub: 'Write, dictate or paste anything: your week, a weights routine, a treadmill table or a meal plan. I work out what it is.',
   mc_pl_input_label: 'Write or dictate your week',
   mc_pl_input_ph: 'e.g. Monday shoulders and back, three sets of everything. Tuesday run half an hour. Wednesday rest. All week chicken and rice for lunch, something light at night. Creatine every day and protein after training. Friday eating out.',
   mc_pl_btn: 'Plan it',
