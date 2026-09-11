@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type Profile } from '@/lib/supabase';
 import Reveal from '@/components/base/Reveal';
@@ -11,6 +11,7 @@ import {
   protocolTotals, protocolVarsFor, saveProtocol, formatVarValue,
   type Protocol, type ProtocolRun,
 } from '@/pages/mi-esquina/lib/protocols';
+
 // Biblioteca de protocolos de actividad (punto 16).
 //
 // Vive dentro de Actividad, como pestaña propia. Aquí se GUARDAN varios
@@ -121,20 +122,18 @@ export default function ProtocolLibrary({ profile, showToast, onSessionSaved }: 
         <p className="rk-body-14 mt-1">{t('mc_pt_sub')}</p>
       </header>
 
-      {/* Acciones */}
-      <div className="flex flex-wrap gap-2">
-        <button onClick={() => setEditing(emptyProtocol('cinta', ''))}
-          className="rk-btn rk-btn-primary rk-press flex items-center justify-center gap-2 flex-1 sm:flex-none"
-          style={{ fontSize: '0.85rem', minHeight: 46 }}>
-          <i className="ri-add-line" />{t('mc_pt_new')}
-        </button>
-      </div>
-
-      {/* Importar un documento se hace en Planificar, en un solo sitio. Aquí se
-          dice dónde para que nadie lo busque por la sección equivocada. */}
-      <p className="text-[11px] text-zinc-500 leading-relaxed">
-        <i className="ri-information-line mr-1" />{t('mc_pt_import_moved')}
+      {/* Meter un protocolo se hace en Planificar: esa es la acción principal
+          y por eso va primero y sin competencia. Crear uno a mano, tramo a
+          tramo, se queda en pequeño — mismo criterio que en Rutinas. */}
+      <p className="text-xs text-zinc-400 leading-relaxed">
+        <i className="ri-information-line mr-1" style={{ color: 'var(--accent)' }} />{t('mc_pt_import_moved')}
       </p>
+
+      <button onClick={() => setEditing(emptyProtocol('cinta', ''))}
+        className="rk-nav-btn rk-press inline-flex items-center gap-1.5 text-xs"
+        style={{ padding: '0.5rem 1rem' }}>
+        <i className="ri-add-line" />{t('mc_pt_new')}
+      </button>
 
       {localOnly && (
         <p className="text-[11px] text-[#C9A84C] flex items-start gap-1.5 leading-relaxed">

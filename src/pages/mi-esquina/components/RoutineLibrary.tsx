@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type Profile } from '@/lib/supabase';
 import Reveal from '@/components/base/Reveal';
@@ -107,23 +107,23 @@ export default function RoutineLibrary({ profile, showToast, onSessionSaved }: P
         <p className="rk-body-14 mt-1">{t('mc_rp_sub')}</p>
       </header>
 
-      <div className="flex flex-wrap gap-2">
-        <button onClick={() => setEditing(emptyRoutine(''))}
-          className="rk-btn rk-btn-primary rk-press flex items-center justify-center gap-2 flex-1 sm:flex-none"
-          style={{ fontSize: '0.85rem', minHeight: 46 }}>
-          <i className="ri-add-line" />{t('mc_rp_new')}
-        </button>
-      </div>
-
-      {/* ── Importar ya no vive aquí ──
-          Meter un documento se hace en un solo sitio, Planificar, y allí se
-          detecta solo si es fuerza, cardio, la semana entera o comidas. Tenerlo
-          también aquí obligaba a saber de qué era el documento ANTES de elegir
-          la puerta, y un plan con fuerza y cardio dentro no tenía puerta buena.
-          Esta pantalla se queda con lo suyo: USAR las rutinas que ya tienes. */}
-      <p className="text-[11px] text-zinc-500 leading-relaxed">
-        <i className="ri-information-line mr-1" />{t('mc_rp_import_moved')}
+      {/* ── Meter una rutina se hace en Planificar ──
+          Aquí quedaba un botón rojo de "Nueva rutina" y, debajo, una nota
+          diciendo que para importar fueras a Planificar: dos entradas otra vez,
+          y con el sitio de honor en la menos usada. Escribir una rutina entera
+          a mano en un formulario lo hace casi nadie — si ya la tienes escrita,
+          la pegas y ya está.
+          Así que manda la puerta buena, y crear a mano se queda en pequeño para
+          quien quiera el formulario. Esta pantalla es para USAR lo que tienes. */}
+      <p className="text-xs text-zinc-400 leading-relaxed">
+        <i className="ri-information-line mr-1" style={{ color: 'var(--accent)' }} />{t('mc_rp_import_moved')}
       </p>
+
+      <button onClick={() => setEditing(emptyRoutine(''))}
+        className="rk-nav-btn rk-press inline-flex items-center gap-1.5 text-xs"
+        style={{ padding: '0.5rem 1rem' }}>
+        <i className="ri-add-line" />{t('mc_rp_new')}
+      </button>
 
       {localOnly && (
         <p className="text-[11px] text-[#C9A84C] flex items-start gap-1.5 leading-relaxed">

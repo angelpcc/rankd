@@ -1,4 +1,4 @@
-﻿// Sincroniza la AGENDA con lo que se ha registrado de verdad.
+// Sincroniza la AGENDA con lo que se ha registrado de verdad.
 //
 // Hace dos cosas, en este orden:
 //
