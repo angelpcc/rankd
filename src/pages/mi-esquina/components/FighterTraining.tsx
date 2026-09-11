@@ -11,8 +11,6 @@ import WeekBars, { last7Days } from '@/components/base/WeekBars';
 import CountUp from '@/components/base/CountUp';
 import { reconcileDayTicks } from '../lib/planTicks';
 import SectionHero from './SectionHero';
-import HubTabs, { type HubTab } from './HubTabs';
-import ProtocolLibrary from './ProtocolLibrary';
 import ActivityTodayCard from './ActivityTodayCard';
 
 interface Props {
@@ -68,7 +66,8 @@ interface ActSession {
  * ha escrito a mano.
  *
  * Cuando la sesión SÍ tiene un guion exacto (los tramos van escritos de
- * antemano), esto se queda corto: para eso está la pestaña Protocolos.
+ * antemano), esto se queda corto: para eso está el protocolo que se mete desde
+ * Agenda › Planificar y se reproduce tocando el bloque del día.
  */
 const INCLINE_LEVELS = [
   { id: 'flat', labelKey: 'mc_av_incl_flat', value: 0, min: 0, max: 0.9, hint: '0%' },
@@ -88,15 +87,6 @@ function weekMondayISO(offsetWeeks = 0): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 const TREND_WEEKS = 8;
-
-// Dos pestañas. "Registro" es lo de siempre (apuntar lo hecho y ver el
-// progreso). "Protocolos" es el guion detallado que se reproduce en vivo:
-// misma sección, dos tareas distintas — apuntar lo que ya pasó frente a seguir
-// lo que toca ahora.
-const WORK_TABS: HubTab[] = [
-  { id: 'registro', labelKey: 'mc_av_tab_log', icon: 'ri-add-circle-line' },
-  { id: 'protocolos', labelKey: 'mc_av_tab_protocols', icon: 'ri-timer-line' },
-];
 
 // Qué mide el gráfico y las métricas para cada tipo.
 type Metric = 'distance' | 'meters' | 'rounds' | 'minutes';
@@ -130,7 +120,6 @@ export default function FighterTraining({ profile, showToast, initialDate, initi
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
 
-  const [tab, setTab] = useState<'registro' | 'protocolos'>('registro');
   const [sessions, setSessions] = useState<ActSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [unavailable, setUnavailable] = useState(false);
@@ -184,9 +173,6 @@ export default function FighterTraining({ profile, showToast, initialDate, initi
     setShowForm(true);
     // Con el tipo ya sabido se entra directo a los datos; si no, al selector.
     setStep(known ? 2 : 1);
-    // Llegar desde la Agenda o desde el "+" es siempre para APUNTAR algo: si el
-    // usuario se había quedado en Protocolos, se vuelve al registro.
-    setTab('registro');
   }, [initialDate, initialKind]);
 
   const load = useCallback(async () => {
@@ -466,22 +452,16 @@ export default function FighterTraining({ profile, showToast, initialDate, initi
       <SectionHero kind="activity" eyebrow={t('mc_av_eyebrow')}
         title={`${t('mc_av_title')} ${t('mc_av_title_2')}`}
         subtitle={sessions.length ? t('mc_av_hero_sub', { n: sessions.length }) : t('mc_av_sub')}
-        action={tab === 'registro' ? {
+        action={{
           label: showForm ? t('mc_av_close') : t('mc_av_new'),
           icon: showForm ? 'ri-close-line' : 'ri-add-line',
           onClick: () => { if (showForm) closeForm(); else { setEditingId(null); resetForm(); setStep(1); setShowForm(true); } },
-        } : undefined} />
+        }} />
 
-      <HubTabs tabs={WORK_TABS} active={tab} onChange={(id) => setTab(id as typeof tab)} />
-
-      {/* ── PROTOCOLOS ──
-          El guion detallado por tramos, para cualquier tipo de actividad. */}
-      {tab === 'protocolos' && (
-        <ProtocolLibrary profile={profile} showToast={showToast}
-          onSessionSaved={() => { void load(); bumpToday(); onLogged?.(); }} />
-      )}
-
-      {tab === 'registro' && (
+      {/* Sin barra de pestañas: Actividad vuelve a tener una sola tarea,
+          registrar. Los protocolos se meten en Agenda › Planificar y se
+          reproducen tocando el bloque del día, que es cuando hacen falta. */}
+      {(
         <>
           {/* ── "Hoy toca" de ACTIVIDAD ──
               Lo primero de la pantalla: si hay un cardio planificado para hoy y

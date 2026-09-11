@@ -35,8 +35,6 @@ export default {
 
   mc_imp_no_routine: 'No exercises found in there. Try one per line.',
   mc_imp_no_protocol: 'No minute-by-minute blocks found. Try "0-5 min, incline 2, speed 6".',
-  mc_imp_saved_routine: 'Routine saved. Find it in Strength › Routines.',
-  mc_imp_saved_protocol: 'Protocol saved. Find it in Activity › Protocols.',
   mc_imp_saved_local: 'Saved on this device. It will sync when you are back online.',
 
   mc_imp_default_routine: 'Imported routine',
@@ -54,6 +52,18 @@ export default {
   // ── Notices in the libraries, where the import button used to be ──
   // Removing the button is not enough: whoever used it will look where it was.
   // These two lines say where it moved and why that is better.
-  mc_rp_import_moved: 'To bring in a routine from a document, go to Agenda › Plan: paste it there and it works out what it is.',
-  mc_pt_import_moved: 'To bring in a protocol from a document, go to Agenda › Plan: paste it there and it works out what it is.',
+  // ── Step 2 of the importer: "and which days do you do this?" ──
+  // A routine says "Day A, Day B"; a protocol says "40 min on the treadmill".
+  // Neither carries a date, and the Agenda only understands dates. That piece is
+  // missing, so it gets asked: spreading it out on its own (Mon, Wed, Fri) would
+  // be inventing someone's week for them.
+  mc_land_title: 'Which days do you do this?',
+  mc_land_desc: 'Pick the weekday. Tap again to clear it. Anything left without a day is still saved, and you can place it later from the Agenda.',
+  mc_land_day_unnamed: 'Unnamed day',
+  mc_land_ex_count_one: '1 exercise',
+  mc_land_ex_count_other: '{{count}} exercises',
+  mc_land_confirm: 'Put it in the week',
+  mc_land_skip: 'Not now',
+  mc_land_added_one: 'Added to 1 day',
+  mc_land_added_other: 'Added to {{count}} days',
 };

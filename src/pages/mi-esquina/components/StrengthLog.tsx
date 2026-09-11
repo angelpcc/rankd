@@ -6,7 +6,7 @@ import {
   MUSCLE_GROUPS, muscleGroupOf, weightModeOf, trackingModeOf,
   type MuscleGroup, type WeightMode, type TrackingMode,
 } from '../lib/exercises';
-import { fmtWeight, fmtSetCount, fmtSetValue, type StrengthPayload } from '../lib/dayPlan';
+import { fmtWeight, fmtSetCount, fmtSetValue, type ExerciseSpec, type StrengthPayload } from '../lib/dayPlan';
 import { reconcileDayTicks } from '../lib/planTicks';
 import { loadTodayTraining } from '../lib/todayTraining';
 import { clearDraft } from '../lib/strengthDraft';
@@ -137,6 +137,10 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
   // "Registrar pecho y espalda" y abren el formulario ya con esos bloques.
   const [formInitialGroups, setFormInitialGroups] = useState<MuscleGroup[] | undefined>(undefined);
   const [plannedToday, setPlannedToday] = useState<MuscleGroup[]>([]);
+  // Los ejercicios que dejaste escritos al planificar el día, con sus series.
+  // Se abren ya puestos en el formulario: volver a escribirlos era repetir a
+  // mano lo que ya habías escrito en la Agenda.
+  const [plannedEx, setPlannedEx] = useState<ExerciseSpec[]>([]);
   // Edición de una sesión ya guardada: editCtx = qué día+franja se está
   // editando (para borrar sus filas al guardar); editData = lo que pinta el form.
   const [editCtx, setEditCtx] = useState<{ date: string; slot: SessionSlot | null } | null>(null);

@@ -35,8 +35,6 @@ export default {
 
   mc_imp_no_routine: 'No he encontrado ejercicios ahí. Prueba a poner uno por línea.',
   mc_imp_no_protocol: 'No he encontrado tramos por minutos. Prueba con "0-5 min, inclinación 2, velocidad 6".',
-  mc_imp_saved_routine: 'Rutina guardada. La tienes en Fuerza › Rutinas.',
-  mc_imp_saved_protocol: 'Protocolo guardado. Lo tienes en Actividad › Protocolos.',
   mc_imp_saved_local: 'Guardado en este dispositivo. Se subirá cuando haya conexión.',
 
   mc_imp_default_routine: 'Rutina importada',
@@ -54,6 +52,17 @@ export default {
   // ── Avisos en las bibliotecas, donde ANTES estaba el botón de importar ──
   // No basta con quitar el botón: quien lo usaba lo va a buscar donde estaba.
   // Estas dos líneas dicen adónde se ha movido y por qué merece la pena.
-  mc_rp_import_moved: 'Para meter una rutina de un documento, ve a Agenda › Planificar: se pega ahí y él reconoce solo lo que es.',
-  mc_pt_import_moved: 'Para meter un protocolo de un documento, ve a Agenda › Planificar: se pega ahí y él reconoce solo lo que es.',
+  // ── Paso 2 del importador: "¿y qué días haces esto?" ──
+  // Una rutina dice "Día A, Día B"; un protocolo dice "40 min de cinta". Ninguno
+  // trae fecha, y la Agenda solo entiende fechas. Ese dato falta y se pregunta:
+  // repartirlo solo (lunes, miércoles, viernes) sería inventarse su semana.
+  mc_land_title: '¿Qué días haces esto?',
+  mc_land_desc: 'Elige el día de la semana. Toca otra vez para quitarlo. Lo que dejes sin día se guarda igual y lo colocas luego desde la Agenda.',
+  mc_land_day_unnamed: 'Día sin nombre',
+  mc_land_ex_count_one: '1 ejercicio',
+  mc_land_ex_count_other: '{{count}} ejercicios',
+  mc_land_confirm: 'Ponerlo en la semana',
+  mc_land_skip: 'Ahora no',
+  mc_land_added_one: 'Añadido a 1 día',
+  mc_land_added_other: 'Añadido a {{count}} días',
 };

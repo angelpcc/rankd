@@ -11,6 +11,7 @@ import {
   type MuscleGroup, type WeightMode, type TrackingMode,
 } from '../lib/exercises';
 import { hasTechnique } from '../lib/exerciseTechnique';
+import type { ExerciseSpec } from '../lib/dayPlan';
 import ExerciseTechniqueCard from './ExerciseTechniqueCard';
 import PlateCalculator from './PlateCalculator';
 import LastPerformanceCard from './LastPerformanceCard';
@@ -157,6 +158,16 @@ interface Props {
    */
   initialGroups?: MuscleGroup[];
   /**
+   * Ejercicios PLANIFICADOS para ese día, con sus series y repes.
+   *
+   * Vienen del bloque de la Agenda. Si planificaste "pecho y espalda" con seis
+   * ejercicios, el formulario se abre con esos seis puestos y solo hay que
+   * rellenar el peso real: escribirlos otra vez era repetir a mano lo que ya
+   * habías escrito al planificar. Si no planificaste ejercicios, no llega nada
+   * y el formulario sale vacío, como siempre.
+   */
+  initialExercises?: ExerciseSpec[];
+  /**
    * Día con el que abrir. Lo manda quien viene a resolver un bloque de la
    * Agenda de OTRO día: sin esto el formulario arrancaba siempre en hoy y ese
    * entreno se guardaba con la fecha equivocada, en silencio.
@@ -180,6 +191,41 @@ interface Props {
 const SLOT_ORDER: SessionSlot[] = ['morning', 'afternoon', 'evening'];
 
 const uidLocal = () => Math.random().toString(36).slice(2, 9);
+/**
+ * Bloques de partida a partir de lo PLANIFICADO para el día.
+ *
+ * Cada ejercicio del plan entra con sus series ya creadas y las repes puestas;
+ * el peso se deja en blanco a propósito, porque es lo único que de verdad se
+ * decide en el gimnasio. Los grupos sin ejercicios planificados entran vacíos,
+ * igual que antes.
+ *
+ * Si un ejercicio pertenece a un grupo que no estaba en el plan (pasa cuando el
+ * plan solo nombraba ejercicios), se le crea su bloque: perderlo sería tirar
+ * justo el trabajo que se venía a ahorrar.
+ */
+function blocksFromPlan(groups: MuscleGroup[], specs?: ExerciseSpec[]): FBlock[] {
+  const out: FBlock[] = groups.map((g) => ({ group: g, exercises: [] as FExercise[] }));
+  for (const s of specs || []) {
+    const name = (s.name || '').trim();
+    if (!name) continue;
+    const g = (muscleGroupOf(name) || groups[0] || 'other') as MuscleGroup;
+    let block = out.find((b) => b.group === g);
+    if (!block) { block = { group: g, exercises: [] }; out.push(block); }
+    const reps = s.reps_min && s.reps_min > 0
+      ? (s.reps_max && s.reps_max > s.reps_min ? `${s.reps_min}-${s.reps_max}` : String(s.reps_min))
+      : (s.value && s.value > 0 ? String(s.value) : '10');
+    block.exercises.push({
+      id: uidLocal(), label: name, query: '', open: false,
+      sets: Array.from({ length: Math.max(1, s.sets || 1) }, () => ({
+        reps,
+        // El peso prescrito se propone si lo trae; si no, en blanco.
+        weight: s.weight_kg && s.weight_kg > 0 ? String(s.weight_kg) : '',
+      })),
+    });
+  }
+  return out;
+}
+
 function blocksFromEdit(s: EditSession): FBlock[] {
   return s.blocks.map((b) => ({
     group: b.group,
@@ -211,7 +257,7 @@ function blocksFromDraft(d: StrengthDraft): FBlock[] {
 
 interface ExPerf { perf: LastPerformance; suggestion: Suggestion; tracking: TrackingMode }
 
-export default function StrengthSessionForm({ open, onClose, saving, onSave, ownExercises, fighterProfileId, showToast, slotsByDate, initialGroup, initialGroups, initialDate, initialSession, duplicateFrom }: Props) {
+export default function StrengthSessionForm({ open, onClose, saving, onSave, ownExercises, fighterProfileId, showToast, slotsByDate, initialGroup, initialGroups, initialExercises, initialDate, initialSession, duplicateFrom }: Props) {
   const { t, i18n } = useTranslation();
   const lang: 'es' | 'en' = i18n.language === 'en' ? 'en' : 'es';
   // Términos de reconocimiento, no solo los nombres: incluyen la forma sin el

@@ -11,6 +11,8 @@ import { emptyRoutine, parseRoutineText, saveRoutine, type Routine } from '../li
 import { emptyProtocol, parseProtocolText, saveProtocol, type Protocol } from '../lib/protocols';
 import { importRoutine, checkRoutineTextImportAvailable } from '@/services/routineTextImport';
 import { importProtocol, checkProtocolImportAvailable } from '@/services/protocolImport';
+import PlanLanding from './PlanLanding';
+import { landProtocol, landRoutine, type DayAssignment } from '../lib/planLanding';
 
 // ════════════════════════════════════════════════════════════════
 // LA ÚNICA PUERTA PARA METER UN PLAN
@@ -89,6 +91,12 @@ export default function PlanImport({ profile, showToast, onImported, onWeekText,
   // texto, no imágenes. Por eso el botón solo aparece si hay IA disponible.
   const [file, setFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  // Lo recién importado, esperando a que se le asignen días. Una rutina y un
+  // protocolo no traen fecha y la Agenda solo entiende fechas: ese dato falta y
+  // se pregunta (ver PlanLanding), no se inventa.
+  const [porColocar, setPorColocar] = useState<
+    { routine: Routine; id: string | null } | { protocol: Protocol; id: string | null } | null
+  >(null);
 
   useEffect(() => {
     let alive = true;
@@ -157,9 +165,10 @@ export default function PlanImport({ profile, showToast, onImported, onWeekText,
           rutina = { ...emptyRoutine(nombreDesdeTexto(text, t('mc_imp_default_routine'))), days: parsed.days, source: 'import' };
         }
         const guardada = await saveRoutine(profile.id, rutina);
-        showToast(guardada.storedLocally ? t('mc_imp_saved_local') : t('mc_imp_saved_routine'));
-        onImported?.();
-        reset();
+        if (guardada.storedLocally) showToast(t('mc_imp_saved_local'));
+        // El id solo existe si llegó a la base: sin él el bloque del día
+        // conserva igualmente los ejercicios, solo pierde el checklist en vivo.
+        setPorColocar({ routine: guardada.routine, id: guardada.storedLocally ? null : guardada.routine.id });
         setSaving(false);
         return;
       }
@@ -189,15 +198,57 @@ export default function PlanImport({ profile, showToast, onImported, onWeekText,
           prot = { ...emptyProtocol(actKind, nombreDesdeTexto(text, t('mc_imp_default_protocol'))), segments: parsed.segments, source: 'import' };
         }
         const guardado = await saveProtocol(profile.id, prot);
-        showToast(guardado.storedLocally ? t('mc_imp_saved_local') : t('mc_imp_saved_protocol'));
-        onImported?.();
-        reset();
+        if (guardado.storedLocally) showToast(t('mc_imp_saved_local'));
+        setPorColocar({ protocol: guardado.protocol, id: guardado.storedLocally ? null : guardado.protocol.id });
       }
     } catch {
       showToast(t('error_save'), 'error');
     }
     setSaving(false);
   };
+
+  /** Segundo paso: los días elegidos se convierten en bloques de la Agenda. */
+  const colocarRutina = async (a: DayAssignment[]) => {
+    if (!porColocar || !('routine' in porColocar)) return;
+    setSaving(true);
+    const r = await landRoutine(profile.id, porColocar.routine, porColocar.id, a);
+    setSaving(false);
+    if (r.error) { showToast(t('error_save'), 'error'); return; }
+    showToast(t('mc_land_added', { n: r.added }));
+    setPorColocar(null);
+    onImported?.();
+    reset();
+  };
+
+  const colocarProtocolo = async (dows: number[]) => {
+    if (!porColocar || !('protocol' in porColocar)) return;
+    setSaving(true);
+    const r = await landProtocol(profile.id, porColocar.protocol, porColocar.id, dows);
+    setSaving(false);
+    if (r.error) { showToast(t('error_save'), 'error'); return; }
+    showToast(t('mc_land_added', { n: r.added }));
+    setPorColocar(null);
+    onImported?.();
+    reset();
+  };
+
+  // ── Paso 2: ¿qué días? ──
+  // Sustituye a la caja mientras esté pendiente: dejar las dos a la vez
+  // invitaría a pegar otra cosa encima de lo que aún no se ha colocado.
+  if (porColocar) {
+    return (
+      <PlanLanding
+        routine={'routine' in porColocar ? porColocar.routine : undefined}
+        protocol={'protocol' in porColocar ? porColocar.protocol : undefined}
+        saving={saving}
+        onConfirmRoutine={colocarRutina}
+        onConfirmProtocol={colocarProtocolo}
+        // Saltar no pierde lo importado: sigue guardado y se puede colocar
+        // desde la Agenda. Lo que no se hace es meterlo en días a dedo.
+        onCancel={() => { setPorColocar(null); onImported?.(); reset(); }}
+      />
+    );
+  }
 
   return (
     <div className="rk-card" style={{ padding: 18 }}>

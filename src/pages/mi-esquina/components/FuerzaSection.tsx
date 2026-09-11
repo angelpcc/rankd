@@ -8,12 +8,11 @@ import StrengthProgram from './StrengthProgram';
 import StrengthProgress from './StrengthProgress';
 import ExerciseLibrary from './ExerciseLibrary';
 import MobilityRoutines from './MobilityRoutines';
-import RoutineLibrary from './RoutineLibrary';
 
 // FUERZA en dos niveles (PROMPT 1):
 //  · Nivel 1 (resumen): StrengthSummary — mapa muscular, card de hoy, volumen
 //    semanal, últimas sesiones, botón "Entrar a Fuerza".
-//  · Nivel 2 (pantalla de trabajo): pestañas Registrar · Rutinas · Progresión ·
+//  · Nivel 2 (pantalla de trabajo): pestañas Registrar · Progresión ·
 //    Biblioteca · Movilidad · Historial.
 
 interface Props {
@@ -35,17 +34,17 @@ interface Props {
   initialDate?: string;
 }
 
-// Seis pestañas. Registrar absorbe Programar (es la misma tarea, otro día),
+// Cinco pestañas. Registrar absorbe Programar (es la misma tarea, otro día),
 // pero MOVILIDAD TIENE LA SUYA: metida al final de la biblioteca de ejercicios
 // quedaba enterrada y parecía un anexo, cuando es trabajo propio y con su
 // propia lógica (zonas del cuerpo, no grupos musculares).
 //
-// RUTINAS (punto 17) va la segunda, justo detrás de Registrar: cuando se
-// entrena con una rutina escrita de antemano, abrir el día y marcar series ES
-// la forma de registrar — no un extra que se consulta de vez en cuando.
+// RUTINAS ya no está aquí. Una rutina no es otra pantalla de Fuerza: es lo que
+// toca un día, así que se mete en Agenda › Planificar y vive en los días del
+// plan. Tener las dos cosas obligaba a escribir el mismo entreno dos veces —
+// una al planificar la semana y otra al "crear la rutina".
 const WORK_TABS: HubTab[] = [
   { id: 'registrar', labelKey: 'mc_str_tab_log', icon: 'ri-add-circle-line' },
-  { id: 'rutinas', labelKey: 'mc_str_tab_routines', icon: 'ri-list-check-2' },
   { id: 'progresion', labelKey: 'mc_str_tab_progress', icon: 'ri-line-chart-line' },
   { id: 'biblioteca', labelKey: 'mc_str_tab_library', icon: 'ri-book-open-line' },
   { id: 'movilidad', labelKey: 'mc_str_tab_mobility', icon: 'ri-body-scan-line' },
@@ -68,9 +67,7 @@ export default function FuerzaSection({ profile, showToast, onGoAsesor, onLogged
   // ── DOS CONTADORES, NO UNO ──
   //
   // `remountKey` es el `key` de React del registro y del historial: al subir,
-  // esos componentes se remontan y vuelven a cargar. Sirve cuando la sesión se
-  // guardó desde OTRA pantalla (el checklist de una rutina), donde remontar no
-  // molesta a nadie.
+  // esos componentes se remontan y vuelven a cargar.
   //
   // `summaryKey` solo hace que el resumen relea lo que toca hoy. Es el que sube
   // el registro manual: si ese camino tocara `remountKey`, se estaría
@@ -83,9 +80,6 @@ export default function FuerzaSection({ profile, showToast, onGoAsesor, onLogged
 
   /** Una sesión ha cambiado desde el registro manual. */
   const loggedHere = () => { setSummaryKey((k) => k + 1); onLogged?.(); };
-
-  /** Una sesión ha cambiado desde otra pantalla (rutinas). */
-  const loggedElsewhere = () => { setRemountKey((k) => k + 1); loggedHere(); };
 
   const enter = (target?: string) => { if (target) setTab(TAB_ALIAS[target] ?? target); setView('work'); };
 
@@ -114,12 +108,6 @@ export default function FuerzaSection({ profile, showToast, onGoAsesor, onLogged
             <StrengthProgram profile={profile} showToast={showToast} />
           </div>
         </>
-      )}
-      {/* Rutinas preescritas: crear o importar una rutina y entrenarla con
-          checklist en vivo. La sesión acaba en strength_sets, igual que si se
-          hubiera registrado a mano. */}
-      {tab === 'rutinas' && (
-        <RoutineLibrary profile={profile} showToast={showToast} onSessionSaved={loggedElsewhere} />
       )}
       {tab === 'progresion' && <StrengthProgress key={`prog-${remountKey}`} profile={profile} />}
       {/* Biblioteca = SOLO ejercicios de fuerza. Movilidad y estiramientos
