@@ -93,4 +93,17 @@ Y hazme comida y cena para los 5 días, con alimentos básicos y rápidos de coc
   mc_ag_run_done: 'Hecho. Queda marcado en tu Agenda.',
   mc_sem_mark_done: 'Marcar como hecho',
   mc_sem_mark_undone: 'Quitar la marca',
+
+  // ── Punto 27: cambiar un plan YA GUARDADO sin duplicarlo ──
+  // Antes, al confirmar un plan desaparecía de la pantalla: pedir un cambio
+  // en otra conversación generaba OTRO plan encima del anterior. Ahora el plan
+  // vivo se puede reabrir y ajustar, y lo que ya está entrenado no se toca.
+  mc_sem_done_days_hint: 'Días ya entrenados y que NO se deben mover: {{days}}',
+  mc_sem_adjusted_kept: 'Plan ajustado. {{n}} día(s) ya entrenado(s) se han dejado como estaban.',
+  mc_sem_replace_title: '¿Sustituir el plan entero?',
+  mc_sem_replace_desc: 'Lo que has pedido cambia la semana entera, no un día suelto. Si sigues, se retiran de la Agenda los entrenos de este plan que aún tienes pendientes y se ponen los nuevos en su sitio.',
+  mc_sem_replace_safe: 'Tus {{n}} día(s) ya entrenado(s) no se tocan: quedan en el historial.',
+  mc_sem_replace_yes: 'Sí, rehacer la semana',
+  mc_sem_replace_no: 'Mejor no',
+  mc_sem_replace_kept: 'Se han respetado {{n}} día(s) ya entrenado(s).',
 };

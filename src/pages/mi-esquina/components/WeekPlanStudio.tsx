@@ -2,10 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, type Profile } from '@/lib/supabase';
 import Reveal from '@/components/base/Reveal';
+import BottomSheet from '@/components/base/BottomSheet';
 import { activityKindCfg, fmtSetCount } from '@/pages/mi-esquina/lib/dayPlan';
 import { clock, formatVarValue, protocolVarsFor } from '@/pages/mi-esquina/lib/protocols';
 import {
-  commitWeekPlan, currentWeekStart, dateOfWeekday, discardDraft, loadDraft,
+  clearPlanPending, commitWeekPlan, completedDatesOfPlan, currentWeekStart,
+  dateOfWeekday, discardDraft, isWholesaleChange, loadActivePlan, loadDraft,
   planTotals, planWeekdays, saveDraft,
   type CommitResult, type WeekPlan,
 } from '@/pages/mi-esquina/lib/weekPlan';
@@ -55,6 +57,16 @@ export default function WeekPlanStudio({ profile, showToast, onGoAgenda }: Props
   const [aiAvailable, setAiAvailable] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [committed, setCommitted] = useState<CommitResult | null>(null);
+  /** Días de este plan que ya están entrenados. No se tocan al ajustar. */
+  const [hechos, setHechos] = useState<string[]>([]);
+  /**
+   * Cambio tan amplio que en la práctica es otro plan, esperando un sí.
+   *
+   * Se pregunta en vez de hacerlo porque sustituir un plan retira los bloques
+   * pendientes del anterior: es destructivo, y "cámbiame la semana" dicho de
+   * pasada no es permiso suficiente para eso.
+   */
+  const [confirmarSustituir, setConfirmarSustituir] = useState<string | null>(null);
   const [fighter, setFighter] = useState<FighterCtx>({});
   const [confirmDiscard, setConfirmDiscard] = useState(false);
 
@@ -69,8 +81,12 @@ export default function WeekPlanStudio({ profile, showToast, onGoAgenda }: Props
   useEffect(() => {
     let alive = true;
     (async () => {
-      const [draft, f, w, g] = await Promise.all([
+      const [draft, activo, f, w, g] = await Promise.all([
         loadDraft(profile.id),
+        // El plan ya confirmado de ESTA semana. Sin esto, al confirmar un plan
+        // desaparecía de la pantalla y no había forma de pedirle un cambio:
+        // pedirlo generaba otro plan que se machacaba encima del anterior.
+        loadActivePlan(profile.id),
         supabase.from('fighters').select('discipline, weight_class, experience_level, age')
           .eq('profile_id', profile.id).maybeSingle(),
         supabase.from('weight_entries').select('weight_kg')
@@ -79,10 +95,19 @@ export default function WeekPlanStudio({ profile, showToast, onGoAgenda }: Props
           .eq('fighter_profile_id', profile.id).maybeSingle(),
       ]);
       if (!alive) return;
-      if (draft) {
-        setPlan(draft.plan);
-        setRequest(draft.plan.request);
-        setLocalOnly(draft.storedLocally);
+      // Manda el borrador si lo hay: es trabajo a medias y perderlo duele más
+      // que volver a abrir el plan confirmado, que está a salvo en la Agenda.
+      const cargado = draft || activo;
+      if (cargado) {
+        setPlan(cargado.plan);
+        setRequest(cargado.plan.request);
+        setLocalOnly(cargado.storedLocally);
+      }
+      if (!draft && activo) {
+        // Sobre un plan vivo hay que saber qué días están ya entrenados antes
+        // de proponer nada: mover el martes cuando el martes ya está hecho no
+        // es un cambio, es borrar historial.
+        completedDatesOfPlan(profile.id, activo.plan.id).then((d) => { if (alive) setHechos(d); });
       }
       const fr = f.data as { discipline?: string; weight_class?: string; experience_level?: string; age?: number } | null;
       setFighter({
@@ -123,16 +148,49 @@ export default function WeekPlanStudio({ profile, showToast, onGoAgenda }: Props
     await persist(res.plan);
   };
 
-  const adjust = async () => {
+  const adjust = async (forzarSustitucion = false) => {
     const instruction = adjustText.trim();
     if (!plan || !instruction) return;
+
+    // Un cambio de barrido sobre un plan YA CONFIRMADO no se aplica a la ligera:
+    // sustituirlo retira los bloques pendientes del anterior, y eso se pregunta.
+    if (!forzarSustitucion && plan.status === 'committed' && isWholesaleChange(instruction)) {
+      setConfirmarSustituir(instruction);
+      return;
+    }
+
     setBusy('adjust');
-    const res = await adjustWeekPlan(plan, instruction, ctx, fighter);
+    // Los días ya entrenados viajan con la instrucción: el Asesor tiene que
+    // saber que el martes está hecho ANTES de proponer moverlo.
+    const conContexto = hechos.length > 0
+      ? `${instruction}
+
+[${t('mc_sem_done_days_hint', { days: hechos.join(', ') })}]`
+      : instruction;
+    const res = await adjustWeekPlan(plan, conContexto, ctx, fighter);
     setBusy(null);
     if (!res.plan) { showToast(res.error || t('mc_sem_err_adjust'), 'error'); return; }
-    await persist(res.plan);
+
+    // El ajuste de un plan vivo sigue siendo ese plan, no uno nuevo: conserva
+    // el id, que es lo que impide que se dupliquen las entradas de la Agenda.
+    await persist({ ...res.plan, id: plan.id });
     setAdjustText('');
-    showToast(t('mc_sem_adjusted'));
+    showToast(hechos.length > 0 ? t('mc_sem_adjusted_kept', { n: hechos.length }) : t('mc_sem_adjusted'));
+  };
+
+  /** Sí explícito a sustituir el plan: se retira lo pendiente y se reajusta. */
+  const sustituir = async () => {
+    const instruction = confirmarSustituir;
+    setConfirmarSustituir(null);
+    if (!plan || !instruction) return;
+    setBusy('adjust');
+    const limpieza = await clearPlanPending(profile.id, plan.id);
+    setBusy(null);
+    if (limpieza.keptCompleted.length > 0) {
+      setHechos(limpieza.keptCompleted);
+      showToast(t('mc_sem_replace_kept', { n: limpieza.keptCompleted.length }));
+    }
+    await adjust(true);
   };
 
   const confirm = async () => {
@@ -394,7 +452,7 @@ export default function WeekPlanStudio({ profile, showToast, onGoAgenda }: Props
                   maxLength={600} placeholder={t('mc_sem_adjust_ph')}
                   className="flex-1 min-w-0 bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-red-500"
                   style={{ fontSize: 16, minHeight: 46 }} />
-                <button onClick={adjust} disabled={busy !== null || !adjustText.trim()}
+                <button onClick={() => adjust()} disabled={busy !== null || !adjustText.trim()}
                   className="rk-nav-btn text-xs flex items-center justify-center gap-1.5 disabled:opacity-50 flex-shrink-0"
                   style={{ padding: '0.6rem 1.2rem', minHeight: 46 }}>
                   {busy === 'adjust'
@@ -480,6 +538,31 @@ export default function WeekPlanStudio({ profile, showToast, onGoAgenda }: Props
           )}
         </>
       )}
+
+      {/* ── Sustituir el plan: se pregunta, no se hace ──
+          Un "cámbiame toda la semana" dicho de pasada no es permiso para tirar
+          los bloques pendientes del plan que ya está en la Agenda. Se dice qué
+          va a pasar exactamente, incluido lo que NO se toca. */}
+      <BottomSheet open={!!confirmarSustituir} onClose={() => setConfirmarSustituir(null)}
+        title={t('mc_sem_replace_title')}>
+        <p className="text-sm text-zinc-300 leading-relaxed">{t('mc_sem_replace_desc')}</p>
+        {hechos.length > 0 && (
+          <p className="text-xs mt-3 leading-relaxed" style={{ color: '#4ade80' }}>
+            <i className="ri-check-double-line mr-1" />
+            {t('mc_sem_replace_safe', { n: hechos.length })}
+          </p>
+        )}
+        <div className="flex gap-2 mt-5">
+          <button onClick={sustituir}
+            className="rk-btn rk-btn-primary flex-1" style={{ minHeight: 46, fontSize: '0.85rem' }}>
+            {t('mc_sem_replace_yes')}
+          </button>
+          <button onClick={() => setConfirmarSustituir(null)}
+            className="rk-nav-btn rk-press text-xs px-4" style={{ minHeight: 46 }}>
+            {t('mc_sem_replace_no')}
+          </button>
+        </div>
+      </BottomSheet>
     </div>
   );
 }

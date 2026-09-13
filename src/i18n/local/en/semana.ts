@@ -92,4 +92,17 @@ And give me lunch and dinner for the 5 days, with basic ingredients that are qui
   mc_ag_run_done: 'Done. It is marked in your Agenda.',
   mc_sem_mark_done: 'Mark as done',
   mc_sem_mark_undone: 'Remove the mark',
+
+  // ── Point 27: change an ALREADY SAVED plan without duplicating it ──
+  // Confirming a plan used to make it vanish from the screen: asking for a
+  // change in another conversation produced ANOTHER plan on top of the old one.
+  // Now the live plan can be reopened and adjusted, and trained days stay put.
+  mc_sem_done_days_hint: 'Days already trained, which must NOT be moved: {{days}}',
+  mc_sem_adjusted_kept: 'Plan adjusted. {{n}} already-trained day(s) were left as they were.',
+  mc_sem_replace_title: 'Replace the whole plan?',
+  mc_sem_replace_desc: 'What you asked for changes the whole week, not a single day. If you go ahead, the sessions from this plan that are still pending are removed from the Agenda and the new ones take their place.',
+  mc_sem_replace_safe: 'Your {{n}} already-trained day(s) stay untouched: they remain in your history.',
+  mc_sem_replace_yes: 'Yes, redo the week',
+  mc_sem_replace_no: 'Not now',
+  mc_sem_replace_kept: '{{n}} already-trained day(s) were kept.',
 };

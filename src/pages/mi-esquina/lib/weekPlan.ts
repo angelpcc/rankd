@@ -102,6 +102,16 @@ export interface CommitResult {
   storedLocally: boolean;
   /** Bloques de agenda que NO se pudieron crear (migración 0042 sin aplicar). */
   agendaUnavailable: boolean;
+  /** Ids de los bloques creados, para poder volver sobre ellos y cambiarlos. */
+  agendaItemIds: string[];
+  /**
+   * Fechas que se han dejado como estaban por tener algo YA COMPLETADO.
+   *
+   * Un día entrenado es un hecho, no una intención: reescribirlo borraría el
+   * historial de algo que de verdad pasó. Se devuelven para poder decírselo al
+   * usuario en vez de tragárselo en silencio, que es lo que hacía antes.
+   */
+  keptCompleted: string[];
 }
 
 // ── Fechas ─────────────────────────────────────────────────────
@@ -193,6 +203,107 @@ export async function loadDraft(profileId: string): Promise<LoadedWeekPlan | nul
   return local && local.status === 'draft' ? { plan: local, storedLocally: true } : null;
 }
 
+
+/**
+ * El plan YA GUARDADO que sigue vigente, si lo hay.
+ *
+ * ── POR QUÉ HACÍA FALTA ──
+ *
+ * `loadDraft` solo devolvía borradores. En cuanto confirmabas un plan,
+ * desaparecía de la pantalla: no había forma de volver sobre él para pedir un
+ * cambio. Pedirlo en una conversación nueva generaba OTRO plan que se
+ * machacaba encima del anterior.
+ *
+ * Se busca por semana, no "el último": un plan de la semana pasada ya no manda
+ * sobre ésta, y aplicarle cambios reescribiría días que ya pasaron.
+ */
+export async function loadActivePlan(profileId: string, weekStart?: string): Promise<LoadedWeekPlan | null> {
+  const ws = weekStart || currentWeekStart();
+  const { data, error } = await supabase
+    .from('week_plans')
+    .select('id, request, week_start, training_days, plan_json, status, created_at')
+    .eq('fighter_profile_id', profileId)
+    .eq('status', 'committed')
+    .eq('week_start', ws)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle();
+
+  if (!error && data) {
+    const row = data as PlanRow;
+    return { plan: { ...row.plan_json, id: row.id, status: 'committed' }, storedLocally: false };
+  }
+  const local = readLocal(profileId);
+  return local && local.status === 'committed' && local.weekStart === ws
+    ? { plan: local, storedLocally: true }
+    : null;
+}
+
+/**
+ * ¿Este cambio es un retoque o es rehacer la semana entera?
+ *
+ * Importa porque la respuesta cambia lo que hay que hacer: un retoque se aplica
+ * y ya está, mientras que rehacer la semana tira los bloques pendientes del
+ * plan anterior y eso hay que PREGUNTARLO antes, no decidirlo por el usuario.
+ *
+ * Se mira la intención escrita, no el resultado: cuando alguien dice "cámbiame
+ * toda la semana" está pidiendo otra cosa distinta de "mueve el jueves", por
+ * mucho que el plan que salga se parezca.
+ */
+const AMPLIO = [
+  'toda la semana', 'semana entera', 'todo el plan', 'plan entero', 'de cero',
+  'empezar de nuevo', 'otro plan', 'plan nuevo', 'rehaz', 'rehacer', 'replantea',
+  'cambiamelo todo', 'cambialo todo', 'todo de nuevo',
+  'whole week', 'entire week', 'whole plan', 'from scratch', 'start over',
+  'new plan', 'redo', 'rewrite everything',
+];
+
+export function isWholesaleChange(instruction: string): boolean {
+  const s = instruction.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  return AMPLIO.some((p) => s.includes(p));
+}
+
+/**
+ * Retira los bloques PENDIENTES de un plan, dejando intactos los ya hechos.
+ *
+ * Es lo que se ejecuta cuando el usuario confirma que quiere sustituir el plan:
+ * sin esto, el plan nuevo se sumaría al viejo y la Agenda acabaría con cada día
+ * duplicado. Los días completados sobreviven a propósito — son historial.
+ *
+ * Devuelve cuántos se retiraron y las fechas que se respetaron por estar hechas.
+ */
+export async function clearPlanPending(
+  profileId: string,
+  planId: string,
+): Promise<{ removed: number; keptCompleted: string[] }> {
+  const { data, error } = await supabase.from('day_plan_items')
+    .select('id, plan_date, completed, payload')
+    .eq('fighter_profile_id', profileId);
+  if (error) return { removed: 0, keptCompleted: [] };
+
+  const rows = (data || []) as { id: string; plan_date: string; completed: boolean; payload: Record<string, unknown> | null }[];
+  const mios = rows.filter((r) => r.payload?.week_plan_id === planId);
+  const kept = [...new Set(mios.filter((r) => r.completed).map((r) => r.plan_date))];
+  const ids = mios.filter((r) => !r.completed).map((r) => r.id);
+  if (ids.length === 0) return { removed: 0, keptCompleted: kept };
+
+  const del = await supabase.from('day_plan_items').delete().in('id', ids);
+  return { removed: del.error ? 0 : ids.length, keptCompleted: kept };
+}
+
+/**
+ * Días de este plan que ya están entrenados.
+ *
+ * Se consulta ANTES de pedirle un cambio al Asesor para poder decírselo: si no,
+ * propondría alegremente mover el martes cuando el martes ya está hecho.
+ */
+export async function completedDatesOfPlan(profileId: string, planId: string): Promise<string[]> {
+  const { data } = await supabase.from('day_plan_items')
+    .select('plan_date, completed, payload')
+    .eq('fighter_profile_id', profileId)
+    .eq('completed', true);
+  const rows = (data || []) as { plan_date: string; payload: Record<string, unknown> | null }[];
+  return [...new Set(rows.filter((r) => r.payload?.week_plan_id === planId).map((r) => r.plan_date))];
+}
+
 /** Guarda o actualiza el borrador. Devuelve el plan con su id definitivo. */
 export async function saveDraft(profileId: string, plan: WeekPlan): Promise<{ plan: WeekPlan; storedLocally: boolean }> {
   const payload = {
@@ -254,6 +365,7 @@ export async function commitWeekPlan(profileId: string, plan: WeekPlan): Promise
   const out: CommitResult = {
     routineId: null, protocolIds: [], agendaItems: 0,
     storedLocally: false, agendaUnavailable: false,
+    agendaItemIds: [], keptCompleted: [],
   };
 
   // ── 1. La rutina de fuerza de la semana ──
@@ -303,25 +415,80 @@ export async function commitWeekPlan(profileId: string, plan: WeekPlan): Promise
   plan.protocols.forEach((p) => p.weekdays.forEach((w) => dates.add(dateOfWeekday(plan.weekStart, w))));
   plan.nutrition.forEach((n) => dates.add(n.date));
 
-  // Limpieza de lo que dejó un plan anterior del Asesor en esas fechas.
+  // ── Limpieza quirúrgica, no una escoba ──
+  //
+  // Antes esto borraba TODO lo que el Asesor hubiera dejado en esas fechas.
+  // Dos daños: se llevaba por delante los días YA ENTRENADOS (un hecho, no una
+  // intención — reescribirlo borra historial real), y arrasaba bloques de otros
+  // planes que compartieran fecha.
+  //
+  // Ahora solo se retira lo que cumple las tres condiciones: es de ESTE plan,
+  // sigue PENDIENTE y está en una de las fechas que el plan nuevo va a ocupar.
+  const keptCompleted = new Set<string>();
   if (dates.size > 0) {
-    await supabase.from('day_plan_items')
-      .delete()
+    const { data: previos } = await supabase.from('day_plan_items')
+      .select('id, plan_date, completed, payload, source')
       .eq('fighter_profile_id', profileId)
-      .eq('source', 'advisor')
       .in('plan_date', [...dates]);
+
+    const mios = ((previos || []) as { id: string; plan_date: string; completed: boolean; payload: Record<string, unknown> | null; source: string | null }[])
+      .filter((r) => {
+        const dePlan = r.payload?.week_plan_id;
+        // Sin sello es un bloque anterior a este cambio: se reconoce por venir
+        // del Asesor, como antes. Con sello, solo si es de ESTE plan.
+        return dePlan ? dePlan === plan.id : r.source === 'advisor';
+      });
+
+    for (const r of mios) {
+      if (r.completed) keptCompleted.add(r.plan_date);
+    }
+    const borrables = mios.filter((r) => !r.completed).map((r) => r.id);
+    if (borrables.length > 0) {
+      await supabase.from('day_plan_items').delete().in('id', borrables);
+    }
+  }
+  out.keptCompleted = [...keptCompleted];
+
+  /**
+   * Un día con algo ya completado no recibe bloques nuevos de ese mismo tipo.
+   *
+   * Si el jueves ya entrenaste fuerza, el plan nuevo no puede plantarte otro
+   * bloque de fuerza ese día: quedarían dos, uno hecho y otro pendiente, y la
+   * Agenda diría que te falta un entreno que ya hiciste.
+   */
+  const yaHecho = new Set<string>();
+  if (dates.size > 0) {
+    const { data: hechos } = await supabase.from('day_plan_items')
+      .select('plan_date, kind')
+      .eq('fighter_profile_id', profileId)
+      .eq('completed', true)
+      .in('plan_date', [...dates]);
+    for (const r of (hechos || []) as { plan_date: string; kind: string }[]) {
+      yaHecho.add(`${r.plan_date}|${r.kind}`);
+    }
   }
 
   interface Row { fighter_profile_id: string; plan_date: string; kind: string; payload: unknown; source: string; completed: boolean }
   const rows: Row[] = [];
 
+  /**
+   * Sello de propiedad en el propio payload.
+   *
+   * Va en el jsonb y no en una columna nueva para no pedir otra migración, y
+   * sobre todo para que sobreviva a que se pierda `committed_json`: con esto,
+   * un bloque siempre sabe de qué plan salió.
+   */
+  const marcar = (p: Record<string, unknown>) => ({ ...p, week_plan_id: plan.id });
+
   plan.strength.forEach((s, i) => {
     const day = routine?.days[i];
+    // Ese día ya se entrenó fuerza: se respeta y no se añade nada encima.
+    if (yaHecho.has(`${s.date}|strength`)) return;
     rows.push({
       fighter_profile_id: profileId,
       plan_date: s.date,
       kind: 'strength',
-      payload: {
+      payload: marcar({
         groups: s.groups,
         exercises: s.exercises.map((e) => ({
           name: e.name, sets: e.sets, reps_min: e.reps_min, reps_max: e.reps_max,
@@ -331,7 +498,7 @@ export async function commitWeekPlan(profileId: string, plan: WeekPlan): Promise
         routine_id: routine?.id,
         routine_day_id: day?.id,
         routine_name: s.name || routine?.name,
-      },
+      }),
       source: 'advisor',
       completed: false,
     });
@@ -341,17 +508,19 @@ export async function commitWeekPlan(profileId: string, plan: WeekPlan): Promise
     const saved = savedProtocols.get(p.key);
     const seconds = p.segments.reduce((a, s) => a + Math.max(0, s.seconds || 0), 0);
     p.weekdays.forEach((w) => {
+      const fecha = dateOfWeekday(plan.weekStart, w);
+      if (yaHecho.has(`${fecha}|activity`)) return;
       rows.push({
         fighter_profile_id: profileId,
-        plan_date: dateOfWeekday(plan.weekStart, w),
+        plan_date: fecha,
         kind: 'activity',
-        payload: {
+        payload: marcar({
           kind: p.kind,
           duration_min: seconds > 0 ? Math.round(seconds / 60) : undefined,
           note: p.note,
           protocol_id: saved?.id,
           protocol_name: p.name,
-        },
+        }),
         source: 'advisor',
         completed: false,
       });
@@ -364,7 +533,7 @@ export async function commitWeekPlan(profileId: string, plan: WeekPlan): Promise
         fighter_profile_id: profileId,
         plan_date: n.date,
         kind: 'meal',
-        payload: { slot: m.slot, text: m.text, minutes: m.minutes },
+        payload: marcar({ slot: m.slot, text: m.text, minutes: m.minutes }),
         source: 'advisor',
         completed: false,
       });
@@ -380,7 +549,11 @@ export async function commitWeekPlan(profileId: string, plan: WeekPlan): Promise
         .insert(rows.map((r) => ({ ...r, source: 'manual' }))).select('id');
     }
     if (isMissingTable(ins.error)) out.agendaUnavailable = true;
-    else out.agendaItems = (ins.data || []).length;
+    else {
+      const creados = (ins.data || []) as { id: string }[];
+      out.agendaItems = creados.length;
+      out.agendaItemIds = creados.map((r) => r.id);
+    }
   }
 
   // ── 4. Cerrar el borrador ──
@@ -394,6 +567,10 @@ export async function commitWeekPlan(profileId: string, plan: WeekPlan): Promise
         routine_id: out.routineId,
         protocol_ids: out.protocolIds,
         agenda_items: out.agendaItems,
+        // Los ids, no solo el recuento. Sin esto no había forma de volver sobre
+        // lo que creó este plan para cambiarlo o retirarlo.
+        agenda_item_ids: out.agendaItemIds,
+        kept_completed: out.keptCompleted,
       },
       committed_at: new Date().toISOString(),
     }).eq('id', plan.id);
