@@ -85,6 +85,17 @@ export interface ActivityPayload {
   protocol_id?: string;
   /** Nombre legible del protocolo ("Cardio tarde — grasa"). */
   protocol_name?: string;
+  /**
+   * Entreno de boxeo por asaltos (boxing_sessions) que resuelve este bloque.
+   *
+   * Va aparte de `protocol_id` porque no se abre igual: un protocolo se
+   * reproduce por tramos dentro de Mi Esquina, y un entreno de boxeo arranca el
+   * TEMPORIZADOR DEL RING con sus asaltos ya configurados. Distinto destino,
+   * distinto campo — meterlos en el mismo obligaría a adivinar cuál es cuál.
+   */
+  boxing_id?: string;
+  /** Nombre legible del entreno de boxeo, para pintarlo sin cargarlo entero. */
+  boxing_name?: string;
   /** Resumen de lo realmente hecho. Solo en bloques completados. */
   done?: DoneSummary;
 }

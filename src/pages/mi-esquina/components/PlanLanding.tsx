@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { BoxingSession } from '../lib/boxing';
 import type { Protocol } from '../lib/protocols';
 import type { Routine } from '../lib/routines';
 import { type DayAssignment } from '../lib/planLanding';
@@ -30,13 +31,15 @@ const DOWS = [
 interface Props {
   routine?: Routine;
   protocol?: Protocol;
+  /** Entreno de boxeo por asaltos. Se coloca igual que un protocolo: por días. */
+  boxing?: BoxingSession;
   saving?: boolean;
   onCancel: () => void;
   onConfirmRoutine?: (a: DayAssignment[]) => void;
   onConfirmProtocol?: (dows: number[]) => void;
 }
 
-export default function PlanLanding({ routine, protocol, saving, onCancel, onConfirmRoutine, onConfirmProtocol }: Props) {
+export default function PlanLanding({ routine, protocol, boxing, saving, onCancel, onConfirmRoutine, onConfirmProtocol }: Props) {
   const { t } = useTranslation();
   // Rutina: un día de la semana por cada día de la rutina.
   const [asign, setAsign] = useState<Record<string, number | null>>({});
@@ -97,9 +100,9 @@ export default function PlanLanding({ routine, protocol, saving, onCancel, onCon
         </div>
       )}
 
-      {protocol && (
+      {(protocol || boxing) && (
         <div className="mt-4">
-          <p className="text-xs font-semibold text-white mb-1.5">{protocol.name}</p>
+          <p className="text-xs font-semibold text-white mb-1.5">{(protocol || boxing)?.name}</p>
           {filaDias((n) => dows.includes(n), toggleDow)}
         </div>
       )}

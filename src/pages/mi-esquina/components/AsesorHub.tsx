@@ -5,6 +5,7 @@ import HubTabs, { type HubTab } from './HubTabs';
 import SectionCoach from './SectionCoach';
 import ObjectiveWizard from './ObjectiveWizard';
 import WeekPlanStudio from './WeekPlanStudio';
+import BoxingStudio from './BoxingStudio';
 
 // ASESOR en dos pestañas.
 //
@@ -39,6 +40,10 @@ const TABS: HubTab[] = [
   { id: 'consulta', labelKey: 'mc_as_tab_ask', icon: 'ri-chat-smile-3-line' },
   { id: 'semana', labelKey: 'mc_as_tab_week', icon: 'ri-calendar-schedule-line' },
   { id: 'plan', labelKey: 'mc_as_tab_plan', icon: 'ri-compass-3-line' },
+  // Boxeo va aquí y no en Actividad porque lo que se hace es PEDIRLO, no
+  // registrarlo: dices el tiempo que tienes y sale la sesión. Ejecutarla ocurre
+  // en el temporizador del Ring, que es donde se cuentan los asaltos.
+  { id: 'boxeo', labelKey: 'mc_as_tab_boxing', icon: 'ri-boxing-line' },
 ];
 
 // Enlaces y botones viejos siguen funcionando.
@@ -107,6 +112,15 @@ export default function AsesorHub({ profile, showToast, onGoPlan, onGoAgenda, in
           consultas, y tenerla viva de fondo no aporta nada. */}
       {tab === 'plan' && (
         <ObjectiveWizard profile={profile} showToast={showToast} onGoPlan={onGoPlan} />
+      )}
+
+      {/* ── ENTRENO DE BOXEO POR ASALTOS (punto 28) ──
+          Dices de cuánto tiempo dispones y dónde entrenas, y sale la sesión
+          entera. El botón de empezar arranca el temporizador del Ring con los
+          asaltos ya configurados: sin eso sería un texto bonito que hay que
+          teclear a mano en otra pantalla. */}
+      {tab === 'boxeo' && (
+        <BoxingStudio profile={profile} showToast={showToast} />
       )}
     </div>
   );

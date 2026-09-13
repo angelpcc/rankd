@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
 import { isMissingColumn } from '@/lib/dbState';
@@ -15,6 +15,7 @@ import {
   buildSchedule, type CustomCombo, type Discipline, type Preset, type RoundCombo, type TimerConfig,
 } from './lib/session';
 import { comboById } from './lib/combos';
+import { boxingSummary, loadBoxingById, toTimerConfig, touchBoxingSession, type BoxingSession } from '@/pages/mi-esquina/lib/boxing';
 import { timerSounds, armTimerAudio } from './lib/sounds';
 import {
   RINCON_FACTORY_COMBOS, DEFAULT_RINCON_CONFIG,
@@ -45,6 +46,16 @@ export default function TimerPage() {
   const [muted, setMuted] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
 
+  // ── Entreno de boxeo generado que llega ya preparado (punto 28) ──
+  //
+  // Se recibe por la URL (?session=<id>) y no por el estado de navegación
+  // adrede: así el enlace funciona desde cualquier sitio —el bloque de la
+  // Agenda, un acceso directo, recargar la página— y no se pierde al refrescar,
+  // que es justo lo que pasaría con location.state.
+  const [searchParams] = useSearchParams();
+  const boxingId = searchParams.get('session');
+  const [boxing, setBoxing] = useState<BoxingSession | null>(null);
+
   // ── Estado del temporizador clásico ──
   const [config, setConfig] = useState<TimerConfig>(() => ({ ...DEFAULT_CONFIG, combos: [] }));
   const [presets, setPresets] = useState<Preset[]>([]);
@@ -71,6 +82,24 @@ export default function TimerPage() {
   useEffect(() => { setPresets(loadPresets()); setCustomCombos(loadCustomCombos()); }, []);
   useEffect(() => { setRinconCustom(loadRinconCombos()); setRinconPresets(loadRinconPresets()); }, []);
   useEffect(() => { saveRinconConfig(rinconConfig); }, [rinconConfig]);
+
+  // Cargar el entreno de boxeo pedido por la URL y dejar el temporizador listo.
+  // Solo se toca la configuración: NO se arranca solo. Empezar a contar sin que
+  // nadie lo haya pedido te deja peleando con el móvil mientras suena la
+  // campana — la decisión de empezar es del usuario, siempre.
+  useEffect(() => {
+    if (!boxingId || !profile?.id) return;
+    let alive = true;
+    loadBoxingById(profile.id, boxingId).then((s) => {
+      if (!alive || !s) return;
+      setBoxing(s);
+      setConfig(toTimerConfig(s));
+      setMode('classic');
+      saveTimerMode('classic');
+      setPhase('setup');
+    });
+    return () => { alive = false; };
+  }, [boxingId, profile?.id]);
 
   const changeMode = (m: TimerMode) => { setMode(m); saveTimerMode(m); setPhase('setup'); };
 
@@ -140,6 +169,46 @@ export default function TimerPage() {
   // ── Guardado en el diario de entrenos (temporizador clásico) ──
   const onSaveToDiary = useCallback(async (): Promise<boolean> => {
     if (!profile?.id) return false;
+
+    // ── Si esto era un entreno de boxeo generado, va a ACTIVIDAD ──
+    //
+    // El temporizador clásico guarda en el diario (training_sessions), que la
+    // Agenda no lee. Un entreno de boxeo que sale de un plan tiene que quedar
+    // registrado como lo que es —una actividad de tipo boxeo— para que
+    // reconcileDayTicks marque el bloque del día igual que cualquier otra
+    // sesión (punto 26). Sin esto, terminabas el entreno y la Agenda seguía
+    // pidiéndotelo.
+    if (boxing) {
+      const iso = todayISO();
+      const total = Math.round((boxing.rounds * boxing.roundSec) / 60)
+        + boxing.warmupMin + boxing.cooldownMin;
+      const fila: Record<string, unknown> = {
+        fighter_profile_id: profile.id,
+        session_date: iso,
+        kind: 'boxeo',
+        duration_min: total || null,
+        rounds: boxing.rounds,
+        round_duration_sec: boxing.roundSec,
+        note: boxing.name.slice(0, 200) || null,
+      };
+      let { error } = await supabase.from('activity_sessions').insert(fila);
+      // Bases sin las columnas de asaltos: se reintenta con lo mínimo antes que
+      // perder el registro entero.
+      if (error && isMissingColumn(error)) {
+        ({ error } = await supabase.from('activity_sessions').insert({
+          fighter_profile_id: profile.id, session_date: iso, kind: 'boxeo',
+          duration_min: fila.duration_min, note: fila.note,
+        }));
+      }
+      if (error) { showToast(t('tm_save_error'), 'error'); return false; }
+      void touchBoxingSession(profile.id, boxing.id);
+      import('@/pages/mi-esquina/lib/planTicks')
+        .then((m) => m.reconcileDayTicks(profile.id, iso))
+        .catch(() => { /* migración sin aplicar: da igual */ });
+      showToast(t('tm_bx_saved'));
+      return true;
+    }
+
     const sched = buildSchedule(config);
     const bursts = sched.reduce((a, s) => a + s.bursts.length, 0);
     const workMin = Math.round((config.rounds * config.roundSec) / 60);
@@ -164,7 +233,7 @@ export default function TimerPage() {
     if (error) { showToast(t('tm_save_error'), 'error'); return false; }
     showToast(t('tm_saved_diary'));
     return true;
-  }, [config, profile?.id, t, showToast]);
+  }, [boxing, config, profile?.id, t, showToast]);
 
   // ── Guardado de "El Rincón" como sesión de Actividad (kind: boxeo) ──
   const onSaveRincon = useCallback(async (s: RinconSummary): Promise<boolean> => {
@@ -238,6 +307,37 @@ export default function TimerPage() {
           />
         )
       ) : phase === 'setup' ? (
+        <>
+        {/* ── Qué entreno se ha cargado ──
+            Sin esto el temporizador aparece con 8 asaltos de 2 minutos puestos
+            y no dice de dónde salen: parece que se han cambiado solos. Decirlo
+            deja claro además que darle a empezar arranca ESE entreno. */}
+        {boxing && (
+          <div className="mx-auto px-4 pt-4" style={{ maxWidth: 560 }}>
+            <div className="rk-card" style={{ padding: 14, borderColor: 'rgba(225,6,0,0.35)' }}>
+              <p className="text-[10px] font-bold tracking-[0.22em] uppercase" style={{ color: 'var(--accent)' }}>
+                {t('tm_bx_loaded')}
+              </p>
+              <p className="text-sm font-bold text-white mt-1">{boxing.name}</p>
+              <p className="text-[11px] text-zinc-400 mt-0.5">
+                {boxingSummary(boxing)}
+                {boxing.warmupMin > 0 ? ` · ${t('tm_bx_warmup', { n: boxing.warmupMin })}` : ''}
+                {boxing.cooldownMin > 0 ? ` · ${t('tm_bx_cooldown', { n: boxing.cooldownMin })}` : ''}
+              </p>
+              {boxing.script.length > 0 && (
+                <ol className="mt-2.5 space-y-1">
+                  {boxing.script.map((r) => (
+                    <li key={r.round} className="text-[11px] text-zinc-400 leading-snug">
+                      <span className="text-zinc-600 mr-1.5">{r.round}.</span>
+                      <span className="text-zinc-200 font-semibold">{r.title}</span>
+                      {r.work ? <span className="text-zinc-500"> — {r.work}</span> : null}
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          </div>
+        )}
         <TimerSetup
           mode={mode}
           onMode={changeMode}
@@ -257,6 +357,7 @@ export default function TimerPage() {
           onAiGenerate={onAiGenerate}
           showToast={showToast}
         />
+        </>
       ) : (
         <TimerRunner
           config={config}

@@ -132,6 +132,71 @@ function fighterContext(p = {}) {
     : 'Perfil del peleador: sin datos todavía. Pregunta lo esencial (disciplina, nivel, peso y objetivo) antes de dar un plan.';
 }
 
+
+// ── PUNTO 28: ENTRENO DE BOXEO POR ASALTOS ──
+//
+// El equivalente al protocolo de cardio, pero en asaltos. Devuelve ADEMÁS la
+// configuración exacta que necesita el temporizador del Ring (rounds, duración,
+// descanso), porque el objetivo del punto es que se pueda arrancar solo: si hay
+// que teclear 8, 2:00 y 1:00 a mano, la sesión generada no vale de nada.
+const BOXING_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['name', 'rounds', 'round_sec', 'rest_sec', 'warmup_min', 'cooldown_min', 'script'],
+  properties: {
+    name: { type: 'string', description: 'Nombre corto e identificable: "Boxeo casa 45 min".' },
+    rounds: { type: 'integer', minimum: 1, maximum: 24 },
+    round_sec: { type: 'integer', minimum: 30, maximum: 900 },
+    rest_sec: { type: 'integer', minimum: 0, maximum: 600 },
+    warmup_min: { type: 'integer', minimum: 0, maximum: 60 },
+    cooldown_min: { type: 'integer', minimum: 0, maximum: 60 },
+    note: { type: 'string' },
+    script: {
+      type: 'array',
+      minItems: 1,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['round', 'title', 'work'],
+        properties: {
+          round: { type: 'integer', minimum: 1 },
+          title: { type: 'string', description: 'Dos o tres palabras: "Sombra", "Saco · potencia".' },
+          work: { type: 'string', description: 'Qué se hace en ese asalto, en una o dos frases.' },
+        },
+      },
+    },
+  },
+};
+
+function boxingSystem(place, minutes) {
+  const sitio = place === 'gym'
+    ? 'EN GIMNASIO CON MATERIAL: hay saco, y puede haber manoplas, cuerda y compañero. Se pueden estructurar asaltos de saco, de manoplas y de técnica con material.'
+    : 'EN CASA / EN SOLITARIO, SIN SACO: todo es sombra, desplazamientos, técnica en vacío, trabajo de pies, cuerda si la tiene y acondicionamiento con peso corporal. NO propongas saco, manoplas ni compañero.';
+
+  return [
+    'Eres un entrenador de boxeo preparando UNA sesión concreta.',
+    '',
+    'DÓNDE ENTRENA: ' + sitio,
+    '',
+    'TIEMPO TOTAL DISPONIBLE: ' + minutes + ' minutos. Es un límite, no una sugerencia.',
+    'El total = calentamiento + (asaltos × duración) + (descansos entre asaltos) + vuelta a la calma.',
+    'Ojo: después del último asalto NO hay descanso. Cuadra los números para que el total quede',
+    'dentro de esos minutos, con un margen de 2 minutos como mucho.',
+    '',
+    'REGLAS:',
+    '- Duraciones de asalto realistas: 120, 150 o 180 segundos. Descansos de 30 a 60.',
+    '- Cada asalto tiene un trabajo DISTINTO y concreto. Nada de "boxeo general".',
+    '- Progresión: técnica y sombra al principio, intensidad en el medio, físico o',
+    '  técnica ligera al final. No metas lo más duro en el último asalto.',
+    '- El calentamiento y la vuelta a la calma van en minutos, aparte de los asaltos:',
+    '  no los cronometra el temporizador.',
+    '- Escribe en español, en segunda persona y sin floritura.',
+    '- Si el tiempo disponible es muy corto (menos de 20 minutos), reduce asaltos',
+    '  antes que recortar el calentamiento a cero: entrar en frío a golpear es',
+    '  como se lesiona la gente.',
+  ].join(String.fromCharCode(10));
+}
+
 const SYSTEMS = {
   training: (p) => `Eres el entrenador de IA de RANKD, experto en preparación de deportes de combate (boxeo, MMA, kickboxing, Muay Thai). Ayudas a este peleador a planificar sesiones y rutinas concretas.
 
@@ -941,11 +1006,11 @@ export default async function handler(req, res) {
 
   const {
     section, profile, messages, extract, timerCombos, foodPhoto, routinePhoto,
-    creatorStudio, objectivePlan, protocolText, routineText, weekPlan,
+    creatorStudio, objectivePlan, protocolText, routineText, weekPlan, boxingSession,
   } = req.body || {};
   // Modos "estructurados": no usan `section` ni una conversación `messages`,
   // devuelven JSON validado. No deben pasar por las guardas de chat de abajo.
-  const structuredMode = !!(objectivePlan || foodPhoto || routinePhoto || protocolText || routineText || weekPlan);
+  const structuredMode = !!(objectivePlan || foodPhoto || routinePhoto || protocolText || routineText || weekPlan || boxingSession);
 
   // ── CREATOR STUDIO: solo admin, gasto contabilizado aparte de las cuotas
   //    de Mi Esquina (section:'creator-studio' en ai_usage) ──
@@ -1190,6 +1255,47 @@ export default async function handler(req, res) {
     } catch (err) {
       const status = err?.status === 429 ? 429 : 500;
       return res.status(status).json({ error: 'ia_error', message: status === 429 ? 'La IA está saturada, prueba en un momento.' : 'No se pudo leer el documento.' });
+    }
+  }
+
+  // ── MODO ENTRENO DE BOXEO POR ASALTOS (punto 28) ──
+  // El usuario dice de cuánto tiempo dispone y dónde entrena; sale la sesión
+  // entera estructurada en asaltos, con la configuración lista para que el
+  // temporizador del Ring arranque sin que nadie teclee nada.
+  // Cuenta como 1 turno de la cuota (section='training').
+  if (boxingSession) {
+    const minutes = Math.max(10, Math.min(180, parseInt(boxingSession.minutes, 10) || 45));
+    const place = boxingSession.place === 'gym' ? 'gym' : 'home';
+    const extra = String(boxingSession.notes || '').slice(0, 600);
+    // Mismo helper que usan el plan por objetivo y el plan semanal: nivel,
+    // disciplina y peso cambian lo que es razonable pedirle a alguien en un asalto.
+    const perfil = fighterContext(profile || {});
+
+    const peticion = [
+      'Prepárame una sesión de boxeo de ' + minutes + ' minutos.',
+      extra ? 'Ten en cuenta además: ' + extra : '',
+      perfil ? 'Sobre mí: ' + perfil : '',
+    ].filter(Boolean).join(String.fromCharCode(10));
+
+    try {
+      const response = await anthropic.messages.create({
+        model: MODEL,
+        max_tokens: 4000,
+        system: boxingSystem(place, minutes),
+        messages: [{ role: 'user', content: peticion }],
+        output_config: { format: { type: 'json_schema', name: 'entreno_boxeo', schema: BOXING_SCHEMA } },
+      });
+      const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
+      let session;
+      try { session = JSON.parse(text); } catch { session = null; }
+      await recordUsage(gate.db, gate.user.id, 'training', 'chat', response.usage);
+      if (!session || !Array.isArray(session.script) || session.script.length === 0) {
+        return res.status(422).json({ error: 'no_boxing', message: 'No he podido montar la sesión. Prueba a decirme otra vez de cuánto tiempo dispones.' });
+      }
+      return res.status(200).json({ session, usage: response.usage });
+    } catch (err) {
+      const status = err?.status === 429 ? 429 : 500;
+      return res.status(status).json({ error: 'ia_error', message: status === 429 ? 'La IA está saturada, prueba en un momento.' : 'No se pudo generar la sesión de boxeo.' });
     }
   }
 

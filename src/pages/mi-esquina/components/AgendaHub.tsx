@@ -20,6 +20,8 @@ interface Props {
   onGoActivity: (date?: string, kind?: string) => void;
   /** Registrar fuerza vive en Fuerza › Registrar. */
   onGoStrength?: (date?: string) => void;
+  /** Un entreno de boxeo se ejecuta en el temporizador del Ring, no aquí. */
+  onGoBoxing?: (boxingId: string) => void;
 }
 
 const TABS: HubTab[] = [
@@ -35,7 +37,7 @@ const normalizeTab = (id?: string) => (id === 'rutinas' ? 'planificar' : id || '
  * escribes o dictas y se reparte por días). Registrar lo que de verdad se
  * hizo vive en Progreso › Actividad (ver onGoActivity).
  */
-export default function AgendaHub({ profile, showToast, mode, onLogged, initialTab, onGoActivity, onGoStrength }: Props) {
+export default function AgendaHub({ profile, showToast, mode, onLogged, initialTab, onGoActivity, onGoStrength, onGoBoxing }: Props) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<string>(normalizeTab(initialTab));
   useEffect(() => { if (initialTab) setTab(normalizeTab(initialTab)); }, [initialTab]);
@@ -59,7 +61,7 @@ export default function AgendaHub({ profile, showToast, mode, onLogged, initialT
         // hecho desde el calendario cambia lo que el Resumen debe enseñar, y
         // antes ese aviso no salía de esta pantalla.
         <WeeklyAgenda profile={profile} showToast={showToast} mode={mode}
-          onGoActivity={onGoActivity} onGoStrength={onGoStrength} onLogged={onLogged}
+          onGoActivity={onGoActivity} onGoStrength={onGoStrength} onGoBoxing={onGoBoxing} onLogged={onLogged}
           onGoPlanificar={() => setTab('planificar')} />
       )}
       {tab === 'planificar' && <PlanificarPanel profile={profile} showToast={showToast} onLogged={onLogged} />}

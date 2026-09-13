@@ -32,6 +32,8 @@ interface Props {
   onGoActivity: (date?: string, kind?: string) => void;
   /** Ir a Fuerza › Registrar para resolver un bloque planificado a mano. */
   onGoStrength?: (date?: string) => void;
+  /** Abrir el temporizador del Ring con un entreno de boxeo ya configurado. */
+  onGoBoxing?: (boxingId: string) => void;
   /** Saltar a la pestaña Planificar (con una fecha opcional ya en mente). */
   onGoPlanificar?: (date?: string) => void;
   /**
@@ -122,7 +124,7 @@ function addDays(d: Date, n: number): Date { const x = new Date(d); x.setDate(x.
 
 const TICK_KINDS: DayPlanKind[] = ['strength', 'activity'];
 
-export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoActivity, onGoStrength, onGoPlanificar, onLogged }: Props) {
+export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoActivity, onGoStrength, onGoBoxing, onGoPlanificar, onLogged }: Props) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
 
@@ -353,6 +355,15 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
       }
       if (item.kind === 'activity') {
         const p = item.payload as ActivityPayload;
+        // ── Entreno de boxeo: al TEMPORIZADOR, con los asaltos ya puestos ──
+        // Ni reproductor de tramos ni formulario de registro: el guion de este
+        // bloque son ASALTOS, y quien sabe contarlos es el temporizador del
+        // Ring. Es el punto entero del 28 — si hubiera que teclear los asaltos
+        // a mano, el entreno generado no serviría de nada.
+        if (p.boxing_id) {
+          onGoBoxing?.(p.boxing_id);
+          return;
+        }
         if (p.protocol_id) {
           const protocol = await loadProtocolById(profile.id, p.protocol_id);
           if (protocol) { setPlayer({ item, protocol }); return; }
@@ -365,7 +376,7 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
     } finally {
       setOpening(null);
     }
-  }, [profile.id, showToast, t, onGoStrength, onGoActivity]);
+  }, [profile.id, showToast, t, onGoStrength, onGoActivity, onGoBoxing]);
 
   /** Cierre del checklist de fuerza abierto desde un día. */
   const finishRoutine = async (date: string, slot: string | null, sets: LoggedSet[]) => {
@@ -1049,7 +1060,8 @@ function DayItemRow({ item, onRemove, onMove, onRun, opening, onToggleDone }: {
   // `lib/planTicks.ts` leyendo las sesiones; aquí solo se pinta.
   const hecho = done ? (strengthPayload?.done || activityPayload?.done || null) : null;
   /** Con rutina/protocolo se ejecuta aquí mismo; sin ellos, se va a registrar. */
-  const runsInPlace = !!strengthPayload?.routine_id || !!activityPayload?.protocol_id;
+  const runsInPlace = !!strengthPayload?.routine_id || !!activityPayload?.protocol_id
+    || !!activityPayload?.boxing_id;
   // Un bloque de MAÑANA no se puede registrar: no ha pasado. Los formularios de
   // registro no aceptan fechas futuras, así que ofrecer el atajo llevaría a una
   // pantalla que rechaza lo que se acaba de pedir. Ejecutarlo en vivo sí se

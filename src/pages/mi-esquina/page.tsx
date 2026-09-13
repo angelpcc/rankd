@@ -528,6 +528,10 @@ export default function MiEsquinaPage() {
             <AgendaHub profile={profile} showToast={showToast} mode={mode}
               onLogged={() => setRefreshKey((k) => k + 1)} initialTab={pendingTab}
               onGoStrength={(date) => go('fuerza', 'registrar', date)}
+              // El temporizador es una página propia, fuera de Mi Esquina: se
+              // navega de verdad y la sesión viaja en la URL, así el enlace vale
+              // igual desde aquí, desde un acceso directo o al recargar.
+              onGoBoxing={(id) => navigate(`/mi-esquina/timer?session=${encodeURIComponent(id)}`)}
               onGoActivity={(date, kind) => go('actividad', undefined, date, kind)} />
           )}
 

@@ -28,6 +28,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { isoOf, type ActivityPayload, type ExerciseSpec, type StrengthPayload } from './dayPlan';
+import type { BoxingSession } from './boxing';
 import type { Protocol } from './protocols';
 import type { Routine, RoutineDay } from './routines';
 
@@ -145,6 +146,51 @@ export async function landProtocol(
     ...(seconds > 0 ? { duration_min: Math.round(seconds / 60) } : {}),
     ...(protocol.note ? { note: protocol.note } : {}),
     ...(protocolId ? { protocol_id: protocolId, protocol_name: protocol.name } : {}),
+  };
+
+  const rows = dows.map((dow) => ({
+    fighter_profile_id: profileId,
+    plan_date: dateOfDow(weekStart, dow),
+    kind: 'activity',
+    payload,
+    source: 'manual',
+    completed: false,
+  }));
+
+  if (rows.length === 0) return { added: 0, error: false };
+  const { error } = await supabase.from('day_plan_items').insert(rows);
+  return { added: error ? 0 : rows.length, error: !!error };
+}
+
+/**
+ * Escribe en la Agenda un entreno de boxeo, en los días elegidos.
+ *
+ * Es una actividad más —tipo `boxeo`, con sus minutos— salvo por un detalle que
+ * lo cambia todo: el bloque guarda `boxing_id`, y con eso tocarlo abre el
+ * temporizador del Ring con los asaltos ya puestos en vez de mandarte a un
+ * formulario de registro.
+ *
+ * Los minutos incluyen calentamiento y vuelta a la calma: es el tiempo que de
+ * verdad ocupa el entreno en el día, no solo el que cuenta el cronómetro.
+ */
+export async function landBoxing(
+  profileId: string,
+  session: BoxingSession,
+  boxingId: string | null,
+  dows: number[],
+  weekStart: Date = mondayOf(),
+): Promise<LandingResult> {
+  const trabajo = session.rounds * session.roundSec;
+  const descansos = Math.max(0, session.rounds - 1) * session.restSec;
+  const minutos = session.warmupMin + session.cooldownMin + Math.round((trabajo + descansos) / 60);
+
+  const payload: ActivityPayload = {
+    kind: 'boxeo',
+    duration_min: minutos > 0 ? minutos : undefined,
+    rounds: session.rounds,
+    round_duration_sec: session.roundSec,
+    ...(session.note ? { note: session.note } : {}),
+    ...(boxingId ? { boxing_id: boxingId, boxing_name: session.name } : {}),
   };
 
   const rows = dows.map((dow) => ({
