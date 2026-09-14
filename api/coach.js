@@ -1210,13 +1210,13 @@ export default async function handler(req, res) {
     }
     const anthropic = new Anthropic({ apiKey });
     try {
-      const { name, schema } = creatorStudioSchema(kind, creatorStudio);
+      const { schema } = creatorStudioSchema(kind, creatorStudio);
       const response = await anthropic.messages.create({
         model: MODEL,
         max_tokens: kind === 'videoScript' ? 2500 : 1200,
         system: creatorStudioSystem(kind, creatorStudio),
         messages: [{ role: 'user', content: creatorStudio.prompt || creatorStudio.goal || 'Genera el contenido pedido.' }],
-        output_config: { format: { type: 'json_schema', name, schema } },
+        output_config: { format: { type: 'json_schema', schema } },
       });
       const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
       let content;
@@ -1271,7 +1271,7 @@ export default async function handler(req, res) {
         messages: [{ role: 'user', content: previous && adjustments
           ? `Aquí tienes el objetivo, mi plan actual y los ajustes que quiero. Devuelve el plan entero con los ajustes aplicados.`
           : `Genera el plan semanal para mi objetivo.` }],
-        output_config: { format: { type: 'json_schema', name: 'plan_objetivo', schema: OBJECTIVE_PLAN_SCHEMA } },
+        output_config: { format: { type: 'json_schema', schema: OBJECTIVE_PLAN_SCHEMA } },
       });
       const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
       let plan;
@@ -1310,7 +1310,7 @@ export default async function handler(req, res) {
             { type: 'text', text: 'Analiza esta foto de comida y estima los macros.' },
           ],
         }],
-        output_config: { format: { type: 'json_schema', name: 'analisis_nutricional', schema: FOOD_PHOTO_SCHEMA } },
+        output_config: { format: { type: 'json_schema', schema: FOOD_PHOTO_SCHEMA } },
       });
       const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
       let analysis;
@@ -1353,7 +1353,7 @@ export default async function handler(req, res) {
             { type: 'text', text: 'Lee este plan de entrenamiento y devuélvelo estructurado. No inventes nada que no esté en la foto.' },
           ],
         }],
-        output_config: { format: { type: 'json_schema', name: 'plan_objetivo', schema: OBJECTIVE_PLAN_SCHEMA } },
+        output_config: { format: { type: 'json_schema', schema: OBJECTIVE_PLAN_SCHEMA } },
       });
       const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
       let plan;
@@ -1386,7 +1386,7 @@ export default async function handler(req, res) {
         max_tokens: 4000,
         system: protocolSystem(kind, protocolText.variables),
         messages: [{ role: 'user', content: built.content }],
-        output_config: { format: { type: 'json_schema', name: 'protocolo_actividad', schema: PROTOCOL_SCHEMA } },
+        output_config: { format: { type: 'json_schema', schema: PROTOCOL_SCHEMA } },
       });
       const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
       let protocol;
@@ -1417,7 +1417,7 @@ export default async function handler(req, res) {
         max_tokens: 5000,
         system: ROUTINE_TEXT_SYSTEM,
         messages: [{ role: 'user', content: built.content }],
-        output_config: { format: { type: 'json_schema', name: 'rutina_preescrita', schema: ROUTINE_SCHEMA } },
+        output_config: { format: { type: 'json_schema', schema: ROUTINE_SCHEMA } },
       });
       const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
       let routine;
@@ -1463,7 +1463,7 @@ export default async function handler(req, res) {
         max_tokens: 8000,
         system: planChatSystem(profile || {}, ctx, planChat.previous || null),
         messages: mensajes,
-        output_config: { format: { type: 'json_schema', name: 'plan_hablando', schema: PLAN_CHAT_SCHEMA } },
+        output_config: { format: { type: 'json_schema', schema: PLAN_CHAT_SCHEMA } },
       });
       const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
       let out;
@@ -1505,7 +1505,7 @@ export default async function handler(req, res) {
         max_tokens: 4000,
         system: boxingSystem(place, minutes),
         messages: [{ role: 'user', content: peticion }],
-        output_config: { format: { type: 'json_schema', name: 'entreno_boxeo', schema: BOXING_SCHEMA } },
+        output_config: { format: { type: 'json_schema', schema: BOXING_SCHEMA } },
       });
       const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
       let session;
@@ -1562,7 +1562,7 @@ export default async function handler(req, res) {
             ? `Aquí tienes mi plan y el cambio que quiero. Devuélvemelo entero con ese cambio aplicado.`
             : request,
         }],
-        output_config: { format: { type: 'json_schema', name: 'plan_semanal', schema: WEEK_PLAN_SCHEMA } },
+        output_config: { format: { type: 'json_schema', schema: WEEK_PLAN_SCHEMA } },
       });
       const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
       let plan;
@@ -1597,7 +1597,7 @@ export default async function handler(req, res) {
 - day_offset 0 es hoy. Si el plan habla de "lunes/martes...", reparte los días de forma coherente empezando por el próximo día que corresponda.
 - Si la conversación no contiene un plan concreto, devuelve la lista vacía.`,
         messages: [...clean, { role: 'user', content: 'Extrae el plan acordado en formato estructurado.' }],
-        output_config: { format: { type: 'json_schema', name: cfg.name, schema: cfg.schema } },
+        output_config: { format: { type: 'json_schema', schema: cfg.schema } },
       });
       const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
       let plan;
@@ -1634,7 +1634,7 @@ Reglas estrictas:
 ${ask ? `- El usuario quiere trabajar: ${ask}` : ''}
 Responde en el idioma del usuario (por defecto español).`,
         messages: [...clean, { role: 'user', content: `Dame ${rounds} combinaciones, una por asalto.` }],
-        output_config: { format: { type: 'json_schema', name: 'combos_temporizador', schema: {
+        output_config: { format: { type: 'json_schema', schema: {
           type: 'object',
           properties: { combos: { type: 'array', description: 'Una combinación por asalto', items: { type: 'string' } } },
           required: ['combos'], additionalProperties: false,
