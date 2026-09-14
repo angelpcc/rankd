@@ -1737,6 +1737,11 @@ export default {
 
   // ── Tipos de actividad no-fuerza (activity_sessions) ──
   mc_act_kind_correr: 'Correr',
+  mc_act_kind_caminar: 'Caminar',
+  mc_act_kind_crossfit: 'CrossFit',
+  mc_act_kind_hyrox: 'Hyrox',
+  mc_act_kind_funcional: 'Funcional',
+  mc_act_kind_calistenia: 'Calistenia',
   mc_act_kind_boxeo: 'Boxeo / Sparring',
   mc_act_kind_bici: 'Bici',
   mc_act_kind_natacion: 'Natación',

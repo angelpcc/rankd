@@ -1733,6 +1733,11 @@ export default {
 
   // ── Non-strength activity types (activity_sessions) ──
   mc_act_kind_correr: 'Running',
+  mc_act_kind_caminar: 'Walking',
+  mc_act_kind_crossfit: 'CrossFit',
+  mc_act_kind_hyrox: 'Hyrox',
+  mc_act_kind_funcional: 'Functional',
+  mc_act_kind_calistenia: 'Calisthenics',
   mc_act_kind_boxeo: 'Boxing / Sparring',
   mc_act_kind_bici: 'Cycling',
   mc_act_kind_natacion: 'Swimming',

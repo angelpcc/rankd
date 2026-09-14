@@ -75,7 +75,11 @@ export default function WeekPlanStudio({ profile, showToast, onGoAgenda }: Props
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }, []);
-  const ctx = useMemo(() => buildWeekContext(weekStart, today, lang), [weekStart, today, lang]);
+  // Cuántas semanas cubre el plan. Es un botón y no algo que haya que escribir
+  // en la petición: escrito se pierde entre el resto del texto y el modelo lo
+  // ignora la mitad de las veces; como dato, viaja aparte y no falla.
+  const [weeks, setWeeks] = useState(1);
+  const ctx = useMemo(() => buildWeekContext(weekStart, today, lang, weeks), [weekStart, today, lang, weeks]);
 
   // Borrador a medias + contexto del peleador, en paralelo.
   useEffect(() => {
@@ -250,6 +254,27 @@ export default function WeekPlanStudio({ profile, showToast, onGoAgenda }: Props
               className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 resize-y leading-relaxed"
               style={{ fontSize: 15 }} />
             <p className="text-[10px] text-zinc-600 mt-1.5 text-right">{request.length}/4000</p>
+
+            {/* ── Duración ──
+                Más de 6 semanas no se ofrece a propósito: nadie cumple dos meses
+                clavados, y cada semana de más son bloques en la Agenda que
+                habrá que borrar a mano. Para seguir, se ajusta el plan vivo
+                (que respeta lo ya entrenado) en vez de planificar a ciegas. */}
+            <p className="text-[11px] uppercase tracking-wider font-bold text-zinc-500 mt-4 mb-1.5">
+              {t('mc_sem_weeks_q')}
+            </p>
+            <div className="grid grid-cols-6 gap-1.5">
+              {[1, 2, 3, 4, 5, 6].map((n) => (
+                <button key={n} type="button" onClick={() => setWeeks(n)}
+                  className={`rounded-xl border text-xs font-bold cursor-pointer transition-colors ${weeks === n ? 'border-white/30 text-white' : 'border-white/10 text-zinc-400 hover:border-white/25'}`}
+                  style={{ minHeight: 42, background: weeks === n ? 'var(--accent)' : 'rgba(255,255,255,0.02)' }}>
+                  {n}
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-zinc-500 mt-1.5 leading-relaxed">
+              {weeks === 1 ? t('mc_sem_weeks_one') : t('mc_sem_weeks_many', { n: weeks })}
+            </p>
           </div>
 
           {/* Lo que conviene decir para que el plan salga bien a la primera. */}

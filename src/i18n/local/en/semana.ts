@@ -105,4 +105,12 @@ And give me lunch and dinner for the 5 days, with basic ingredients that are qui
   mc_sem_replace_yes: 'Yes, redo the week',
   mc_sem_replace_no: 'Not now',
   mc_sem_replace_kept: '{{n}} already-trained day(s) were kept.',
+
+  // ── Plan length (several weeks) ──
+  // The generator used to assume ONE week: asking for two returned one and
+  // left you looking for the other. Now it is a button, which is more reliable
+  // than writing it into the request and having it lost in the text.
+  mc_sem_weeks_q: 'How many weeks?',
+  mc_sem_weeks_one: 'One week. When you finish it, you adjust this same plan instead of starting another.',
+  mc_sem_weeks_many: '{{n}} weeks. The structure repeats each week, and only what should progress changes.',
 };

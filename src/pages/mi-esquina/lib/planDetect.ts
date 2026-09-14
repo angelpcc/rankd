@@ -66,6 +66,9 @@ const CARDIO = [
   'calentamiento', 'warm up', 'warmup', 'enfriamiento', 'cooldown', 'cool down',
   'serie', 'sprint', 'intervalo', 'interval', 'recuperacion', 'trote',
   'pulsaciones', 'ppm', 'bpm', 'zona 2', 'z2',
+  // Formatos propios de CrossFit/Hyrox/funcional: si aparecen, el documento es
+  // una sesión de acondicionamiento, no una rutina de pesas.
+  'amrap', 'emom', 'metcon', 'wod', 'tabata', 'hiit', 'circuito', 'estacion',
 ];
 
 /** Palabras propias de una rutina de pesas. */

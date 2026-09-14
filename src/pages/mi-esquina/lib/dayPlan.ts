@@ -166,11 +166,16 @@ export const ACTIVITY_KINDS: ActivityKindCfg[] = [
   { value: 'correr',   labelKey: 'mc_act_kind_correr',   icon: 'ri-run-line',         hex: '#22c55e', fields: ['distance_km', 'pace', 'incline'] },
   { value: 'cinta',    labelKey: 'mc_act_kind_cinta',    icon: 'ri-run-line',         hex: '#16a34a', fields: ['distance_km', 'pace', 'incline'] },
   { value: 'boxeo',    labelKey: 'mc_act_kind_boxeo',    icon: 'ri-boxing-line',      hex: '#E10600', fields: ['rounds', 'round_duration'], rounds: true },
+  { value: 'caminar',  labelKey: 'mc_act_kind_caminar',  icon: 'ri-footprint-line',   hex: '#84cc16', fields: ['distance_km', 'pace', 'incline'] },
   { value: 'bici',     labelKey: 'mc_act_kind_bici',     icon: 'ri-riding-line',      hex: '#3b82f6', fields: ['distance_km', 'incline'] },
   { value: 'eliptica', labelKey: 'mc_act_kind_eliptica', icon: 'ri-walk-line',        hex: '#8b5cf6', fields: ['distance_km'] },
   { value: 'remo',     labelKey: 'mc_act_kind_remo',     icon: 'ri-ship-line',        hex: '#0ea5e9', fields: ['meters'] },
   { value: 'natacion', labelKey: 'mc_act_kind_natacion', icon: 'ri-drop-line',        hex: '#38bdf8', fields: ['meters'] },
   { value: 'cuerda',   labelKey: 'mc_act_kind_cuerda',   icon: 'ri-donut-chart-line', hex: '#a78bfa', fields: [] },
+  { value: 'crossfit', labelKey: 'mc_act_kind_crossfit', icon: 'ri-fire-line',        hex: '#f97316', fields: ['rounds'], rounds: true },
+  { value: 'hyrox',    labelKey: 'mc_act_kind_hyrox',    icon: 'ri-medal-line',       hex: '#eab308', fields: ['distance_km', 'rounds'], rounds: true },
+  { value: 'funcional', labelKey: 'mc_act_kind_funcional', icon: 'ri-timer-flash-line', hex: '#f43f5e', fields: ['rounds'], rounds: true },
+  { value: 'calistenia', labelKey: 'mc_act_kind_calistenia', icon: 'ri-body-scan-line', hex: '#14b8a6', fields: ['rounds'], rounds: true },
   { value: 'otro',     labelKey: 'mc_act_kind_otro',     icon: 'ri-more-line',        hex: '#6b7280', fields: [] },
 ];
 

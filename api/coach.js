@@ -673,7 +673,8 @@ const WEEK_PLAN_SCHEMA = {
   properties: {
     summary: { type: 'string', description: '2-3 líneas explicando el enfoque de la semana y cómo encaja con lo que pidió.' },
     disclaimer: { type: 'string', description: 'Aviso corto de que es orientativo.' },
-    training_days: { type: 'integer', description: 'Días de entreno que el usuario ha dicho tener ESTA semana. Si no lo dice, dedúcelo del texto; nunca inventes un número fijo.' },
+    training_days: { type: 'integer', description: 'Días de entreno por semana que el usuario ha dicho tener. Si no lo dice, dedúcelo del texto; nunca inventes un número fijo.' },
+    weeks: { type: 'integer', minimum: 1, maximum: 6, description: 'Cuántas semanas cubre el plan. 1 si no se pide otra cosa.' },
     exclusions: {
       type: 'array',
       description: 'Lo que el usuario ha pedido NO incluir, tal y como lo dijo ("boxeo", "fútbol", "nada de pierna el miércoles").',
@@ -686,6 +687,7 @@ const WEEK_PLAN_SCHEMA = {
         type: 'object',
         properties: {
           weekday: { type: 'integer', description: 'Día de la semana: 0 = lunes … 6 = domingo.' },
+          week: { type: 'integer', description: 'Semana del plan (0 = la primera). OMÍTELO si ese día es igual en todas las semanas: omitirlo significa "se repite cada semana". Ponlo SOLO cuando esa semana cambie de verdad.' },
           name: { type: 'string', description: 'Nombre del día ("Espalda y pecho", "Push", "Pierna").' },
           groups: { type: 'array', description: 'Grupos musculares principales del día.', items: { type: 'string', enum: MUSCLE_GROUPS } },
           note: { type: ['string', 'null'] },
@@ -771,7 +773,9 @@ Reglas del ajuste:
 ${fighterContext(profile)}
 
 Contexto de la semana:
-- La semana empieza el LUNES ${ctx.weekStart}. Los días van 0 = lunes … 6 = domingo.
+- La PRIMERA semana empieza el LUNES ${ctx.weekStart}. Los días van 0 = lunes … 6 = domingo.
+- El plan cubre ${ctx.weeks || 1} semana(s).
+  ${(ctx.weeks || 1) > 1 ? `IMPORTANTE: NO copies la misma estructura ${ctx.weeks} veces. Escribe la semana UNA sola vez y OMITE el campo "week": omitirlo ya significa "se repite todas las semanas". Usa "week" (0 = la primera) SOLO en lo que de verdad cambie de una semana a otra: una progresion de volumen, un cardio mas largo, una semana de descarga. Si no hay progresion, no pongas ningun "week".` : 'Es un plan de una sola semana: no uses el campo "week".'}
 - Hoy es ${ctx.today}. NO coloques nada en días de esta semana que ya hayan pasado.
 - Tipos de actividad válidos para "kind": ${kinds}.
 ${names.length ? `- Nombres de ejercicio disponibles (úsalos tal cual siempre que encajen, para que la app los reconozca):\n${names.join(' · ')}` : ''}
@@ -1327,6 +1331,10 @@ export default async function handler(req, res) {
     const ctx = {
       weekStart: String(weekPlan.weekStart || '').slice(0, 10),
       today: String(weekPlan.today || '').slice(0, 10),
+      // Duracion pedida, recortada a 1-6. Sin esto el contexto no la llevaba y
+      // el prompt hablaba siempre de UNA semana, dijera el usuario lo que
+      // dijera: pedir dos devolvia una y a nadie le cuadraba por que.
+      weeks: Math.max(1, Math.min(6, parseInt(weekPlan.weeks, 10) || 1)),
       exerciseNames: weekPlan.exerciseNames,
       activityKinds: weekPlan.activityKinds,
     };

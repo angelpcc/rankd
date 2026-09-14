@@ -37,6 +37,15 @@ import { localId as routineLocalId, saveRoutine, type PrescribedExercise, type R
 export interface WeekStrengthDay {
   /** 0..6 dentro de la semana (0 = lunes). */
   weekday: number;
+  /**
+   * Semana a la que pertenece, empezando en 0.
+   *
+   * Ausente = "todas las semanas". Es el caso normal: una rutina Push/Pull se
+   * repite igual cada semana y obligar al modelo a escribirla N veces sería
+   * pedirle que copie y pegue, con el riesgo de que se le descuadre una copia.
+   * Solo se declara cuando ESA semana es distinta (progresión, descarga).
+   */
+  week?: number;
   /** Fecha real ya resuelta. */
   date: string;
   /** Nombre del día tal y como lo llamó el Asesor ("Push", "Espalda y pecho"). */
@@ -58,6 +67,8 @@ export interface WeekProtocol {
   segments: ProtocolSegment[];
   /** Días de la semana (0..6) en los que va este cardio. */
   weekdays: number[];
+  /** Semanas (0..N-1) en las que va. Ausente = todas. Ver WeekStrengthDay.week. */
+  weeks?: number[];
   note?: string;
 }
 
@@ -70,6 +81,8 @@ export interface WeekMeal {
 
 export interface WeekMealDay {
   weekday: number;
+  /** Semana a la que pertenece. Ausente = todas. */
+  week?: number;
   date: string;
   meals: WeekMeal[];
 }
@@ -83,6 +96,13 @@ export interface WeekPlan {
   weekStart: string;
   /** Días de entreno que el usuario dijo tener ESA semana. */
   trainingDays: number;
+  /**
+   * Cuántas semanas cubre el plan. 1 = una semana, como hasta ahora.
+   *
+   * Antes esto no existía y el modelo entero daba por hecho UNA semana: pedir
+   * "dos semanas" devolvía una y el usuario se quedaba buscando la otra.
+   */
+  weeks: number;
   /** Lo que pidió NO incluir. Se enseña siempre: es lo que más se incumple. */
   exclusions: string[];
   summary: string;
@@ -131,10 +151,26 @@ export function currentWeekStart(): string {
 }
 
 /** Fecha del día `weekday` (0 = lunes) de la semana que empieza en `weekStart`. */
-export function dateOfWeekday(weekStart: string, weekday: number): string {
+export function dateOfWeekday(weekStart: string, weekday: number, week = 0): string {
   const d = new Date(`${weekStart}T12:00:00`);
-  d.setDate(d.getDate() + Math.max(0, Math.min(6, weekday)));
+  d.setDate(d.getDate() + Math.max(0, week) * 7 + Math.max(0, Math.min(6, weekday)));
   return isoOf(d);
+}
+
+/**
+ * En qué semanas del plan cae algo.
+ *
+ * Sin `week` declarado se repite en todas: es lo que se espera de una rutina o
+ * de un cardio fijo, y evita que el modelo tenga que copiar la misma estructura
+ * N veces. Con `week` declarado manda lo declarado, que es como se expresa una
+ * progresión o una semana de descarga.
+ */
+export function weeksOf(total: number, declarado?: number | number[]): number[] {
+  const todas = Array.from({ length: Math.max(1, total) }, (_, i) => i);
+  if (declarado === undefined || declarado === null) return todas;
+  const lista = Array.isArray(declarado) ? declarado : [declarado];
+  const validas = lista.filter((w) => Number.isFinite(w) && w >= 0 && w < Math.max(1, total));
+  return validas.length > 0 ? [...new Set(validas)] : todas;
 }
 
 /** Días con algo planificado, para el resumen. */
@@ -219,20 +255,40 @@ export async function loadDraft(profileId: string): Promise<LoadedWeekPlan | nul
  */
 export async function loadActivePlan(profileId: string, weekStart?: string): Promise<LoadedWeekPlan | null> {
   const ws = weekStart || currentWeekStart();
+
+  /** ¿La semana `ws` cae DENTRO del plan? Un plan de 3 semanas cubre 3, no 1. */
+  const cubre = (p: WeekPlan | null | undefined): boolean => {
+    if (!p?.weekStart) return false;
+    const total = Math.max(1, p.weeks || 1);
+    const ini = new Date(`${p.weekStart}T12:00:00`);
+    const fin = new Date(ini);
+    fin.setDate(fin.getDate() + (total - 1) * 7);
+    return ws >= isoOf(ini) && ws <= isoOf(fin);
+  };
+
+  // Se piden los últimos y se filtra en memoria por el RANGO que cubren.
+  //
+  // Antes se comparaba `week_start` por igualdad, y con planes de una semana
+  // funcionaba. Con un plan de dos, en cuanto entraba la segunda semana el plan
+  // dejaba de encontrarse: seguía vivo en la Agenda pero no se podía abrir ni
+  // ajustar, y pedir un cambio habría creado uno nuevo encima — justo lo que el
+  // punto 27 vino a arreglar.
   const { data, error } = await supabase
     .from('week_plans')
     .select('id, request, week_start, training_days, plan_json, status, created_at')
     .eq('fighter_profile_id', profileId)
     .eq('status', 'committed')
-    .eq('week_start', ws)
-    .order('created_at', { ascending: false }).limit(1).maybeSingle();
+    .lte('week_start', ws)
+    .order('week_start', { ascending: false }).limit(8);
 
   if (!error && data) {
-    const row = data as PlanRow;
-    return { plan: { ...row.plan_json, id: row.id, status: 'committed' }, storedLocally: false };
+    for (const row of data as PlanRow[]) {
+      const plan = { ...row.plan_json, id: row.id, status: 'committed' as const };
+      if (cubre(plan)) return { plan, storedLocally: false };
+    }
   }
   const local = readLocal(profileId);
-  return local && local.status === 'committed' && local.weekStart === ws
+  return local && local.status === 'committed' && cubre(local)
     ? { plan: local, storedLocally: true }
     : null;
 }
@@ -410,10 +466,26 @@ export async function commitWeekPlan(profileId: string, plan: WeekPlan): Promise
   }
 
   // ── 3. Los bloques de la Agenda ──
+  const total = Math.max(1, plan.weeks || 1);
+
+  /**
+   * Un día que ya pasó no recibe bloques.
+   *
+   * Con planes de varias semanas hace falta aquí y no solo al generar: la
+   * estructura se repite en todas, así que el lunes existe cuatro veces, pero
+   * el lunes de ESTA semana puede haber pasado ya. Crear ese bloque solo añade
+   * un entreno pendiente que nadie va a hacer.
+   */
+  const hoy = isoOf(new Date());
+  const pasado = (fecha: string) => fecha < hoy;
+
   const dates = new Set<string>();
-  plan.strength.forEach((s) => dates.add(s.date));
-  plan.protocols.forEach((p) => p.weekdays.forEach((w) => dates.add(dateOfWeekday(plan.weekStart, w))));
-  plan.nutrition.forEach((n) => dates.add(n.date));
+  plan.strength.forEach((s) => weeksOf(total, s.week)
+    .forEach((w) => dates.add(dateOfWeekday(plan.weekStart, s.weekday, w))));
+  plan.protocols.forEach((p) => weeksOf(total, p.weeks)
+    .forEach((w) => p.weekdays.forEach((d) => dates.add(dateOfWeekday(plan.weekStart, d, w)))));
+  plan.nutrition.forEach((n) => weeksOf(total, n.week)
+    .forEach((w) => dates.add(dateOfWeekday(plan.weekStart, n.weekday, w))));
 
   // ── Limpieza quirúrgica, no una escoba ──
   //
@@ -482,11 +554,16 @@ export async function commitWeekPlan(profileId: string, plan: WeekPlan): Promise
 
   plan.strength.forEach((s, i) => {
     const day = routine?.days[i];
+    // Una fila por cada semana en la que toca este día. Sin `week` declarado
+    // se repite en todas, que es lo que se espera de una rutina.
+    weeksOf(total, s.week).forEach((wk) => {
+    const fecha = dateOfWeekday(plan.weekStart, s.weekday, wk);
+    if (pasado(fecha)) return;
     // Ese día ya se entrenó fuerza: se respeta y no se añade nada encima.
-    if (yaHecho.has(`${s.date}|strength`)) return;
+    if (yaHecho.has(`${fecha}|strength`)) return;
     rows.push({
       fighter_profile_id: profileId,
-      plan_date: s.date,
+      plan_date: fecha,
       kind: 'strength',
       payload: marcar({
         groups: s.groups,
@@ -502,13 +579,15 @@ export async function commitWeekPlan(profileId: string, plan: WeekPlan): Promise
       source: 'advisor',
       completed: false,
     });
+    });
   });
 
   plan.protocols.forEach((p) => {
     const saved = savedProtocols.get(p.key);
     const seconds = p.segments.reduce((a, s) => a + Math.max(0, s.seconds || 0), 0);
-    p.weekdays.forEach((w) => {
-      const fecha = dateOfWeekday(plan.weekStart, w);
+    weeksOf(total, p.weeks).forEach((wk) => p.weekdays.forEach((w) => {
+      const fecha = dateOfWeekday(plan.weekStart, w, wk);
+      if (pasado(fecha)) return;
       if (yaHecho.has(`${fecha}|activity`)) return;
       rows.push({
         fighter_profile_id: profileId,
@@ -524,18 +603,22 @@ export async function commitWeekPlan(profileId: string, plan: WeekPlan): Promise
         source: 'advisor',
         completed: false,
       });
-    });
+    }));
   });
 
   plan.nutrition.forEach((n) => {
-    n.meals.forEach((m) => {
+    weeksOf(total, n.week).forEach((wk) => {
+      const fecha = dateOfWeekday(plan.weekStart, n.weekday, wk);
+      if (pasado(fecha)) return;
+      n.meals.forEach((m) => {
       rows.push({
         fighter_profile_id: profileId,
-        plan_date: n.date,
+        plan_date: fecha,
         kind: 'meal',
         payload: marcar({ slot: m.slot, text: m.text, minutes: m.minutes }),
         source: 'advisor',
         completed: false,
+      });
       });
     });
   });
@@ -594,8 +677,10 @@ function dayLabelFallback(weekday: number): string {
 // ── Contexto que se le pasa al Asesor ──────────────────────────
 
 export interface WeekContext {
-  /** Lunes de la semana objetivo. */
+  /** Lunes de la PRIMERA semana del plan. */
   weekStart: string;
+  /** Cuántas semanas debe cubrir. 1 = una semana, como siempre. */
+  weeks?: number;
   /** Hoy, para que no planifique días que ya han pasado. */
   today: string;
   /** Nombres de ejercicio de la biblioteca, para que no se los invente. */

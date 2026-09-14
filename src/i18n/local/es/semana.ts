@@ -106,4 +106,12 @@ Y hazme comida y cena para los 5 días, con alimentos básicos y rápidos de coc
   mc_sem_replace_yes: 'Sí, rehacer la semana',
   mc_sem_replace_no: 'Mejor no',
   mc_sem_replace_kept: 'Se han respetado {{n}} día(s) ya entrenado(s).',
+
+  // ── Duración del plan (varias semanas) ──
+  // Antes el generador daba por hecho UNA semana: pedir dos devolvía una y el
+  // usuario se quedaba buscando la otra. Ahora se elige con un botón, que es
+  // más fiable que escribirlo en la petición y que se pierda entre el texto.
+  mc_sem_weeks_q: '¿Cuántas semanas?',
+  mc_sem_weeks_one: 'Una semana. Cuando la termines, ajustas el mismo plan en vez de empezar otro.',
+  mc_sem_weeks_many: '{{n}} semanas. La estructura se repite cada semana, y solo cambia lo que deba progresar.',
 };

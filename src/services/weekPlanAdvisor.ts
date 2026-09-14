@@ -47,9 +47,10 @@ export async function checkWeekPlanAvailable(): Promise<boolean> {
 }
 
 /** Contexto que se le manda al modelo para que no invente nombres ni tipos. */
-export function buildWeekContext(weekStart: string, today: string, lang: 'es' | 'en'): WeekContext {
+export function buildWeekContext(weekStart: string, today: string, lang: 'es' | 'en', weeks = 1): WeekContext {
   return {
     weekStart,
+    weeks: Math.max(1, Math.min(6, Math.round(weeks) || 1)),
     today,
     exerciseNames: libraryLabels(lang),
     activityKinds: ACTIVITY_KINDS.map((k) => k.value),
@@ -151,7 +152,17 @@ function normalizePlan(raw: Record<string, unknown>, request: string, ctx: WeekC
 
   // Un día que ya ha pasado no se puede planificar: se descarta en silencio
   // aquí (el system prompt ya se lo pide, esto es el cinturón).
-  const usable = (weekday: number) => dateOfWeekday(weekStart, weekday) >= today;
+  /**
+   * ¿Se puede usar este día de la semana?
+   *
+   * En un plan de UNA semana, un lunes que ya pasó no sirve: el plan nacería
+   * con un entreno imposible. Pero en uno de VARIAS, ese mismo lunes existe
+   * también la semana que viene, así que descartarlo se cargaría el día en
+   * todas las semanas por lo que pase en la primera. Con más de una semana no
+   * se filtra; los bloques de los días ya pasados simplemente no se crean.
+   */
+  const multi = Math.max(1, Number(raw.weeks) || ctx.weeks || 1) > 1;
+  const usable = (weekday: number) => multi || dateOfWeekday(weekStart, weekday) >= today;
 
   const strength: WeekStrengthDay[] = (Array.isArray(raw.strength) ? raw.strength : [])
     .slice(0, 7)
@@ -165,6 +176,7 @@ function normalizePlan(raw: Record<string, unknown>, request: string, ctx: WeekC
         .filter((g): g is MuscleGroup => MUSCLE_GROUPS.includes(g as MuscleGroup));
       return {
         weekday,
+        ...(Number.isFinite(Number(d.week)) && Number(d.week) >= 0 ? { week: Number(d.week) } : {}),
         date: dateOfWeekday(weekStart, weekday),
         name: String(d.name || '').trim().slice(0, 60),
         // Si el modelo no declara grupos, se derivan de los ejercicios: el
@@ -196,6 +208,9 @@ function normalizePlan(raw: Record<string, unknown>, request: string, ctx: WeekC
         when: (WHENS as readonly string[]).includes(String(p.when)) ? (p.when as WeekProtocol['when']) : 'afternoon',
         segments,
         weekdays: [...new Set(weekdays)].sort((a, b) => a - b),
+        ...(Array.isArray(p.weeks) && p.weeks.length > 0
+          ? { weeks: [...new Set((p.weeks as unknown[]).map(Number).filter((w) => Number.isFinite(w) && w >= 0))] }
+          : {}),
         note: typeof p.note === 'string' && p.note.trim() ? p.note.trim().slice(0, 200) : undefined,
       } as WeekProtocol;
     })
@@ -222,7 +237,12 @@ function normalizePlan(raw: Record<string, unknown>, request: string, ctx: WeekC
         })
         .filter((x): x is { slot: MealSlot; text: string; minutes: number } => x !== null);
       if (meals.length === 0) return null;
-      return { weekday, date: dateOfWeekday(weekStart, weekday), meals } as WeekMealDay;
+      const wk = Number(d.week);
+      return {
+        weekday,
+        ...(Number.isFinite(wk) && wk >= 0 ? { week: wk } : {}),
+        date: dateOfWeekday(weekStart, weekday), meals,
+      } as WeekMealDay;
     })
     .filter((x): x is WeekMealDay => x !== null)
     .sort((a, b) => a.weekday - b.weekday);
@@ -238,6 +258,9 @@ function normalizePlan(raw: Record<string, unknown>, request: string, ctx: WeekC
     // Si el modelo no lo declara, se usa lo que ha montado de verdad: es más
     // honesto que un número que no se corresponde con el plan.
     trainingDays: declaredDays > 0 && declaredDays <= 7 ? declaredDays : strength.length,
+    // 1 a 6 semanas. Más allá es planificar a ciegas: nadie cumple seis semanas
+    // clavadas, y cada semana de más son bloques que luego hay que borrar.
+    weeks: Math.max(1, Math.min(6, Math.round(Number(raw.weeks) || ctx.weeks || 1))),
     exclusions: (Array.isArray(raw.exclusions) ? raw.exclusions : [])
       .map((x) => String(x).trim().slice(0, 60)).filter(Boolean).slice(0, 12),
     summary: String(raw.summary || '').trim().slice(0, 800),
@@ -288,6 +311,7 @@ export async function generateWeekPlan(
     request,
     weekStart: ctx.weekStart,
     today: ctx.today,
+    weeks: ctx.weeks || 1,
     exerciseNames: ctx.exerciseNames,
     activityKinds: ctx.activityKinds,
   }, profile);
@@ -316,6 +340,8 @@ export async function adjustWeekPlan(
     previous: stripIds(plan),
     weekStart: ctx.weekStart,
     today: ctx.today,
+    // Un ajuste no cambia la duración: se mantiene la del plan que se retoca.
+    weeks: plan.weeks || ctx.weeks || 1,
     exerciseNames: ctx.exerciseNames,
     activityKinds: ctx.activityKinds,
   }, profile);

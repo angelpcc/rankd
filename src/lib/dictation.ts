@@ -328,6 +328,14 @@ const ACT_WORDS: { kind: string; words: string[] }[] = [
   { kind: 'bici', words: ['bici', 'bicicleta', 'ciclismo', 'rodillo', 'bike', 'cycling', 'spinning'] },
   { kind: 'natacion', words: ['natacion', 'nadar', 'piscina', 'swim', 'swimming', 'pool'] },
   { kind: 'cuerda', words: ['comba', 'cuerda', 'saltar a la comba', 'rope', 'jump rope', 'skipping'] },
+  // Caminar va DESPUÉS de correr a propósito: "caminata rápida" no debe
+  // confundirse con "carrera", y quien dice las dos cosas suele decir correr
+  // primero. El orden de esta lista es el orden en que se busca.
+  { kind: 'caminar', words: ['caminar', 'andar', 'caminata', 'paseo', 'marcha', 'walk', 'walking', 'brisk walk'] },
+  { kind: 'crossfit', words: ['crossfit', 'cross fit', 'wod', 'amrap', 'emom', 'metcon'] },
+  { kind: 'hyrox', words: ['hyrox', 'hirox'] },
+  { kind: 'funcional', words: ['funcional', 'circuito', 'hiit', 'tabata', 'functional', 'circuit'] },
+  { kind: 'calistenia', words: ['calistenia', 'peso corporal', 'calisthenics', 'bodyweight'] },
 ];
 
 // Suplementos ← palabras (se guarda el nombre tal cual detectado).
