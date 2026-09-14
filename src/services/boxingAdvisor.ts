@@ -39,7 +39,7 @@ export async function checkBoxingAvailable(): Promise<boolean> {
     const res = await fetch('/api/coach', { method: 'GET' });
     if (!res.ok) return false;
     const data = await res.json().catch(() => null);
-    return !!data?.ok;
+    return !!data?.available;
   } catch { return false; }
 }
 
