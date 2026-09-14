@@ -154,7 +154,7 @@ function fighterContext(p = {}) {
 const BOXING_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['name', 'rounds', 'round_sec', 'rest_sec', 'warmup_min', 'cooldown_min', 'script'],
+  required: ['name', 'rounds', 'round_sec', 'rest_sec', 'warmup_min', 'cooldown_min', 'note', 'script'],
   properties: {
     name: { type: 'string', description: 'Nombre corto e identificable: "Boxeo casa 45 min".' },
     rounds: { type: 'integer', minimum: 1, maximum: 24 },
@@ -162,7 +162,7 @@ const BOXING_SCHEMA = {
     rest_sec: { type: 'integer', minimum: 0, maximum: 600 },
     warmup_min: { type: 'integer', minimum: 0, maximum: 60 },
     cooldown_min: { type: 'integer', minimum: 0, maximum: 60 },
-    note: { type: 'string' },
+    note: { type: ['string', 'null'], description: 'Aviso corto sobre la sesión, si hace falta. Null si no.' },
     script: {
       type: 'array',
       minItems: 1,
@@ -776,7 +776,10 @@ const WEEK_PLAN_SCHEMA = {
       },
     },
   },
-  required: ['summary', 'disclaimer', 'training_days', 'exclusions', 'strength', 'protocols', 'nutrition'],
+  // 'weeks' tiene que estar aqui aunque parezca opcional: la salida
+  // estructurada exige TODAS las propiedades en required. Se me paso al anadir
+  // los planes de varias semanas, y eso tumbaba la peticion entera.
+  required: ['summary', 'disclaimer', 'training_days', 'weeks', 'exclusions', 'strength', 'protocols', 'nutrition'],
   additionalProperties: false,
 };
 
