@@ -10,7 +10,19 @@ import { createClient } from '@supabase/supabase-js';
 
 export const config = { maxDuration: 60 };
 
-const MODEL = 'claude-opus-4-8';
+// ── Qué modelo atiende las 11 llamadas de la app ──
+//
+// Estaba puesto 'claude-opus-4-8', que NO EXISTE: habría fallado cada llamada
+// con un error de modelo desconocido, y con la clave recién pagada el dedo
+// habría apuntado a cualquier otro sitio menos aquí.
+//
+// Se puede cambiar sin tocar código con ANTHROPIC_MODEL, porque la elección es
+// de coste y no de programación:
+//   · claude-sonnet-5  — el que conviene para esto. Planes, rutinas y consejo
+//                        de entreno le sobran, y cuesta una fracción de Opus.
+//   · claude-opus-5    — solo si notas que se queda corto razonando.
+//   · claude-haiku-4-5-20251001 — el más barato y rápido, para mucho volumen.
+const MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5';
 
 // Tarifa vigente del modelo, en USD por millón de tokens.
 const PRICE_IN_PER_M = 5;
