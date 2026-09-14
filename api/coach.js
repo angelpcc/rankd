@@ -246,7 +246,20 @@ function iaError(err) {
   if (status === 400) {
     return { status: 502, message: "La IA ha rechazado la petición. Si se repite, avisa: es un fallo nuestro, no tuyo." };
   }
-  return { status: 500, message: "No se pudo contactar con la IA. Vuelve a intentarlo." };
+  // Caso no reconocido: se ENSEÑA el motivo real en vez de tragárselo.
+  //
+  // Un error sin `status` no viene de la API: lo lanza el propio SDK antes de
+  // enviar nada (un esquema mal formado, por ejemplo). Tragárselo detrás de un
+  // "no se pudo contactar" convierte un problema concreto y arreglable en una
+  // caza a ciegas — que es exactamente lo que ha pasado aquí durante cinco
+  // intentos.
+  const crudo = String(err?.error?.error?.message || err?.message || "").slice(0, 300);
+  return {
+    status: 500,
+    message: crudo
+      ? "Error de la IA: " + crudo
+      : "No se pudo contactar con la IA. Vuelve a intentarlo.",
+  };
 }
 
 const SYSTEMS = {
