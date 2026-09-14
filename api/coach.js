@@ -151,27 +151,32 @@ function fighterContext(p = {}) {
 // configuración exacta que necesita el temporizador del Ring (rounds, duración,
 // descanso), porque el objetivo del punto es que se pueda arrancar solo: si hay
 // que teclear 8, 2:00 y 1:00 a mano, la sesión generada no vale de nada.
+// Sin minimum/maximum/minItems: la salida estructurada no los admite y la
+// peticion se rechaza entera. Ningun esquema de este archivo los usa — otra vez
+// lo nuevo saliendose de la convencion que ya estaba.
+//
+// Los rangos no se pierden: `boxingAdvisor.clamp` los recorta al recibirlos, que
+// es la segunda red que se puso justamente para no depender del esquema.
 const BOXING_SCHEMA = {
   type: 'object',
   additionalProperties: false,
   required: ['name', 'rounds', 'round_sec', 'rest_sec', 'warmup_min', 'cooldown_min', 'note', 'script'],
   properties: {
     name: { type: 'string', description: 'Nombre corto e identificable: "Boxeo casa 45 min".' },
-    rounds: { type: 'integer', minimum: 1, maximum: 24 },
-    round_sec: { type: 'integer', minimum: 30, maximum: 900 },
-    rest_sec: { type: 'integer', minimum: 0, maximum: 600 },
-    warmup_min: { type: 'integer', minimum: 0, maximum: 60 },
-    cooldown_min: { type: 'integer', minimum: 0, maximum: 60 },
+    rounds: { type: 'integer' },
+    round_sec: { type: 'integer' },
+    rest_sec: { type: 'integer' },
+    warmup_min: { type: 'integer' },
+    cooldown_min: { type: 'integer' },
     note: { type: ['string', 'null'], description: 'Aviso corto sobre la sesión, si hace falta. Null si no.' },
     script: {
       type: 'array',
-      minItems: 1,
       items: {
         type: 'object',
         additionalProperties: false,
         required: ['round', 'title', 'work'],
         properties: {
-          round: { type: 'integer', minimum: 1 },
+          round: { type: 'integer' },
           title: { type: 'string', description: 'Dos o tres palabras: "Sombra", "Saco · potencia".' },
           work: { type: 'string', description: 'Qué se hace en ese asalto, en una o dos frases.' },
         },
@@ -884,7 +889,13 @@ function planChatSystem(profile, ctx, previous) {
     "  tacto, derívalo a un médico o dietista colegiado y no des pautas ahí.",
     "- Nada de sustancias dopantes.",
     "",
-    "Responde SIEMPRE en español.",
+    "",
+    "ECONOMIA (importante): esto se genera en UNA sola respuesta y hay limite",
+    "de tiempo. Se escueto en el JSON: 4-6 ejercicios por dia como mucho, notas",
+    "de una linea, y textos de comida cortos (pollo a la plancha con arroz y",
+    "ensalada, no un parrafo). El detalle largo va en reply, no en el plan.",
+    "",
+    "Responde SIEMPRE en espanol.",
   ].join(NL);
 }
 
@@ -1449,7 +1460,7 @@ export default async function handler(req, res) {
     try {
       const response = await anthropic.messages.create({
         model: MODEL,
-        max_tokens: 16000,
+        max_tokens: 8000,
         system: planChatSystem(profile || {}, ctx, planChat.previous || null),
         messages: mensajes,
         output_config: { format: { type: 'json_schema', name: 'plan_hablando', schema: PLAN_CHAT_SCHEMA } },
