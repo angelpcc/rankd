@@ -129,9 +129,11 @@ export default function EventosPage() {
     return [...set].sort((a, b) => a.localeCompare(b, 'es'));
   }, [events]);
 
-  const base = filter === 'upcoming' ? upcoming : filter === 'past' ? past : [...upcoming, ...past];
-
   const shown = useMemo(() => {
+    // `base` se calcula DENTRO del memo. Fuera, el caso "todos" creaba un array
+    // nuevo en cada render y, al ser dependencia, el memo se recalculaba
+    // siempre: justo en la pestaña con más eventos, que es donde hacía falta.
+    const base = filter === 'upcoming' ? upcoming : filter === 'past' ? past : [...upcoming, ...past];
     const q = query.trim().toLowerCase();
     return base.filter((e) => {
       if (city !== 'all' && cityOf(e.location) !== city) return false;
@@ -140,7 +142,7 @@ export default function EventosPage() {
         || (e.location || '').toLowerCase().includes(q)
         || (e.org?.full_name || '').toLowerCase().includes(q);
     });
-  }, [base, query, city]);
+  }, [filter, upcoming, past, query, city]);
 
   // El más próximo con fecha: se destaca arriba cuando estás en "Próximos".
   const next = filter === 'upcoming' && !query && city === 'all'

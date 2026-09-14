@@ -141,7 +141,6 @@ export default function FightersDirectoryPage() {
   const [sortBy, setSortBy] = useState('recent');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [userCountry, setUserCountry] = useState<string>('');
 
   // Detectar país del usuario
   useEffect(() => {
@@ -149,7 +148,8 @@ export default function FightersDirectoryPage() {
       // Si el usuario está logueado y tiene country guardado, usarlo directamente
       if ((userProfile as any)?.country) {
         const country = (userProfile as any).country;
-        setUserCountry(country);
+        // Solo a `filters.location`: era lo único que se leía. Antes se
+        // guardaba además en un `userCountry` que no consultaba nadie.
         setFilters(f => ({ ...f, location: country }));
         return;
       }
@@ -157,7 +157,6 @@ export default function FightersDirectoryPage() {
       const ipCountry = await detectCountryByIP();
       const mapped = COUNTRY_MAP[ipCountry] || ipCountry;
       if (mapped) {
-        setUserCountry(mapped);
         setFilters(f => ({ ...f, location: mapped }));
       }
     };
@@ -257,7 +256,7 @@ export default function FightersDirectoryPage() {
     });
 
     return result;
-  }, [data, filters, sortBy, userCountry]);
+  }, [data, filters, sortBy]);
 
   const disciplineLabels: Record<string, string> = {
     boxing: t('disc_boxing'), mma: t('disc_mma'), kickboxing: t('disc_kickboxing'),

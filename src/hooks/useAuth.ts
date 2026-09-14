@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase, Profile } from '@/lib/supabase';
 import { getViewAs, VIEW_AS_EVENT, type ViewAsState } from '@/lib/viewAs';
@@ -42,6 +42,28 @@ export function useAuth() {
     return () => window.removeEventListener(VIEW_AS_EVENT, sync);
   }, []);
 
+  // Estable a propósito: no depende de nada del componente, así que el efecto
+  // de abajo puede capturarla una sola vez sin quedarse con datos viejos.
+  const fetchProfile = useCallback(async (userId: string, retries = 3): Promise<void> => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (!data && retries > 0) {
+      // El perfil puede no existir todavía (retraso del trigger): se reintenta.
+      await new Promise((res) => setTimeout(res, 1200));
+      return fetchProfile(userId, retries - 1);
+    }
+
+    setState((prev) => ({ ...prev, profile: data, loading: false }));
+
+    // Deja constancia de que ha entrado hoy. Es lo que permite medir después
+    // cuánta gente vuelve, que es la métrica que de verdad importa.
+    if (data) trackVisit();
+  }, []);
+
   useEffect(() => {
     let active = true;
 
@@ -69,27 +91,7 @@ export function useAuth() {
     });
 
     return () => { active = false; subscription.unsubscribe(); };
-  }, []);
-
-  const fetchProfile = async (userId: string, retries = 3) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (!data && retries > 0) {
-      // Profile might not exist yet (trigger delay) — retry after a short wait
-      await new Promise((res) => setTimeout(res, 1200));
-      return fetchProfile(userId, retries - 1);
-    }
-
-    setState(prev => ({ ...prev, profile: data, loading: false }));
-
-    // Deja constancia de que ha entrado hoy. Es lo que permite medir después
-    // cuánta gente vuelve, que es la métrica que de verdad importa.
-    if (data) trackVisit();
-  };
+  }, [fetchProfile]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
