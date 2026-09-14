@@ -801,8 +801,14 @@ const PLAN_CHAT_SCHEMA = {
   required: ["reply", "plan"],
   properties: {
     reply: { type: "string", description: "Lo que le dices al usuario. Breve y de tú a tú. Si preguntas algo, que sean UNA o DOS preguntas cortas, nunca un cuestionario." },
+    // Anulable con `type: [..., 'null']`, que es como lo declara TODO el resto
+    // del archivo (mira los esquemas de objetivo y de protocolo). Estaba puesto
+    // con `anyOf`, que es válido en JSON Schema a secas pero no es la forma que
+    // admite la salida estructurada: la petición se rechazaba entera y el plan
+    // no llegaba a montarse nunca.
     plan: {
-      anyOf: [WEEK_PLAN_SCHEMA, { type: "null" }],
+      ...WEEK_PLAN_SCHEMA,
+      type: ["object", "null"],
       description: "El plan completo cuando ya puedes montarlo. null mientras falten datos IMPRESCINDIBLES. Ante la duda, MONTA el plan con un supuesto razonable y dilo en reply: es mejor que un interrogatorio.",
     },
   },
