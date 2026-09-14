@@ -836,6 +836,7 @@ const PLAN_CHAT_SCHEMA = {
 };
 
 function planChatSystem(profile, ctx, previous) {
+  const NL = String.fromCharCode(10);
   const kinds = (ctx.activityKinds || []).join(", ");
   const prev = previous
     ? "PLAN ACTUAL (el que ya está montado; si te piden un cambio, devuelve este MISMO plan con ese cambio aplicado y nada más tocado):" + NL + JSON.stringify(previous)
