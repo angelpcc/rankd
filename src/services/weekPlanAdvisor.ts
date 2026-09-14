@@ -195,8 +195,12 @@ export function normalizeWeekPlan(raw: Record<string, unknown>, request: string,
       const p = (item || {}) as Record<string, unknown>;
       const kindRaw = String(p.kind || '').trim();
       const kind = VALID_KINDS.has(kindRaw) ? kindRaw : 'otro';
+      // Ya no vienen tramos: el plan trae minutos y el detalle en texto. Se
+      // conserva `normalizeSegments` porque el import de documentos SÍ los usa.
       const segments = normalizeSegments(p.segments, kind);
-      if (segments.length === 0) return null;
+      const minutos = Math.max(0, Math.min(300, Math.round(Number(p.minutes) || 0)));
+      // Sin minutos NI tramos no hay cardio que valga la pena poner en el día.
+      if (segments.length === 0 && minutos === 0) return null;
       const weekdays = (Array.isArray(p.weekdays) ? p.weekdays : [])
         .map(clampWeekday)
         .filter((w): w is number => w !== null && usable(w));
@@ -207,6 +211,7 @@ export function normalizeWeekPlan(raw: Record<string, unknown>, request: string,
         kind,
         when: (WHENS as readonly string[]).includes(String(p.when)) ? (p.when as WeekProtocol['when']) : 'afternoon',
         segments,
+        minutes: minutos > 0 ? minutos : undefined,
         weekdays: [...new Set(weekdays)].sort((a, b) => a - b),
         ...(Array.isArray(p.weeks) && p.weeks.length > 0
           ? { weeks: [...new Set((p.weeks as unknown[]).map(Number).filter((w) => Number.isFinite(w) && w >= 0))] }

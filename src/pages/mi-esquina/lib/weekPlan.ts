@@ -65,6 +65,15 @@ export interface WeekProtocol {
   /** Franja del día en la que toca. Solo informativa. */
   when: 'morning' | 'midday' | 'afternoon' | 'evening';
   segments: ProtocolSegment[];
+  /**
+   * Minutos totales, cuando el cardio NO trae tramos.
+   *
+   * Un plan generado hablando dice "cinta 40 min, 10 al 6 y 20 al 8" en la nota
+   * y no desglosa los tramos: desglosarlos hundía el esquema a ocho niveles de
+   * anidamiento y la petición se rechazaba entera. El guion tramo a tramo se
+   * monta aparte, en Actividad, que es donde se reproduce.
+   */
+  minutes?: number;
   /** Días de la semana (0..6) en los que va este cardio. */
   weekdays: number[];
   /** Semanas (0..N-1) en las que va. Ausente = todas. Ver WeekStrengthDay.week. */
@@ -450,6 +459,14 @@ export async function commitWeekPlan(profileId: string, plan: WeekPlan): Promise
   // ── 2. Un protocolo por cardio ──
   const savedProtocols = new Map<string, Protocol>();
   for (const p of plan.protocols) {
+    // Sin tramos no se guarda protocolo.
+    //
+    // Un plan hecho hablando describe el cardio en texto ("40 min, 10 al 6 y 20
+    // al 8") y no lo desglosa. Guardarlo igualmente crearía un protocolo vacío
+    // y, al tocar el bloque del día, se abriría un reproductor sin nada que
+    // reproducir. El bloque de la Agenda vale solo: dice el tipo, los minutos y
+    // el detalle en la nota, que es lo que se lee al ir a entrenar.
+    if (p.segments.length === 0) continue;
     const draft: Protocol = {
       id: protocolLocalId('prot'),
       name: p.name,
@@ -584,7 +601,10 @@ export async function commitWeekPlan(profileId: string, plan: WeekPlan): Promise
 
   plan.protocols.forEach((p) => {
     const saved = savedProtocols.get(p.key);
-    const seconds = p.segments.reduce((a, s) => a + Math.max(0, s.seconds || 0), 0);
+    // Con tramos manda su suma; sin ellos, los minutos que dijo el plan.
+    const seconds = p.segments.length > 0
+      ? p.segments.reduce((a, s) => a + Math.max(0, s.seconds || 0), 0)
+      : Math.max(0, p.minutes || 0) * 60;
     weeksOf(total, p.weeks).forEach((wk) => p.weekdays.forEach((w) => {
       const fecha = dateOfWeekday(plan.weekStart, w, wk);
       if (pasado(fecha)) return;

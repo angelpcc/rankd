@@ -761,10 +761,10 @@ const WEEK_PLAN_SCHEMA = {
           kind: { type: 'string', description: 'Tipo de actividad: cinta, correr, bici, eliptica, remo, natacion, cuerda, boxeo u otro.' },
           when: { type: 'string', enum: ['morning', 'midday', 'afternoon', 'evening'] },
           weekdays: { type: 'array', description: 'Días (0 = lunes) en los que toca este cardio.', items: { type: 'integer' } },
-          note: { type: ['string', 'null'] },
-          segments: { type: 'array', description: 'Los tramos, en orden. Minuto a minuto si el usuario lo pide así.', items: WEEK_SEGMENT_SCHEMA },
+          minutes: { type: 'integer', description: 'Duración total del cardio en minutos.' },
+          note: { type: ['string', 'null'], description: 'El detalle del cardio EN TEXTO: "10 min inclinación 6, 20 min al 8, 10 bajando". Aquí va la inclinación, la velocidad y los tramos. Null si no hay nada que precisar.' },
         },
-        required: ['key', 'name', 'kind', 'when', 'weekdays', 'note', 'segments'],
+        required: ['key', 'name', 'kind', 'when', 'weekdays', 'minutes', 'note'],
         additionalProperties: false,
       },
     },
@@ -816,27 +816,24 @@ const WEEK_PLAN_SCHEMA = {
 // conversación y seguir hablando encima de ella. Separarlos obligaría a dos
 // llamadas y a que el usuario pulsara un botón entre medias, que es justo el
 // formulario del que se viene huyendo.
+// ── El plan va en la RAÍZ, no colgando de un campo ──
+//
+// Medido: la salida estructurada de este archivo funciona hasta 5-6 niveles de
+// anidamiento. Metiendo el plan dentro de una propiedad `plan` se añadía un
+// nivel a todo lo de dentro y el esquema se iba a 7-8, con lo que la petición
+// se rechazaba entera.
+//
+// Poniendo `reply` y `ready` como hermanos del plan —y no como sus padres— el
+// esquema queda exactamente igual de hondo que WEEK_PLAN_SCHEMA, que es la
+// profundidad que ya usan la rutina y el plan por objetivo.
 const PLAN_CHAT_SCHEMA = {
-  type: "object",
+  type: 'object',
   additionalProperties: false,
-  required: ["reply", "ready", "plan"],
+  required: ['reply', 'ready', ...WEEK_PLAN_SCHEMA.required],
   properties: {
-    reply: { type: "string", description: "Lo que le dices al usuario. Breve y de tú a tú. Si preguntas algo, que sean UNA o DOS preguntas cortas, nunca un cuestionario." },
-    // ── Por qué un booleano y no un plan anulable ──
-    //
-    // Antes `plan` era un objeto que podía venir nulo. Los campos ANULABLES que
-    // funcionan en este archivo son todos escalares (una cadena, un número); un
-    // OBJETO anulable era la única diferencia estructural entre este esquema y
-    // el de boxeo, que sí funciona.
-    //
-    // Con un booleano aparte, `plan` es siempre un objeto y el esquema se queda
-    // igual de plano que los que ya van bien. Cuando todavía está preguntando,
-    // el plan viene con las listas vacías: cuesta cuatro tokens y se ignora.
-    ready: { type: "boolean", description: "true cuando el plan de abajo está montado y sirve. false mientras estés preguntando: en ese caso deja strength, protocols y nutrition como listas vacías." },
-    plan: {
-      ...WEEK_PLAN_SCHEMA,
-      description: "El plan completo. Si ready es false, devuélvelo con las listas vacías y no te esfuerces en rellenarlo.",
-    },
+    reply: { type: 'string', description: 'Lo que le dices al usuario. Breve y de tú a tú. Si preguntas algo, que sean UNA o DOS preguntas cortas, nunca un cuestionario.' },
+    ready: { type: 'boolean', description: 'true cuando el plan ya está montado y sirve. false mientras preguntas: en ese caso deja strength, protocols y nutrition como listas vacías y no te esfuerces en rellenarlas.' },
+    ...WEEK_PLAN_SCHEMA.properties,
   },
 };
 
@@ -1496,11 +1493,14 @@ export default async function handler(req, res) {
       if (!out || typeof out.reply !== 'string') {
         return res.status(422).json({ error: 'no_reply', message: 'No he podido montarlo. Prueba a decírmelo de otra forma.' });
       }
-      // Sin `ready` no hay plan: cuando esta preguntando, lo que venga en
-      // `plan` son listas vacias y colarlo borraria el plan bueno de la pantalla.
-      const listo = out.ready === true && out.plan
-        && ((out.plan.strength || []).length > 0 || (out.plan.protocols || []).length > 0);
-      return res.status(200).json({ reply: out.reply, plan: listo ? out.plan : null, usage: response.usage });
+      // El plan viene desgranado en la raíz: se vuelve a juntar aquí para que
+      // el cliente reciba la misma forma de siempre y no se entere del cambio.
+      const { reply, ready, ...plan } = out;
+      // Sin `ready` no hay plan: mientras pregunta, las listas vienen vacías y
+      // colarlo borraría de la pantalla el plan bueno que ya estuviera montado.
+      const listo = ready === true
+        && ((plan.strength || []).length > 0 || (plan.protocols || []).length > 0);
+      return res.status(200).json({ reply, plan: listo ? plan : null, usage: response.usage });
     } catch (err) {
       console.error('[ia]', err?.status, err?.message);
       const e = iaError(err);
