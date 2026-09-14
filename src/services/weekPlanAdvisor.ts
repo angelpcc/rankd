@@ -146,7 +146,7 @@ function normalizeSegments(raw: unknown, kind: string): ProtocolSegment[] {
 
 const VALID_KINDS = new Set(ACTIVITY_KINDS.map((k) => k.value));
 
-function normalizePlan(raw: Record<string, unknown>, request: string, ctx: WeekContext, id: string): WeekPlan | null {
+export function normalizeWeekPlan(raw: Record<string, unknown>, request: string, ctx: WeekContext, id: string): WeekPlan | null {
   const weekStart = ctx.weekStart;
   const today = ctx.today;
 
@@ -316,7 +316,7 @@ export async function generateWeekPlan(
     activityKinds: ctx.activityKinds,
   }, profile);
   if (!raw) return { plan: null, error };
-  const plan = normalizePlan(raw, request, ctx, newPlanId());
+  const plan = normalizeWeekPlan(raw, request, ctx, newPlanId());
   return { plan, error: plan ? null : error };
 }
 
@@ -346,7 +346,7 @@ export async function adjustWeekPlan(
     activityKinds: ctx.activityKinds,
   }, profile);
   if (!raw) return { plan: null, error };
-  const next = normalizePlan(raw, plan.request, ctx, plan.id);
+  const next = normalizeWeekPlan(raw, plan.request, ctx, plan.id);
   if (!next) return { plan: null, error };
   return {
     plan: {

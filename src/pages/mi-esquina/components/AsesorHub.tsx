@@ -3,8 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { type Profile } from '@/lib/supabase';
 import HubTabs, { type HubTab } from './HubTabs';
 import SectionCoach from './SectionCoach';
-import ObjectiveWizard from './ObjectiveWizard';
-import WeekPlanStudio from './WeekPlanStudio';
+import PlanChat from './PlanChat';
 import BoxingStudio from './BoxingStudio';
 
 // ASESOR en dos pestañas.
@@ -36,10 +35,19 @@ interface Props {
   initialTab?: string;
 }
 
+// ── DOS CHATS, NO TRES FORMULARIOS ──
+//
+// Había "consulta", "plan semanal" y "plan por objetivo". Las dos últimas eran
+// la misma tarea —montar un plan— resuelta con dos formularios distintos, y
+// nadie entendía en cuál entrar.
+//
+// Ahora son dos conversaciones con trabajos distintos:
+//   · Consulta — dudas sueltas. "¿Cómo hago este ejercicio?", "¿qué ceno hoy?".
+//   · Plan     — montar el plan hablando, verlo, cambiarlo y mandarlo a la app.
+// Y Boxeo aparte, porque no es una charla: son dos datos y un cronómetro.
 const TABS: HubTab[] = [
   { id: 'consulta', labelKey: 'mc_as_tab_ask', icon: 'ri-chat-smile-3-line' },
-  { id: 'semana', labelKey: 'mc_as_tab_week', icon: 'ri-calendar-schedule-line' },
-  { id: 'plan', labelKey: 'mc_as_tab_plan', icon: 'ri-compass-3-line' },
+  { id: 'plan', labelKey: 'mc_as_tab_planchat', icon: 'ri-calendar-schedule-line' },
   // Boxeo va aquí y no en Actividad porque lo que se hace es PEDIRLO, no
   // registrarlo: dices el tiempo que tienes y sale la sesión. Ejecutarla ocurre
   // en el temporizador del Ring, que es donde se cuentan los asaltos.
@@ -100,18 +108,13 @@ export default function AsesorHub({ profile, showToast, onGoPlan, onGoAgenda, in
         </p>
       </div>
 
-      {/* ── PLAN SEMANAL MULTI-MÓDULO ──
-          Fuerza + cardios + comidas de una sola petición, con resumen revisable
-          antes de guardar nada. */}
-      {tab === 'semana' && (
-        <WeekPlanStudio profile={profile} showToast={showToast} onGoAgenda={onGoAgenda} />
-      )}
-
-      {/* ── PLAN POR OBJETIVO ──
-          Se monta solo cuando toca: es una pantalla grande con sus propias
-          consultas, y tenerla viva de fondo no aporta nada. */}
+      {/* ── EL PLAN, HABLANDO ──
+          Sustituye al plan semanal y al plan por objetivo: los dos eran la misma
+          tarea resuelta con formularios distintos. Aquí se dice lo que se
+          quiere, se pregunta lo que falte, el plan aparece en la conversación y
+          se cambia hablando hasta que cuadra. */}
       {tab === 'plan' && (
-        <ObjectiveWizard profile={profile} showToast={showToast} onGoPlan={onGoPlan} />
+        <PlanChat profile={profile} showToast={showToast} onGoAgenda={onGoAgenda} />
       )}
 
       {/* ── ENTRENO DE BOXEO POR ASALTOS (punto 28) ──

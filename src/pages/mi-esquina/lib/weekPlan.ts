@@ -639,6 +639,38 @@ export async function commitWeekPlan(profileId: string, plan: WeekPlan): Promise
     }
   }
 
+  // ── 3bis. Dejar constancia como PLAN ACTIVO ──
+  //
+  // Cinco pantallas leen `objective_plans` para saber si hay un plan en marcha:
+  // el Resumen, Fuerza, los pasos de activación, la línea de IA del resumen y
+  // la impresión. Antes lo escribía el "plan por objetivo", que era una pantalla
+  // aparte; al unificarlo todo aquí, si nadie escribe esa tabla esas cinco se
+  // quedan pensando que no tienes plan cuando sí lo tienes.
+  //
+  // Es best-effort: si falla, el plan ya está en la Agenda, que es lo que
+  // importa. Solo se pierde el rótulo de "tienes un plan activo".
+  try {
+    // Solo puede haber UNO activo: el anterior se archiva, no se borra.
+    await supabase.from('objective_plans')
+      .update({ status: 'archived' })
+      .eq('fighter_profile_id', profileId).eq('status', 'active');
+
+    await supabase.from('objective_plans').insert({
+      fighter_profile_id: profileId,
+      objective_text: plan.request.slice(0, 2000),
+      answers_json: {},
+      plan_json: {
+        plan_title: plan.summary?.slice(0, 120) || plan.request.slice(0, 120),
+        summary: plan.summary,
+        disclaimer: plan.disclaimer,
+        week_start: plan.weekStart,
+        weeks: total,
+        source: 'plan_chat',
+      },
+      status: 'active',
+    });
+  } catch { /* la Agenda ya tiene el plan: esto es solo el rótulo */ }
+
   // ── 4. Cerrar el borrador ──
   const committed = { ...plan, status: 'committed' as const };
   writeLocal(profileId, null);

@@ -745,6 +745,105 @@ const WEEK_PLAN_SCHEMA = {
   additionalProperties: false,
 };
 
+// ── PLAN HABLANDO (una conversación, no un formulario) ──
+//
+// Antes había DOS pantallas de plan —"plan por objetivo" y "plan semanal"— y
+// las dos eran formularios: escribes, pulsas, sale. Nadie planifica así. Lo
+// natural es decir lo que quieres, que te pregunten lo que falte, ver el plan,
+// y pedir cambios hasta que cuadre.
+//
+// Este modo devuelve SIEMPRE las dos cosas a la vez:
+//   · `reply`  — lo que te dice, en lenguaje normal.
+//   · `plan`   — el plan entero, o null si todavía está preguntando.
+//
+// Que vengan juntos es lo que permite enseñar la tabla DENTRO de la
+// conversación y seguir hablando encima de ella. Separarlos obligaría a dos
+// llamadas y a que el usuario pulsara un botón entre medias, que es justo el
+// formulario del que se viene huyendo.
+const PLAN_CHAT_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["reply", "plan"],
+  properties: {
+    reply: { type: "string", description: "Lo que le dices al usuario. Breve y de tú a tú. Si preguntas algo, que sean UNA o DOS preguntas cortas, nunca un cuestionario." },
+    plan: {
+      anyOf: [WEEK_PLAN_SCHEMA, { type: "null" }],
+      description: "El plan completo cuando ya puedes montarlo. null mientras falten datos IMPRESCINDIBLES. Ante la duda, MONTA el plan con un supuesto razonable y dilo en reply: es mejor que un interrogatorio.",
+    },
+  },
+};
+
+function planChatSystem(profile, ctx, previous) {
+  const kinds = (ctx.activityKinds || []).join(", ");
+  const prev = previous
+    ? "PLAN ACTUAL (el que ya está montado; si te piden un cambio, devuelve este MISMO plan con ese cambio aplicado y nada más tocado):" + NL + JSON.stringify(previous)
+    : "Todavía no hay plan montado.";
+
+  return [
+    "Eres el entrenador de RANKD montando el plan de alguien, hablando con él.",
+    "",
+    fighterContext(profile),
+    "",
+    "Contexto:",
+    "- La PRIMERA semana empieza el LUNES " + ctx.weekStart + ". Días: 0 = lunes … 6 = domingo.",
+    "- Hoy es " + ctx.today + ". No pongas nada en días que ya han pasado.",
+    "- El plan cubre " + (ctx.weeks || 1) + " semana(s). Con más de una, escribe la estructura UNA vez y omite \"week\": omitirlo significa que se repite. Usa \"week\" solo en lo que progrese de verdad.",
+    "- Tipos de actividad válidos para \"kind\": " + kinds + ".",
+    "- Usa nombres de ejercicio de esta lista siempre que encajen: " + (ctx.exerciseNames || []).slice(0, 220).join(", ") + ".",
+    "",
+    prev,
+    "",
+    "CÓMO TRABAJAS:",
+    "",
+    "1. QUÉ PREGUNTAR. Solo lo que de verdad cambie el plan y no puedas deducir:",
+    "   cuántos días puede entrenar, cuánto rato tiene, si entrena en casa o en",
+    "   gimnasio, si hay lesiones, y qué material tiene si hace falta.",
+    "   NUNCA preguntes porcentaje de grasa, calorías que come, ni nada que una",
+    "   persona normal no sepa de memoria. Si necesitas su peso y no lo tienes,",
+    "   pídelo en kilos y ya está.",
+    "   Una o dos preguntas por turno. Si con lo que tienes puedes montar algo",
+    "   razonable, MÓNTALO y di el supuesto: \"lo he hecho contando con que...\".",
+    "",
+    "2. CUÁNDO MONTAR EL PLAN. En cuanto sepas los días y el tiempo. No esperes",
+    "   a tenerlo todo: un plan que se puede corregir vale más que tres",
+    "   preguntas más.",
+    "",
+    "3. CAMBIOS. Si te pide cambiar algo concreto (\"el jueves no puedo\",",
+    "   \"cámbiame la cena del martes\"), devuelve el MISMO plan con ESE cambio.",
+    "   No rehagas lo que no te han tocado. Si te pide que propongas tú, propón",
+    "   UNA alternativa concreta y pregunta si la quiere.",
+    "",
+    "4. CÓMO HABLAS. Como un entrenador, no como un chatbot. Sin listas",
+    "   interminables en `reply`: el plan ya se ve en pantalla, así que en",
+    "   `reply` explica el CRITERIO —por qué ese reparto, qué esperar— en 3-6",
+    "   líneas. Nada de repetir el plan en texto.",
+    "",
+    "LO QUE SABES Y UN CHATBOT GENÉRICO NO:",
+    "- Para definir, lo que manda es el déficit y mantener la fuerza. El músculo",
+    "  no se \"marca\" con más repeticiones: se marca perdiendo grasa mientras",
+    "  sigues levantando pesado. No bajes las cargas para \"tonificar\".",
+    "- La caminata en inclinación quema mucho sin apenas fatiga ni impacto, así",
+    "  que no se come el entreno de fuerza del día siguiente. Por eso es la",
+    "  herramienta buena cuando se entrena seis días.",
+    "- El cardio largo y duro el mismo día que la pierna sabotea los dos.",
+    "  Sepáralos o pon el suave.",
+    "- Doble sesión: lo de calidad por la mañana (fuerza, técnica), lo aeróbico",
+    "  por la tarde. Al revés se entrena la fuerza cansado.",
+    "- El boxeo cansa más de lo que la gente cree: cuenta como día duro.",
+    "",
+    "LÍMITES (no negociables):",
+    "- No eres médico. Lesión seria, dolor que no baja o golpe en la cabeza: al",
+    "  profesional, sin diagnosticar.",
+    "- Nada de dietas muy bajas en calorías, ayunos extremos ni deshidratación,",
+    "  ni aunque te lo pida. El déficit, moderado y sostenible.",
+    "- Patología, embarazo, lactancia o señales de trastorno alimentario: con",
+    "  tacto, derívalo a un médico o dietista colegiado y no des pautas ahí.",
+    "- Nada de sustancias dopantes.",
+    "",
+    "Responde SIEMPRE en español.",
+  ].join(NL);
+}
+
 function weekPlanSystem(profile, ctx, previous, adjustments) {
   const names = Array.isArray(ctx.exerciseNames) ? ctx.exerciseNames.slice(0, 400) : [];
   const kinds = Array.isArray(ctx.activityKinds) && ctx.activityKinds.length
@@ -1022,11 +1121,11 @@ export default async function handler(req, res) {
 
   const {
     section, profile, messages, extract, timerCombos, foodPhoto, routinePhoto,
-    creatorStudio, objectivePlan, protocolText, routineText, weekPlan, boxingSession,
+    creatorStudio, objectivePlan, protocolText, routineText, weekPlan, boxingSession, planChat,
   } = req.body || {};
   // Modos "estructurados": no usan `section` ni una conversación `messages`,
   // devuelven JSON validado. No deben pasar por las guardas de chat de abajo.
-  const structuredMode = !!(objectivePlan || foodPhoto || routinePhoto || protocolText || routineText || weekPlan || boxingSession);
+  const structuredMode = !!(objectivePlan || foodPhoto || routinePhoto || protocolText || routineText || weekPlan || boxingSession || planChat);
 
   // ── CREATOR STUDIO: solo admin, gasto contabilizado aparte de las cuotas
   //    de Mi Esquina (section:'creator-studio' en ai_usage) ──
@@ -1271,6 +1370,51 @@ export default async function handler(req, res) {
     } catch (err) {
       const status = err?.status === 429 ? 429 : 500;
       return res.status(status).json({ error: 'ia_error', message: status === 429 ? 'La IA está saturada, prueba en un momento.' : 'No se pudo leer el documento.' });
+    }
+  }
+
+  // ── MODO PLAN HABLANDO ──
+  // Una conversación que además devuelve el plan. Sustituye a las dos pantallas
+  // de formulario que había antes; ver PLAN_CHAT_SCHEMA para el porqué.
+  // Cuenta como 1 turno de la cuota (section='training').
+  if (planChat) {
+    const historia = Array.isArray(planChat.messages) ? planChat.messages.slice(-14) : [];
+    if (historia.length === 0) {
+      return res.status(400).json({ error: 'bad_request', message: 'Cuéntame qué plan quieres.' });
+    }
+    const ctx = {
+      weekStart: String(planChat.weekStart || '').slice(0, 10),
+      today: String(planChat.today || '').slice(0, 10),
+      weeks: Math.max(1, Math.min(6, parseInt(planChat.weeks, 10) || 1)),
+      exerciseNames: planChat.exerciseNames,
+      activityKinds: planChat.activityKinds,
+    };
+    const mensajes = historia
+      .filter((m) => m && typeof m.content === 'string' && m.content.trim())
+      .map((m) => ({
+        role: m.role === 'assistant' ? 'assistant' : 'user',
+        content: String(m.content).slice(0, 4000),
+      }));
+
+    try {
+      const response = await anthropic.messages.create({
+        model: MODEL,
+        max_tokens: 16000,
+        system: planChatSystem(profile || {}, ctx, planChat.previous || null),
+        messages: mensajes,
+        output_config: { format: { type: 'json_schema', name: 'plan_hablando', schema: PLAN_CHAT_SCHEMA } },
+      });
+      const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
+      let out;
+      try { out = JSON.parse(text); } catch { out = null; }
+      await recordUsage(gate.db, gate.user.id, 'training', 'chat', response.usage);
+      if (!out || typeof out.reply !== 'string') {
+        return res.status(422).json({ error: 'no_reply', message: 'No he podido montarlo. Prueba a decírmelo de otra forma.' });
+      }
+      return res.status(200).json({ reply: out.reply, plan: out.plan || null, usage: response.usage });
+    } catch (err) {
+      const status = err?.status === 429 ? 429 : 500;
+      return res.status(status).json({ error: 'ia_error', message: status === 429 ? 'La IA está saturada, prueba en un momento.' : 'No se pudo responder.' });
     }
   }
 
