@@ -819,18 +819,23 @@ const WEEK_PLAN_SCHEMA = {
 const PLAN_CHAT_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["reply", "plan"],
+  required: ["reply", "ready", "plan"],
   properties: {
     reply: { type: "string", description: "Lo que le dices al usuario. Breve y de tú a tú. Si preguntas algo, que sean UNA o DOS preguntas cortas, nunca un cuestionario." },
-    // Anulable con `type: [..., 'null']`, que es como lo declara TODO el resto
-    // del archivo (mira los esquemas de objetivo y de protocolo). Estaba puesto
-    // con `anyOf`, que es válido en JSON Schema a secas pero no es la forma que
-    // admite la salida estructurada: la petición se rechazaba entera y el plan
-    // no llegaba a montarse nunca.
+    // ── Por qué un booleano y no un plan anulable ──
+    //
+    // Antes `plan` era un objeto que podía venir nulo. Los campos ANULABLES que
+    // funcionan en este archivo son todos escalares (una cadena, un número); un
+    // OBJETO anulable era la única diferencia estructural entre este esquema y
+    // el de boxeo, que sí funciona.
+    //
+    // Con un booleano aparte, `plan` es siempre un objeto y el esquema se queda
+    // igual de plano que los que ya van bien. Cuando todavía está preguntando,
+    // el plan viene con las listas vacías: cuesta cuatro tokens y se ignora.
+    ready: { type: "boolean", description: "true cuando el plan de abajo está montado y sirve. false mientras estés preguntando: en ese caso deja strength, protocols y nutrition como listas vacías." },
     plan: {
       ...WEEK_PLAN_SCHEMA,
-      type: ["object", "null"],
-      description: "El plan completo cuando ya puedes montarlo. null mientras falten datos IMPRESCINDIBLES. Ante la duda, MONTA el plan con un supuesto razonable y dilo en reply: es mejor que un interrogatorio.",
+      description: "El plan completo. Si ready es false, devuélvelo con las listas vacías y no te esfuerces en rellenarlo.",
     },
   },
 };
@@ -1491,7 +1496,11 @@ export default async function handler(req, res) {
       if (!out || typeof out.reply !== 'string') {
         return res.status(422).json({ error: 'no_reply', message: 'No he podido montarlo. Prueba a decírmelo de otra forma.' });
       }
-      return res.status(200).json({ reply: out.reply, plan: out.plan || null, usage: response.usage });
+      // Sin `ready` no hay plan: cuando esta preguntando, lo que venga en
+      // `plan` son listas vacias y colarlo borraria el plan bueno de la pantalla.
+      const listo = out.ready === true && out.plan
+        && ((out.plan.strength || []).length > 0 || (out.plan.protocols || []).length > 0);
+      return res.status(200).json({ reply: out.reply, plan: listo ? out.plan : null, usage: response.usage });
     } catch (err) {
       console.error('[ia]', err?.status, err?.message);
       const e = iaError(err);
