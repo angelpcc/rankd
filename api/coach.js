@@ -209,6 +209,41 @@ function boxingSystem(place, minutes) {
   ].join(String.fromCharCode(10));
 }
 
+/**
+ * Traduce el fallo de una llamada a la IA a algo accionable.
+ *
+ * Antes los doce sitios que llaman al modelo devolvían el mismo texto —"No se
+ * pudo contactar con la IA"— pasara lo que pasara: clave mal copiada, sin
+ * saldo, modelo inexistente o Anthropic caído. Cuatro causas con arreglos
+ * COMPLETAMENTE distintos y el mismo mensaje, así que el usuario acababa
+ * revisando lo que ya estaba bien.
+ *
+ * El motivo real sigue yendo al registro del servidor; lo que cambia es que
+ * ahora también llega a quien puede arreglarlo.
+ */
+function iaError(err) {
+  const status = err?.status;
+  // El texto de la excepción trae pistas que el status no distingue.
+  const detalle = String(err?.error?.error?.message || err?.message || "").toLowerCase();
+
+  if (status === 401 || detalle.includes("invalid x-api-key") || detalle.includes("authentication")) {
+    return { status: 502, message: "La clave de API de Anthropic no es válida. Revisa que esté completa y sin espacios (ANTHROPIC_API_KEY)." };
+  }
+  if (status === 402 || detalle.includes("credit") || detalle.includes("billing")) {
+    return { status: 502, message: "Tu cuenta de Anthropic se ha quedado sin saldo. Añade créditos en platform.claude.com." };
+  }
+  if (status === 404 || detalle.includes("model")) {
+    return { status: 502, message: "El modelo configurado no existe o no está disponible para tu cuenta. Revisa ANTHROPIC_MODEL." };
+  }
+  if (status === 429) {
+    return { status: 429, message: "La IA está saturada ahora mismo, prueba en un momento." };
+  }
+  if (status === 400) {
+    return { status: 502, message: "La IA ha rechazado la petición. Si se repite, avisa: es un fallo nuestro, no tuyo." };
+  }
+  return { status: 500, message: "No se pudo contactar con la IA. Vuelve a intentarlo." };
+}
+
 const SYSTEMS = {
   training: (p) => `Eres el entrenador de IA de RANKD, experto en preparación de deportes de combate (boxeo, MMA, kickboxing, Muay Thai). Ayudas a este peleador a planificar sesiones y rutinas concretas.
 
@@ -1170,8 +1205,9 @@ export default async function handler(req, res) {
       if (!content) return res.status(422).json({ error: 'no_content', message: 'No se pudo generar el contenido. Prueba de nuevo.' });
       return res.status(200).json({ content, usage: response.usage });
     } catch (err) {
-      const status = err?.status === 429 ? 429 : 500;
-      return res.status(status).json({ error: 'ia_error', message: status === 429 ? 'La IA está saturada, prueba en un momento.' : 'No se pudo generar el contenido.' });
+      console.error('[ia]', err?.status, err?.message);
+      const e = iaError(err);
+      return res.status(e.status).json({ error: 'ia_error', message: e.message });
     }
   }
   const buildSystem = SYSTEMS[section];
@@ -1226,8 +1262,9 @@ export default async function handler(req, res) {
       }
       return res.status(200).json({ plan, usage: response.usage });
     } catch (err) {
-      const status = err?.status === 429 ? 429 : 500;
-      return res.status(status).json({ error: 'ia_error', message: status === 429 ? 'La IA está saturada, prueba en un momento.' : 'No se pudo generar el plan.' });
+      console.error('[ia]', err?.status, err?.message);
+      const e = iaError(err);
+      return res.status(e.status).json({ error: 'ia_error', message: e.message });
     }
   }
 
@@ -1267,8 +1304,9 @@ export default async function handler(req, res) {
       }
       return res.status(200).json({ analysis, usage: response.usage });
     } catch (err) {
-      const status = err?.status === 429 ? 429 : 500;
-      return res.status(status).json({ error: 'ia_error', message: status === 429 ? 'La IA está saturada, prueba en un momento.' : 'No se pudo analizar la foto.' });
+      console.error('[ia]', err?.status, err?.message);
+      const e = iaError(err);
+      return res.status(e.status).json({ error: 'ia_error', message: e.message });
     }
   }
 
@@ -1306,8 +1344,9 @@ export default async function handler(req, res) {
       }
       return res.status(200).json({ plan, usage: response.usage });
     } catch (err) {
-      const status = err?.status === 429 ? 429 : 500;
-      return res.status(status).json({ error: 'ia_error', message: status === 429 ? 'La IA está saturada, prueba en un momento.' : 'No se pudo leer la foto.' });
+      console.error('[ia]', err?.status, err?.message);
+      const e = iaError(err);
+      return res.status(e.status).json({ error: 'ia_error', message: e.message });
     }
   }
 
@@ -1338,8 +1377,9 @@ export default async function handler(req, res) {
       }
       return res.status(200).json({ protocol, usage: response.usage });
     } catch (err) {
-      const status = err?.status === 429 ? 429 : 500;
-      return res.status(status).json({ error: 'ia_error', message: status === 429 ? 'La IA está saturada, prueba en un momento.' : 'No se pudo leer el documento.' });
+      console.error('[ia]', err?.status, err?.message);
+      const e = iaError(err);
+      return res.status(e.status).json({ error: 'ia_error', message: e.message });
     }
   }
 
@@ -1368,8 +1408,9 @@ export default async function handler(req, res) {
       }
       return res.status(200).json({ routine, usage: response.usage });
     } catch (err) {
-      const status = err?.status === 429 ? 429 : 500;
-      return res.status(status).json({ error: 'ia_error', message: status === 429 ? 'La IA está saturada, prueba en un momento.' : 'No se pudo leer el documento.' });
+      console.error('[ia]', err?.status, err?.message);
+      const e = iaError(err);
+      return res.status(e.status).json({ error: 'ia_error', message: e.message });
     }
   }
 
@@ -1413,8 +1454,9 @@ export default async function handler(req, res) {
       }
       return res.status(200).json({ reply: out.reply, plan: out.plan || null, usage: response.usage });
     } catch (err) {
-      const status = err?.status === 429 ? 429 : 500;
-      return res.status(status).json({ error: 'ia_error', message: status === 429 ? 'La IA está saturada, prueba en un momento.' : 'No se pudo responder.' });
+      console.error('[ia]', err?.status, err?.message);
+      const e = iaError(err);
+      return res.status(e.status).json({ error: 'ia_error', message: e.message });
     }
   }
 
@@ -1454,8 +1496,9 @@ export default async function handler(req, res) {
       }
       return res.status(200).json({ session, usage: response.usage });
     } catch (err) {
-      const status = err?.status === 429 ? 429 : 500;
-      return res.status(status).json({ error: 'ia_error', message: status === 429 ? 'La IA está saturada, prueba en un momento.' : 'No se pudo generar la sesión de boxeo.' });
+      console.error('[ia]', err?.status, err?.message);
+      const e = iaError(err);
+      return res.status(e.status).json({ error: 'ia_error', message: e.message });
     }
   }
 
@@ -1515,8 +1558,9 @@ export default async function handler(req, res) {
       }
       return res.status(200).json({ plan, usage: response.usage });
     } catch (err) {
-      const status = err?.status === 429 ? 429 : 500;
-      return res.status(status).json({ error: 'ia_error', message: status === 429 ? 'La IA está saturada, prueba en un momento.' : 'No se pudo generar el plan de la semana.' });
+      console.error('[ia]', err?.status, err?.message);
+      const e = iaError(err);
+      return res.status(e.status).json({ error: 'ia_error', message: e.message });
     }
   }
 
@@ -1544,8 +1588,9 @@ export default async function handler(req, res) {
       if (!plan) return res.status(422).json({ error: 'no_plan', message: 'No he podido leer un plan concreto de la conversación.' });
       return res.status(200).json({ plan, usage: response.usage });
     } catch (err) {
-      const status = err?.status === 429 ? 429 : 500;
-      return res.status(status).json({ error: 'ia_error', message: status === 429 ? 'La IA está saturada, prueba en un momento.' : 'No se pudo extraer el plan.' });
+      console.error('[ia]', err?.status, err?.message);
+      const e = iaError(err);
+      return res.status(e.status).json({ error: 'ia_error', message: e.message });
     }
   }
 
@@ -1583,8 +1628,9 @@ Responde en el idioma del usuario (por defecto español).`,
       if (combos.length === 0) return res.status(422).json({ error: 'no_combos', message: 'No se pudieron generar combinaciones.' });
       return res.status(200).json({ combos });
     } catch (err) {
-      const status = err?.status === 429 ? 429 : 500;
-      return res.status(status).json({ error: 'ia_error', message: status === 429 ? 'La IA está saturada, prueba en un momento.' : 'No se pudieron generar las combinaciones.' });
+      console.error('[ia]', err?.status, err?.message);
+      const e = iaError(err);
+      return res.status(e.status).json({ error: 'ia_error', message: e.message });
     }
   }
 
@@ -1651,11 +1697,9 @@ Responde en el idioma del usuario (por defecto español).`,
   } catch (err) {
     // Si aún no hemos enviado cabeceras, respondemos JSON normal
     if (!res.headersSent) {
-      const status = err?.status === 429 ? 429 : 500;
-      return res.status(status).json({
-        error: 'ia_error',
-        message: status === 429 ? 'La IA está saturada ahora mismo, prueba en un momento.' : 'No se pudo contactar con la IA.',
-      });
+      console.error('[ia]', err?.status, err?.message);
+      const e = iaError(err);
+      return res.status(e.status).json({ error: 'ia_error', message: e.message });
     }
     res.write(`data: ${JSON.stringify({ error: 'No se pudo completar la respuesta.' })}\n\n`);
     res.end();
