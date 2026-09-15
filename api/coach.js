@@ -899,7 +899,18 @@ function planChatSystem(profile, ctx, previous) {
     ? "PLAN ACTUAL (el que ya está montado; si te piden un cambio, devuelve este MISMO plan con ese cambio aplicado y nada más tocado):" + NL + JSON.stringify(previous)
     : "Todavía no hay plan montado.";
 
-  return [
+  // El prompt se parte en dos a propósito.
+  //
+  // Todo lo de abajo —las reglas, los límites, la lista de ejercicios— es
+  // IDÉNTICO en todos los turnos de la conversación, y son unos cuantos miles
+  // de caracteres que se estaban pagando enteros una y otra vez. Marcado como
+  // cacheable, del segundo turno en adelante cuesta una décima parte.
+  //
+  // El plan actual va aparte y SIN marcar porque cambia cada turno: metido
+  // dentro del bloque cacheado invalidaría la caché en cada mensaje, que es
+  // exactamente lo contrario de lo que se busca. Por eso se manda al final:
+  // la caché solo funciona sobre un prefijo, así que lo variable va detrás.
+  const estable = [
     "Eres el entrenador de RANKD montando el plan de alguien, hablando con él.",
     "",
     fighterContext(profile),
@@ -910,8 +921,6 @@ function planChatSystem(profile, ctx, previous) {
     "- El plan cubre " + (ctx.weeks || 1) + " semana(s). Con más de una, escribe la estructura UNA vez y omite \"week\": omitirlo significa que se repite. Usa \"week\" solo en lo que progrese de verdad.",
     "- Tipos de actividad válidos para \"kind\": " + kinds + ".",
     "- Usa nombres de ejercicio de esta lista siempre que encajen: " + (ctx.exerciseNames || []).slice(0, 220).join(", ") + ".",
-    "",
-    prev,
     "",
     "CÓMO TRABAJAS:",
     "",
@@ -927,6 +936,13 @@ function planChatSystem(profile, ctx, previous) {
     "2. CUÁNDO MONTAR EL PLAN. En cuanto sepas los días y el tiempo. No esperes",
     "   a tenerlo todo: un plan que se puede corregir vale más que tres",
     "   preguntas más.",
+    "",
+    "2.bis. CUÁNDO **NO** DEVOLVER EL PLAN. Si el plan ya está montado y este",
+    "   turno NO lo cambia —te preguntan por qué algo, te dan las gracias, te",
+    "   dicen \"vale\", o pides tú un dato— pon ready:false y deja las listas",
+    "   VACÍAS. La pantalla conserva el plan que ya tiene. Reescribirlo entero",
+    "   para no cambiar nada tarda mucho y le cuesta dinero a quien lo usa.",
+    "   Devuélvelo SOLO cuando lo hayas montado o lo hayas cambiado.",
     "",
     "3. CAMBIOS. Si te pide cambiar algo concreto (\"el jueves no puedo\",",
     "   \"cámbiame la cena del martes\"), devuelve el MISMO plan con ESE cambio.",
@@ -977,6 +993,11 @@ function planChatSystem(profile, ctx, previous) {
     "",
     "Responde SIEMPRE en espanol.",
   ].join(NL);
+
+  return [
+    { type: 'text', text: estable, cache_control: { type: 'ephemeral' } },
+    { type: 'text', text: prev },
+  ];
 }
 
 function weekPlanSystem(profile, ctx, previous, adjustments) {
@@ -1798,6 +1819,11 @@ Responde en el idioma del usuario (por defecto español).`,
         user_location: { type: 'approximate', country: 'ES', timezone: 'Europe/Madrid' },
       }];
     }
+    // Aquí NO se marca como cacheable, aunque el prompt se repita en cada turno:
+    // medidos, los cuatro prompts de sección se quedan entre 500 y 800 tokens y
+    // el mínimo que se puede cachear son 1024. Marcarlo no ahorraría nada y
+    // dejaría el código diciendo que ahorra. El del chat de plan sí pasa de
+    // sobra —lleva la lista de ejercicios— y ese sí va marcado.
     params.system = systemPrompt;
 
     const stream = anthropic.messages.stream(params);
