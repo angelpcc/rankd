@@ -979,12 +979,27 @@ const PLAN_CHAT_SCHEMA = {
   },
 };
 
-function planChatSystem(profile, ctx, previous) {
+/** Convierte la agenda real en texto corto. Devuelve "" si no hay nada. */
+function agendaComoTexto(agenda) {
+  if (!Array.isArray(agenda) || agenda.length === 0) return '';
+  const NL = String.fromCharCode(10);
+  const DIAS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
+  const lineas = agenda.slice(0, 40).map((d) => {
+    const items = (d.items || []).slice(0, 8)
+      .map((it) => '    - [' + it.kind + '] ' + String(it.text || '').slice(0, 200) + (it.done ? '  ← YA ENTRENADO' : ''))
+      .join(NL);
+    return '  ' + d.date + ' (' + (DIAS[d.weekday] || '?') + ', semana ' + ((d.week || 0) + 1) + '):' + NL + items;
+  });
+  return lineas.join(NL);
+}
+
+function planChatSystem(profile, ctx, previous, agenda) {
   const NL = String.fromCharCode(10);
   const kinds = (ctx.activityKinds || []).join(", ");
+  const agendaTxt = agendaComoTexto(agenda);
   const prev = previous
     ? "PLAN ACTUAL (el que ya está montado; si te piden un cambio, devuelve este MISMO plan con ese cambio aplicado y nada más tocado):" + NL + JSON.stringify(previous)
-    : "Todavía no hay plan montado.";
+    : "Todavía no hay plan montado en esta conversación.";
 
   // El prompt se parte en dos a propósito.
   //
@@ -1092,9 +1107,34 @@ function planChatSystem(profile, ctx, previous) {
     "Responde SIEMPRE en espanol.",
   ].join(NL);
 
+  // La agenda va en el bloque VOLÁTIL, junto al plan: cambia en cuanto el
+  // usuario toca un día, así que meterla en el cacheado invalidaría la caché
+  // cada vez, que es justo lo contrario de para lo que está.
+  const volatil = agendaTxt
+    ? [
+      'LO QUE HAY PUESTO AHORA MISMO EN SU AGENDA. Esto es la VERDAD: manda sobre',
+      'cualquier plan que recuerdes de la conversación, porque recoge también lo',
+      'que él haya movido a mano.',
+      agendaTxt,
+      '',
+      'CÓMO USARLA:',
+      '- Si te pide cambiar UNA cosa ("reajústame el cardio de esta semana"),',
+      '  devuelve el plan ENTERO: la fuerza y las comidas EXACTAMENTE como están',
+      '  aquí arriba, y solo el cardio cambiado. Si devuelves solo el cardio, el',
+      '  resto desaparece de su agenda.',
+      '- Lo marcado YA ENTRENADO no se toca ni se mueve. Es un hecho, no una',
+      '  intención. Si el cambio que pide chocara con un día ya entrenado, aplícalo',
+      '  a partir del siguiente y dilo en una línea.',
+      '- Nunca digas que no tienes un plan previo si aquí arriba hay algo: lo',
+      '  tienes delante.',
+      '',
+      prev,
+    ].join(NL)
+    : prev;
+
   return [
     { type: 'text', text: estable, cache_control: { type: 'ephemeral' } },
-    { type: 'text', text: prev },
+    { type: 'text', text: volatil },
   ];
 }
 
@@ -1691,7 +1731,7 @@ export default async function handler(req, res) {
       const response = await anthropic.messages.create({
         model: MODEL,
         max_tokens: 8000,
-        system: planChatSystem(profile || {}, ctx, planChat.previous || null),
+        system: planChatSystem(profile || {}, ctx, planChat.previous || null, planChat.agenda),
         messages: mensajes,
         output_config: { format: { type: 'json_schema', schema: PLAN_CHAT_SCHEMA } },
       });

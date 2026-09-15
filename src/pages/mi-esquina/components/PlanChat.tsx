@@ -11,6 +11,7 @@ import {
 import { buildWeekContext, checkWeekPlanAvailable } from '@/services/weekPlanAdvisor';
 import { sendPlanChat, type PlanChatMessage } from '@/services/planChat';
 import { clearChat, loadChat, saveChat } from '../lib/chatHistory';
+import { loadAgendaSnapshot, type AgendaDia } from '../lib/agendaSnapshot';
 import PhotoAttach, { FotoPendiente } from './PhotoAttach';
 import type { ImagenLista } from '@/lib/imageInput';
 
@@ -70,6 +71,14 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
 
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [texto, setTexto] = useState('');
+  /**
+   * Lo que hay puesto en la Agenda ahora mismo.
+   *
+   * Se relee en cada envío y no solo al montar: entre dos mensajes puedes
+   * haberte ido a la Agenda, movido un día y vuelto. Mandar la foto de hace
+   * diez minutos haría que el asesor razonara sobre algo que ya no existe.
+   */
+  const [agenda, setAgenda] = useState<AgendaDia[]>([]);
   const [foto, setFoto] = useState<ImagenLista | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -121,11 +130,25 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
           setPlan(ultimo.data as WeekPlan);
           setWeeks(Math.max(1, (ultimo.data as WeekPlan).weeks || 1));
         }
+        // El plan guardado sigue valiendo aunque la conversación no lo traiga.
+        //
+        // Esto estaba en un `else`: con una conversación a medias que no
+        // hubiera llegado a generar plan, el guardado no se miraba NUNCA y el
+        // asesor contestaba "no tengo ningún plan previo" con el plan puesto en
+        // la Agenda. La conversación manda sobre cuál enseñar; lo que no puede
+        // es tapar al que existe.
+        if (!ultimo && activo) {
+          setPlan(activo.plan);
+          setWeeks(Math.max(1, activo.plan.weeks || 1));
+        }
       } else if (activo) {
         setPlan(activo.plan);
         setWeeks(Math.max(1, activo.plan.weeks || 1));
         setTurnos([{ role: 'assistant', content: t('mc_pc_resumed'), plan: activo.plan }]);
       }
+
+      // La agenda real, en paralelo a todo lo anterior.
+      void loadAgendaSnapshot(profile.id, weekStart, 3).then((a) => { if (alive) setAgenda(a); });
       const fr = f.data as { discipline?: string; weight_class?: string; experience_level?: string; age?: number } | null;
       setFighter({
         name: (profile.full_name || '').split(' ')[0] || undefined,
@@ -136,7 +159,7 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
       });
     })();
     return () => { alive = false; };
-  }, [profile.id, profile.full_name, t]);
+  }, [profile.id, profile.full_name, weekStart, t]);
 
   useEffect(() => { finRef.current?.scrollIntoView({ block: 'end' }); }, [turnos, enviando]);
 
@@ -171,9 +194,14 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
     setFoto(null);
     setEnviando(true);
 
+    // La agenda se relee AHORA, no se usa la del montaje: entre dos mensajes
+    // puedes haber ido a moverla. Si falla, se manda la que hubiera.
+    const agendaAhora = await loadAgendaSnapshot(profile.id, weekStart, 3).catch(() => agenda);
+    setAgenda(agendaAhora);
+
     // El id se conserva si ya había plan: es lo que impide que un cambio cree
     // un plan paralelo y duplique las entradas de la Agenda.
-    const res = await sendPlanChat(historia, ctx, fighter, plan, plan?.id || `wp_${Date.now().toString(36)}`);
+    const res = await sendPlanChat(historia, ctx, fighter, plan, plan?.id || `wp_${Date.now().toString(36)}`, agendaAhora);
     setEnviando(false);
 
     if (res.error) {
@@ -182,7 +210,7 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
     }
     setTurnos((p) => [...p, { role: 'assistant', content: res.reply, ...(res.plan ? { plan: res.plan } : {}) }]);
     if (res.plan) { setPlan(res.plan); setGuardado(null); }
-  }, [texto, foto, enviando, turnos, ctx, fighter, plan, showToast, t]);
+  }, [texto, foto, enviando, turnos, ctx, fighter, plan, agenda, weekStart, profile.id, showToast, t]);
 
   const guardar = async () => {
     if (!plan || guardando) return;

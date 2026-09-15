@@ -17,6 +17,7 @@
 
 import { supabase } from '@/lib/supabase';
 import type { WeekContext, WeekPlan } from '@/pages/mi-esquina/lib/weekPlan';
+import type { AgendaDia } from '@/pages/mi-esquina/lib/agendaSnapshot';
 import { normalizeWeekPlan } from './weekPlanAdvisor';
 
 export interface PlanChatMessage {
@@ -47,6 +48,7 @@ export async function sendPlanChat(
   profile: Record<string, unknown>,
   previous: WeekPlan | null,
   planId: string,
+  agenda?: AgendaDia[],
 ): Promise<PlanChatResult> {
   const { data: { session } } = await supabase.auth.getSession();
   const token = session?.access_token;
@@ -67,6 +69,13 @@ export async function sendPlanChat(
           // Sin los ids locales, que al modelo no le dicen nada y se llevan
           // medio presupuesto de tokens.
           previous: previous ? stripForModel(previous) : null,
+          // Lo que HAY PUESTO en la Agenda ahora mismo.
+          //
+          // `previous` es una foto de lo que se generó; esto es lo que hay. Si
+          // se movió un día a mano, se borró un cardio o se entrenó algo, solo
+          // lo sabe la Agenda. Sin esto, "reajústame el cardio de esta semana"
+          // recibía "no tengo ningún plan previo" con el plan delante.
+          agenda: agenda && agenda.length ? agenda : null,
         },
         // El perfil va en la RAÍZ del cuerpo: es donde lo lee el servidor.
         // Metido dentro de `planChat` se perdería en silencio y el plan saldría
