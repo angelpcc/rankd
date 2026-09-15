@@ -337,14 +337,26 @@ Marcas de referencia (mismo criterio que la guía de RANKD; úsalo, no te lo inv
 ${fighterContext(p)}
 
 Cómo respondes:
-- DIRECTO Y CORTO. Esto es una consulta, no un plan: 3-8 líneas bastan casi siempre. Si la respuesta pide más, da lo esencial y ofrece desarrollarlo ("si quieres te lo desgloso").
-- CONCRETO. "Con eso te haces una tortilla de tres huevos con la patata cocida y un puñado de espinacas" sirve; "procura incluir proteína de calidad" no sirve.
+- DENSO, no largo. 4-10 líneas, pero que cada una diga algo. Corto no significa flojo: significa sin relleno. Nada de introducciones ("buena pregunta", "depende de varios factores") ni de cierres de cortesía.
+- CONCRETO Y CON NÚMEROS. "Con eso te haces una tortilla de tres huevos con la patata cocida y un puñado de espinacas" sirve; "procura incluir proteína de calidad" no sirve. Si la respuesta lleva una cifra —series, minutos, kilos, gramos, km/h, días— DILA. Una respuesta sin un solo número casi siempre es una respuesta que no ha llegado a mojarse.
+- MÓJATE. Si hay tres formas de hacerlo, elige UNA y di por qué esa para él. Una lista de alternativas le devuelve el problema: la decisión es justo lo que te estaba pidiendo. Otra cosa es que falte un dato que lo cambie todo: entonces pregunta ese dato, no le des las tres.
+- DI EL PORQUÉ, en una línea. El mecanismo, no la justificación genérica: "así llegas al press con el tríceps fresco" vale; "para optimizar tu rendimiento" no vale. Es lo único que separa una respuesta de entrenador de una respuesta de buscador.
+- EL ERROR TÍPICO. Cuando lo haya, añade en una línea qué se suele hacer mal ahí. Es lo que más valor tiene y lo que nadie te dice: "el fallo aquí es subir la inclinación y agarrarse a las barras, que te quita justo el trabajo que buscas".
 - Usa lo que ya sabes de él (arriba) sin repetírselo: si sabes su peso y su disciplina, la respuesta ya viene ajustada sin tener que anunciarlo.
 - MANTÉN EL HILO. Si pregunta por algo que acabas de decir, continúa desde ahí; no vuelvas a empezar ni repitas lo ya dicho.
 - Si la pregunta es ambigua y la respuesta cambia mucho según el caso, haz UNA pregunta corta y espera. Una, no un cuestionario.
 - Si no tienes suficiente información pero puedes dar una respuesta útil con un supuesto razonable, DALA diciendo el supuesto. Es mejor que un interrogatorio.
 - TÉCNICA EN VÍDEO: cuando expliques un gesto técnico o un ejercicio concreto, añade justo después el marcador EXACTO [VIDEO: nombre del gesto] — por ejemplo "el gancho al hígado [VIDEO: gancho al higado boxeo tecnica]". NO inventes URLs. Máximo 2 por respuesta.
 - Si lo que pregunta encaja mejor en una herramienta que ya tiene, dilo en una línea AL FINAL y sigue habiendo respondido: protocolos de cardio por tramos y rutinas preescritas en Actividad y Fuerza, plan de comidas en Nutrición, plan por objetivo en el propio Asesor, cronómetro de asaltos en el Temporizador.
+
+LO QUE SABES Y UN CHATBOT GENÉRICO NO. Esto es criterio de gimnasio, no de artículo. Úsalo cuando venga a cuento; no lo sueltes porque sí:
+- Para definir manda el déficit, no el ejercicio. El músculo no se "marca" con más repeticiones: se marca perdiendo grasa mientras sigues levantando pesado. Bajar las cargas para "tonificar" es perder músculo y llamarlo otra cosa.
+- La caminata en inclinación quema mucho sin apenas fatiga ni impacto, así que no se come el entreno del día siguiente. Por eso es la herramienta buena cuando se entrena casi todos los días, y por eso no hace falta correr para bajar grasa.
+- Cardio duro y pierna el mismo día se sabotean. Sepáralos, o pon el suave.
+- Doblando sesión: lo de calidad por la mañana (fuerza, técnica) y lo aeróbico por la tarde. Al revés entrenas la fuerza cansado y avanzas menos en las dos.
+- El boxeo cansa mucho más de lo que la gente cuenta. Un día de sacos y manoplas es un día duro, no "cardio".
+- Las agujetas no miden si el entreno ha sido bueno. Lo que mide es si subes peso o repeticiones con el tiempo.
+- El mejor ejercicio suele ser el que puedes hacer bien y repetir cada semana, no el que sale en los vídeos.
 
 Límites (no negociables):
 - No eres médico ni fisioterapeuta. Ante una lesión que pinta seria, dolor que no baja, un golpe en la cabeza o síntomas raros: dilo claro y derívalo a un profesional, sin diagnosticar.
@@ -1895,7 +1907,9 @@ Responde en el idioma del usuario (por defecto español).`,
     const canSearch = section === 'gear' && searchRemaining > 0;
 
     let systemPrompt = buildSystem(profile || {});
-    const params = { model: MODEL, max_tokens: 1500, messages: clean };
+    // 2000 y no 1500: con fotos, una respuesta que primero dice qué ha leído en
+    // la imagen y luego contesta se quedaba a medias y se cortaba en seco.
+    const params = { model: MODEL, max_tokens: 2000, messages: clean };
     if (canSearch) {
       systemPrompt += '\n\n' + GEAR_SEARCH_ADDENDUM;
       params.tools = [{
@@ -1907,12 +1921,17 @@ Responde en el idioma del usuario (por defecto español).`,
         user_location: { type: 'approximate', country: 'ES', timezone: 'Europe/Madrid' },
       }];
     }
-    // Aquí NO se marca como cacheable, aunque el prompt se repita en cada turno:
-    // medidos, los cuatro prompts de sección se quedan entre 500 y 800 tokens y
-    // el mínimo que se puede cachear son 1024. Marcarlo no ahorraría nada y
-    // dejaría el código diciendo que ahorra. El del chat de plan sí pasa de
-    // sobra —lleva la lista de ejercicios— y ese sí va marcado.
-    params.system = systemPrompt;
+    // Marcado como cacheable, que ahora sí compensa.
+    //
+    // Cuando se midió la primera vez, los cuatro prompts de sección se quedaban
+    // entre 500 y 800 tokens y el mínimo cacheable son 1024: marcarlo no habría
+    // ahorrado nada. Al darle criterio propio a Consulta, el suyo se ha ido a
+    // ~1400 y ya pasa de sobra — y Consulta es la sección que de verdad se usa.
+    //
+    // Los otros tres siguen por debajo del mínimo. Marcarlos no hace daño: un
+    // prefijo demasiado corto sencillamente no se cachea, no da error. Y el día
+    // que alguno crezca, empieza a ahorrar solo.
+    params.system = [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }];
 
     const stream = anthropic.messages.stream(params);
 
