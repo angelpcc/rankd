@@ -1416,7 +1416,7 @@ export default async function handler(req, res) {
   const {
     section, profile, messages, extract, timerCombos, foodPhoto, routinePhoto,
     creatorStudio, objectivePlan, protocolText, routineText, weekPlan, boxingSession, planChat,
-    cardioDesign,
+    cardioDesign, agenda,
   } = req.body || {};
   // Modos "estructurados": no usan `section` ni una conversación `messages`,
   // devuelven JSON validado. No deben pasar por las guardas de chat de abajo.
@@ -1961,7 +1961,7 @@ Responde en el idioma del usuario (por defecto español).`,
         user_location: { type: 'approximate', country: 'ES', timezone: 'Europe/Madrid' },
       }];
     }
-    // Marcado como cacheable, que ahora sí compensa.
+    // El prompt va marcado como cacheable, que ahora sí compensa.
     //
     // Cuando se midió la primera vez, los cuatro prompts de sección se quedaban
     // entre 500 y 800 tokens y el mínimo cacheable son 1024: marcarlo no habría
@@ -1971,7 +1971,26 @@ Responde en el idioma del usuario (por defecto español).`,
     // Los otros tres siguen por debajo del mínimo. Marcarlos no hace daño: un
     // prefijo demasiado corto sencillamente no se cachea, no da error. Y el día
     // que alguno crezca, empieza a ahorrar solo.
+    //
+    // La agenda va en un SEGUNDO bloque, sin marcar: cambia en cuanto el usuario
+    // toca un día, y metida dentro del cacheado invalidaría la caché en cada
+    // mensaje, que es exactamente lo contrario de para lo que está.
+    const agendaTxt = agendaComoTexto(agenda);
     params.system = [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }];
+    if (agendaTxt) {
+      params.system.push({
+        type: 'text',
+        text: [
+          'LO QUE TIENE PUESTO ESTOS DÍAS (hoy es ' + new Date().toISOString().slice(0, 10) + '):',
+          agendaTxt,
+          '',
+          'Úsalo cuando cambie la respuesta: qué cenar depende de si hoy le toca',
+          'pierna o descanso, y si le da tiempo a algo depende de lo que ya tenga.',
+          'Lo marcado YA ENTRENADO está hecho, no se lo propongas otra vez. Y no se',
+          'lo recites si no viene a cuento: es contexto, no un parte.',
+        ].join(String.fromCharCode(10)),
+      });
+    }
 
     const stream = anthropic.messages.stream(params);
 

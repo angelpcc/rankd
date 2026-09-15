@@ -7,6 +7,8 @@ import { clearChat, loadChat, saveChat } from '@/pages/mi-esquina/lib/chatHistor
 import VoiceButton from '@/components/feature/VoiceButton';
 import PhotoAttach, { FotoPendiente } from './PhotoAttach';
 import type { ImagenLista } from '@/lib/imageInput';
+import { loadAgendaSnapshot, type AgendaDia } from '@/pages/mi-esquina/lib/agendaSnapshot';
+import { currentWeekStart } from '@/pages/mi-esquina/lib/weekPlan';
 
 // 'general' es la CONSULTA ABIERTA (punto 18): cualquier duda, sin flujo. Los
 // otros tres están acotados a su ámbito y se derivan entre ellos; este no.
@@ -134,9 +136,29 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
   const a = ACCENTS[accent];
   const canSavePlan = section === 'training' || section === 'nutrition';
   const [physical, setPhysical] = useState<Record<string, unknown>>({});
+  /**
+   * Lo que tiene puesto estos días.
+   *
+   * Consulta preguntaba a ciegas: "¿qué ceno hoy?" sin saber si hoy le toca
+   * pierna o descanso, y "¿me da tiempo a correr?" sin saber que mañana tiene
+   * sesión doble. Son las dos preguntas que más se hacen y las dos cambian de
+   * respuesta según lo que haya en la agenda.
+   */
+  const [agenda, setAgenda] = useState<AgendaDia[]>([]);
   const [messages, setMessages] = useState<ChatMsg[]>(
     () => loadChat(profile.id, section).map((x) => ({ role: x.role, content: x.content })) as ChatMsg[],
   );
+  useEffect(() => {
+    let vivo = true;
+    // Una sola semana, no tres como en el chat del plan: aquí se pregunta por
+    // hoy y por mañana, no se reprograma el mes. Mandar tres semanas sería
+    // pagar tokens en cada mensaje por algo que no se usa.
+    loadAgendaSnapshot(profile.id, currentWeekStart(), 1)
+      .then((a) => { if (vivo) setAgenda(a); })
+      .catch(() => { /* sin agenda se responde igual, solo con menos contexto */ });
+    return () => { vivo = false; };
+  }, [profile.id]);
+
   const [input, setInput] = useState('');
   const [foto, setFoto] = useState<ImagenLista | null>(null);
   const [sending, setSending] = useState(false);
@@ -291,6 +313,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
         body: JSON.stringify({
           section,
           profile: physical,
+          agenda: agenda.length ? agenda : undefined,
           messages: next.map((m) => (m.image
             ? { role: m.role, content: m.content, image: { base64: m.image.base64, mediaType: m.image.mediaType } }
             : { role: m.role, content: m.content })),
@@ -385,7 +408,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
     setSearching(false);
     setStreaming(false);
     setSending(false);
-  }, [messages, physical, section, sending, t, foto]);
+  }, [messages, physical, section, sending, t, foto, agenda]);
 
   // ── Guardar el plan acordado en el diario correspondiente ──
   const savePlan = useCallback(async () => {
