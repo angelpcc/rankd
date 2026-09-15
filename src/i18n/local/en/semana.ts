@@ -113,4 +113,10 @@ And give me lunch and dinner for the 5 days, with basic ingredients that are qui
   mc_sem_weeks_q: 'How many weeks?',
   mc_sem_weeks_one: 'One week. When you finish it, you adjust this same plan instead of starting another.',
   mc_sem_weeks_many: '{{n}} weeks. The structure repeats each week, and only what should progress changes.',
+  mc_ag_cardio_title: 'This cardio has no script yet',
+  mc_ag_cardio_desc: 'The plan gives the type and the minutes. I can break it down segment by segment, with incline and speed, so you can follow it on the machine. Built once, saved for good.',
+  mc_ag_cardio_build: 'Build the script',
+  mc_ag_cardio_building: 'Building…',
+  mc_ag_cardio_manual: 'Log it by hand',
+  mc_ag_cardio_failed: "I couldn't build the script. Try again.",
 };

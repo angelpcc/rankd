@@ -114,4 +114,10 @@ Y hazme comida y cena para los 5 días, con alimentos básicos y rápidos de coc
   mc_sem_weeks_q: '¿Cuántas semanas?',
   mc_sem_weeks_one: 'Una semana. Cuando la termines, ajustas el mismo plan en vez de empezar otro.',
   mc_sem_weeks_many: '{{n}} semanas. La estructura se repite cada semana, y solo cambia lo que deba progresar.',
+  mc_ag_cardio_title: 'Este cardio no tiene guion',
+  mc_ag_cardio_desc: 'El plan dice el tipo y los minutos. Te lo puedo desglosar tramo a tramo, con su inclinación y su velocidad, para seguirlo mirando la máquina. Se monta una vez y queda guardado.',
+  mc_ag_cardio_build: 'Montar el guion',
+  mc_ag_cardio_building: 'Montándolo…',
+  mc_ag_cardio_manual: 'Registrarlo a mano',
+  mc_ag_cardio_failed: 'No he podido montar el guion. Vuelve a intentarlo.',
 };

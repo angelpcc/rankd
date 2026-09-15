@@ -607,6 +607,55 @@ Reglas:
 - Idioma: español.`;
 }
 
+// ── DISEÑAR UN CARDIO MINUTO A MINUTO ──
+//
+// Hermano de `protocolSystem`, pero al revés: aquel TRANSCRIBE una tabla que ya
+// existe; este la ESCRIBE desde cero.
+//
+// Existe porque el plan no puede traerla. El esquema del plan se quedó sin
+// tramos al chocar con el límite de anidamiento, así que un cardio del plan
+// llega como "cinta, 45 min" y una nota. El modelo, al que le faltaba sitio,
+// acababa apretando la tabla dentro de esa nota: "inclinación 4, 6, velocidad
+// 6, 6,5 km/h". Eso no es un guion, es una tirada de números sin decir a qué
+// minuto va cada uno, y encima de la cinta no se puede seguir.
+//
+// Se genera A DEMANDA, cuando se va a hacer ESE cardio, no al guardar el plan.
+// Un plan de dos semanas trae diez cardios y nueve no se van a abrir hoy:
+// generarlos todos al guardar sería pagar diez llamadas para usar una. Una vez
+// generado se guarda como protocolo y ya no se vuelve a pagar.
+function cardioDesignSystem(profile, kind, minutes, intent, variables) {
+  const NL = String.fromCharCode(10);
+  const allowed = (Array.isArray(variables) && variables.length ? variables : ['effort'])
+    .filter((v) => PROTOCOL_VALUE_KEYS.includes(v));
+
+  return [
+    'Eres el entrenador de RANKD escribiendo el guion de UNA sesión de cardio, tramo a tramo, para que se pueda seguir mirando la máquina.',
+    '',
+    fighterContext(profile),
+    '',
+    'LA SESIÓN:',
+    '- Actividad: "' + kind + '".',
+    '- Duración TOTAL: ' + minutes + ' minutos. La suma de los tramos tiene que dar ' + minutes + ' EXACTOS, ni uno más ni uno menos, calentamiento y vuelta a la calma incluidos.',
+    intent ? '- Lo que se busca: ' + intent : '- Sesión de cardio general.',
+    '- Variables que puedes usar: ' + allowed.join(', ') + '. Cualquier otra va a null SIEMPRE.',
+    '',
+    'CÓMO ESCRIBIRLO:',
+    '- Un tramo por cada cambio de ritmo. Ni uno por minuto (30 tramos idénticos no se leen), ni cuatro de quince minutos (eso no es un guion, es un resumen). Entre 6 y 14 tramos para una sesión normal.',
+    '- CADA tramo lleva SUS NÚMEROS en "values". Un tramo de cinta sin velocidad no sirve para nada: es justo el dato que se va a copiar en la máquina.',
+    '- Empieza con calentamiento progresivo y termina bajando. Nunca arranques al ritmo de trabajo ni cortes en seco.',
+    '- "label" dice QUÉ es ese tramo: "Calentamiento", "Bloque 1", "Recuperación", "Vuelta a la calma".',
+    '- "note" solo cuando aporte algo que los números no dicen ("respira por la nariz", "si te falta el aire, baja un punto"). Si no aporta, null.',
+    '',
+    'QUE LOS NÚMEROS SEAN DE VERDAD:',
+    '- Caminar en cinta son 4,5-6,5 km/h. Correr suave, 8-10. Las inclinaciones altas (10-15%) van con velocidad de CAMINAR, nunca corriendo: al 12% a 9 km/h no aguanta nadie y es lo que delata un guion inventado.',
+    '- Para quemar grasa sin destrozar el entreno de fuerza, la caminata en inclinación es la herramienta: ritmo que permita hablar, esfuerzo 5-6 sobre 10.',
+    '- Si la sesión es de intervalos, los de trabajo son CORTOS y los de recuperación reales: nadie recupera de 1 min duro en 20 segundos.',
+    '- Ajusta al nivel de la persona. Si no sabes su nivel, tira a conservador y dilo en la nota del tramo.',
+    '',
+    'Idioma: español. "name": un nombre corto y descriptivo de la sesión.',
+  ].join(NL);
+}
+
 // ── RUTINA PREESCRITA (punto 17) ──
 // Lee una rutina de gimnasio escrita (días con nombre + ejercicios con series y
 // repeticiones) y la estructura para poder entrenarla con checklist en vivo.
@@ -758,7 +807,7 @@ const WEEK_PLAN_SCHEMA = {
     },
     protocols: {
       type: 'array',
-      description: 'Un elemento por CADA cardio distinto que haya pedido. Si pide tres (tarde, mañana y post-entreno), devuelve tres.',
+      description: 'Un elemento por cada cardio que haya PEDIDO, ni uno más. Si pide "45 min de cinta", eso es UN cardio de 45 minutos: NO lo partas en dos sesiones (mañana en ayunas + tarde) salvo que él diga expresamente que quiere doblar.',
       items: {
         type: 'object',
         properties: {
@@ -768,7 +817,7 @@ const WEEK_PLAN_SCHEMA = {
           when: { type: 'string', enum: ['morning', 'midday', 'afternoon', 'evening'] },
           weekdays: { type: 'array', description: 'Días (0 = lunes) en los que toca este cardio.', items: { type: 'integer' } },
           minutes: { type: 'integer', description: 'Duración total del cardio en minutos.' },
-          note: { type: ['string', 'null'], description: 'El detalle del cardio EN TEXTO: "10 min inclinación 6, 20 min al 8, 10 bajando". Aquí va la inclinación, la velocidad y los tramos. Null si no hay nada que precisar.' },
+          note: { type: ['string', 'null'], description: 'UNA línea diciendo la INTENCIÓN del cardio, en palabras: "ritmo cómodo, que puedas hablar", "cuestas duras con recuperación entre series". NO metas aquí una tabla de números: nada de "inclinación 4, 6, velocidad 6, 6,5". El guion minuto a minuto se monta aparte, con sus columnas, y una lista de cifras sueltas en esta nota no se entiende y no se puede seguir. Null si no hay nada que precisar.' },
         },
         required: ['key', 'name', 'kind', 'when', 'weekdays', 'minutes', 'note'],
         additionalProperties: false,
@@ -915,9 +964,13 @@ function planChatSystem(profile, ctx, previous) {
     "ECONOMIA (importante): esto se genera en UNA sola respuesta y hay un limite",
     "de tiempo real. Se escueto en el JSON o no llegas a terminarlo:",
     "- 4-6 ejercicios por dia como mucho.",
-    "- Los cardios, en 4-6 TRAMOS, nunca minuto a minuto. Un tramo es \"10 min a",
-    "  inclinacion 6\", no diez tramos de un minuto. Dice lo mismo y ocupa diez",
-    "  veces menos.",
+    "- Los cardios van con sus minutos totales y UNA linea de intencion. El guion",
+    "  minuto a minuto NO se escribe aqui: se monta despues, en su pantalla, con",
+    "  sus columnas de inclinacion y velocidad. Una tirada de cifras sueltas en la",
+    "  nota no se entiende ni se puede seguir encima de la cinta.",
+    "- Un cardio pedido es UN cardio. \"45 minutos de cinta\" es una sesion de 45",
+    "  minutos, no una de 20 en ayunas y otra de 25 por la tarde. Doblar solo si",
+    "  lo pide el.",
     "- Comidas en una linea: \"pollo a la plancha con arroz y ensalada\".",
     "- Notas de una linea, y solo si aportan.",
     "El detalle largo va en reply, que no cuenta para el tamano del plan.",
@@ -1204,10 +1257,11 @@ export default async function handler(req, res) {
   const {
     section, profile, messages, extract, timerCombos, foodPhoto, routinePhoto,
     creatorStudio, objectivePlan, protocolText, routineText, weekPlan, boxingSession, planChat,
+    cardioDesign,
   } = req.body || {};
   // Modos "estructurados": no usan `section` ni una conversación `messages`,
   // devuelven JSON validado. No deben pasar por las guardas de chat de abajo.
-  const structuredMode = !!(objectivePlan || foodPhoto || routinePhoto || protocolText || routineText || weekPlan || boxingSession || planChat);
+  const structuredMode = !!(objectivePlan || foodPhoto || routinePhoto || protocolText || routineText || weekPlan || boxingSession || planChat || cardioDesign);
 
   // ── CREATOR STUDIO: solo admin, gasto contabilizado aparte de las cuotas
   //    de Mi Esquina (section:'creator-studio' en ai_usage) ──
@@ -1421,6 +1475,34 @@ export default async function handler(req, res) {
       await recordUsage(gate.db, gate.user.id, 'training', 'chat', response.usage);
       if (!protocol || !Array.isArray(protocol.segments) || protocol.segments.length === 0) {
         return res.status(422).json({ error: 'no_protocol', message: 'No he podido leer una sesión por tramos en ese documento. Revísalo o mete los tramos a mano.' });
+      }
+      return res.status(200).json({ protocol, usage: response.usage });
+    } catch (err) {
+      console.error('[ia]', err?.status, err?.message);
+      const e = iaError(err);
+      return res.status(e.status).json({ error: 'ia_error', message: e.message });
+    }
+  }
+
+  // ── MODO DISEÑAR CARDIO MINUTO A MINUTO ──
+  if (cardioDesign) {
+    const kind = String(cardioDesign.kind || 'otro').slice(0, 40);
+    const minutes = Math.max(5, Math.min(180, parseInt(cardioDesign.minutes, 10) || 30));
+    const intent = String(cardioDesign.intent || '').slice(0, 400);
+    try {
+      const response = await anthropic.messages.create({
+        model: MODEL,
+        max_tokens: 3000,
+        system: cardioDesignSystem(profile, kind, minutes, intent, cardioDesign.variables),
+        messages: [{ role: 'user', content: 'Escríbeme el guion de esa sesión, tramo a tramo.' }],
+        output_config: { format: { type: 'json_schema', schema: PROTOCOL_SCHEMA } },
+      });
+      const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
+      let protocol;
+      try { protocol = JSON.parse(text); } catch { protocol = null; }
+      await recordUsage(gate.db, gate.user.id, 'training', 'chat', response.usage);
+      if (!protocol || !Array.isArray(protocol.segments) || protocol.segments.length === 0) {
+        return res.status(422).json({ error: 'no_protocol', message: 'No he podido montar el guion de ese cardio. Vuelve a intentarlo.' });
       }
       return res.status(200).json({ protocol, usage: response.usage });
     } catch (err) {

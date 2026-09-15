@@ -88,6 +88,76 @@ interface Payload {
   kind: string;
 }
 
+export interface CardioDesignRequest {
+  /** Tipo de actividad: cinta, correr, bici… Manda qué variables tienen sentido. */
+  kind: string;
+  /** Minutos totales. El guion tiene que sumar exactamente esto. */
+  minutes: number;
+  /** Lo que se busca, en palabras. Sale de la nota del plan. */
+  intent?: string;
+  /** El perfil del peleador, para que los números vayan a su nivel. */
+  profile?: Record<string, unknown>;
+}
+
+/**
+ * Escribe el guion minuto a minuto de un cardio que todavía no lo tiene.
+ *
+ * Es el gemelo de `importProtocol`: mismo esquema y misma normalización, pero
+ * en vez de transcribir una tabla que ya existe, la escribe. Hace falta porque
+ * un cardio que viene del plan llega como "cinta, 45 min" y una frase — el
+ * esquema del plan no tiene sitio para los tramos — y con eso no se puede ni
+ * seguir la sesión ni marcarla como hecha.
+ *
+ * Se llama cuando se va a HACER ese cardio, no al guardar el plan: un plan de
+ * dos semanas trae diez cardios y pagar por los diez para usar uno es tirar el
+ * saldo. Lo que sale se guarda como protocolo y ya no se vuelve a pagar.
+ */
+export async function designCardio(req: CardioDesignRequest): Promise<ProtocolImportResult> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+
+  try {
+    const res = await fetch('/api/coach', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({
+        section: 'training',
+        // El perfil va en la RAÍZ del cuerpo, que es donde lo lee el servidor.
+        profile: req.profile,
+        cardioDesign: {
+          kind: req.kind,
+          minutes: req.minutes,
+          intent: req.intent,
+          variables: protocolVarsFor(req.kind).map((v) => v.id),
+        },
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data?.protocol) {
+      return { protocol: null, error: data?.message || null };
+    }
+
+    const segments = normalizeSegments(data.protocol.segments, req.kind);
+    if (segments.length === 0) return { protocol: null, error: null };
+
+    return {
+      protocol: {
+        name: String(data.protocol.name || '').trim().slice(0, 120) || 'Cardio',
+        kind: req.kind,
+        segments,
+        note: typeof data.protocol.note === 'string' ? data.protocol.note.slice(0, 400) : undefined,
+      },
+      error: null,
+    };
+  } catch {
+    return { protocol: null, error: null };
+  }
+}
+
 /** Manda el texto o la foto y devuelve el protocolo ya estructurado. */
 export async function importProtocol(payload: Payload): Promise<ProtocolImportResult> {
   const { data: { session } } = await supabase.auth.getSession();
