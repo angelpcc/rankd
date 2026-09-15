@@ -362,8 +362,13 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
         if (p.routine_id) {
           const routine = await loadRoutineById(profile.id, p.routine_id);
           const day = routine?.days.find((d) => d.id === p.routine_day_id) ?? routine?.days[0] ?? null;
-          if (routine && day) { setRunner({ item, routine, day }); return; }
-          showToast(t('mc_ag_run_missing'), 'error');
+          // Con ejercicios se entrena aquí con checklist. SIN ellos no: ahora un
+          // plan puede traer solo el reparto ("día 1: pecho y tríceps") porque
+          // muchos ponen sus propios ejercicios, y abrir un checklist vacío es
+          // una pantalla que no deja hacer nada. Ese cae al registro, que es
+          // donde se escriben.
+          if (routine && day && day.exercises.length > 0) { setRunner({ item, routine, day }); return; }
+          if (!routine) showToast(t('mc_ag_run_missing'), 'error');
         }
         onGoStrength?.(item.plan_date);
         return;

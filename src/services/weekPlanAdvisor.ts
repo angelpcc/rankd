@@ -171,16 +171,30 @@ export function normalizeWeekPlan(raw: Record<string, unknown>, request: string,
       const weekday = clampWeekday(d.weekday);
       if (weekday === null || !usable(weekday)) return null;
       const exercises = normalizeExercises(d.exercises);
-      if (exercises.length === 0) return null;
       const groups = (Array.isArray(d.groups) ? d.groups : [])
         .filter((g): g is MuscleGroup => MUSCLE_GROUPS.includes(g as MuscleGroup));
+      const nombre = String(d.name || '').trim().slice(0, 60);
+
+      // Un día SIN ejercicios es válido, y ahora es lo normal.
+      //
+      // Antes esto era `if (exercises.length === 0) return null`, porque se daba
+      // por hecho que un día de fuerza traía su lista. Pero "hazme una rutina
+      // push pull pierna" pide el REPARTO, no los ejercicios: mucha gente ya
+      // sabe cuáles hace. Con el descarte, un plan así se quedaba sin fuerza
+      // entera y en silencio.
+      //
+      // Lo que sí hay que exigir es que el día DIGA algo: sin ejercicios, sin
+      // grupos y sin nombre no es un día, es una fila vacía.
+      if (exercises.length === 0 && groups.length === 0 && !nombre) return null;
+
       return {
         weekday,
         ...(Number.isFinite(Number(d.week)) && Number(d.week) >= 0 ? { week: Number(d.week) } : {}),
         date: dateOfWeekday(weekStart, weekday),
-        name: String(d.name || '').trim().slice(0, 60),
+        name: nombre,
         // Si el modelo no declara grupos, se derivan de los ejercicios: el
-        // tick automático de la Agenda se basa en ellos.
+        // tick automático de la Agenda se basa en ellos. Sin ejercicios no hay
+        // de dónde derivarlos, y entonces mandan los que haya declarado.
         groups: groups.length > 0 ? groups : [...new Set(exercises.map((e) => e.group))],
         exercises,
         note: typeof d.note === 'string' && d.note.trim() ? d.note.trim().slice(0, 200) : undefined,
