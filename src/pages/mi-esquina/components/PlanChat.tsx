@@ -10,6 +10,7 @@ import {
 } from '../lib/weekPlan';
 import { buildWeekContext, checkWeekPlanAvailable } from '@/services/weekPlanAdvisor';
 import { sendPlanChat, type PlanChatMessage } from '@/services/planChat';
+import { clearChat, loadChat, saveChat } from '../lib/chatHistory';
 
 // ════════════════════════════════════════════════════════════════
 // EL PLAN, HABLANDO
@@ -63,6 +64,9 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
   const [guardando, setGuardando] = useState(false);
   const [plan, setPlan] = useState<WeekPlan | null>(null);
   const [guardado, setGuardado] = useState<CommitResult | null>(null);
+  // La duración ya no se elige con botones: se dice hablando ("dos semanas"),
+  // que es lo natural en un chat. Se guarda lo que haya pedido el plan vivo
+  // para que un ajuste posterior no le cambie la duración sin avisar.
   const [weeks, setWeeks] = useState(1);
   const [aiOk, setAiOk] = useState<boolean | null>(null);
   const [fighter, setFighter] = useState<Record<string, unknown>>({});
@@ -91,7 +95,22 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
           .eq('fighter_profile_id', profile.id).maybeSingle(),
       ]);
       if (!alive) return;
-      if (activo) {
+      // Primero la conversación que quedó a medias: es lo que el usuario dejó
+      // abierto. Salir a mirar la Agenda y volver no puede borrar cinco turnos
+      // de trabajo, y menos cuando cada turno cuesta dinero.
+      const guardados = loadChat(profile.id, 'plan');
+      if (guardados.length > 0) {
+        setTurnos(guardados.map((x) => ({
+          role: x.role, content: x.content,
+          ...(x.data ? { plan: x.data as WeekPlan } : {}),
+        })));
+        // El plan vigente es el del último turno que traía uno.
+        const ultimo = [...guardados].reverse().find((x) => x.data);
+        if (ultimo) {
+          setPlan(ultimo.data as WeekPlan);
+          setWeeks(Math.max(1, (ultimo.data as WeekPlan).weeks || 1));
+        }
+      } else if (activo) {
         setPlan(activo.plan);
         setWeeks(Math.max(1, activo.plan.weeks || 1));
         setTurnos([{ role: 'assistant', content: t('mc_pc_resumed'), plan: activo.plan }]);
@@ -109,6 +128,15 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
   }, [profile.id, profile.full_name, t]);
 
   useEffect(() => { finRef.current?.scrollIntoView({ block: 'end' }); }, [turnos, enviando]);
+
+  // Se guarda en cada cambio, no al salir: de una pantalla se sale cerrando la
+  // pestaña o pulsando atrás, y ahí no hay ocasión de despedirse.
+  useEffect(() => {
+    if (turnos.length === 0) return;
+    saveChat(profile.id, 'plan', turnos.map((x) => ({
+      role: x.role, content: x.content, ...(x.plan ? { data: x.plan } : {}),
+    })));
+  }, [turnos, profile.id]);
 
   const enviar = useCallback(async (texto0?: string) => {
     const msg = (texto0 ?? texto).trim();
@@ -149,25 +177,22 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
 
   return (
     <div className="rk-blocks max-w-3xl">
-      {/* ── Duración ──
-          Va arriba y no dentro de la conversación porque es un dato, no una
-          charla: escribirlo en el mensaje se pierde entre el texto y el modelo
-          lo ignora la mitad de las veces. */}
-      <div className="rk-card" style={{ padding: 16 }}>
-        <p className="text-[11px] uppercase tracking-wider font-bold text-zinc-500 mb-1.5">{t('mc_pc_weeks_q')}</p>
-        <div className="grid grid-cols-6 gap-1.5">
-          {[1, 2, 3, 4, 5, 6].map((n) => (
-            <button key={n} type="button" onClick={() => setWeeks(n)} disabled={enviando}
-              className={`rounded-xl border text-xs font-bold cursor-pointer transition-colors disabled:opacity-50 ${weeks === n ? 'border-white/30 text-white' : 'border-white/10 text-zinc-400 hover:border-white/25'}`}
-              style={{ minHeight: 42, background: weeks === n ? 'var(--accent)' : 'rgba(255,255,255,0.02)' }}>
-              {n}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* ── La conversación ── */}
       <div className="rk-card" style={{ padding: 16 }}>
+        {turnos.length > 0 && (
+          <div className="flex justify-end mb-2">
+            <button onClick={() => {
+              // Se borra también el plan en curso: dejarlo colgando de una
+              // conversación que ya no existe confunde más que ayudar. Lo que
+              // se guardó en la Agenda no se toca — eso ya está a salvo.
+              setTurnos([]); setPlan(null); setGuardado(null);
+              clearChat(profile.id, 'plan');
+            }}
+              className="text-[11px] text-zinc-500 hover:text-zinc-300 cursor-pointer inline-flex items-center gap-1">
+              <i className="ri-refresh-line" />{t('mc_pc_new_chat')}
+            </button>
+          </div>
+        )}
         <div className="space-y-3" style={{ maxHeight: '58vh', overflowY: 'auto' }}>
           {turnos.length === 0 && (
             <div className="py-4">

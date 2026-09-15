@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingColumn } from '@/lib/dbState';
+import { clearChat, loadChat, saveChat } from '@/pages/mi-esquina/lib/chatHistory';
 
 // 'general' es la CONSULTA ABIERTA (punto 18): cualquier duda, sin flujo. Los
 // otros tres están acotados a su ámbito y se derivan entre ellos; este no.
@@ -118,7 +119,9 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
   const a = ACCENTS[accent];
   const canSavePlan = section === 'training' || section === 'nutrition';
   const [physical, setPhysical] = useState<Record<string, unknown>>({});
-  const [messages, setMessages] = useState<ChatMsg[]>([]);
+  const [messages, setMessages] = useState<ChatMsg[]>(
+    () => loadChat(profile.id, section).map((x) => ({ role: x.role, content: x.content })) as ChatMsg[],
+  );
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [streaming, setStreaming] = useState(false);
@@ -230,6 +233,16 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, sending]);
+
+  // ── La conversación sobrevive a salir de la pantalla ──
+  //
+  // Antes vivía solo en memoria: salías a mirar la Agenda, volvías, y no había
+  // nada. Se guarda MIENTRAS no se esté escribiendo en streaming, para no
+  // reescribir el almacén en cada token que llega.
+  useEffect(() => {
+    if (streaming || messages.length === 0) return;
+    saveChat(profile.id, section, messages.map((m) => ({ role: m.role, content: m.content })));
+  }, [messages, streaming, profile.id, section]);
 
   // ── Envío con STREAMING: la respuesta aparece token a token ──
   const send = useCallback(async (text: string) => {
@@ -466,6 +479,15 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
           </p>
         </div>
       </div>
+
+      {messages.length > 0 && (
+        <div className="flex justify-end px-4 pt-2">
+          <button onClick={() => { setMessages([]); clearChat(profile.id, section); }}
+            className="text-[11px] text-zinc-500 hover:text-zinc-300 cursor-pointer inline-flex items-center gap-1">
+            <i className="ri-refresh-line" />{t('mc_ai_new_chat')}
+          </button>
+        </div>
+      )}
 
       {/* Conversación */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">

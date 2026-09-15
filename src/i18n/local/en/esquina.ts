@@ -313,6 +313,7 @@ export default {
   mc_ai_err_generate: 'Couldn’t generate a response. Please try again.',
   mc_ai_err_empty: 'I couldn’t generate a response, please try again.',
   mc_ai_err_connection: 'The connection to the assistant dropped. Please try again.',
+  mc_ai_new_chat: 'Start over',
   mc_ai_plan_save_generic: 'Couldn’t save the plan',
   // ── Training diary (FighterTraining) — R13-T5 ──
   mc_ft_eyebrow: 'Your diary',

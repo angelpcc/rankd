@@ -25,6 +25,28 @@
 // Todo pasa por un GainNode maestro + compresor para sonar ALTO sin saturar.
 
 type Ctor = typeof AudioContext;
+
+/**
+ * El interruptor de silencio del iPhone apaga el audio web.
+ *
+ * Es LA razón de que el temporizador "no suene" en un móvil donde todo lo demás
+ * funciona: con la palanquita lateral en silencio, iOS manda el audio de la web
+ * a la categoría "ambient", y ambient no suena. No hay error, no hay excepción,
+ * no hay nada que se pueda detectar desde el código: simplemente no se oye.
+ *
+ * `navigator.audioSession` (Safari 16.4+) permite pedir la categoría
+ * "playback" — la misma que usa un reproductor de música — y esa SÍ ignora el
+ * interruptor. Es exactamente lo que queremos: una campana de asalto tiene que
+ * sonar como suena una alarma, no como suena un vídeo de una web.
+ *
+ * Donde no existe la API, no pasa nada: se ignora.
+ */
+function pedirCategoriaPlayback(): void {
+  try {
+    const nav = navigator as unknown as { audioSession?: { type: string } };
+    if (nav.audioSession) nav.audioSession.type = 'playback';
+  } catch { /* la API no está o el navegador no la permite */ }
+}
 type Wave = 'sine' | 'square' | 'sawtooth' | 'triangle';
 
 export class TimerSounds {
@@ -39,6 +61,9 @@ export class TimerSounds {
   /** Crea/reanuda el AudioContext. DEBE llamarse dentro de un gesto del usuario. */
   unlock() {
     try {
+      // Antes de crear el contexto: la categoría se aplica a lo que venga
+      // después, así que pedirla luego no serviría de nada.
+      pedirCategoriaPlayback();
       if (!this.ctx) {
         const C = window.AudioContext
           || (window as unknown as { webkitAudioContext: Ctor }).webkitAudioContext;
@@ -66,6 +91,24 @@ export class TimerSounds {
       src.connect(this.ctx.destination);
       src.start(0);
     } catch { /* el navegador puede no permitirlo aún */ }
+  }
+
+  /**
+   * Reanuda el contexto si el sistema lo ha suspendido por su cuenta.
+   *
+   * Pasa constantemente en el móvil: te sales a mirar un mensaje, vuelves, y el
+   * contexto se ha quedado en "suspended". Como el temporizador corre solo, sin
+   * que nadie toque la pantalla, NADA lo vuelve a despertar — y el resto de la
+   * sesión transcurre en silencio absoluto aunque todo lo demás siga bien.
+   *
+   * Por eso se llama desde el propio bucle del temporizador: es el único sitio
+   * que se ejecuta mientras la sesión corre sin que el usuario haga nada.
+   */
+  keepAlive(): void {
+    if (this.muted || !this.ctx) return;
+    if (this.ctx.state === 'suspended') {
+      try { this.ctx.resume(); } catch { /* se reintentará al siguiente tic */ }
+    }
   }
 
   /** ¿Está el audio listo (desbloqueado y no en silencio)? */
@@ -242,6 +285,7 @@ export class TimerSounds {
     const wasMuted = this.muted;
     this.muted = false;
     try {
+      pedirCategoriaPlayback();
       this.unlock();
       const ctx = this.ctx;
       if (!ctx) return false;
@@ -266,6 +310,11 @@ export const timerSounds = new TimerSounds();
 // la página del temporizador. Devuelve una función de limpieza.
 export function armTimerAudio(): () => void {
   const handler = () => { timerSounds.unlock(); };
+  // Volver a la app es un momento de "actividad" que el navegador acepta para
+  // reanudar el audio, y es justo cuando hace falta: el contexto se suspende al
+  // irte. Sin esto, salir un segundo dejaba el resto del entreno mudo.
+  const alVolver = () => { if (document.visibilityState === 'visible') timerSounds.unlock(); };
+  document.addEventListener('visibilitychange', alVolver);
   // Sin nombrar `AddEventListenerOptions` ni `DocumentEventMap`: son tipos de
   // la lib DOM que TypeScript resuelve pero que la regla no-undef de ESLint no
   // conoce, y daban dos errores de lint sin ningún efecto en tiempo de
@@ -276,5 +325,8 @@ export function armTimerAudio(): () => void {
   // porque `EventListenerOptions` no tiene esa propiedad.
   const events = ['pointerdown', 'touchstart', 'mousedown', 'keydown'] as const;
   events.forEach((e) => document.addEventListener(e, handler, { passive: true }));
-  return () => events.forEach((e) => document.removeEventListener(e, handler));
+  return () => {
+    events.forEach((e) => document.removeEventListener(e, handler));
+    document.removeEventListener('visibilitychange', alVolver);
+  };
 }

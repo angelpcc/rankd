@@ -186,9 +186,15 @@ const BOXING_SCHEMA = {
 };
 
 function boxingSystem(place, minutes) {
-  const sitio = place === 'gym'
-    ? 'EN GIMNASIO CON MATERIAL: hay saco, y puede haber manoplas, cuerda y compañero. Se pueden estructurar asaltos de saco, de manoplas y de técnica con material.'
-    : 'EN CASA / EN SOLITARIO, SIN SACO: todo es sombra, desplazamientos, técnica en vacío, trabajo de pies, cuerda si la tiene y acondicionamiento con peso corporal. NO propongas saco, manoplas ni compañero.';
+  const sitios = {
+    gym: 'EN GIMNASIO CON MATERIAL: hay saco, y puede haber manoplas, cuerda y compañero. Se pueden estructurar asaltos de saco, de manoplas y de técnica con material.',
+    // El caso intermedio, y de los más comunes: saco en casa o en el garaje.
+    // Sin él, quien tiene saco recibía sombra pura (poco) o manoplas y
+    // compañero (imposible). Ninguna de las dos le servía.
+    home_bag: 'EN CASA CON SACO, SOLO: hay saco y probablemente cuerda, pero NO hay compañero ni manoplas. Alterna asaltos de saco con asaltos de sombra y de pies. Nada que necesite a otra persona.',
+    home: 'EN CASA / EN SOLITARIO, SIN SACO: todo es sombra, desplazamientos, técnica en vacío, trabajo de pies, cuerda si la tiene y acondicionamiento con peso corporal. NO propongas saco, manoplas ni compañero.',
+  };
+  const sitio = sitios[place] || sitios.home;
 
   return [
     'Eres un entrenador de boxeo preparando UNA sesión concreta.',
@@ -1515,7 +1521,7 @@ export default async function handler(req, res) {
   // Cuenta como 1 turno de la cuota (section='training').
   if (boxingSession) {
     const minutes = Math.max(10, Math.min(180, parseInt(boxingSession.minutes, 10) || 45));
-    const place = boxingSession.place === 'gym' ? 'gym' : 'home';
+    const place = ['gym', 'home_bag', 'home'].includes(boxingSession.place) ? boxingSession.place : 'home';
     const extra = String(boxingSession.notes || '').slice(0, 600);
     // Mismo helper que usan el plan por objetivo y el plan semanal: nivel,
     // disciplina y peso cambian lo que es razonable pedirle a alguien en un asalto.

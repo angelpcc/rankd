@@ -24,6 +24,8 @@ export default {
   mc_bx_q_place: '¿Dónde entrenas?',
   mc_bx_place_home: 'En casa',
   mc_bx_place_home_hint: 'Sin saco: sombra, pies y técnica',
+  mc_bx_place_home_bag: 'En casa con saco',
+  mc_bx_place_home_bag_hint: 'Saco en casa, sin compañero',
   mc_bx_place_gym: 'En el gimnasio',
   mc_bx_place_gym_hint: 'Con saco y material',
 
@@ -50,6 +52,7 @@ export default {
   // Sin esto, el cronómetro aparece con 8 asaltos puestos y no dice de dónde
   // han salido: parece que se han cambiado solos.
   tm_bx_loaded: 'Entreno cargado',
+  tm_bx_script: 'El guion, asalto a asalto ({{n}})',
   tm_bx_warmup: 'calentar {{n}} min',
   tm_bx_cooldown: 'enfriar {{n}} min',
   tm_bx_saved: 'Entreno de boxeo registrado. Queda marcado en la Agenda.',

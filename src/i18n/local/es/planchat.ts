@@ -10,7 +10,6 @@
 export default {
   mc_as_tab_planchat: 'Plan',
 
-  mc_pc_weeks_q: '¿Para cuántas semanas?',
   mc_pc_intro: 'Cuéntame qué quieres y para cuándo. Los días que puedes entrenar, cuánto rato tienes y si hay algo que no puedes hacer. Con eso te lo monto, y luego lo cambiamos hablando hasta que te cuadre.',
   mc_pc_sug_1: 'Quiero definir, puedo 6 días',
   mc_pc_sug_2: 'Fuerza por la mañana y cardio por la tarde',
@@ -43,4 +42,5 @@ export default {
   mc_pc_err_auth: 'Tienes que iniciar sesión para esto.',
   mc_pc_agenda_off: 'El plan se ha montado, pero la Agenda no está disponible todavía.',
   mc_pc_no_ai: 'Falta la clave de IA, así que todavía no puedo montarte el plan. Mientras tanto puedes planificar a mano en Agenda › Planificar.',
+  mc_pc_new_chat: 'Empezar de cero',
 };

@@ -313,6 +313,7 @@ export default {
   mc_ai_err_generate: 'No se pudo generar respuesta. Inténtalo de nuevo.',
   mc_ai_err_empty: 'No he podido generar respuesta, inténtalo de nuevo.',
   mc_ai_err_connection: 'Se ha cortado la conexión con el asistente. Inténtalo de nuevo.',
+  mc_ai_new_chat: 'Empezar de cero',
   mc_ai_plan_save_generic: 'No se pudo guardar el plan',
   // ── Diario de entrenos (FighterTraining) — R13-T5 ──
   mc_ft_eyebrow: 'Tu diario',

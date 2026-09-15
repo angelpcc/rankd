@@ -55,6 +55,9 @@ export default function TimerPage() {
   const [searchParams] = useSearchParams();
   const boxingId = searchParams.get('session');
   const [boxing, setBoxing] = useState<BoxingSession | null>(null);
+  // El guion empieza plegado: con 8 o 10 asaltos, desplegado empuja fuera de
+  // la pantalla del móvil justo lo que hay que tocar para empezar.
+  const [verGuion, setVerGuion] = useState(false);
 
   // ── Estado del temporizador clásico ──
   const [config, setConfig] = useState<TimerConfig>(() => ({ ...DEFAULT_CONFIG, combos: [] }));
@@ -314,26 +317,57 @@ export default function TimerPage() {
             deja claro además que darle a empezar arranca ESE entreno. */}
         {boxing && (
           <div className="mx-auto px-4 pt-4" style={{ maxWidth: 560 }}>
-            <div className="rk-card" style={{ padding: 14, borderColor: 'rgba(225,6,0,0.35)' }}>
-              <p className="text-[10px] font-bold tracking-[0.22em] uppercase" style={{ color: 'var(--accent)' }}>
-                {t('tm_bx_loaded')}
-              </p>
-              <p className="text-sm font-bold text-white mt-1">{boxing.name}</p>
-              <p className="text-[11px] text-zinc-400 mt-0.5">
-                {boxingSummary(boxing)}
-                {boxing.warmupMin > 0 ? ` · ${t('tm_bx_warmup', { n: boxing.warmupMin })}` : ''}
-                {boxing.cooldownMin > 0 ? ` · ${t('tm_bx_cooldown', { n: boxing.cooldownMin })}` : ''}
-              </p>
+            <div className="rk-card overflow-hidden" style={{ padding: 0, borderColor: 'rgba(225,6,0,0.35)' }}>
+              {/* Cabecera: el nombre grande y los números en fila propia. Antes
+                  todo iba en texto de 11px gris y no se leía nada en el móvil. */}
+              <div className="flex items-center gap-3 p-4">
+                <div className="w-11 h-11 flex items-center justify-center rounded-xl flex-shrink-0"
+                  style={{ background: 'rgba(225,6,0,0.14)', color: 'var(--accent)' }}>
+                  <i className="ri-boxing-line text-xl" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold tracking-[0.18em] uppercase" style={{ color: 'var(--accent)' }}>
+                    {t('tm_bx_loaded')}
+                  </p>
+                  <p className="text-[15px] font-bold text-white leading-tight truncate">{boxing.name}</p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-1.5 px-4 pb-3">
+                {[
+                  boxingSummary(boxing),
+                  boxing.warmupMin > 0 ? t('tm_bx_warmup', { n: boxing.warmupMin }) : '',
+                  boxing.cooldownMin > 0 ? t('tm_bx_cooldown', { n: boxing.cooldownMin }) : '',
+                ].filter(Boolean).map((txt) => (
+                  <span key={txt} className="text-[11px] font-semibold text-zinc-300 rounded-lg px-2 py-1"
+                    style={{ background: 'rgba(255,255,255,0.05)' }}>{txt}</span>
+                ))}
+              </div>
+
               {boxing.script.length > 0 && (
-                <ol className="mt-2.5 space-y-1">
-                  {boxing.script.map((r) => (
-                    <li key={r.round} className="text-[11px] text-zinc-400 leading-snug">
-                      <span className="text-zinc-600 mr-1.5">{r.round}.</span>
-                      <span className="text-zinc-200 font-semibold">{r.title}</span>
-                      {r.work ? <span className="text-zinc-500"> — {r.work}</span> : null}
-                    </li>
-                  ))}
-                </ol>
+                <>
+                  <button type="button" onClick={() => setVerGuion((v) => !v)}
+                    className="w-full flex items-center justify-between gap-2 px-4 py-3 cursor-pointer border-t border-white/[0.07] hover:bg-white/[0.03] transition-colors">
+                    <span className="text-xs font-bold text-white">
+                      {t('tm_bx_script', { n: boxing.script.length })}
+                    </span>
+                    <i className={`text-zinc-400 ${verGuion ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'}`} />
+                  </button>
+                  {verGuion && (
+                    <ol className="px-4 pb-4 space-y-2">
+                      {boxing.script.map((r) => (
+                        <li key={r.round} className="flex gap-2.5">
+                          <span className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-lg text-[11px] font-bold text-white"
+                            style={{ background: 'rgba(225,6,0,0.18)' }}>{r.round}</span>
+                          <span className="min-w-0">
+                            <span className="block text-[13px] font-bold text-white leading-snug">{r.title}</span>
+                            {r.work ? <span className="block text-xs text-zinc-400 leading-snug mt-0.5">{r.work}</span> : null}
+                          </span>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </>
               )}
             </div>
           </div>

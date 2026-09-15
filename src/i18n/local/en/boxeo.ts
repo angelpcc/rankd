@@ -24,6 +24,8 @@ export default {
   mc_bx_q_place: 'Where are you training?',
   mc_bx_place_home: 'At home',
   mc_bx_place_home_hint: 'No bag: shadow, footwork, technique',
+  mc_bx_place_home_bag: 'At home with a bag',
+  mc_bx_place_home_bag_hint: 'Bag at home, no partner',
   mc_bx_place_gym: 'At the gym',
   mc_bx_place_gym_hint: 'With a bag and kit',
 
@@ -50,6 +52,7 @@ export default {
   // Without this the clock shows up with 8 rounds already set and says nothing
   // about where they came from: it looks like it changed on its own.
   tm_bx_loaded: 'Workout loaded',
+  tm_bx_script: 'Round-by-round script ({{n}})',
   tm_bx_warmup: 'warm up {{n}} min',
   tm_bx_cooldown: 'cool down {{n}} min',
   tm_bx_saved: 'Boxing workout logged. It is ticked off in the Agenda.',

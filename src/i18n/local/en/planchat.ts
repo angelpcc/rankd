@@ -10,7 +10,6 @@
 export default {
   mc_as_tab_planchat: 'Plan',
 
-  mc_pc_weeks_q: 'How many weeks?',
   mc_pc_intro: 'Tell me what you want and by when. Which days you can train, how long you have, and anything you cannot do. I will build it, and then we change it by talking until it fits.',
   mc_pc_sug_1: 'I want to get lean, I can train 6 days',
   mc_pc_sug_2: 'Strength in the morning, cardio in the afternoon',
@@ -43,4 +42,5 @@ export default {
   mc_pc_err_auth: 'You need to sign in for this.',
   mc_pc_agenda_off: 'The plan is built, but the Agenda is not available yet.',
   mc_pc_no_ai: 'The AI key is missing, so I cannot build the plan yet. In the meantime you can plan by hand in Agenda › Plan.',
+  mc_pc_new_chat: 'Start over',
 };

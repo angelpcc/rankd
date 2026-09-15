@@ -93,6 +93,10 @@ export function useTimerEngine(config: TimerConfig, muted: boolean) {
   useEffect(() => {
     const id = setInterval(() => {
       if (statusRef.current !== 'running') return;
+      // El sistema suspende el audio en cuanto la app pierde el foco. Como el
+      // temporizador corre sin que nadie toque nada, este bucle es el único que
+      // puede despertarlo; si no, el resto de la sesión va muda.
+      soundsRef.current.keepAlive();
       const now = Date.now();
       const sch = scheduleRef.current;
       const seg = sch[segIndexRef.current];

@@ -33,7 +33,7 @@ import { isMissingTable } from '@/lib/dbState';
 import { DEFAULT_BURST, type RoundCombo, type TimerConfig } from '@/pages/timer/lib/session';
 
 /** Dónde se entrena. Cambia el contenido de los asaltos, no solo el material. */
-export type BoxingPlace = 'home' | 'gym';
+export type BoxingPlace = 'home' | 'home_bag' | 'gym';
 
 /** El guion de un asalto. `work` es lo que se hace; `title` lo resume. */
 export interface BoxingRound {
@@ -153,7 +153,7 @@ interface Row {
 function fromRow(r: Row): BoxingSession {
   return {
     id: r.id, name: r.name,
-    place: r.place === 'gym' ? 'gym' : 'home',
+    place: (['gym', 'home_bag', 'home'].includes(r.place) ? r.place : 'home') as BoxingPlace,
     rounds: r.rounds, roundSec: r.round_sec, restSec: r.rest_sec,
     prepSec: r.prep_sec, warnSec: r.warn_sec,
     warmupMin: r.warmup_min, cooldownMin: r.cooldown_min,

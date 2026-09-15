@@ -30,7 +30,12 @@ function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) =
       aria-label={label}
       className={`relative w-11 h-6 rounded-full flex-shrink-0 transition-colors cursor-pointer ${on ? 'bg-red-600' : 'bg-white/[0.12]'}`}
     >
-      <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${on ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+      {/* left-0 NO sobra: sin él, un absolute sin lado parte de su posición
+          estática, y dentro de un <button> eso es el CENTRO (los botones centran
+          su contenido). Encendido se iba 10px fuera del interruptor — que es el
+          "se sale del recuadro" que se veía solo en el de entrenamiento, porque
+          es el único que viene activado de serie. */}
+      <span className={`absolute left-0 top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${on ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
     </button>
   );
 }

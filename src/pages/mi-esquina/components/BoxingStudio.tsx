@@ -41,6 +41,12 @@ interface Props {
 }
 
 /** Tiempos que la gente dice de verdad. Evita teclear un número. */
+const PLACES: { v: BoxingPlace; icon: string; label: string; hint: string }[] = [
+  { v: 'home', icon: 'ri-home-4-line', label: 'mc_bx_place_home', hint: 'mc_bx_place_home_hint' },
+  { v: 'home_bag', icon: 'ri-home-gear-line', label: 'mc_bx_place_home_bag', hint: 'mc_bx_place_home_bag_hint' },
+  { v: 'gym', icon: 'ri-boxing-line', label: 'mc_bx_place_gym', hint: 'mc_bx_place_gym_hint' },
+];
+
 const MINUTOS = [30, 45, 60, 75, 90];
 
 export default function BoxingStudio({ profile, showToast }: Props) {
@@ -166,18 +172,16 @@ export default function BoxingStudio({ profile, showToast }: Props) {
         <p className="text-[11px] uppercase tracking-wider font-bold text-zinc-500 mt-4 mb-1.5">
           {t('mc_bx_q_place')}
         </p>
-        <div className="grid grid-cols-2 gap-1.5">
-          {([
-            { v: 'home' as const, icon: 'ri-home-4-line', label: t('mc_bx_place_home'), hint: t('mc_bx_place_home_hint') },
-            { v: 'gym' as const, icon: 'ri-boxing-line', label: t('mc_bx_place_gym'), hint: t('mc_bx_place_gym_hint') },
-          ]).map((o) => (
+        <div className="space-y-1.5">
+          {(PLACES).map((o) => (
             <button key={o.v} type="button" onClick={() => setPlace(o.v)}
-              className={`rounded-xl border px-3 py-2.5 text-left cursor-pointer transition-colors ${place === o.v ? 'border-white/30 bg-white/[0.07]' : 'border-white/10 hover:border-white/25'}`}
-              style={{ minHeight: 58 }}>
-              <span className="flex items-center gap-1.5 text-xs font-bold text-white">
-                <i className={o.icon} style={{ color: 'var(--accent)' }} />{o.label}
+              className={`w-full rounded-xl border px-3 py-2.5 flex items-center gap-2.5 text-left cursor-pointer transition-colors ${place === o.v ? 'border-white/30 bg-white/[0.07]' : 'border-white/10 hover:border-white/25'}`}
+              style={{ minHeight: 52 }}>
+              <i className={`${o.icon} text-lg flex-shrink-0`} style={{ color: place === o.v ? 'var(--accent)' : '#71717a' }} />
+              <span className="min-w-0">
+                <span className="block text-xs font-bold text-white">{t(o.label)}</span>
+                <span className="block text-[10px] text-zinc-500 mt-0.5 leading-tight">{t(o.hint)}</span>
               </span>
-              <span className="block text-[10px] text-zinc-500 mt-0.5 leading-tight">{o.hint}</span>
             </button>
           ))}
         </div>
@@ -214,7 +218,7 @@ export default function BoxingStudio({ profile, showToast }: Props) {
                     <p className="text-sm font-bold text-white truncate">{s.name}</p>
                     <p className="text-[11px] text-zinc-500">
                       {boxingSummary(s)} · {t('mc_bx_total', { n: boxingTotalMin(s) })}
-                      {' · '}{t(s.place === 'gym' ? 'mc_bx_place_gym' : 'mc_bx_place_home')}
+                      {' · '}{t(PLACES.find((p) => p.v === s.place)?.label || 'mc_bx_place_home')}
                     </p>
                   </div>
                 </div>
