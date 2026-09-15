@@ -22,6 +22,8 @@ import { normalizeWeekPlan } from './weekPlanAdvisor';
 export interface PlanChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  /** Foto adjunta, ya reducida y en base64 sin prefijo. Solo del usuario. */
+  image?: { base64: string; mediaType: string };
 }
 
 export interface PlanChatResult {

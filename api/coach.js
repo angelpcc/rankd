@@ -505,11 +505,75 @@ const EXTRACT_SCHEMAS = {
   },
 };
 
+/**
+ * Deja pasar una foto adjunta a un mensaje del usuario.
+ *
+ * El cliente manda `image` = { base64, mediaType } junto al texto. Aquí se
+ * convierte al formato de bloques que entiende la API.
+ *
+ * La foto va DELANTE del texto a propósito: con la imagen primero, la pregunta
+ * se lee sabiendo ya qué se está mirando. Al revés, el modelo lee "mejórame
+ * esto" sin haber visto el esto.
+ *
+ * Solo se acepta en mensajes del USUARIO: un asistente no manda fotos, y
+ * aceptarlas ahí sería dejar que el cliente inyecte contenido en el papel del
+ * modelo.
+ */
+function contenidoDeMensaje(m) {
+  const texto = String(m.content || '').slice(0, 4000);
+  const img = m.role === 'user' ? m.image : null;
+  if (!img || typeof img.base64 !== 'string' || !img.base64) return texto;
+  if (img.base64.length > MAX_IMAGE_CHARS) return texto; // demasiado grande: se manda solo el texto
+  const tipo = TIPOS_IMAGEN.includes(img.mediaType) ? img.mediaType : 'image/jpeg';
+  return [
+    { type: 'image', source: { type: 'base64', media_type: tipo, data: img.base64 } },
+    { type: 'text', text: texto || 'Mira esta foto.' },
+  ];
+}
+
+/**
+ * Cuántas fotos viajan de vuelta en cada turno.
+ *
+ * Una imagen cuesta lo mismo CADA vez que se manda, y la conversación entera
+ * se reenvía en cada turno. Sin tope, una charla con cuatro fotos las paga las
+ * cuatro en todos los mensajes siguientes — pagar diez veces por la misma foto
+ * para preguntar "¿y el jueves?".
+ *
+ * Dos es el equilibrio: la última (de la que se está hablando) y la anterior
+ * (para poder comparar "esta con la de antes"). Las más viejas se caen y queda
+ * su texto, que es lo que de verdad se sigue usando.
+ */
+const MAX_FOTOS_EN_CONTEXTO = 2;
+
+function limitarFotos(messages) {
+  let quedan = MAX_FOTOS_EN_CONTEXTO;
+  const out = new Array(messages.length);
+  // De atrás hacia delante: las que se conservan son las ÚLTIMAS.
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m?.image?.base64 && quedan > 0) { quedan--; out[i] = m; }
+    else if (m?.image) {
+      const c = { ...m };
+      delete c.image;
+      // Si ese turno era SOLO la foto, sin esto se quedaría vacío, el filtro lo
+      // tiraría entero y la conversación acabaría con dos mensajes del asesor
+      // seguidos, que la API rechaza. Queda constancia de que hubo una foto.
+      if (!String(c.content || '').trim()) c.content = '[foto que mandé antes]';
+      out[i] = c;
+    }
+    else out[i] = m;
+  }
+  return out;
+}
+
 function sanitize(messages) {
-  return (messages || [])
-    .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
+  return limitarFotos(messages || [])
+    .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+    // Un mensaje vacío SÍ vale si trae foto: "toma, mira" sin escribir nada es
+    // una forma normal de mandar una imagen.
+    .filter((m) => m.content.trim() || (m.role === 'user' && m.image?.base64))
     .slice(-20)
-    .map((m) => ({ role: m.role, content: m.content.slice(0, 4000) }));
+    .map((m) => ({ role: m.role, content: contenidoDeMensaje(m) }));
 }
 
 // ── Análisis de foto de comida (PROMPT_1 · bloque 2) ──
@@ -541,6 +605,17 @@ Reglas:
 //
 // Es transcripción, no creación: si el documento no dice una cadencia, no se
 // inventa una.
+/**
+ * Tope de una imagen en base64 (~5 MB de fichero).
+ *
+ * Se declara aquí arriba y no junto al importador porque `sanitize` —que corre
+ * en los dos chats— también lo necesita, y estaba más abajo en el fichero: una
+ * constante usada antes de declararse es un `undefined` silencioso, y el
+ * único síntoma habría sido que las fotos dejan de llegar sin decir por qué.
+ */
+const MAX_IMAGE_CHARS = 7_000_000;
+const TIPOS_IMAGEN = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
 const PROTOCOL_VALUE_KEYS = [
   'speed_kmh', 'incline_pct', 'resistance', 'cadence_rpm',
   'pace_sec_100m', 'pace_sec_500m', 'stroke_rate', 'effort',
@@ -814,7 +889,7 @@ const WEEK_PLAN_SCHEMA = {
           key: { type: 'string', description: 'Identificador corto y único dentro del plan ("cardio_tarde").' },
           name: { type: 'string', description: 'Nombre con el que lo va a ver en Actividad ("Cardio tarde — grasa").' },
           kind: { type: 'string', description: 'Tipo de actividad: cinta, correr, bici, eliptica, remo, natacion, cuerda, boxeo u otro.' },
-          when: { type: 'string', enum: ['morning', 'midday', 'afternoon', 'evening'] },
+          when: { type: 'string', enum: ['morning', 'midday', 'afternoon', 'evening'], description: 'Franja del día. Si él ha dicho cuándo puede (\"por la tarde\", \"antes de trabajar\"), es ESA y no otra. No lo muevas a la mañana porque en ayunas \"va mejor\": si no puede, no lo va a hacer.' },
           weekdays: { type: 'array', description: 'Días (0 = lunes) en los que toca este cardio.', items: { type: 'integer' } },
           minutes: { type: 'integer', description: 'Duración total del cardio en minutos.' },
           note: { type: ['string', 'null'], description: 'UNA línea diciendo la INTENCIÓN del cardio, en palabras: "ritmo cómodo, que puedas hablar", "cuestas duras con recuperación entre series". NO metas aquí una tabla de números: nada de "inclinación 4, 6, velocidad 6, 6,5". El guion minuto a minuto se monta aparte, con sus columnas, y una lista de cifras sueltas en esta nota no se entiende y no se puede seguir. Null si no hay nada que precisar.' },
@@ -944,6 +1019,13 @@ function planChatSystem(profile, ctx, previous) {
     "   para no cambiar nada tarda mucho y le cuesta dinero a quien lo usa.",
     "   Devuélvelo SOLO cuando lo hayas montado o lo hayas cambiado.",
     "",
+    "2.ter. FOTOS. Puede mandarte una foto: la hoja de su plan, la pantalla de",
+    "   una maquina, una tabla de un entrenador, un WhatsApp. Leela y trabaja",
+    "   con lo que pone. Si te dice \"mejorame esto\", primero di en una linea",
+    "   QUE has entendido que hay ahi, y despues monta el plan con tus cambios:",
+    "   asi el sabe si has leido bien antes de fiarse. Lo que no se lea, di que",
+    "   no se lee y preguntalo; no lo rellenes a ojo.",
+    "",
     "3. CAMBIOS. Si te pide cambiar algo concreto (\"el jueves no puedo\",",
     "   \"cámbiame la cena del martes\"), devuelve el MISMO plan con ESE cambio.",
     "   No rehagas lo que no te han tocado. Si te pide que propongas tú, propón",
@@ -987,6 +1069,10 @@ function planChatSystem(profile, ctx, previous) {
     "- Un cardio pedido es UN cardio. \"45 minutos de cinta\" es una sesion de 45",
     "  minutos, no una de 20 en ayunas y otra de 25 por la tarde. Doblar solo si",
     "  lo pide el.",
+    "- Y a la HORA que te diga. Si dice \"tengo 45 minutos por la tarde\", ese",
+    "  cardio es de tarde. Da igual lo que rinda mas en ayunas: un entreno a una",
+    "  hora a la que no puede es un entreno que no hace. Si crees que otra franja",
+    "  le vendria mejor, dilo en reply y que decida el.",
     "- Comidas en una linea: \"pollo a la plancha con arroz y ensalada\".",
     "- Notas de una linea, y solo si aportan.",
     "El detalle largo va en reply, que no cuenta para el tamano del plan.",
@@ -1106,8 +1192,8 @@ const FOOD_PHOTO_SCHEMA = {
 };
 
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-// ~5MB en base64 ≈ 6.8M caracteres. Defensa del servidor.
-const MAX_IMAGE_CHARS = 7_000_000;
+// MAX_IMAGE_CHARS está declarado arriba del todo: lo necesita también
+// `sanitize`, que corre antes que esto en el fichero.
 // Tope del texto pegado por el usuario en los importadores. Un PDF de rutina
 // entero cabe de sobra; lo que no cabe es un libro.
 const MAX_IMPORT_TEXT = 12_000;
@@ -1580,12 +1666,14 @@ export default async function handler(req, res) {
       exerciseNames: planChat.exerciseNames,
       activityKinds: planChat.activityKinds,
     };
-    const mensajes = historia
-      .filter((m) => m && typeof m.content === 'string' && m.content.trim())
-      .map((m) => ({
-        role: m.role === 'assistant' ? 'assistant' : 'user',
-        content: String(m.content).slice(0, 4000),
-      }));
+    const mensajes = limitarFotos(historia)
+      // Un mensaje sin texto vale si trae foto: mandar la hoja del plan sin
+      // escribir nada es una forma normal de pedir que te lo mejore.
+      .filter((m) => m && typeof m.content === 'string' && (m.content.trim() || m.image?.base64))
+      .map((m) => {
+        const role = m.role === 'assistant' ? 'assistant' : 'user';
+        return { role, content: contenidoDeMensaje({ ...m, role }) };
+      });
 
     try {
       const response = await anthropic.messages.create({

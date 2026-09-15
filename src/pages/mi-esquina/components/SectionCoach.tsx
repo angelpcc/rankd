@@ -5,6 +5,8 @@ import { supabase, Profile } from '@/lib/supabase';
 import { isMissingColumn } from '@/lib/dbState';
 import { clearChat, loadChat, saveChat } from '@/pages/mi-esquina/lib/chatHistory';
 import VoiceButton from '@/components/feature/VoiceButton';
+import PhotoAttach, { FotoPendiente } from './PhotoAttach';
+import type { ImagenLista } from '@/lib/imageInput';
 
 // 'general' es la CONSULTA ABIERTA (punto 18): cualquier duda, sin flujo. Los
 // otros tres están acotados a su ámbito y se derivan entre ellos; este no.
@@ -21,7 +23,19 @@ interface Props {
   showToast?: (msg: string, type?: 'success' | 'error') => void;
 }
 
-interface ChatMsg { role: 'user' | 'assistant'; content: string }
+interface ChatMsg {
+  role: 'user' | 'assistant';
+  content: string;
+  /**
+   * Foto adjunta, si la hay. Solo en mensajes del usuario.
+   *
+   * No se guarda en el historial de localStorage a propósito: una foto ocupa
+   * cientos de KB y el almacenamiento del navegador son unos pocos MB. Tres
+   * fotos lo llenarían y se perderían TODAS las conversaciones, que es mucho
+   * peor que perder la miniatura de una foto ya mandada.
+   */
+  image?: ImagenLista;
+}
 
 const disciplineLabels: Record<string, string> = {
   boxing: 'Boxeo', mma: 'MMA', kickboxing: 'Kickboxing',
@@ -124,6 +138,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
     () => loadChat(profile.id, section).map((x) => ({ role: x.role, content: x.content })) as ChatMsg[],
   );
   const [input, setInput] = useState('');
+  const [foto, setFoto] = useState<ImagenLista | null>(null);
   const [sending, setSending] = useState(false);
   const [streaming, setStreaming] = useState(false);
   // El asesor de Material puede buscar en la web: mientras busca (aún sin texto)
@@ -248,10 +263,13 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
   // ── Envío con STREAMING: la respuesta aparece token a token ──
   const send = useCallback(async (text: string) => {
     const content = text.trim();
-    if (!content || sending) return;
-    const next: ChatMsg[] = [...messages, { role: 'user', content }];
+    // Con foto se puede mandar sin escribir nada: enseñar algo y esperar a ver
+    // qué dice es una forma normal de preguntar.
+    if ((!content && !foto) || sending) return;
+    const next: ChatMsg[] = [...messages, { role: 'user', content, ...(foto ? { image: foto } : {}) }];
     setMessages(next);
     setInput('');
+    setFoto(null);
     setSending(true);
     setSavedNote(null);
     setDismissedPlan(false);
@@ -267,7 +285,16 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
           'Content-Type': 'application/json',
           ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         },
-        body: JSON.stringify({ section, profile: physical, messages: next }),
+        // La foto viaja aparte del texto, en `image`: el servidor la convierte
+        // en un bloque de imagen. Solo se manda la base64, no la previewUrl,
+        // que es un blob: local y fuera de este navegador no existe.
+        body: JSON.stringify({
+          section,
+          profile: physical,
+          messages: next.map((m) => (m.image
+            ? { role: m.role, content: m.content, image: { base64: m.image.base64, mediaType: m.image.mediaType } }
+            : { role: m.role, content: m.content })),
+        }),
       });
 
       // Cuota agotada: se corta con buen tono, no con un error técnico.
@@ -358,7 +385,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
     setSearching(false);
     setStreaming(false);
     setSending(false);
-  }, [messages, physical, section, sending, t]);
+  }, [messages, physical, section, sending, t, foto]);
 
   // ── Guardar el plan acordado en el diario correspondiente ──
   const savePlan = useCallback(async () => {
@@ -524,6 +551,10 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
                 <div className={`max-w-[85%] px-3.5 py-2.5 text-sm leading-relaxed ${mio
                   ? 'rk-bubble-mine rounded-2xl rounded-br-md'
                   : `rk-bubble-theirs text-zinc-200 rounded-2xl ${abre ? 'rounded-bl-md' : ''}`}`}>
+                  {m.image && (
+                    <img src={m.image.previewUrl} alt=""
+                      className="rounded-xl mb-1.5 max-h-52 w-auto" style={{ maxWidth: '100%' }} />
+                  )}
                   {m.role === 'assistant'
                     ? (searching && m.content === '' && i === messages.length - 1
                         ? <span className="flex items-center gap-2 text-zinc-400"><i className="ri-earth-line text-sky-400 animate-pulse"></i>{t('mc_ai_searching')}</span>
@@ -604,6 +635,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
 
       {/* Entrada */}
       <div className="p-3 border-t border-white/[0.07] flex-shrink-0">
+        {foto && <FotoPendiente foto={foto} onQuitar={() => setFoto(null)} />}
         {/* Mismo criterio que en el chat de plan: el campo ocupa la fila entera
             y las acciones van debajo. Aquí, además, faltaba poder dictar —
             preguntar en voz alta es justo lo que se hace en un gimnasio— y el
@@ -621,8 +653,11 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
           placeholder={t('mc_ai_input_ph')}
         />
         <div className="flex items-center justify-between gap-2 mt-2">
-          <VoiceButton onResult={(s) => setInput((p) => (p ? `${p} ${s}` : s))} />
-          <button onClick={() => send(input)} disabled={sending || !input.trim()}
+          <div className="flex items-center gap-2 min-w-0">
+            <PhotoAttach foto={foto} onFoto={setFoto} disabled={sending} />
+            <VoiceButton onResult={(s) => setInput((p) => (p ? `${p} ${s}` : s))} />
+          </div>
+          <button onClick={() => send(input)} disabled={sending || (!input.trim() && !foto)}
             className="rk-btn rk-btn-primary flex items-center gap-2 justify-center flex-shrink-0 disabled:opacity-50"
             style={{ minHeight: 46, padding: '0 1.1rem' }}>
             <i className="ri-send-plane-2-fill"></i>{t('mc_ai_send_btn')}

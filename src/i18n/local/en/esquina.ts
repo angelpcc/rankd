@@ -1923,4 +1923,7 @@ export default {
   mc_plc_total: 'Total:',
   mc_plc_use: 'Use {{n}} kg',
   mc_ai_send_btn: 'Send',
+  mc_chat_photo: 'Attach a photo',
+  mc_chat_photo_ready: 'Photo ready to send',
+  mc_chat_photo_remove: 'Remove photo',
 };

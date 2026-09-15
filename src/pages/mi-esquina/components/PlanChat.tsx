@@ -11,6 +11,8 @@ import {
 import { buildWeekContext, checkWeekPlanAvailable } from '@/services/weekPlanAdvisor';
 import { sendPlanChat, type PlanChatMessage } from '@/services/planChat';
 import { clearChat, loadChat, saveChat } from '../lib/chatHistory';
+import PhotoAttach, { FotoPendiente } from './PhotoAttach';
+import type { ImagenLista } from '@/lib/imageInput';
 
 // ════════════════════════════════════════════════════════════════
 // EL PLAN, HABLANDO
@@ -44,6 +46,14 @@ interface Turno {
   role: 'user' | 'assistant';
   content: string;
   plan?: WeekPlan;
+  /**
+   * Foto que mandó el usuario con ese turno.
+   *
+   * No va al historial guardado: una foto son cientos de KB y en localStorage
+   * caben unos pocos MB en total. Guardarlas llenaría el hueco y se perderían
+   * TODAS las conversaciones, que es mucho peor que perder una miniatura.
+   */
+  image?: ImagenLista;
 }
 
 /** "martes 16 sept" — el día tal y como se lee, no la inicial. */
@@ -60,6 +70,7 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
 
   const [turnos, setTurnos] = useState<Turno[]>([]);
   const [texto, setTexto] = useState('');
+  const [foto, setFoto] = useState<ImagenLista | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [plan, setPlan] = useState<WeekPlan | null>(null);
@@ -140,14 +151,24 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
 
   const enviar = useCallback(async (texto0?: string) => {
     const msg = (texto0 ?? texto).trim();
-    if (!msg || enviando) return;
+    // Con foto vale sin escribir: enseñarle la hoja del plan y esperar es una
+    // forma normal de pedir que te lo mejore.
+    if ((!msg && !foto) || enviando) return;
 
     const historia: PlanChatMessage[] = [
-      ...turnos.map((x) => ({ role: x.role, content: x.content })),
-      { role: 'user' as const, content: msg },
+      ...turnos.map((x) => ({
+        role: x.role,
+        content: x.content,
+        // Las fotos de turnos anteriores siguen viajando: si en el turno 1
+        // mandas la hoja y en el 3 dices "cámbiame el martes", sin la foto el
+        // modelo ya no sabe de qué martes le hablas.
+        ...(x.image ? { image: { base64: x.image.base64, mediaType: x.image.mediaType } } : {}),
+      })),
+      { role: 'user' as const, content: msg, ...(foto ? { image: { base64: foto.base64, mediaType: foto.mediaType } } : {}) },
     ];
-    setTurnos((p) => [...p, { role: 'user', content: msg }]);
+    setTurnos((p) => [...p, { role: 'user', content: msg, ...(foto ? { image: foto } : {}) }]);
     setTexto('');
+    setFoto(null);
     setEnviando(true);
 
     // El id se conserva si ya había plan: es lo que impide que un cambio cree
@@ -161,7 +182,7 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
     }
     setTurnos((p) => [...p, { role: 'assistant', content: res.reply, ...(res.plan ? { plan: res.plan } : {}) }]);
     if (res.plan) { setPlan(res.plan); setGuardado(null); }
-  }, [texto, enviando, turnos, ctx, fighter, plan, showToast, t]);
+  }, [texto, foto, enviando, turnos, ctx, fighter, plan, showToast, t]);
 
   const guardar = async () => {
     if (!plan || guardando) return;
@@ -250,6 +271,10 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
                 <div className={`max-w-[85%] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${mio
                   ? 'rk-bubble-mine rounded-2xl rounded-br-md'
                   : `rk-bubble-theirs text-zinc-200 rounded-2xl ${abre ? 'rounded-bl-md' : ''}`}`}>
+                  {x.image && (
+                    <img src={x.image.previewUrl} alt=""
+                      className="rounded-xl mb-1.5 max-h-52 w-auto" style={{ maxWidth: '100%' }} />
+                  )}
                   {x.content}
                 </div>
               </div>
@@ -287,14 +312,18 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
             fontSize 16 no es un capricho de diseño: por debajo de 16px, Safari
             de iPhone AMPLÍA la página entera al tocar el campo. */}
         <div className="px-4 pb-4 pt-3" style={{ borderTop: '1px solid var(--s-3)' }}>
+          {foto && <FotoPendiente foto={foto} onQuitar={() => setFoto(null)} />}
           <textarea value={texto} onChange={(e) => setTexto(e.target.value)} rows={2} maxLength={2000}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar(); } }}
             placeholder={t('mc_pc_ph')} disabled={sinIA}
             className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-500 resize-none disabled:opacity-50"
             style={{ fontSize: 16 }} />
           <div className="flex items-center justify-between gap-2 mt-2">
-            <VoiceButton onResult={(s) => setTexto((p) => (p ? `${p} ${s}` : s))} />
-            <button onClick={() => enviar()} disabled={enviando || !texto.trim() || sinIA}
+            <div className="flex items-center gap-2 min-w-0">
+              <PhotoAttach foto={foto} onFoto={setFoto} disabled={enviando || sinIA} />
+              <VoiceButton onResult={(s) => setTexto((p) => (p ? `${p} ${s}` : s))} />
+            </div>
+            <button onClick={() => enviar()} disabled={enviando || (!texto.trim() && !foto) || sinIA}
               className="rk-btn rk-btn-primary flex-shrink-0 flex items-center gap-2 disabled:opacity-50"
               style={{ minHeight: 46, padding: '0 1.1rem' }}>
               <i className="ri-send-plane-fill" />{t('mc_pc_send_btn')}
