@@ -281,4 +281,7 @@ Barbell row 4x10`,
   mc_mp_done: 'Done',
   mc_mp_extras_title: 'YOU ALSO HAVE',
   mc_mp_extras_hint: 'Your products that do not fit any dish in the catalogue. Use them as a side or between meals.',
+  mc_pt_col_min: 'Min',
+  mc_pt_col_what: 'What',
+  mc_pt_register: 'Log the session',
 };

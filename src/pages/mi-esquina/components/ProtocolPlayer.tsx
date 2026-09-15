@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useWakeLock } from '@/pages/timer/hooks/useWakeLock';
 import {
-  changedVars, clock, formatVarValue, protocolTotals, protocolVarsFor, segmentStarts,
+  changedVars, clock, formatVarValue, protocolColumnOrder, protocolTotals, protocolVarsFor, segmentStarts,
   type Protocol, type ProtocolSegment, type ProtocolVarDef,
 } from '@/pages/mi-esquina/lib/protocols';
 
@@ -53,6 +53,9 @@ function useBeep() {
 export default function ProtocolPlayer({ protocol, saving, onExit, onFinish }: Props) {
   const { t } = useTranslation();
   const vars = protocolVarsFor(protocol.kind);
+  // Las mismas variables pero en el orden en que se leen en una tabla impresa:
+  // en una cinta, primero la inclinación y luego la velocidad.
+  const cols = useMemo(() => protocolColumnOrder(protocol.kind), [protocol.kind]);
   const totals = useMemo(() => protocolTotals(protocol), [protocol]);
   const starts = useMemo(() => segmentStarts(protocol), [protocol]);
   const beep = useBeep();
@@ -63,7 +66,11 @@ export default function ProtocolPlayer({ protocol, saving, onExit, onFinish }: P
   const [doneSeconds, setDoneSeconds] = useState(0);
   const [doneMeters, setDoneMeters] = useState(0);
   const [finished, setFinished] = useState(false);
-  const [showAll, setShowAll] = useState(false);
+  // Abierta de entrada. La tabla NO es un detalle escondido: es la sesión.
+  // Plegada, lo primero que veías al abrir un cardio era un cronómetro y una
+  // línea, y los números que tienes que copiar en la máquina estaban detrás de
+  // un toque. Es justo al revés: el cronómetro acompaña a la tabla.
+  const [showAll, setShowAll] = useState(true);
   const [confirmExit, setConfirmExit] = useState(false);
 
   // El cronómetro no cuenta ticks: ancla un instante y mide contra el reloj.
@@ -141,12 +148,22 @@ export default function ProtocolPlayer({ protocol, saving, onExit, onFinish }: P
   const totalDone = doneSeconds + spentHere;
   const pct = totals.seconds > 0 ? Math.min(100, (totalDone / totals.seconds) * 100) : 0;
 
-  const finishNow = (completed: boolean) => {
+  /**
+   * Cierra la sesión y la registra.
+   *
+   * `aMano` es el caso de quien ha seguido la TABLA sin darle al play — que es
+   * perfectamente normal: la máquina ya lleva su propio reloj y aquí solo se
+   * viene a mirar qué toca. Para ése el cronómetro marca cero, y con cero el
+   * guardado estaba bloqueado: hacías la sesión entera y no podías registrarla.
+   * En ese caso vale lo que DURA el protocolo, que es lo que ha hecho.
+   */
+  const finishNow = (completed: boolean, aMano = false) => {
+    const hechos = Math.max(0, Math.round(doneSeconds + spentHere));
     onFinish({
-      secondsDone: Math.max(0, Math.round(doneSeconds + spentHere)),
-      segmentsDone: completed ? protocol.segments.length : index,
-      completed,
-      distanceMeters: doneMeters,
+      secondsDone: aMano && hechos < 30 ? totals.seconds : hechos,
+      segmentsDone: completed || aMano ? protocol.segments.length : index,
+      completed: completed || aMano,
+      distanceMeters: doneMeters || (aMano ? totals.meters : 0),
     });
   };
 
@@ -291,22 +308,63 @@ export default function ProtocolPlayer({ protocol, saving, onExit, onFinish }: P
         </button>
 
         {showAll && (
+          /* ── La tabla, en columnas de verdad ──
+             Antes era una lista de "0:00 · Calentamiento · 4 km/h, 2%". Encima
+             de una cinta eso no se lee: lo que se busca es la fila del minuto
+             en el que vas y las dos cifras que hay que teclear. En columnas,
+             como viene en cualquier tabla de cardio de toda la vida, se
+             encuentran de un vistazo. */
           <div className="mt-2 rk-card overflow-hidden" style={{ padding: 0 }}>
-            {protocol.segments.map((s, i) => (
-              <div key={s.id}
-                className={`flex items-center gap-3 px-3 py-2.5 ${i > 0 ? 'border-t border-white/[0.05]' : ''}`}
-                style={{ background: i === index ? 'rgba(225,6,0,0.08)' : undefined }}>
-                <span className="text-[11px] text-zinc-500 flex-shrink-0 tabular-nums" style={{ width: 44 }}>
-                  {clock(starts[i])}
-                </span>
-                <span className={`flex-1 min-w-0 text-xs truncate ${i === index ? 'text-white font-semibold' : 'text-zinc-400'}`}>
-                  {s.label ? `${s.label} · ` : ''}{valuesLine(s, vars) || '—'}
-                </span>
-                <span className="text-[11px] text-zinc-600 flex-shrink-0">
-                  {s.meters ? `${s.meters} m` : clock(s.seconds)}
-                </span>
-              </div>
-            ))}
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs" style={{ borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(255,255,255,0.05)' }}>
+                    <th className="text-left font-bold text-zinc-400 px-3 py-2 whitespace-nowrap">{t('mc_pt_col_min')}</th>
+                    {cols.map((v) => (
+                      <th key={v.id} className="text-left font-bold text-zinc-400 px-3 py-2 whitespace-nowrap">
+                        {t(v.labelKey)}
+                      </th>
+                    ))}
+                    <th className="text-left font-bold text-zinc-400 px-3 py-2 whitespace-nowrap">{t('mc_pt_col_what')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {protocol.segments.map((s, i) => {
+                    const desde = Math.round(starts[i] / 60);
+                    const hasta = Math.round((starts[i] + s.seconds) / 60);
+                    // "5-10" para un tramo largo, "3" para uno de un minuto: es
+                    // como se lee una tabla de cinta, y ahorra una columna.
+                    const min = s.meters
+                      ? `${s.meters} m`
+                      : (hasta - desde <= 1 ? String(hasta) : `${desde}-${hasta}`);
+                    const actual = i === index;
+                    return (
+                      <tr key={s.id}
+                        style={{
+                          background: actual ? 'rgba(225,6,0,0.14)' : undefined,
+                          borderTop: '1px solid rgba(255,255,255,0.05)',
+                        }}>
+                        <td className={`px-3 py-2 tabular-nums whitespace-nowrap ${actual ? 'text-white font-bold' : 'text-zinc-400'}`}>
+                          {actual && <i className="ri-play-fill mr-1" style={{ color: 'var(--accent)' }} />}
+                          {min}
+                        </td>
+                        {cols.map((v) => {
+                          const val = s.values[v.id];
+                          return (
+                            <td key={v.id} className={`px-3 py-2 tabular-nums whitespace-nowrap ${actual ? 'text-white font-bold' : 'text-zinc-300'}`}>
+                              {typeof val === 'number' ? `${formatVarValue(v, val)}${v.unit ? ` ${v.unit}` : ''}` : '—'}
+                            </td>
+                          );
+                        })}
+                        <td className={`px-3 py-2 ${actual ? 'text-white' : 'text-zinc-500'}`} style={{ minWidth: 90 }}>
+                          {s.label || '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
@@ -333,6 +391,19 @@ export default function ProtocolPlayer({ protocol, saving, onExit, onFinish }: P
             <span className="hidden sm:inline">{byDistance ? t('mc_pt_done_segment') : t('mc_pt_skip')}</span>
           </button>
         </div>
+        {/* Registrar, sin condiciones.
+            Antes la única salida era "Terminar antes", un enlace pequeño que
+            abría un diálogo donde guardar estaba DESHABILITADO si el cronómetro
+            marcaba menos de 30 s. Quien seguía la tabla mirando la máquina, sin
+            darle al play, hacía la sesión entera y no podía registrarla. */}
+        <button onClick={() => finishNow(false, true)} disabled={saving}
+          className="rk-cta w-full flex items-center justify-center gap-2 disabled:opacity-60"
+          style={{ minHeight: 52 }}>
+          {saving
+            ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            : <><i className="ri-check-line text-lg" />{t('mc_pt_register')}</>}
+        </button>
+
         <button onClick={() => setConfirmExit(true)}
           className="w-full text-xs text-zinc-500 hover:text-white cursor-pointer" style={{ minHeight: 40 }}>
           {t('mc_pt_finish_early')}

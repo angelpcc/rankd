@@ -281,4 +281,7 @@ Remo con barra 4x10`,
   mc_mp_done: 'Hecha',
   mc_mp_extras_title: 'TAMBIÉN TIENES',
   mc_mp_extras_hint: 'Productos tuyos que no encajan en ningún plato del catálogo. Úsalos de acompañamiento o entre horas.',
+  mc_pt_col_min: 'Min',
+  mc_pt_col_what: 'Qué',
+  mc_pt_register: 'Registrar la sesión',
 };

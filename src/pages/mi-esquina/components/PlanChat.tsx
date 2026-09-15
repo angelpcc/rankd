@@ -79,6 +79,8 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
    * diez minutos haría que el asesor razonara sobre algo que ya no existe.
    */
   const [agenda, setAgenda] = useState<AgendaDia[]>([]);
+  /** Por dónde va el guardado. Montar los guiones de cardio tarda. */
+  const [progreso, setProgreso] = useState<{ hechos: number; total: number } | null>(null);
   const [foto, setFoto] = useState<ImagenLista | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -215,8 +217,12 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
   const guardar = async () => {
     if (!plan || guardando) return;
     setGuardando(true);
-    const res = await commitWeekPlan(profile.id, plan);
+    const res = await commitWeekPlan(profile.id, plan, {
+      profile: fighter as unknown as Record<string, unknown>,
+      onProgress: (_paso, hechos, total) => setProgreso({ hechos, total }),
+    });
     setGuardando(false);
+    setProgreso(null);
     setGuardado(res);
     if (res.agendaUnavailable) { showToast(t('mc_pc_agenda_off'), 'error'); return; }
     showToast(t('mc_pc_saved', { n: res.agendaItems }));
@@ -373,7 +379,15 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
             className="rk-cta rk-press w-full flex items-center justify-center gap-2 mt-3 disabled:opacity-60"
             style={{ minHeight: 48 }}>
             {guardando
-              ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ? <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                {/* Decir QUÉ está tardando. Guardar es instantáneo; lo que tarda
+                    es escribir el guion de cada cardio, y una rueda muda diez
+                    segundos parece que se ha colgado. */}
+                {progreso && progreso.total > 0
+                  ? t('mc_pc_saving_cardio', { n: progreso.hechos + 1, total: progreso.total })
+                  : t('mc_saving')}
+              </>
               : <><i className="ri-calendar-check-line text-lg" /> {t('mc_pc_send')}</>}
           </button>
         </div>

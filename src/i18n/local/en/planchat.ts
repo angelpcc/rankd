@@ -46,4 +46,5 @@ export default {
   mc_pc_send_btn: 'Send',
   mc_pc_head_title: 'Your plan, by talking',
   mc_pc_head_sub: 'With your data and your schedule',
+  mc_pc_saving_cardio: 'Building cardio {{n}} of {{total}}…',
 };

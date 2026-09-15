@@ -30,6 +30,7 @@ import { supabase } from '@/lib/supabase';
 import { isMissingTable } from '@/lib/dbState';
 import { isoOf, todayISO, type MealSlot, type MuscleGroup } from './dayPlan';
 import { localId as protocolLocalId, saveProtocol, type Protocol, type ProtocolSegment } from './protocols';
+import { designCardio } from '@/services/protocolImport';
 import { localId as routineLocalId, saveRoutine, type PrescribedExercise, type Routine, type RoutineDay } from './routines';
 
 // ── El plan generado ───────────────────────────────────────────
@@ -426,12 +427,59 @@ export function newPlanId(): string {
  * se retiran antes de escribir los nuevos. Sin eso, regenerar el plan de la
  * semana dejaría el día con dos entrenos de fuerza y tres cardios.
  */
-export async function commitWeekPlan(profileId: string, plan: WeekPlan): Promise<CommitResult> {
+export interface CommitOptions {
+  /** Perfil del peleador, para que los guiones salgan a su nivel. */
+  profile?: Record<string, unknown>;
+  /** Para contar por dónde va: generar los guiones tarda unos segundos. */
+  onProgress?: (paso: 'cardios', hechos: number, total: number) => void;
+}
+
+export async function commitWeekPlan(
+  profileId: string,
+  plan: WeekPlan,
+  opts: CommitOptions = {},
+): Promise<CommitResult> {
   const out: CommitResult = {
     routineId: null, protocolIds: [], agendaItems: 0,
     storedLocally: false, agendaUnavailable: false,
     agendaItemIds: [], keptCompleted: [],
   };
+
+  // ── 0. Los guiones de cardio, ANTES de guardar nada ──
+  //
+  // Antes esto se hacía al ir a entrenar: abrías el bloque y te preguntaba si
+  // querías montarlo. Se hizo así para no pagar por guiones que igual nunca se
+  // usan, pero el resultado era que el plan quedaba a medias — te plantabas en
+  // Actividad a entrenar y lo que te encontrabas era una pantalla montando el
+  // cardio. Cuando vas a entrenar quieres entrenar.
+  //
+  // Lo que hace que esto sea asumible es que se genera UNO POR CARDIO DISTINTO,
+  // no por día: "cinta 45 min" lunes, miércoles y viernes durante dos semanas
+  // son seis bloques y UNA sola llamada. Un plan normal trae uno o dos.
+  //
+  // En paralelo porque son peticiones independientes: tres seguidas son treinta
+  // segundos mirando una rueda, y a la vez son diez.
+  const sinGuion = plan.protocols.filter((p) => p.segments.length === 0 && (p.minutes || 0) >= 5);
+  if (sinGuion.length > 0) {
+    opts.onProgress?.('cardios', 0, sinGuion.length);
+    let hechos = 0;
+    await Promise.all(sinGuion.map(async (p) => {
+      try {
+        const { protocol } = await designCardio({
+          kind: p.kind,
+          minutes: p.minutes || 30,
+          intent: [p.name, p.note].filter(Boolean).join('. '),
+          profile: opts.profile,
+        });
+        // Si falla, el plan se guarda igual y sin guion: perder el plan entero
+        // porque la IA no ha contestado sería mucho peor. El bloque del día
+        // sigue ofreciendo montarlo a mano más tarde.
+        if (protocol && protocol.segments.length > 0) p.segments = protocol.segments;
+      } catch { /* ver arriba: el plan se guarda igual */ }
+      hechos += 1;
+      opts.onProgress?.('cardios', hechos, sinGuion.length);
+    }));
+  }
 
   // ── 1. La rutina de fuerza de la semana ──
   let routine: Routine | null = null;
