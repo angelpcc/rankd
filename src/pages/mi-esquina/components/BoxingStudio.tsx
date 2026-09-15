@@ -10,6 +10,8 @@ import {
 import { checkBoxingAvailable, generateBoxingSession } from '@/services/boxingAdvisor';
 import PlanLanding from './PlanLanding';
 import { landBoxing } from '../lib/planLanding';
+import { loadAgendaSnapshot } from '../lib/agendaSnapshot';
+import { currentWeekStart } from '../lib/weekPlan';
 
 // ════════════════════════════════════════════════════════════════
 // ENTRENO DE BOXEO POR ASALTOS (punto 28)
@@ -89,7 +91,10 @@ export default function BoxingStudio({ profile, showToast }: Props) {
   const generar = async () => {
     if (minutes === null || place === null || busy) return;
     setBusy(true);
-    const res = await generateBoxingSession({ minutes, place, notes: notes.trim(), profile: fighter });
+    // La agenda se lee AHORA, no al montar: puede haber cambiado mientras
+    // elegías el tiempo y el sitio.
+    const agendaAhora = await loadAgendaSnapshot(profile.id, currentWeekStart(), 1).catch(() => []);
+    const res = await generateBoxingSession({ minutes, place, notes: notes.trim(), profile: fighter, agenda: agendaAhora });
     if (!res.session) {
       setBusy(false);
       showToast(res.error === 'auth' ? t('mc_bx_err_auth') : (res.error || t('mc_bx_err_gen')), 'error');

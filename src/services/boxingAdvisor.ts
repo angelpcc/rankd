@@ -17,6 +17,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { emptyBoxingSession, type BoxingPlace, type BoxingSession } from '@/pages/mi-esquina/lib/boxing';
+import type { AgendaDia } from '@/pages/mi-esquina/lib/agendaSnapshot';
 
 export interface BoxingRequest {
   /** Minutos disponibles. Es un límite, no una sugerencia. */
@@ -26,6 +27,14 @@ export interface BoxingRequest {
   notes?: string;
   /** Perfil del peleador, para ajustar el nivel de exigencia. */
   profile?: Record<string, unknown>;
+  /**
+   * Lo que tiene puesto estos días.
+   *
+   * Para no doblar carga sin querer: si ayer hubo pierna dura, el trabajo de
+   * desplazamientos y de piernas de la sesión baja. Sin esto, el generador
+   * montaba siempre la misma sesión al margen de la semana que lleves.
+   */
+  agenda?: AgendaDia[];
 }
 
 export interface BoxingResult {
@@ -118,8 +127,10 @@ export async function generateBoxingSession(req: BoxingRequest): Promise<BoxingR
         // El perfil va en la raíz del cuerpo, que es donde lo lee el servidor.
         // Meterlo dentro de `boxingSession` lo dejaría fuera en silencio y la
         // sesión saldría sin personalizar — el mismo fallo que ya hubo en el
-        // plan semanal.
+        // plan semanal. (Y durante un tiempo llegaba bien pero el prompt de
+        // boxeo ni siquiera lo recibía, que es la otra mitad del mismo fallo.)
         profile: req.profile || {},
+        agenda: req.agenda && req.agenda.length ? req.agenda : undefined,
       }),
     });
 

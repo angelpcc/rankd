@@ -185,7 +185,7 @@ const BOXING_SCHEMA = {
   },
 };
 
-function boxingSystem(place, minutes) {
+function boxingSystem(profile, place, minutes, agenda) {
   const sitios = {
     gym: 'EN GIMNASIO CON MATERIAL: hay saco, y puede haber manoplas, cuerda y compañero. Se pueden estructurar asaltos de saco, de manoplas y de técnica con material.',
     // El caso intermedio, y de los más comunes: saco en casa o en el garaje.
@@ -196,9 +196,27 @@ function boxingSystem(place, minutes) {
   };
   const sitio = sitios[place] || sitios.home;
 
+  // El perfil sube aquí desde el mensaje del usuario, y la agenda es nueva.
+  //
+  // El perfil SÍ llegaba al modelo, pero metido en el mensaje ("Sobre mí: …"),
+  // que es el sitio equivocado: es contexto estable de quién eres, no parte de
+  // lo que pides. En el system va con el resto de las reglas y, además, entra
+  // en el trozo que se puede cachear.
+  //
+  // La agenda no llegaba de ninguna forma: la sesión se montaba sin saber que
+  // ayer hiciste pierna, y te plantaba desplazamientos y saltos encima.
+  const agendaTxt = agendaComoTexto(agenda);
+
   return [
     'Eres un entrenador de boxeo preparando UNA sesión concreta.',
     '',
+    fighterContext(profile),
+    '',
+    agendaTxt
+      ? ('LO QUE TIENE ESTOS DÍAS (para no doblar carga sin querer):' + String.fromCharCode(10) + agendaTxt
+        + String.fromCharCode(10) + String.fromCharCode(10)
+        + 'Si ayer u hoy hay pierna dura o un cardio largo, baja el trabajo de piernas y de desplazamientos y dilo en la nota. Lo marcado YA ENTRENADO está hecho.')
+      : null,
     'DÓNDE ENTRENA: ' + sitio,
     '',
     'TIEMPO TOTAL DISPONIBLE: ' + minutes + ' minutos. Es un límite, no una sugerencia.',
@@ -217,7 +235,13 @@ function boxingSystem(place, minutes) {
     '- Si el tiempo disponible es muy corto (menos de 20 minutos), reduce asaltos',
     '  antes que recortar el calentamiento a cero: entrar en frío a golpear es',
     '  como se lesiona la gente.',
-  ].join(String.fromCharCode(10));
+    '- AJUSTA AL NIVEL que ves arriba. A un principiante, asaltos más cortos, más',
+    '  técnica y menos series seguidas; a alguien con años, combinaciones largas y',
+    '  más densidad. Y si su disciplina no es boxeo puro (MMA, muay thai,',
+    '  kickboxing), el guion lo tiene en cuenta: no le montes solo manos.',
+    '- Los minutos que te ha dado son EXACTOS, sea la cifra que sea: 31 son 31 y',
+    '  42 son 42. Cuadra los asaltos alrededor de ESE número.',
+  ].filter((l) => l !== null).join(String.fromCharCode(10));
 }
 
 /**
@@ -339,6 +363,7 @@ ${fighterContext(p)}
 Cómo respondes:
 - DENSO, no largo. 4-10 líneas, pero que cada una diga algo. Corto no significa flojo: significa sin relleno. Nada de introducciones ("buena pregunta", "depende de varios factores") ni de cierres de cortesía.
 - CONCRETO Y CON NÚMEROS. "Con eso te haces una tortilla de tres huevos con la patata cocida y un puñado de espinacas" sirve; "procura incluir proteína de calidad" no sirve. Si la respuesta lleva una cifra —series, minutos, kilos, gramos, km/h, días— DILA. Una respuesta sin un solo número casi siempre es una respuesta que no ha llegado a mojarse.
+- RESPETA SUS NÚMEROS. Cualquier cifra que te dé va tal cual: minutos, días, series, kilos, kilómetros. Si dice 31 minutos son 31, no 30; si dice 42, son 42. No los redondees a la cifra bonita ni los repartas. Te da esa cifra porque tiene ese hueco.
 - MÓJATE. Si hay tres formas de hacerlo, elige UNA y di por qué esa para él. Una lista de alternativas le devuelve el problema: la decisión es justo lo que te estaba pidiendo. Otra cosa es que falte un dato que lo cambie todo: entonces pregunta ese dato, no le des las tres.
 - DI EL PORQUÉ, en una línea. El mecanismo, no la justificación genérica: "así llegas al press con el tríceps fresco" vale; "para optimizar tu rendimiento" no vale. Es lo único que separa una respuesta de entrenador de una respuesta de buscador.
 - EL ERROR TÍPICO. Cuando lo haya, añade en una línea qué se suele hacer mal ahí. Es lo que más valor tiene y lo que nadie te dice: "el fallo aquí es subir la inclinación y agarrarse a las barras, que te quita justo el trabajo que buscas".
@@ -1118,9 +1143,12 @@ function planChatSystem(profile, ctx, previous, agenda) {
     "- Un cardio pedido es UN cardio. \"45 minutos de cinta\" es una sesion de 45",
     "  minutos, no una de 20 en ayunas y otra de 25 por la tarde. Doblar solo si",
     "  lo pide el — y si pide dos sesiones, entonces son dos.",
-    "- Y el numero que te da es EXACTO. 42 minutos son 42, no 40 ni 45 ni 30+12.",
-    "  Si te dice una cifra rara es porque tiene ese hueco: redondearsela por su",
-    "  cuenta es decidir por el sobre lo unico que el sabe seguro.",
+    "- CUALQUIER numero que te de es EXACTO, y esto vale para todos: minutos,",
+    "  dias, semanas, series, repeticiones, kilos, kilometros. 31 son 31, 42 son",
+    "  42, 45 son 45. No redondees a la cifra bonita mas cercana ni lo repartas",
+    "  en dos. Si te dice una cifra rara es porque tiene ese hueco o ese material:",
+    "  cambiarsela por su cuenta es decidir por el sobre lo unico que el sabe",
+    "  seguro. Si de verdad no cuadra, DILO y que decida el (ver 2.quater).",
     "- Y a la HORA que te diga. Si dice \"tengo 45 minutos por la tarde\", ese",
     "  cardio es de tarde. Da igual lo que rinda mas en ayunas: un entreno a una",
     "  hora a la que no puede es un entreno que no hace. Si crees que otra franja",
@@ -1791,21 +1819,19 @@ export default async function handler(req, res) {
     const minutes = Math.max(10, Math.min(180, parseInt(boxingSession.minutes, 10) || 45));
     const place = ['gym', 'home_bag', 'home'].includes(boxingSession.place) ? boxingSession.place : 'home';
     const extra = String(boxingSession.notes || '').slice(0, 600);
-    // Mismo helper que usan el plan por objetivo y el plan semanal: nivel,
-    // disciplina y peso cambian lo que es razonable pedirle a alguien en un asalto.
-    const perfil = fighterContext(profile || {});
-
+    // El perfil ya NO va aquí: ahora lo pone `boxingSystem` en el system, que es
+    // su sitio. Dejarlo en los dos lo mandaría dos veces — se pagaría dos veces
+    // y el modelo leería el mismo bloque repetido.
     const peticion = [
       'Prepárame una sesión de boxeo de ' + minutes + ' minutos.',
       extra ? 'Ten en cuenta además: ' + extra : '',
-      perfil ? 'Sobre mí: ' + perfil : '',
     ].filter(Boolean).join(String.fromCharCode(10));
 
     try {
       const response = await anthropic.messages.create({
         model: MODEL,
         max_tokens: 4000,
-        system: boxingSystem(place, minutes),
+        system: boxingSystem(profile || {}, place, minutes, agenda),
         messages: [{ role: 'user', content: peticion }],
         output_config: { format: { type: 'json_schema', schema: BOXING_SCHEMA } },
       });
