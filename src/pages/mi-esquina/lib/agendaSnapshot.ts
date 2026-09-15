@@ -41,6 +41,14 @@ export interface AgendaBloque {
   text: string;
   /** Ya entrenado. Lo hecho no se toca: es un hecho, no una intención. */
   done: boolean;
+  /**
+   * ¿Salió del plan que estamos editando?
+   *
+   * Solo se sabe cuando se pide la foto pasando el id del plan. Sirve para no
+   * contarle al modelo lo que ya le estamos contando en el propio plan: ver
+   * `compactarAgenda`.
+   */
+  fromPlan?: boolean;
 }
 
 /** Un día de los que ya han pasado, con lo que se hizo DE VERDAD. */
@@ -103,6 +111,33 @@ function resumir(kind: string, payload: Record<string, unknown> | null): string 
     return `${m.slot}: ${String(m.text || '').slice(0, 120)}`;
   }
   return '';
+}
+
+/**
+ * Quita de la foto lo que el plan que se manda aparte YA dice.
+ *
+ * ── POR QUÉ ──
+ *
+ * Al chat del plan se le mandan dos cosas: el plan actual y la agenda. Medido,
+ * en un plan de dos semanas son ~874 y ~858 tokens, y describen LO MISMO. Eso
+ * se pagaba entero en cada turno, porque nada de esto se puede cachear: cambia.
+ *
+ * Lo que la agenda aporta y el plan no puede es:
+ *   · qué está YA ENTRENADO, y
+ *   · qué hay puesto que NO salió de ese plan (lo que movió o añadió a mano).
+ *
+ * Eso es lo que se conserva. El resto se cae, porque viaja en el plan.
+ *
+ * Si no sabemos de quién es cada bloque (no se pidió con el id del plan), no se
+ * toca nada: es mejor pagar de más que quitarle contexto al modelo a ciegas.
+ */
+export function compactarAgenda(dias: AgendaDia[]): AgendaDia[] {
+  const sabemos = dias.some((d) => d.items.some((i) => i.fromPlan !== undefined));
+  if (!sabemos) return dias;
+
+  return dias
+    .map((d) => ({ ...d, items: d.items.filter((i) => i.done || i.fromPlan === false) }))
+    .filter((d) => d.items.length > 0);
 }
 
 /**
@@ -169,6 +204,8 @@ export async function loadAgendaSnapshot(
   profileId: string,
   weekStart: string,
   weeks: number,
+  /** Id del plan en curso, para poder marcar qué bloques son suyos. */
+  planId?: string,
 ): Promise<AgendaDia[]> {
   const total = Math.max(1, Math.min(8, weeks || 1));
   const ini = new Date(`${weekStart}T12:00:00`);
@@ -196,7 +233,12 @@ export async function loadAgendaSnapshot(
     const text = resumir(r.kind, r.payload);
     if (!text) continue;
     const lista = porFecha.get(r.plan_date) || [];
-    lista.push({ kind: r.kind as DayPlanKind, text, done: !!r.completed });
+    lista.push({
+      kind: r.kind as DayPlanKind,
+      text,
+      done: !!r.completed,
+      ...(planId ? { fromPlan: r.payload?.week_plan_id === planId } : {}),
+    });
     porFecha.set(r.plan_date, lista);
   }
 

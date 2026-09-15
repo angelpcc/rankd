@@ -11,7 +11,7 @@ import {
 import { buildWeekContext, checkWeekPlanAvailable } from '@/services/weekPlanAdvisor';
 import { sendPlanChat, type PlanChatMessage } from '@/services/planChat';
 import { clearChat, loadChat, saveChat } from '../lib/chatHistory';
-import { loadAgendaSnapshot, loadTrainedRecent, type AgendaDia, type DiaEntrenado } from '../lib/agendaSnapshot';
+import { compactarAgenda, loadAgendaSnapshot, loadTrainedRecent, type AgendaDia, type DiaEntrenado } from '../lib/agendaSnapshot';
 import PhotoAttach, { FotoPendiente } from './PhotoAttach';
 import type { ImagenLista } from '@/lib/imageInput';
 
@@ -202,7 +202,9 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
     // La agenda se relee AHORA, no se usa la del montaje: entre dos mensajes
     // puedes haber ido a moverla. Si falla, se manda la que hubiera.
     const [agendaAhora, histAhora] = await Promise.all([
-      loadAgendaSnapshot(profile.id, weekStart, 3).catch(() => agenda),
+      // Con el id del plan, la foto sabe qué bloques son suyos y se puede
+      // podar lo que el propio plan ya dice (ver compactarAgenda).
+      loadAgendaSnapshot(profile.id, weekStart, 3, plan?.id).catch(() => agenda),
       loadTrainedRecent(profile.id, 7).catch(() => historial),
     ]);
     setAgenda(agendaAhora);
@@ -210,7 +212,13 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
 
     // El id se conserva si ya había plan: es lo que impide que un cambio cree
     // un plan paralelo y duplique las entradas de la Agenda.
-    const res = await sendPlanChat(historia, ctx, fighter, plan, plan?.id || `wp_${Date.now().toString(36)}`, agendaAhora, histAhora);
+    const res = await sendPlanChat(historia, ctx, fighter, plan, plan?.id || `wp_${Date.now().toString(36)}`,
+      // Con plan delante, la agenda solo lleva lo que el plan no puede decir:
+      // lo ya entrenado y lo que se movió a mano. Lo demás viaja en el plan y
+      // mandarlo dos veces se paga dos veces.
+      plan ? compactarAgenda(agendaAhora) : agendaAhora,
+      histAhora,
+      !!plan);
     setEnviando(false);
 
     if (res.error) {

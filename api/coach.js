@@ -907,11 +907,11 @@ const WEEK_PLAN_SCHEMA = {
         type: 'object',
         properties: {
           weekday: { type: 'integer', description: 'Día de la semana: 0 = lunes … 6 = domingo.' },
-          week: { type: ['integer', 'null'], description: 'Semana del plan (0 = la primera). NULL si ese día es igual en todas las semanas, que es lo normal: null significa "se repite cada semana". Ponlo SOLO cuando esa semana cambie de verdad.' },
+          week: { type: ['integer', 'null'], description: 'Semana (0 = la primera). NULL = se repite todas, que es lo normal.' },
           name: { type: 'string', description: 'Nombre del día ("Espalda y pecho", "Push", "Pierna").' },
           groups: { type: 'array', description: 'Grupos musculares principales del día.', items: { type: 'string', enum: MUSCLE_GROUPS } },
           note: { type: ['string', 'null'] },
-          exercises: { type: 'array', description: 'Los ejercicios del día. DÉJALO VACÍO ([]) salvo que él haya pedido los ejercicios. "Hazme una rutina push pull pierna" pide la ESTRUCTURA: qué se trabaja cada día. Los ejercicios los pone él, o te los pide después. Rellenar esto sin que lo pida le obliga a borrar una lista que no quería, y eso es más trabajo que escribirla. Si dice "con los ejercicios", "ponme los ejercicios" o "completa", entonces sí, llénalo.', items: WEEK_EXERCISE_SCHEMA },
+          exercises: { type: 'array', description: 'Vacío ([]) salvo que haya pedido los ejercicios. Ver regla 2.ante.', items: WEEK_EXERCISE_SCHEMA },
         },
         required: ['weekday', 'week', 'name', 'groups', 'note', 'exercises'],
         additionalProperties: false,
@@ -919,17 +919,17 @@ const WEEK_PLAN_SCHEMA = {
     },
     protocols: {
       type: 'array',
-      description: 'Un elemento por cada cardio que haya PEDIDO, ni uno más. Si pide "45 min de cinta", eso es UN cardio de 45 minutos: NO lo partas en dos sesiones (mañana en ayunas + tarde) salvo que él diga expresamente que quiere doblar.',
+      description: 'Un elemento por cada cardio que haya PEDIDO, ni uno más. No lo partas en dos.',
       items: {
         type: 'object',
         properties: {
           key: { type: 'string', description: 'Identificador corto y único dentro del plan ("cardio_tarde").' },
           name: { type: 'string', description: 'Nombre con el que lo va a ver en Actividad ("Cardio tarde — grasa").' },
           kind: { type: 'string', description: 'Tipo de actividad: cinta, correr, bici, eliptica, remo, natacion, cuerda, boxeo u otro.' },
-          when: { type: 'string', enum: ['morning', 'midday', 'afternoon', 'evening'], description: 'Franja del día. Si él ha dicho cuándo puede (\"por la tarde\", \"antes de trabajar\"), es ESA y no otra. No lo muevas a la mañana porque en ayunas \"va mejor\": si no puede, no lo va a hacer.' },
+          when: { type: 'string', enum: ['morning', 'midday', 'afternoon', 'evening'], description: 'Franja del día. La que él haya dicho, y no otra.' },
           weekdays: { type: 'array', description: 'Días (0 = lunes) en los que toca este cardio.', items: { type: 'integer' } },
           minutes: { type: 'integer', description: 'Duración total del cardio en minutos.' },
-          note: { type: ['string', 'null'], description: 'UNA línea diciendo la INTENCIÓN del cardio, en palabras: "ritmo cómodo, que puedas hablar", "cuestas duras con recuperación entre series". NO metas aquí una tabla de números: nada de "inclinación 4, 6, velocidad 6, 6,5". El guion minuto a minuto se monta aparte, con sus columnas, y una lista de cifras sueltas en esta nota no se entiende y no se puede seguir. Null si no hay nada que precisar.' },
+          note: { type: ['string', 'null'], description: 'UNA línea con la intención ("ritmo cómodo, que puedas hablar"). Nunca una tabla de cifras. Null si no aplica.' },
         },
         required: ['key', 'name', 'kind', 'when', 'weekdays', 'minutes', 'note'],
         additionalProperties: false,
@@ -993,6 +993,18 @@ const WEEK_PLAN_SCHEMA = {
 // Poniendo `reply` y `ready` como hermanos del plan —y no como sus padres— el
 // esquema queda exactamente igual de hondo que WEEK_PLAN_SCHEMA, que es la
 // profundidad que ya usan la rutina y el plan por objetivo.
+// ── POR QUÉ LAS DESCRIPCIONES DE AQUÍ SON TAN CORTAS ──
+//
+// El esquema viaja ENTERO en cada llamada y NO entra en la parte cacheada del
+// prompt. Medido: 1726 tokens, de los cuales 894 eran descripciones — y las
+// seis más caras repetían palabra por palabra reglas que ya están escritas en
+// `planChatSystem`, que sí se cachea.
+//
+// Así que la regla larga vive en el prompt (se paga una vez y luego al 10%) y
+// aquí queda solo el recordatorio corto que hace falta leyendo el campo. No se
+// ha quitado ninguna regla: se ha quitado la COPIA.
+//
+// Si añades una regla nueva, escríbela en el prompt, no aquí.
 const PLAN_CHAT_SCHEMA = {
   type: 'object',
   additionalProperties: false,
@@ -1034,7 +1046,14 @@ function agendaComoTexto(agenda) {
   return lineas.join(NL);
 }
 
-function planChatSystem(profile, ctx, previous, agenda, historial) {
+/**
+ * @param parcial true cuando la agenda viene PODADA (ver `compactarAgenda` en el
+ *   cliente): solo trae lo ya entrenado y lo que no salió del plan, porque el
+ *   resto viaja dentro del propio plan. Cambia lo que se le puede decir al
+ *   modelo: una agenda podada NO es "todo lo que hay", y presentarla como tal
+ *   le haría creer que los días que faltan están vacíos.
+ */
+function planChatSystem(profile, ctx, previous, agenda, historial, parcial) {
   const NL = String.fromCharCode(10);
   const kinds = (ctx.activityKinds || []).join(", ");
   const agendaTxt = agendaComoTexto(agenda);
@@ -1194,9 +1213,9 @@ function planChatSystem(profile, ctx, previous, agenda, historial) {
 
   const volatil = agendaTxt
     ? [
-      'LO QUE HAY PUESTO AHORA MISMO EN SU AGENDA. Esto es la VERDAD: manda sobre',
-      'cualquier plan que recuerdes de la conversación, porque recoge también lo',
-      'que él haya movido a mano.',
+      parcial
+        ? 'DE SU AGENDA, SOLO LO QUE EL PLAN DE ABAJO NO DICE: lo que ya está entrenado y lo que él haya puesto o movido a mano. TODO LO DEMÁS de esos días está en el plan de abajo; que un día no salga aquí NO significa que esté vacío.'
+        : 'LO QUE HAY PUESTO AHORA MISMO EN SU AGENDA. Esto es la VERDAD: manda sobre cualquier plan que recuerdes de la conversación, porque recoge también lo que él haya movido a mano.',
       agendaTxt,
       '',
       'CÓMO USARLA:',
@@ -1814,7 +1833,7 @@ export default async function handler(req, res) {
       const response = await anthropic.messages.create({
         model: MODEL,
         max_tokens: 8000,
-        system: planChatSystem(profile || {}, ctx, planChat.previous || null, planChat.agenda, planChat.historial),
+        system: planChatSystem(profile || {}, ctx, planChat.previous || null, planChat.agenda, planChat.historial, !!planChat.agendaParcial),
         messages: mensajes,
         output_config: { format: { type: 'json_schema', schema: PLAN_CHAT_SCHEMA } },
       });

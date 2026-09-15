@@ -50,6 +50,8 @@ export async function sendPlanChat(
   planId: string,
   agenda?: AgendaDia[],
   historial?: DiaEntrenado[],
+  /** true si la agenda viene podada porque el plan ya dice el resto. */
+  agendaParcial = false,
 ): Promise<PlanChatResult> {
   const { data: { session } } = await supabase.auth.getSession();
   const token = session?.access_token;
@@ -77,6 +79,9 @@ export async function sendPlanChat(
           // lo sabe la Agenda. Sin esto, "reajústame el cardio de esta semana"
           // recibía "no tengo ningún plan previo" con el plan delante.
           agenda: agenda && agenda.length ? agenda : null,
+          // Sin esto, el servidor presentaría una agenda podada como si fuera
+          // todo lo que hay, y el modelo daría por vacíos los días que faltan.
+          agendaParcial,
           // Lo ENTRENADO de verdad, que es otra cosa que lo previsto: incluye lo
           // que hizo por su cuenta y no estaba en ningún plan.
           historial: historial && historial.length ? historial : null,
