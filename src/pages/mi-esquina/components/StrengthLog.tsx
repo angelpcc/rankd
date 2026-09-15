@@ -136,7 +136,16 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
   // Grupos del entreno PLANIFICADO para hoy, si lo hay. Alimentan el botón
   // "Registrar pecho y espalda" y abren el formulario ya con esos bloques.
   const [formInitialGroups, setFormInitialGroups] = useState<MuscleGroup[] | undefined>(undefined);
+  const [formInitialExercises, setFormInitialExercises] = useState<ExerciseSpec[] | undefined>(undefined);
   const [plannedToday, setPlannedToday] = useState<MuscleGroup[]>([]);
+  /**
+   * Los ejercicios que trae el plan de hoy, si los trae.
+   *
+   * Se llevan al formulario para no tener que teclear otra vez una lista que
+   * el plan ya dice. Van SIN series ni kilos: eso es lo que de verdad pasa en
+   * el gimnasio y es lo único que el plan no puede saber.
+   */
+  const [plannedExercises, setPlannedExercises] = useState<ExerciseSpec[]>([]);
   // Los ejercicios que dejaste escritos al planificar el día, con sus series.
   // Se abren ya puestos en el formulario: volver a escribirlos era repetir a
   // mano lo que ya habías escrito en la Agenda.
@@ -178,6 +187,10 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
     setEditData(undefined);
     setFormInitialGroup(undefined);
     setFormInitialGroups(groups);
+    // Los ejercicios del plan entran ya puestos. Si el plan no traía (ahora es
+    // lo normal: mucha gente pide solo el reparto), esto va vacío y el
+    // formulario se comporta como siempre.
+    setFormInitialExercises(plannedExercises.length > 0 ? plannedExercises : undefined);
     setFormKey((k) => k + 1);
     setShowForm(true);
   };
@@ -212,6 +225,23 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
         .flatMap((b) => (b.payload as StrengthPayload).groups || [])
         .filter((g): g is MuscleGroup => MUSCLE_GROUPS.includes(g as MuscleGroup));
       setPlannedToday([...new Set(groups)]);
+
+      // Los ejercicios del plan, sin repetidos por nombre. Un plan puede traer
+      // dos bloques el mismo día (mañana y tarde) y no tiene sentido ofrecer
+      // dos veces el mismo ejercicio.
+      const vistos = new Set<string>();
+      const ejercicios: ExerciseSpec[] = [];
+      for (const b of pendingStrength) {
+        const lista = (b.payload as StrengthPayload).exercises;
+        if (!Array.isArray(lista)) continue;
+        for (const e of lista) {
+          const clave = String(e?.name || '').trim().toLowerCase();
+          if (!clave || vistos.has(clave)) continue;
+          vistos.add(clave);
+          ejercicios.push(e);
+        }
+      }
+      setPlannedExercises(ejercicios);
     })();
     return () => { alive = false; };
   }, [profile.id, rows]);
@@ -971,6 +1001,7 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
         slotsByDate={slotsByDate}
         initialGroup={formInitialGroup}
         initialGroups={formInitialGroups}
+        initialExercises={formInitialExercises}
         initialDate={initialDate}
         initialSession={editData}
         duplicateFrom={duplicateData}

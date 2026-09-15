@@ -267,9 +267,47 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
 
   // Grupos con los que arrancar: los del plan del día si vienen, si no el del
   // muñeco muscular. Con cualquiera de los dos se salta el paso 1.
-  const startGroups: MuscleGroup[] = (initialGroups && initialGroups.length > 0)
-    ? initialGroups
-    : (initialGroup ? [initialGroup] : []);
+  // Memorizado porque bloquesDelPlan depende de él: siendo un array nuevo en
+  // cada render, el useMemo de abajo se recalcularía siempre y no memorizaría
+  // nada. Lo avisó el linter.
+  const startGroups: MuscleGroup[] = useMemo(
+    () => ((initialGroups && initialGroups.length > 0)
+      ? initialGroups
+      : (initialGroup ? [initialGroup] : [])),
+    [initialGroups, initialGroup],
+  );
+
+  /**
+   * Los ejercicios que trae el plan, ya colocados en su grupo.
+   *
+   * `initialExercises` existía en las props desde hacía tiempo pero NO SE USABA:
+   * estaba declarado, destructurado y nunca leído. Así que un plan con sus
+   * ejercicios te dejaba igual en el formulario vacío y había que teclearlos
+   * otra vez, teniéndolos escritos en el plan.
+   *
+   * Entran SIN series: cuántas y con cuántos kilos es justo lo que pasa en el
+   * gimnasio y lo único que el plan no puede saber. Poner series inventadas
+   * obligaría a corregirlas una a una, que es más trabajo que escribirlas.
+   */
+  const bloquesDelPlan = useMemo((): FBlock[] => {
+    if (!initialExercises || initialExercises.length === 0) return [];
+    const porGrupo = new Map<MuscleGroup, FExercise[]>();
+    for (const g of startGroups) porGrupo.set(g, []);
+    for (const e of initialExercises) {
+      const nombre = String(e?.name || '').trim();
+      if (!nombre) continue;
+      // El grupo sale de la biblioteca; si el ejercicio no está, va al primer
+      // grupo del día, que es mejor que descartarlo por no reconocer el nombre.
+      const g = muscleGroupOf(nombre) ?? startGroups[0];
+      if (!g) continue;
+      const lista = porGrupo.get(g) ?? [];
+      lista.push({ id: uid(), label: nombre, query: nombre, open: false, sets: [] });
+      porGrupo.set(g, lista);
+    }
+    return [...porGrupo.entries()]
+      .filter(([, ex]) => ex.length > 0)
+      .map(([group, exercises]) => ({ group, exercises }));
+  }, [initialExercises, startGroups]);
 
   const [step, setStep] = useState<1 | 2>(prefill || startGroups.length > 0 ? 2 : 1);
   // Al editar manda la fecha de la sesión; si no, la que pida quien abre el
@@ -277,7 +315,8 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
   const [date, setDate] = useState(initialSession?.date ?? initialDate ?? todayISO());
   const [blocks, setBlocks] = useState<FBlock[]>(
     prefill ? blocksFromEdit(prefill)
-      : startGroups.map((g) => ({ group: g, exercises: [] as FExercise[] })),
+      : bloquesDelPlan.length > 0 ? bloquesDelPlan
+        : startGroups.map((g) => ({ group: g, exercises: [] as FExercise[] })),
   );
   const [freeText, setFreeText] = useState('');
   const [interpreted, setInterpreted] = useState(false);
