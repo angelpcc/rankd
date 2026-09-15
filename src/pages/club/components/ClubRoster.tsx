@@ -17,7 +17,7 @@ const SESSION_TYPES = [
   { value: 'tecnica', key: 'mc_st_tecnica', icon: 'ri-focus-3-line', hex: '#38bdf8' },
   { value: 'fuerza', key: 'mc_st_fuerza', icon: 'ri-hammer-line', hex: '#fb923c' },
   { value: 'cardio', key: 'mc_st_cardio', icon: 'ri-run-line', hex: '#4ade80' },
-  { value: 'flexibilidad', key: 'mc_st_flexibilidad', icon: 'ri-yoga-line', hex: '#a78bfa' },
+  { value: 'flexibilidad', key: 'mc_st_flexibilidad', icon: 'ri-body-scan-line', hex: '#a78bfa' },
   { value: 'recuperacion', key: 'mc_st_recuperacion', icon: 'ri-heart-pulse-line', hex: '#facc15' },
 ];
 
@@ -316,7 +316,7 @@ function AddBoxerModal({ orgId, onClose, onAdded }: { orgId: string; onClose: ()
             <button type="button" onClick={() => setBasicsOpen((v) => !v)}
               className="w-full flex items-center justify-between gap-2 px-4 text-xs font-semibold text-zinc-300 bg-white/[0.03] hover:bg-white/[0.06] cursor-pointer transition-colors"
               style={{ minHeight: 44 }}>
-              <span className="flex items-center gap-1.5"><i className="ri-id-card-line text-zinc-500" />{t('cl_roster_basics')}</span>
+              <span className="flex items-center gap-1.5"><i className="ri-profile-line text-zinc-500" />{t('cl_roster_basics')}</span>
               <i className={`ri-arrow-down-s-line transition-transform ${basicsOpen ? 'rotate-180' : ''}`} />
             </button>
             {basicsOpen && (

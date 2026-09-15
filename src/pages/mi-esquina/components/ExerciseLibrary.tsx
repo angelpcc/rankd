@@ -25,7 +25,7 @@ import StateBlock from '@/components/base/StateBlock';
 // pinta o no la tarjeta de presentación.
 
 const EQUIPMENT_ICON: Record<Equipment, string> = {
-  barbell: 'ri-boxing-line', dumbbell: 'ri-dumbbell-line', cable: 'ri-links-line',
+  barbell: 'ri-boxing-line', dumbbell: 'ri-scales-line', cable: 'ri-links-line',
   machine: 'ri-settings-3-line', bodyweight: 'ri-user-line', kettlebell: 'ri-basketball-line',
   band: 'ri-loop-right-line', ball: 'ri-football-line', sled: 'ri-truck-line',
   rope: 'ri-link-unlink', odd: 'ri-hammer-line',

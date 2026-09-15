@@ -956,3 +956,86 @@ input[type="datetime-local"]::-webkit-inner-spin-button {
   display: none;
   -webkit-appearance: none;
 }
+
+/* ═══════════════ LOS CHATS DE IA ═══════════════
+   Las burbujas eran dos rectángulos planos, uno rojo y otro gris, apareciendo
+   de golpe. Funcionaba, pero no parecía que hubiera alguien al otro lado: no
+   se distinguía quién hablaba más que por el color, ni se notaba que un mensaje
+   ACABABA de llegar.
+
+   Todo lo de aquí es presentación pura. Nada cambia lo que se dice ni cuándo,
+   así que un navegador que no lo soporte enseña las mismas burbujas de antes. */
+
+/* Entrada de cada mensaje, desde SU lado. Que el tuyo entre por la derecha y el
+   suyo por la izquierda refuerza de quién es antes de leer una palabra. */
+@keyframes rk-msg-in-right {
+  from { opacity: 0; transform: translate3d(14px, 6px, 0) scale(0.97); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes rk-msg-in-left {
+  from { opacity: 0; transform: translate3d(-14px, 6px, 0) scale(0.97); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+.rk-msg-mine  { animation: rk-msg-in-right 0.34s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.rk-msg-yours { animation: rk-msg-in-left  0.34s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* La burbuja propia: el rojo plano se veía apagado en una pantalla de móvil al
+   sol. Un degradado corto y una sombra del mismo rojo le dan volumen sin
+   convertirlo en un botón. */
+.rk-bubble-mine {
+  background: linear-gradient(145deg, #F01A14 0%, #C60500 100%);
+  box-shadow: 0 6px 18px -8px rgba(225, 6, 0, 0.75);
+  color: #fff;
+}
+/* La del asesor: un pelín más clara que la tarjeta y con el borde marcado, para
+   que se despegue del fondo en vez de fundirse con él. */
+.rk-bubble-theirs {
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  box-shadow: 0 4px 14px -10px rgba(0, 0, 0, 0.9);
+}
+
+/* El cursor mientras escribe. Late en vez de encenderse y apagarse a saltos. */
+@keyframes rk-caret { 0%, 45% { opacity: 1; } 55%, 100% { opacity: 0.15; } }
+.rk-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  border-radius: 1px;
+  background: var(--accent);
+  animation: rk-caret 1s steps(1, end) infinite;
+}
+
+/* El punto "en línea" de la cabecera: respira, para que la pantalla no parezca
+   una captura congelada mientras no pasa nada. */
+@keyframes rk-alive {
+  0%, 100% { box-shadow: 0 0 0 0 currentColor; opacity: 1; }
+  50%      { box-shadow: 0 0 0 5px transparent; opacity: 0.65; }
+}
+.rk-alive { animation: rk-alive 2.6s ease-in-out infinite; }
+
+/* Sugerencias: se levantan un poco al pasar por encima. En el móvil no hay
+   hover, así que el :active da el mismo acuse de recibo al tocarlas. */
+.rk-chip {
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
+}
+.rk-chip:hover  { transform: translateY(-2px); }
+.rk-chip:active { transform: scale(0.96); }
+
+@media (prefers-reduced-motion: reduce) {
+  .rk-msg-mine, .rk-msg-yours, .rk-caret, .rk-alive { animation: none !important; }
+  .rk-chip:hover { transform: none; }
+}
+
+/* El avatar del asesor, en un sitio solo.
+   Estaba repetido con estilos en línea en los dos chats y al 12% de rojo sobre
+   un fondo casi negro: a 28px no se veía: parecía un icono suelto flotando al
+   margen del mensaje en vez de quien lo dice. Con más cuerpo y un aro marcado
+   se lee, y al estar aquí los dos chats no pueden volver a separarse. */
+.rk-ai-avatar {
+  background: rgba(225, 6, 0, 0.2);
+  border: 1px solid rgba(225, 6, 0, 0.5);
+  color: #ff5a55;
+}

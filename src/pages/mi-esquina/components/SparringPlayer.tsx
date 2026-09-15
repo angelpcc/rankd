@@ -180,7 +180,7 @@ export default function SparringPlayer({ profile, sparring, showToast, onBack }:
           </div>
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center gap-2 p-6 text-center">
-            <i className="ri-video-off-line text-3xl text-zinc-600"></i>
+            <i className="ri-camera-off-line text-3xl text-zinc-600"></i>
             <p className="text-sm text-zinc-500">{t('mc_sv_no_video')}</p>
           </div>
         )}

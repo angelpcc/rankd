@@ -476,7 +476,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
             <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${a.bg} ${a.text}`}>AUTO</span>
           </div>
           <p className="text-[11px] text-zinc-500 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: a.dot }} /> {t('mc_ai_context')}
+            <span className="w-1.5 h-1.5 rounded-full rk-alive" style={{ background: a.dot, color: a.dot }} /> {t('mc_ai_context')}
           </p>
         </div>
       </div>
@@ -501,29 +501,46 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
             <div className="flex flex-wrap gap-2 justify-center mt-4">
               {suggestions.map((s) => (
                 <button key={s} onClick={() => send(s)} disabled={sending}
-                  className="text-xs text-zinc-300 bg-white/[0.04] border border-white/10 hover:border-white/25 hover:text-white rounded-full px-3 py-1.5 transition-colors cursor-pointer disabled:opacity-50">
+                  className="rk-chip text-xs text-zinc-300 bg-white/[0.04] border border-white/10 hover:border-white/25 hover:text-white hover:bg-white/[0.07] rounded-full px-3 py-1.5 cursor-pointer disabled:opacity-50">
                   {s}
                 </button>
               ))}
             </div>
           </div>
         ) : (
-          messages.map((m, i) => (
-            <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${m.role === 'user' ? 'bg-red-600 text-white' : 'bg-white/[0.05] border border-white/10 text-zinc-200'}`}>
-                {m.role === 'assistant'
-                  ? (searching && m.content === '' && i === messages.length - 1
-                      ? <span className="flex items-center gap-2 text-zinc-400"><i className="ri-earth-line text-sky-400 animate-pulse"></i>{t('mc_ai_searching')}</span>
-                      : <div className="space-y-0.5">{renderRich(m.content, t('mc_ai_video_watch'))}{streaming && i === messages.length - 1 && <span className="inline-block w-1.5 h-3.5 bg-zinc-400 ml-0.5 align-middle animate-pulse" />}</div>)
-                  : m.content}
+          messages.map((m, i) => {
+            const mio = m.role === 'user';
+            // El avatar solo en el PRIMER mensaje de una tanda suya. Repetirlo en
+            // cada burbuja de una respuesta larga partida en trozos llena la
+            // columna de iconos y hace que parezca que habla mucha gente.
+            const abre = !mio && (i === 0 || messages[i - 1].role === 'user');
+            return (
+              <div key={i} className={`flex items-end gap-2 ${mio ? 'justify-end' : 'justify-start'} ${mio ? 'rk-msg-mine' : 'rk-msg-yours'}`}>
+                {!mio && (
+                  <div className={`w-7 h-7 flex-shrink-0 rounded-lg flex items-center justify-center ${abre ? 'rk-ai-avatar' : 'opacity-0'}`}>
+                    <i className="ri-sparkling-2-line text-sm" />
+                  </div>
+                )}
+                <div className={`max-w-[85%] px-3.5 py-2.5 text-sm leading-relaxed ${mio
+                  ? 'rk-bubble-mine rounded-2xl rounded-br-md'
+                  : `rk-bubble-theirs text-zinc-200 rounded-2xl ${abre ? 'rounded-bl-md' : ''}`}`}>
+                  {m.role === 'assistant'
+                    ? (searching && m.content === '' && i === messages.length - 1
+                        ? <span className="flex items-center gap-2 text-zinc-400"><i className="ri-earth-line text-sky-400 animate-pulse"></i>{t('mc_ai_searching')}</span>
+                        : <div className="space-y-0.5">{renderRich(m.content, t('mc_ai_video_watch'))}{streaming && i === messages.length - 1 && <span className="rk-caret" />}</div>)
+                    : m.content}
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
         {sending && !streaming && (
-          <div className="flex justify-start">
-            <div className="bg-white/[0.05] border border-white/10 rounded-2xl px-4 py-3 flex items-center gap-1.5">
-              {[0, 1, 2].map((n) => <span key={n} className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style={{ animationDelay: `${n * 0.15}s` }} />)}
+          <div className="flex items-end gap-2 justify-start rk-msg-yours">
+            <div className="w-7 h-7 flex-shrink-0 rounded-lg flex items-center justify-center rk-ai-avatar">
+              <i className="ri-sparkling-2-line text-sm" />
+            </div>
+            <div className="rk-bubble-theirs rounded-2xl rounded-bl-md px-4 py-3 flex items-center gap-1.5">
+              {[0, 1, 2].map((n) => <span key={n} className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-bounce" style={{ animationDelay: `${n * 0.15}s` }} />)}
             </div>
           </div>
         )}

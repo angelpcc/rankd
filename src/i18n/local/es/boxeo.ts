@@ -56,4 +56,5 @@ export default {
   tm_bx_warmup: 'calentar {{n}} min',
   tm_bx_cooldown: 'enfriar {{n}} min',
   tm_bx_saved: 'Entreno de boxeo registrado. Queda marcado en la Agenda.',
+  mc_bx_head_sub: 'Le dices el tiempo y sale la sesión',
 };

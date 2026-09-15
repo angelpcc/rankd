@@ -150,8 +150,21 @@ export default function BoxingStudio({ profile, showToast }: Props) {
   return (
     <div className="rk-blocks max-w-3xl">
       <div className="rk-card" style={{ padding: 18 }}>
-        <p className="text-sm font-bold text-white">{t('mc_bx_title')}</p>
-        <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{t('mc_bx_desc')}</p>
+        {/* La misma cabecera que los otros dos chats del Asesor: son tres formas
+            de pedirle lo mismo y tienen que parecer la misma herramienta. */}
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl rk-ai-avatar">
+            <i className="ri-boxing-line text-lg" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-white">{t('mc_bx_title')}</p>
+            <p className="text-[11px] text-zinc-500 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full rk-alive" style={{ background: '#E10600', color: '#E10600' }} />
+              {t('mc_bx_head_sub')}
+            </p>
+          </div>
+        </div>
+        <p className="text-xs text-zinc-400 mt-3 leading-relaxed">{t('mc_bx_desc')}</p>
 
         {/* ── 1. Cuánto tiempo ── */}
         <p className="text-[11px] uppercase tracking-wider font-bold text-zinc-500 mt-4 mb-1.5">

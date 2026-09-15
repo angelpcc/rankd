@@ -16,7 +16,7 @@ const SESSION_TYPES = [
   { value: 'tecnica', key: 'mc_st_tecnica', icon: 'ri-focus-3-line', hex: '#38bdf8' },
   { value: 'fuerza', key: 'mc_st_fuerza', icon: 'ri-hammer-line', hex: '#fb923c' },
   { value: 'cardio', key: 'mc_st_cardio', icon: 'ri-run-line', hex: '#4ade80' },
-  { value: 'flexibilidad', key: 'mc_st_flexibilidad', icon: 'ri-yoga-line', hex: '#a78bfa' },
+  { value: 'flexibilidad', key: 'mc_st_flexibilidad', icon: 'ri-body-scan-line', hex: '#a78bfa' },
   { value: 'recuperacion', key: 'mc_st_recuperacion', icon: 'ri-heart-pulse-line', hex: '#facc15' },
 ];
 const typeCfg = (v: string) => SESSION_TYPES.find((s) => s.value === v) || SESSION_TYPES[0];

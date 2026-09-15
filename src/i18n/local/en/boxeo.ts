@@ -56,4 +56,5 @@ export default {
   tm_bx_warmup: 'warm up {{n}} min',
   tm_bx_cooldown: 'cool down {{n}} min',
   tm_bx_saved: 'Boxing workout logged. It is ticked off in the Agenda.',
+  mc_bx_head_sub: 'Tell it your time, get the session',
 };

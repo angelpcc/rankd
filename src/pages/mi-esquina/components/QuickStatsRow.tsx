@@ -14,7 +14,7 @@ interface Props {
 
 const SESSION_ICONS: Record<string, string> = {
   sparring: 'ri-boxing-line', tecnica: 'ri-focus-3-line', fuerza: 'ri-hammer-line',
-  cardio: 'ri-run-line', flexibilidad: 'ri-yoga-line', recuperacion: 'ri-heart-pulse-line',
+  cardio: 'ri-run-line', flexibilidad: 'ri-body-scan-line', recuperacion: 'ri-heart-pulse-line',
 };
 
 function timeAgo(iso: string, t: (k: string, o?: Record<string, unknown>) => string): string {

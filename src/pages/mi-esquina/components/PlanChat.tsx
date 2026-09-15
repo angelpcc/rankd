@@ -178,9 +178,23 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
   return (
     <div className="rk-blocks max-w-3xl">
       {/* ── La conversación ── */}
-      <div className="rk-card" style={{ padding: 16 }}>
-        {turnos.length > 0 && (
-          <div className="flex justify-end mb-2">
+      <div className="rk-card overflow-hidden" style={{ padding: 0 }}>
+        {/* Cabecera.
+            No la tenía: el chat empezaba en un cuadro de texto suelto y no se
+            sabía con qué estabas hablando. La misma que Consulta a propósito —
+            son dos conversaciones de lo mismo y tienen que parecerlo. */}
+        <div className="px-4 py-3 border-b border-white/[0.07] flex items-center gap-3">
+          <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl rk-ai-avatar">
+            <i className="ri-calendar-todo-line text-lg" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm font-bold text-white truncate">{t('mc_pc_head_title')}</h3>
+            <p className="text-[11px] text-zinc-500 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full rk-alive" style={{ background: '#E10600', color: '#E10600' }} />
+              {t('mc_pc_head_sub')}
+            </p>
+          </div>
+          {turnos.length > 0 && (
             <button onClick={() => {
               // Se borra también el plan en curso: dejarlo colgando de una
               // conversación que ya no existe confunde más que ayudar. Lo que
@@ -188,30 +202,54 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
               setTurnos([]); setPlan(null); setGuardado(null);
               clearChat(profile.id, 'plan');
             }}
-              className="text-[11px] text-zinc-500 hover:text-zinc-300 cursor-pointer inline-flex items-center gap-1">
-              <i className="ri-refresh-line" />{t('mc_pc_new_chat')}
+              title={t('mc_pc_new_chat')}
+              className="w-9 h-9 flex-shrink-0 rounded-lg flex items-center justify-center text-zinc-500 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer">
+              <i className="ri-refresh-line" />
             </button>
-          </div>
-        )}
-        <div className="space-y-3" style={{ maxHeight: '58vh', overflowY: 'auto' }}>
+          )}
+        </div>
+
+        <div className="space-y-3 px-4 py-4" style={{ maxHeight: '58vh', overflowY: 'auto' }}>
           {turnos.length === 0 && (
-            <div className="py-4">
-              <p className="text-sm text-zinc-300 leading-relaxed">{t('mc_pc_intro')}</p>
-              <div className="flex flex-wrap gap-1.5 mt-3">
-                {[t('mc_pc_sug_1'), t('mc_pc_sug_2'), t('mc_pc_sug_3')].map((s) => (
+            <div className="py-6 text-center anim-scale-in">
+              <div className="w-14 h-14 mx-auto mb-3 flex items-center justify-center rounded-2xl anim-float rk-ai-avatar">
+                <i className="ri-chat-voice-line text-2xl" />
+              </div>
+              <p className="text-sm text-zinc-300 leading-relaxed max-w-sm mx-auto">{t('mc_pc_intro')}</p>
+              {/* Las sugerencias como tarjetas y no como pastillas: son frases
+                  largas, y en pastilla se parten en dos líneas y quedan rotas. */}
+              <div className="grid gap-1.5 mt-4 max-w-sm mx-auto">
+                {[
+                  { icon: 'ri-focus-3-line', s: t('mc_pc_sug_1') },
+                  { icon: 'ri-sun-line', s: t('mc_pc_sug_2') },
+                  { icon: 'ri-fire-line', s: t('mc_pc_sug_3') },
+                ].map(({ icon, s }) => (
                   <button key={s} onClick={() => enviar(s)} disabled={enviando || sinIA}
-                    className="text-xs text-zinc-300 bg-white/[0.04] border border-white/10 hover:border-white/25 hover:text-white rounded-full px-3 py-1.5 cursor-pointer disabled:opacity-50">
-                    {s}
+                    className="rk-chip flex items-center gap-2.5 text-left text-xs text-zinc-300 bg-white/[0.04] border border-white/10 hover:border-white/25 hover:text-white hover:bg-white/[0.07] rounded-xl px-3 py-2.5 cursor-pointer disabled:opacity-50">
+                    <i className={`${icon} text-base flex-shrink-0`} style={{ color: 'var(--accent)' }} />
+                    <span className="min-w-0">{s}</span>
                   </button>
                 ))}
               </div>
             </div>
           )}
 
-          {turnos.map((x, i) => (
+          {turnos.map((x, i) => {
+            const mio = x.role === 'user';
+            // El avatar solo en el PRIMER mensaje de una tanda suya: repetirlo en
+            // cada burbuja llena la columna de iconos y parece que hablan varios.
+            const abre = !mio && (i === 0 || turnos[i - 1].role === 'user');
+            return (
             <div key={i}>
-              <div className={`flex ${x.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${x.role === 'user' ? 'bg-red-600 text-white' : 'bg-white/[0.05] border border-white/10 text-zinc-200'}`}>
+              <div className={`flex items-end gap-2 ${mio ? 'justify-end' : 'justify-start'} ${mio ? 'rk-msg-mine' : 'rk-msg-yours'}`}>
+                {!mio && (
+                  <div className={`w-7 h-7 flex-shrink-0 rounded-lg flex items-center justify-center ${abre ? 'rk-ai-avatar' : 'opacity-0'}`}>
+                    <i className="ri-sparkling-2-line text-sm" />
+                  </div>
+                )}
+                <div className={`max-w-[85%] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${mio
+                  ? 'rk-bubble-mine rounded-2xl rounded-br-md'
+                  : `rk-bubble-theirs text-zinc-200 rounded-2xl ${abre ? 'rounded-bl-md' : ''}`}`}>
                   {x.content}
                 </div>
               </div>
@@ -222,11 +260,15 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
                 </Reveal>
               )}
             </div>
-          ))}
+            );
+          })}
 
           {enviando && (
-            <div className="flex justify-start">
-              <div className="rounded-2xl px-3.5 py-2.5 bg-white/[0.05] border border-white/10 flex items-center gap-2">
+            <div className="flex items-end gap-2 justify-start rk-msg-yours">
+              <div className="w-7 h-7 flex-shrink-0 rounded-lg flex items-center justify-center rk-ai-avatar">
+                <i className="ri-sparkling-2-line text-sm" />
+              </div>
+              <div className="rk-bubble-theirs rounded-2xl rounded-bl-md px-3.5 py-2.5 flex items-center gap-2">
                 <div className="w-3.5 h-3.5 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
                 <span className="text-xs text-zinc-400">{t('mc_pc_thinking')}</span>
               </div>
@@ -244,7 +286,7 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
             él solo, puede crecer sin empujar nada.
             fontSize 16 no es un capricho de diseño: por debajo de 16px, Safari
             de iPhone AMPLÍA la página entera al tocar el campo. */}
-        <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--s-3)' }}>
+        <div className="px-4 pb-4 pt-3" style={{ borderTop: '1px solid var(--s-3)' }}>
           <textarea value={texto} onChange={(e) => setTexto(e.target.value)} rows={2} maxLength={2000}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar(); } }}
             placeholder={t('mc_pc_ph')} disabled={sinIA}
@@ -259,7 +301,7 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
             </button>
           </div>
         </div>
-        {sinIA && <p className="text-[11px] text-[#C9A84C] mt-2 leading-relaxed">{t('mc_pc_no_ai')}</p>}
+        {sinIA && <p className="text-[11px] text-[#C9A84C] px-4 pb-4 -mt-2 leading-relaxed">{t('mc_pc_no_ai')}</p>}
       </div>
 
       {/* ── Mandarlo a la app ──
@@ -332,56 +374,97 @@ function PlanCard({ plan, vigente }: { plan: WeekPlan; vigente: boolean }) {
 
   return (
     <div className="rounded-2xl border mt-2 overflow-hidden"
-      style={{ borderColor: vigente ? 'rgba(225,6,0,0.35)' : 'rgba(255,255,255,0.10)', background: 'rgba(255,255,255,0.02)' }}>
-      <div className="px-3.5 py-2.5" style={{ borderBottom: '1px solid var(--s-3)' }}>
-        <p className="text-[10px] font-bold tracking-[0.2em] uppercase" style={{ color: vigente ? 'var(--accent)' : 'var(--t-3)' }}>
+      style={{
+        borderColor: vigente ? 'rgba(225,6,0,0.35)' : 'rgba(255,255,255,0.10)',
+        background: 'rgba(255,255,255,0.02)',
+        // El plan vigente se despega del chat con un halo propio. Los anteriores
+        // se quedan planos: siguen ahí para ver qué contestaba a qué, pero no
+        // deben competir por la mirada con el que cuenta.
+        boxShadow: vigente ? '0 10px 30px -18px rgba(225,6,0,0.9)' : 'none',
+      }}>
+      <div className="px-3.5 py-3" style={{ borderBottom: '1px solid var(--s-3)' }}>
+        <p className="text-[10px] font-bold tracking-[0.2em] uppercase flex items-center gap-1.5"
+          style={{ color: vigente ? 'var(--accent)' : 'var(--t-3)' }}>
+          {vigente && <i className="ri-checkbox-circle-fill" />}
           {vigente ? t('mc_pc_plan_current') : t('mc_pc_plan_old')}
         </p>
-        <p className="text-xs text-zinc-400 mt-1">
-          {total > 1 ? t('mc_pc_weeks_n', { n: total }) : t('mc_pc_weeks_1')}
-          {' · '}{t('mc_pc_stat_strength', { n: stats.strengthDays })}
-          {stats.cardioSlots > 0 && ` · ${t('mc_pc_stat_cardio', { n: stats.cardioSlots })}`}
-          {stats.meals > 0 && ` · ${t('mc_pc_stat_meals', { n: stats.meals })}`}
-        </p>
+        {/* Los números en pastillas y no en una línea separada por puntos: de un
+            vistazo se ve CUÁNTO hay de cada cosa, que es lo que se mira al leer
+            un plan por encima. En una sola línea gris no se lee nada. */}
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {[
+            { icon: 'ri-calendar-2-line', hex: '#a1a1aa', txt: total > 1 ? t('mc_pc_weeks_n', { n: total }) : t('mc_pc_weeks_1') },
+            { icon: 'ri-hammer-line', hex: '#fb923c', txt: t('mc_pc_stat_strength', { n: stats.strengthDays }) },
+            ...(stats.cardioSlots > 0 ? [{ icon: 'ri-heart-pulse-line', hex: '#4ade80', txt: t('mc_pc_stat_cardio', { n: stats.cardioSlots }) }] : []),
+            ...(stats.meals > 0 ? [{ icon: 'ri-restaurant-line', hex: '#38bdf8', txt: t('mc_pc_stat_meals', { n: stats.meals }) }] : []),
+          ].map(({ icon, hex, txt }) => (
+            <span key={txt} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-zinc-200 rounded-lg px-2 py-1"
+              style={{ background: 'rgba(255,255,255,0.05)' }}>
+              <i className={icon} style={{ color: hex }} />{txt}
+            </span>
+          ))}
+        </div>
       </div>
 
       <div className="divide-y" style={{ borderColor: 'var(--s-3)' }}>
         {dias.map(({ d, fuerza, cardio, comidas }) => (
-          <div key={d} className="px-3.5 py-2.5">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 capitalize">{etiquetaDia(plan, d, locale)}</p>
-            {fuerza.map((s, i) => (
-              <div key={`f${i}`} className="mt-1.5">
-                <p className="text-xs font-semibold text-white flex items-center gap-1.5">
-                  <i className="ri-hammer-line" style={{ color: '#fb923c' }} />
-                  {s.name || s.groups.join(' + ')}
-                </p>
-                {s.exercises.length > 0 && (
-                  <p className="text-[11px] text-zinc-500 leading-snug mt-0.5">
-                    {s.exercises.slice(0, 6).map((e) => `${e.name} ${fmtSetCount(e.sets, e, t)}`).join(' · ')}
-                    {s.exercises.length > 6 && ` +${s.exercises.length - 6}`}
-                  </p>
-                )}
-              </div>
-            ))}
-            {cardio.map((p, i) => {
-              const cfg = activityKindCfg(p.kind);
-              const min = Math.round(p.segments.reduce((a, s) => a + (s.seconds || 0), 0) / 60);
-              return (
-                <div key={`c${i}`} className="mt-1.5">
-                  <p className="text-xs font-semibold text-white flex items-center gap-1.5">
-                    <i className={cfg.icon} style={{ color: cfg.hex }} />
-                    {p.name || t(cfg.labelKey)}
-                    {min > 0 && <span className="text-zinc-500 font-normal">· {min} min</span>}
+          <div key={d} className="px-3.5 py-3">
+            {/* El día como etiqueta con su punto, no como un renglón gris más.
+                Es la única referencia para orientarse dentro de la tabla. */}
+            <p className="text-[11px] font-bold uppercase tracking-wider capitalize flex items-center gap-1.5 text-zinc-400">
+              <span className="w-1 h-3.5 rounded-full flex-shrink-0" style={{ background: 'var(--accent)', opacity: 0.55 }} />
+              {etiquetaDia(plan, d, locale)}
+            </p>
+
+            <div className="mt-2 space-y-2 pl-3">
+              {fuerza.map((s, i) => (
+                <div key={`f${i}`} className="flex gap-2.5">
+                  <i className="ri-hammer-line text-sm mt-0.5 flex-shrink-0" style={{ color: '#fb923c' }} />
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-white leading-snug">{s.name || s.groups.join(' + ')}</p>
+                    {s.exercises.length > 0 && (
+                      <p className="text-[11px] text-zinc-500 leading-snug mt-0.5">
+                        {s.exercises.slice(0, 6).map((e) => `${e.name} ${fmtSetCount(e.sets, e, t)}`).join(' · ')}
+                        {s.exercises.length > 6 && ` +${s.exercises.length - 6}`}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {cardio.map((p, i) => {
+                const cfg = activityKindCfg(p.kind);
+                // Los minutos salen de los TRAMOS si los hay y, si no, de
+                // `minutes`. Un cardio montado hablando no trae tramos —su
+                // esquema no tiene sitio para ellos— así que sumando solo los
+                // tramos daba 0 siempre y la duración no se veía nunca, que es
+                // justo el dato por el que se mira un cardio.
+                const min = p.segments.length > 0
+                  ? Math.round(p.segments.reduce((a, s) => a + (s.seconds || 0), 0) / 60)
+                  : (p.minutes || 0);
+                return (
+                  <div key={`c${i}`} className="flex gap-2.5">
+                    <i className={`${cfg.icon} text-sm mt-0.5 flex-shrink-0`} style={{ color: cfg.hex }} />
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-white leading-snug">
+                        {p.name || t(cfg.labelKey)}
+                        {min > 0 && <span className="text-zinc-500 font-normal"> · {min} min</span>}
+                      </p>
+                      {p.note && <p className="text-[11px] text-zinc-500 leading-snug mt-0.5">{p.note}</p>}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {comidas.map((n, i) => (
+                <div key={`m${i}`} className="flex gap-2.5">
+                  <i className="ri-restaurant-line text-sm mt-0.5 flex-shrink-0" style={{ color: '#38bdf8' }} />
+                  <p className="text-[11px] text-zinc-400 leading-snug min-w-0">
+                    {n.meals.map((m) => `${t(`mc_dp_slot_${m.slot}`, { defaultValue: m.slot })}: ${m.text}`).join(' · ')}
                   </p>
                 </div>
-              );
-            })}
-            {comidas.map((n, i) => (
-              <p key={`m${i}`} className="text-[11px] text-zinc-500 leading-snug mt-1.5">
-                <i className="ri-restaurant-line mr-1" style={{ color: '#38bdf8' }} />
-                {n.meals.map((m) => `${t(`mc_dp_slot_${m.slot}`, { defaultValue: m.slot })}: ${m.text}`).join(' · ')}
-              </p>
-            ))}
+              ))}
+            </div>
           </div>
         ))}
       </div>

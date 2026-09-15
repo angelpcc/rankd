@@ -47,7 +47,7 @@ interface Props {
 // Y Boxeo aparte, porque no es una charla: son dos datos y un cronómetro.
 const TABS: HubTab[] = [
   { id: 'consulta', labelKey: 'mc_as_tab_ask', icon: 'ri-chat-smile-3-line' },
-  { id: 'plan', labelKey: 'mc_as_tab_planchat', icon: 'ri-calendar-schedule-line' },
+  { id: 'plan', labelKey: 'mc_as_tab_planchat', icon: 'ri-calendar-todo-line' },
   // Boxeo va aquí y no en Actividad porque lo que se hace es PEDIRLO, no
   // registrarlo: dices el tiempo que tienes y sale la sesión. Ejecutarla ocurre
   // en el temporizador del Ring, que es donde se cuentan los asaltos.
