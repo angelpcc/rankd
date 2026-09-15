@@ -111,6 +111,23 @@ function logSummary(l: DayLog, t: (k: string, o?: Record<string, unknown>) => st
   return out;
 }
 
+/**
+ * El icono y el color de un bloque, con el detalle que tenga.
+ *
+ * Un bloque de actividad enseña el icono de SU actividad —correr, cinta,
+ * boxeo— y no el genérico de "actividad". Es la diferencia entre mirar el
+ * martes y saber que toca boxeo, o ver un punto de color que hay que
+ * descifrar leyendo el texto de al lado.
+ */
+function itemGlyph(item: DayPlanItem): { icon: string; hex: string } {
+  if (item.kind === 'activity') {
+    const cfg = activityKindCfg((item.payload as ActivityPayload).kind);
+    return { icon: cfg.icon, hex: cfg.hex };
+  }
+  const meta = KIND_META[item.kind];
+  return { icon: meta.icon, hex: meta.hex };
+}
+
 function iso(d: Date): string { return isoOf(d); }
 const todayISO = () => iso(new Date());
 function mondayOf(d: Date): Date {
@@ -609,7 +626,9 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
               const isToday = dISO === todayISO();
               const preview = list.slice(0, 2);
               const dayLog = logSummary(loggedByDate.get(dISO) || EMPTY_LOG, t);
-              const doneCount = list.filter((x) => TICK_KINDS.includes(x.kind) && x.completed).length;
+              const marcables = list.filter((x) => TICK_KINDS.includes(x.kind));
+              const tickables = marcables.length;
+              const doneCount = marcables.filter((x) => x.completed).length;
               const hasFight = evs.some((e) => e.kind === 'fight');
               const hasWeigh = evs.some((e) => e.kind === 'weigh_in');
               // Intensidad de fondo según la carga del día: un día con 4 cosas
@@ -630,14 +649,19 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
                   </div>
 
                   <div className="mt-2 flex-1 space-y-1">
-                    {preview.map((e) => (
-                      <div key={e.id} className="flex items-center gap-1.5 min-w-0">
-                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: KIND_META[e.kind].hex }} />
-                        <span className={`text-[11px] truncate ${e.completed && TICK_KINDS.includes(e.kind) ? 'text-zinc-600 line-through' : 'text-zinc-300'}`}>
-                          {summarizeItem(e, t)}
-                        </span>
-                      </div>
-                    ))}
+                    {preview.map((e) => {
+                      const g = itemGlyph(e);
+                      const hecho = e.completed && TICK_KINDS.includes(e.kind);
+                      return (
+                        <div key={e.id} className="flex items-center gap-1.5 min-w-0">
+                          <i className={`${g.icon} text-[12px] flex-shrink-0`}
+                            style={{ color: hecho ? '#3f3f46' : g.hex }} />
+                          <span className={`text-[11px] truncate ${hecho ? 'text-zinc-600 line-through' : 'text-zinc-300'}`}>
+                            {summarizeItem(e, t)}
+                          </span>
+                        </div>
+                      );
+                    })}
                     {list.length > 2 && <span className="text-[10px] text-zinc-600">{t('mc_ag_more_count', { n: list.length - 2 })}</span>}
 
                     {/* Lo que se REGISTRÓ ese día. Va con el tic verde delante
@@ -661,12 +685,26 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
                     )}
                   </div>
 
+                  {/* Cuánto llevas hecho de ese día, en una barra.
+                      El número solo ("2") no dice si son dos de dos o dos de
+                      cinco, que es lo que de verdad se mira al repasar la
+                      semana. La barra sí, y sin leer nada. */}
+                  {tickables > 0 && (
+                    <div className="mt-2 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.07)' }}>
+                      <div className="h-full rounded-full transition-all"
+                        style={{
+                          width: `${Math.round((doneCount / tickables) * 100)}%`,
+                          background: doneCount >= tickables ? '#4ade80' : 'var(--accent)',
+                        }} />
+                    </div>
+                  )}
+
                   <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                     {mode === 'pro' && hasFight && <i className="ri-sword-line text-[12px]" style={{ color: '#ff2d2d' }} title={t('mc_cal_kind_fight')}></i>}
                     {mode === 'pro' && hasWeigh && <i className="ri-scales-2-line text-[12px]" style={{ color: '#C9A84C' }} title={t('mc_cal_kind_weigh')}></i>}
                     {doneCount > 0 && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-400">
-                        <i className="ri-check-double-line"></i>{doneCount}
+                        <i className="ri-check-double-line"></i>{doneCount}/{tickables}
                       </span>
                     )}
                   </div>
