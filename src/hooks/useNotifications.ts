@@ -112,6 +112,19 @@ export function useNotifications(userId: string | undefined, opts?: { reminders?
     if (!userId || !available || remindersDone.current) return;
     remindersDone.current = true;
 
+    // Si ya hay avisos sin leer esperando, no se generan más.
+    //
+    // Los tres recordatorios se comprobaban solo contra los de HOY, así que
+    // cada día que pasaba sin abrir la app añadía otra tanda. Al volver después
+    // de una semana la campana era una pila de lo mismo repetido, y una pila no
+    // se lee: se vacía de un tirón sin mirarla, que es perder los tres.
+    const { count: sinLeer } = await supabase
+      .from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .is('read_at', null);
+    if ((sinLeer || 0) >= 3) return;
+
     const todayStart = startOfToday().toISOString();
     const { data: todaysNotifs } = await supabase
       .from('notifications')
@@ -119,6 +132,21 @@ export function useNotifications(userId: string | undefined, opts?: { reminders?
       .eq('user_id', userId)
       .gte('created_at', todayStart);
     const already = new Set((todaysNotifs || []).map((n) => n.kind));
+
+    // El aviso de inactividad se mira en una ventana MÁS LARGA que la de hoy.
+    // A partir del tercer día sin registrar nada, la condición se cumple todos
+    // los días: repetido a diario deja de ser un recordatorio y pasa a ser una
+    // regañina. Con cinco días de margen se dice una vez, y si sigue sin
+    // aparecer, se vuelve a decir una sola vez.
+    const haceCincoDias = new Date(Date.now() - 5 * 86400000).toISOString();
+    const { data: inactRecientes } = await supabase
+      .from('notifications')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('kind', 'inactivity')
+      .gte('created_at', haceCincoDias)
+      .limit(1);
+    const inactividadReciente = (inactRecientes || []).length > 0;
 
     const pending: { kind: NotificationKind; title: string; body: string; link: string }[] = [];
 
@@ -155,7 +183,7 @@ export function useNotifications(userId: string | undefined, opts?: { reminders?
     }
 
     // 2. Días sin registrar actividad
-    if (!already.has('inactivity')) {
+    if (!inactividadReciente) {
       const { data: sessions } = await supabase
         .from('training_sessions').select('session_date')
         .eq('fighter_profile_id', userId)
