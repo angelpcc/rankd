@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import type { Profile } from '@/lib/supabase';
 import Reveal from '@/components/base/Reveal';
 import { activityKindCfg, type ActivityPayload } from '../lib/dayPlan';
-import { loadTodayTraining, type TodayTraining } from '../lib/todayTraining';
+import { loadTodayTraining, type PlannedEntry, type TodayTraining } from '../lib/todayTraining';
+import { puedeMontarGuion } from './useActivityLauncher';
 
 // "Hoy toca" de ACTIVIDAD — el gemelo de la card de Fuerza (StrengthSummary).
 //
@@ -22,15 +23,25 @@ import { loadTodayTraining, type TodayTraining } from '../lib/todayTraining';
 
 interface Props {
   profile: Profile;
-  /** Abre el formulario de registro, con el tipo ya puesto si se sabe. */
-  onLog: (kind?: string) => void;
+  /**
+   * Abre lo que RESUELVE ese bloque, no el formulario.
+   *
+   * Antes esto era `onLog(kind)` y llevaba siempre al registro a mano, que se
+   * abría más abajo de donde estabas y sin llevarte a él: desde fuera, darle
+   * al botón no hacía nada. Ahora decide el lanzador compartido
+   * (useActivityLauncher), el mismo que usa el bloque del día en la Agenda,
+   * para que las dos pantallas no puedan volver a hacer cosas distintas.
+   */
+  onRun: (entry: PlannedEntry) => void;
+  /** id del bloque que se está abriendo, para bloquear el botón mientras. */
+  abriendo?: string | null;
   /** Abre la Agenda del día. */
   onGoAgenda?: () => void;
   /** Sube al guardar o borrar: obliga a releer sin recargar la página. */
   refreshKey?: number;
 }
 
-export default function ActivityTodayCard({ profile, onLog, onGoAgenda, refreshKey = 0 }: Props) {
+export default function ActivityTodayCard({ profile, onRun, abriendo, onGoAgenda, refreshKey = 0 }: Props) {
   const { t } = useTranslation();
   const [today, setToday] = useState<TodayTraining | null>(null);
 
@@ -77,11 +88,25 @@ export default function ActivityTodayCard({ profile, onLog, onGoAgenda, refreshK
               </div>
             );
           })}
-          <button
-            onClick={() => onLog((pending[0].payload as ActivityPayload).kind)}
-            className="rk-cta w-full flex items-center justify-center gap-2 mt-4">
-            <i className="ri-play-fill text-lg" />{t('mc_hoy_act_cta')}
-          </button>
+          {(() => {
+            const primero = pending[0];
+            const p = primero.payload as ActivityPayload;
+            // El botón dice lo que va a pasar. "Registrar ahora" era mentira
+            // cuando lo que toca es HACER la sesión: se empieza, y registrar
+            // viene después, al acabarla.
+            const guiado = !!p.protocol_id || !!p.boxing_id || puedeMontarGuion(primero.source, p);
+            return (
+              <button
+                onClick={() => onRun(primero)}
+                disabled={abriendo === primero.id}
+                className="rk-cta w-full flex items-center justify-center gap-2 mt-4 disabled:opacity-60">
+                {abriendo === primero.id
+                  ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  : <i className={guiado ? 'ri-play-fill text-lg' : 'ri-edit-box-line text-lg'} />}
+                {t(guiado ? 'mc_hoy_act_start' : 'mc_hoy_act_cta')}
+              </button>
+            );
+          })()}
         </div>
       </Reveal>
     );

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase, type Profile } from '@/lib/supabase';
 import Reveal from '@/components/base/Reveal';
 import {
-  boxingSummary, boxingTotalMin, loadBoxingSessions, saveBoxingSession,
+  BOXING_PLACES, boxingSummary, boxingTotalMin, loadBoxingSessions, saveBoxingSession,
   type BoxingPlace, type BoxingSession,
 } from '../lib/boxing';
 import { checkBoxingAvailable, generateBoxingSession } from '@/services/boxingAdvisor';
@@ -41,12 +41,6 @@ interface Props {
 }
 
 /** Tiempos que la gente dice de verdad. Evita teclear un número. */
-const PLACES: { v: BoxingPlace; icon: string; label: string; hint: string }[] = [
-  { v: 'home', icon: 'ri-home-4-line', label: 'mc_bx_place_home', hint: 'mc_bx_place_home_hint' },
-  { v: 'home_bag', icon: 'ri-home-gear-line', label: 'mc_bx_place_home_bag', hint: 'mc_bx_place_home_bag_hint' },
-  { v: 'gym', icon: 'ri-boxing-line', label: 'mc_bx_place_gym', hint: 'mc_bx_place_gym_hint' },
-];
-
 const MINUTOS = [30, 45, 60, 75, 90];
 
 export default function BoxingStudio({ profile, showToast }: Props) {
@@ -186,7 +180,7 @@ export default function BoxingStudio({ profile, showToast }: Props) {
           {t('mc_bx_q_place')}
         </p>
         <div className="space-y-1.5">
-          {(PLACES).map((o) => (
+          {(BOXING_PLACES).map((o) => (
             <button key={o.v} type="button" onClick={() => setPlace(o.v)}
               className={`w-full rounded-xl border px-3 py-2.5 flex items-center gap-2.5 text-left cursor-pointer transition-colors ${place === o.v ? 'border-white/30 bg-white/[0.07]' : 'border-white/10 hover:border-white/25'}`}
               style={{ minHeight: 52 }}>
@@ -231,7 +225,7 @@ export default function BoxingStudio({ profile, showToast }: Props) {
                     <p className="text-sm font-bold text-white truncate">{s.name}</p>
                     <p className="text-[11px] text-zinc-500">
                       {boxingSummary(s)} · {t('mc_bx_total', { n: boxingTotalMin(s) })}
-                      {' · '}{t(PLACES.find((p) => p.v === s.place)?.label || 'mc_bx_place_home')}
+                      {' · '}{t(BOXING_PLACES.find((p) => p.v === s.place)?.label || 'mc_bx_place_home')}
                     </p>
                   </div>
                 </div>

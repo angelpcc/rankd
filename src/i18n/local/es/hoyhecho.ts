@@ -61,4 +61,5 @@ export default {
   // ── Agenda · resumen de lo entrenado ──
   mc_ag_done_sets_one: '1 serie',
   mc_ag_done_sets_other: '{{count}} series',
+  mc_hoy_act_start: 'Empezar la sesión',
 };

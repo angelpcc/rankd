@@ -62,4 +62,5 @@ export default {
   // ── Agenda · summary of what was trained ──
   mc_ag_done_sets_one: '1 set',
   mc_ag_done_sets_other: '{{count}} sets',
+  mc_hoy_act_start: 'Start the session',
 };

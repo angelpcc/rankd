@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable, writeDroppingMissingColumns } from '@/lib/dbState';
 import Reveal from '@/components/base/Reveal';
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { ACTIVITY_KINDS, activityKindCfg, computePace, paceLabel, paceToSec, todayISO } from '../lib/dayPlan';
+import { ACTIVITY_KINDS, activityKindCfg, computePace, paceLabel, paceToSec, todayISO, type ActivityPayload } from '../lib/dayPlan';
 import ActivityGlyph from './ActivityGlyph';
 import StreakRow from './StreakRow';
 import WeekBars, { last7Days } from '@/components/base/WeekBars';
@@ -12,6 +13,7 @@ import CountUp from '@/components/base/CountUp';
 import { reconcileDayTicks } from '../lib/planTicks';
 import SectionHero from './SectionHero';
 import ActivityTodayCard from './ActivityTodayCard';
+import { useActivityLauncher } from './useActivityLauncher';
 
 interface Props {
   profile: Profile;
@@ -161,9 +163,34 @@ export default function FighterTraining({ profile, showToast, initialDate, initi
   // arriba se actualiza en el mismo instante en que se guarda, sin depender de
   // nadie: el usuario ve desaparecer el aviso al pulsar guardar, que es cuando
   // lo espera.
+  const navigate = useNavigate();
   const [localRefresh, setLocalRefresh] = useState(0);
   /** Algo ha cambiado aquí: relee la card y avisa al Resumen. */
   const bumpToday = () => setLocalRefresh((k) => k + 1);
+
+  /**
+   * Quien decide qué abre un cardio planificado. El MISMO que usa el bloque
+   * del día en la Agenda: si cada pantalla lo decidiera por su cuenta, volvería
+   * a pasar lo de antes — allí se ejecutaba y aquí se abría un formulario.
+   */
+  const lanzador = useActivityLauncher({
+    profile,
+    showToast,
+    onGoBoxing: (id) => navigate(`/timer?session=${id}`),
+    onLogManual: (fecha, k) => {
+      // `resetForm` no toca ni el tipo ni la fecha, así que el orden da igual;
+      // se llama para no arrastrar los datos de una edición anterior
+      // (distancia, asaltos, nota) a este alta nueva.
+      const known = !!k && ACTIVITY_KINDS.some((x) => x.value === k);
+      setEditingId(null);
+      resetForm();
+      if (known) setKind(k);
+      setDate(fecha || todayISO());
+      setStep(known ? 2 : 1);
+      setShowForm(true);
+    },
+    onDone: () => { bumpToday(); onLogged?.(); },
+  });
 
   useEffect(() => {
     if (!initialDate && !initialKind) return;
@@ -449,6 +476,9 @@ export default function FighterTraining({ profile, showToast, initialDate, initi
 
   return (
     <div className="rk-blocks max-w-4xl">
+      {/* El reproductor y la pregunta del guion, montados una sola vez. */}
+      {lanzador.overlays}
+
       <SectionHero kind="activity" eyebrow={t('mc_av_eyebrow')}
         title={`${t('mc_av_title')} ${t('mc_av_title_2')}`}
         subtitle={sessions.length ? t('mc_av_hero_sub', { n: sessions.length }) : t('mc_av_sub')}
@@ -470,18 +500,8 @@ export default function FighterTraining({ profile, showToast, initialDate, initi
               dos no pueden discrepar. `localRefresh` la relee al guardar sin
               esperar a que el Resumen se entere. */}
           <ActivityTodayCard profile={profile} refreshKey={refreshKey + localRefresh}
-            onLog={(k) => {
-              // `resetForm` no toca ni el tipo ni la fecha, así que el orden da
-              // igual; se llama para no arrastrar los datos de una edición
-              // anterior (distancia, asaltos, nota) a este alta nueva.
-              const known = !!k && ACTIVITY_KINDS.some((x) => x.value === k);
-              setEditingId(null);
-              resetForm();
-              if (known) setKind(k as string);
-              setDate(todayISO());
-              setStep(known ? 2 : 1);
-              setShowForm(true);
-            }}
+            onRun={(x) => lanzador.abrir({ id: x.id, planDate: todayISO(), payload: x.payload as ActivityPayload, source: x.source })}
+            abriendo={lanzador.abriendo}
             onGoAgenda={onGoAgenda} />
 
           {/* ── Racha y semana: SIEMPRE, también sin una sola sesión ──

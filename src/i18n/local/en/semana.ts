@@ -119,4 +119,7 @@ And give me lunch and dinner for the 5 days, with basic ingredients that are qui
   mc_ag_cardio_building: 'Building…',
   mc_ag_cardio_manual: 'Log it by hand',
   mc_ag_cardio_failed: "I couldn't build the script. Try again.",
+  mc_ag_boxing_title: 'This boxing session is not built yet',
+  mc_ag_boxing_desc: 'The plan gives the minutes. I can build it round by round, with a script for each, and it starts straight in the timer. Built once, saved for good.',
+  mc_ag_boxing_build: 'Build the session',
 };

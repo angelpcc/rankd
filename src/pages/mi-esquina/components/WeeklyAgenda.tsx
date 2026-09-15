@@ -8,11 +8,9 @@ import SegmentedProgress from '@/components/base/SegmentedProgress';
 import StrengthPlanBuilder from './StrengthPlanBuilder';
 import SectionHero from './SectionHero';
 import RoutineRunner from './RoutineRunner';
-import ProtocolPlayer from './ProtocolPlayer';
 import { activeSupplementsOn } from '../lib/supplements';
 import { loadRoutineById, saveRoutineSession, touchRoutine, type LoggedSet, type Routine, type RoutineDay } from '../lib/routines';
-import { finishRun, loadProtocolById, localId as protocolLocalId, saveProtocol, type Protocol } from '../lib/protocols';
-import { designCardio } from '@/services/protocolImport';
+import { useActivityLauncher, puedeMontarGuion } from './useActivityLauncher';
 import { reconcileDayTicks } from '../lib/planTicks';
 import {
   type DayPlanItem, type DayPlanKind, type StrengthPayload, type ActivityPayload,
@@ -159,12 +157,25 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
   // (routine_id / protocol_id). Al tocarlo se abre AQUÍ MISMO el checklist o el
   // reproductor, en vez de mandar al usuario a Fuerza o Actividad a buscarlo.
   const [runner, setRunner] = useState<{ item: DayPlanItem; routine: Routine; day: RoutineDay } | null>(null);
-  const [player, setPlayer] = useState<{ item: DayPlanItem; protocol: Protocol } | null>(null);
+
   // id del bloque que se está abriendo, para que el botón muestre que va.
   const [opening, setOpening] = useState<string | null>(null);
-  /** Cardio del plan al que todavía le falta el guion. Ver `montarGuion`. */
-  const [sinGuion, setSinGuion] = useState<DayPlanItem | null>(null);
-  const [montando, setMontando] = useState(false);
+  /**
+   * Quien decide qué abre un bloque de ACTIVIDAD. Vive fuera de esta pantalla
+   * porque la tarjeta "hoy toca" de Actividad tiene que hacer exactamente lo
+   * mismo, y cuando cada una lo decidía por su cuenta acabaron haciendo cosas
+   * distintas: aquí se ejecutaba y allí se abría un formulario.
+   */
+  const lanzador = useActivityLauncher({
+    profile,
+    showToast,
+    onGoBoxing,
+    onLogManual: onGoActivity,
+    onDone: () => { load(); onLogged?.(); },
+  });
+  // Estable (es un useCallback del hook): depender del objeto entero, que se
+  // crea nuevo en cada render, rehacía openItem sin parar.
+  const abrirActividad = lanzador.abrir;
   const [runSaving, setRunSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -358,91 +369,20 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
         return;
       }
       if (item.kind === 'activity') {
-        const p = item.payload as ActivityPayload;
-        // ── Entreno de boxeo: al TEMPORIZADOR, con los asaltos ya puestos ──
-        // Ni reproductor de tramos ni formulario de registro: el guion de este
-        // bloque son ASALTOS, y quien sabe contarlos es el temporizador del
-        // Ring. Es el punto entero del 28 — si hubiera que teclear los asaltos
-        // a mano, el entreno generado no serviría de nada.
-        if (p.boxing_id) {
-          onGoBoxing?.(p.boxing_id);
-          return;
-        }
-        if (p.protocol_id) {
-          const protocol = await loadProtocolById(profile.id, p.protocol_id);
-          if (protocol) { setPlayer({ item, protocol }); return; }
-          showToast(t('mc_ag_run_missing'), 'error');
-        }
-        // ── Cardio del plan sin guion ──
-        //
-        // El plan describe el cardio en una línea ("cinta, 45 min, ritmo
-        // cómodo") porque su esquema no tiene sitio para los tramos. Sin
-        // protocolo detrás esta fila no llevaba a ningún sitio útil: en un día
-        // futuro ni siquiera se podía tocar, que es el "no hay botón".
-        //
-        // Se pregunta en vez de generar directamente: montar el guion cuesta
-        // saldo, y gastarlo sin avisar por tocar una fila no es aceptable.
-        if ((item.source === 'advisor' || item.source === 'template') && (p.duration_min || 0) >= 5) {
-          setSinGuion(item);
-          return;
-        }
-        // El tipo va delante: llegar a Actividad con "correr" ya elegido ahorra
-        // el paso que el bloque ya había contestado.
-        onGoActivity(item.plan_date, p.kind);
+        // Boxeo al temporizador, cardio al reproductor, sin guion se ofrece
+        // montarlo, y si no queda nada, al registro a mano. Todo eso lo decide
+        // el lanzador; aquí solo se le pasa el bloque.
+        await abrirActividad({
+          id: item.id,
+          planDate: item.plan_date,
+          payload: item.payload as ActivityPayload,
+          source: item.source,
+        });
       }
     } finally {
       setOpening(null);
     }
-  }, [profile.id, showToast, t, onGoStrength, onGoActivity, onGoBoxing]);
-
-  /**
-   * Escribe el guion minuto a minuto de un cardio del plan y lo deja guardado.
-   *
-   * Lo que sale se guarda como protocolo y se engancha al bloque del día, así
-   * que esto se paga UNA vez: la próxima el bloque ya abre el reproductor
-   * directamente, igual que si el guion hubiera venido con el plan.
-   */
-  const montarGuion = async () => {
-    const item = sinGuion;
-    if (!item) return;
-    const p = item.payload as ActivityPayload;
-    setMontando(true);
-    const { protocol: disenado, error } = await designCardio({
-      kind: p.kind,
-      minutes: p.duration_min || 30,
-      intent: [p.protocol_name, p.note].filter(Boolean).join('. '),
-      profile: profile as unknown as Record<string, unknown>,
-    });
-    if (!disenado) {
-      setMontando(false);
-      showToast(error || t('mc_ag_cardio_failed'), 'error');
-      return;
-    }
-
-    const { protocol } = await saveProtocol(profile.id, {
-      id: protocolLocalId('prot'),
-      name: p.protocol_name || disenado.name,
-      kind: p.kind,
-      segments: disenado.segments,
-      note: disenado.note,
-      // 'import' y no 'advisor': el tipo de Protocol solo distingue entre lo que
-      // escribió el usuario a mano y lo que no, y el plan semanal ya guarda los
-      // suyos así. Inventar aquí un tercer valor lo colapsaría a 'manual' al
-      // releerlo de la base, que es justo lo contrario de lo que es.
-      source: 'import',
-      createdAt: new Date().toISOString(),
-    });
-
-    // El bloque se queda apuntando al protocolo: sin esto, mañana volvería a
-    // preguntar y a cobrar por lo mismo.
-    const payload = { ...p, protocol_id: protocol.id, protocol_name: protocol.name };
-    setItems((prev) => prev.map((x) => (x.id === item.id ? { ...x, payload } : x)));
-    await supabase.from('day_plan_items').update({ payload }).eq('id', item.id);
-
-    setMontando(false);
-    setSinGuion(null);
-    setPlayer({ item: { ...item, payload }, protocol });
-  };
+  }, [profile.id, showToast, t, onGoStrength, abrirActividad]);
 
   /** Cierre del checklist de fuerza abierto desde un día. */
   const finishRoutine = async (date: string, slot: string | null, sets: LoggedSet[]) => {
@@ -463,24 +403,6 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
     showToast(t('mc_ag_run_done'));
   };
 
-  /** Cierre del reproductor de cardio abierto desde un día. */
-  const finishProtocol = async (done: { secondsDone: number; segmentsDone: number; completed: boolean; distanceMeters: number }) => {
-    if (!player) return;
-    setRunSaving(true);
-    const res = await finishRun(profile.id, player.protocol, done, player.item.plan_date);
-    setRunSaving(false);
-    if (res.sessionFailed) { showToast(t('error_save'), 'error'); return; }
-
-    const item = player.item;
-    setPlayer(null);
-    // `setCompleted` ya avisa al Resumen. No se lanza aquí un
-    // `reconcileDayTicks`: `finishRun` lanza el suyo al guardar la sesión, y dos
-    // a la vez sobre el mismo día pueden pisarse y duplicar el bloque de
-    // recibo. Marcar el bloque a mano es lo que de verdad importa aquí.
-    await setCompleted(item.id, true);
-    showToast(t('mc_ag_run_done'));
-  };
-
   /** Los dos ejecutores, montados una sola vez y compartidos por las vistas. */
   const runnerOverlays = (
     <>
@@ -489,48 +411,9 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
           initialDate={runner.item.plan_date}
           onExit={() => setRunner(null)} onFinish={finishRoutine} />
       )}
-      {player && (
-        <ProtocolPlayer protocol={player.protocol} saving={runSaving}
-          onExit={() => setPlayer(null)} onFinish={finishProtocol} />
-      )}
-
-      {/* Cardio del plan sin guion: se elige entre montarlo o registrarlo a
-          mano. Las dos salidas resuelven el bloque; antes no había ninguna. */}
-      <BottomSheet open={!!sinGuion} onClose={() => { if (!montando) setSinGuion(null); }} title={t('mc_ag_cardio_title')}>
-        {sinGuion && (() => {
-          const p = sinGuion.payload as ActivityPayload;
-          return (
-            <>
-              <div className="rk-card mb-4" style={{ padding: 14 }}>
-                <p className="text-sm font-bold text-white">{p.protocol_name || t(activityKindCfg(p.kind).labelKey)}</p>
-                <p className="text-[11px] text-zinc-400 mt-0.5">
-                  {t(activityKindCfg(p.kind).labelKey)}{p.duration_min ? ` · ${p.duration_min} min` : ''}
-                </p>
-                {p.note && <p className="text-xs text-zinc-400 mt-2 leading-relaxed">{p.note}</p>}
-              </div>
-
-              <p className="text-sm mb-4 leading-relaxed" style={{ color: 'var(--t-2)' }}>
-                {t('mc_ag_cardio_desc')}
-              </p>
-
-              <button onClick={montarGuion} disabled={montando}
-                className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60"
-                style={{ minHeight: 48 }}>
-                {montando
-                  ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t('mc_ag_cardio_building')}</>
-                  : <><i className="ri-sparkling-2-line" /> {t('mc_ag_cardio_build')}</>}
-              </button>
-
-              <button onClick={() => { setSinGuion(null); onGoActivity(sinGuion.plan_date, p.kind); }}
-                disabled={montando}
-                className="rk-btn w-full flex items-center justify-center gap-2 mt-2 disabled:opacity-60"
-                style={{ minHeight: 48 }}>
-                <i className="ri-edit-box-line" /> {t('mc_ag_cardio_manual')}
-              </button>
-            </>
-          );
-        })()}
-      </BottomSheet>
+      {/* Reproductor de cardio y pregunta del guion: los pone el lanzador, que
+          es el mismo que usa la tarjeta "hoy toca" de Actividad. */}
+      {lanzador.overlays}
     </>
   );
 
@@ -1168,10 +1051,8 @@ function DayItemRow({ item, onRemove, onMove, onRun, opening, onToggleDone }: {
   // ofrece montarlo y se ejecuta al momento. Sin contarlo, un cardio de la
   // semana que viene no era ni tocable —la fila se apagaba por ser futura— y
   // no había forma de llegar a él. Ese era el "no hay botón".
-  const cardioSinGuion = item.kind === 'activity'
-    && (item.source === 'advisor' || item.source === 'template')
-    && !activityPayload?.protocol_id
-    && (activityPayload?.duration_min || 0) >= 5;
+  const cardioSinGuion = item.kind === 'activity' && !!activityPayload
+    && puedeMontarGuion(item.source, activityPayload);
   const runsInPlace = !!strengthPayload?.routine_id || !!activityPayload?.protocol_id
     || !!activityPayload?.boxing_id || cardioSinGuion;
   // Un bloque de MAÑANA no se puede registrar: no ha pasado. Los formularios de

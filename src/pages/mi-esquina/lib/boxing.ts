@@ -35,6 +35,19 @@ import { DEFAULT_BURST, type RoundCombo, type TimerConfig } from '@/pages/timer/
 /** Dónde se entrena. Cambia el contenido de los asaltos, no solo el material. */
 export type BoxingPlace = 'home' | 'home_bag' | 'gym';
 
+/**
+ * Los tres sitios donde se puede entrenar, con su icono y sus textos.
+ *
+ * Aquí y no en la pantalla porque lo pregunta más de una: el estudio de boxeo
+ * y el lanzador de sesiones del día. Con la lista duplicada, añadir un sitio en
+ * una y olvidarlo en la otra es cuestión de tiempo.
+ */
+export const BOXING_PLACES: { v: BoxingPlace; icon: string; label: string; hint: string }[] = [
+  { v: 'home', icon: 'ri-home-4-line', label: 'mc_bx_place_home', hint: 'mc_bx_place_home_hint' },
+  { v: 'home_bag', icon: 'ri-home-gear-line', label: 'mc_bx_place_home_bag', hint: 'mc_bx_place_home_bag_hint' },
+  { v: 'gym', icon: 'ri-boxing-line', label: 'mc_bx_place_gym', hint: 'mc_bx_place_gym_hint' },
+];
+
 /** El guion de un asalto. `work` es lo que se hace; `title` lo resume. */
 export interface BoxingRound {
   round: number;
