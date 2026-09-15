@@ -43,4 +43,5 @@ export default {
   mc_pc_agenda_off: 'El plan se ha montado, pero la Agenda no está disponible todavía.',
   mc_pc_no_ai: 'Falta la clave de IA, así que todavía no puedo montarte el plan. Mientras tanto puedes planificar a mano en Agenda › Planificar.',
   mc_pc_new_chat: 'Empezar de cero',
+  mc_pc_send_btn: 'Enviar',
 };

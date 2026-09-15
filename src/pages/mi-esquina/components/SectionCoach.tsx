@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingColumn } from '@/lib/dbState';
 import { clearChat, loadChat, saveChat } from '@/pages/mi-esquina/lib/chatHistory';
+import VoiceButton from '@/components/feature/VoiceButton';
 
 // 'general' es la CONSULTA ABIERTA (punto 18): cualquier duda, sin flujo. Los
 // otros tres están acotados a su ámbito y se derivan entre ellos; este no.
@@ -586,18 +587,28 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
 
       {/* Entrada */}
       <div className="p-3 border-t border-white/[0.07] flex-shrink-0">
-        <div className="flex gap-2">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input); } }}
-            disabled={sending}
-            className={`flex-1 bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none ${a.ring} disabled:opacity-60`}
-            placeholder={t('mc_ai_input_ph')}
-          />
+        {/* Mismo criterio que en el chat de plan: el campo ocupa la fila entera
+            y las acciones van debajo. Aquí, además, faltaba poder dictar —
+            preguntar en voz alta es justo lo que se hace en un gimnasio— y el
+            campo estaba a 14px, que es lo que hace que el iPhone amplíe la app
+            al tocarlo. */}
+        <textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input); } }}
+          disabled={sending}
+          rows={2}
+          maxLength={2000}
+          className={`w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none resize-none ${a.ring} disabled:opacity-60`}
+          style={{ fontSize: 16 }}
+          placeholder={t('mc_ai_input_ph')}
+        />
+        <div className="flex items-center justify-between gap-2 mt-2">
+          <VoiceButton onResult={(s) => setInput((p) => (p ? `${p} ${s}` : s))} />
           <button onClick={() => send(input)} disabled={sending || !input.trim()}
-            className="rk-btn rk-btn-primary flex items-center justify-center disabled:opacity-50" style={{ padding: '0 1.1rem', fontSize: '1rem' }}>
-            <i className="ri-send-plane-2-fill"></i>
+            className="rk-btn rk-btn-primary flex items-center gap-2 justify-center flex-shrink-0 disabled:opacity-50"
+            style={{ minHeight: 46, padding: '0 1.1rem' }}>
+            <i className="ri-send-plane-2-fill"></i>{t('mc_ai_send_btn')}
           </button>
         </div>
         <p className="text-[10px] text-zinc-600 mt-2 text-center">{t('mc_ai_disclaimer')}</p>

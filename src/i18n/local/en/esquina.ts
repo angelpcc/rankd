@@ -1922,4 +1922,5 @@ export default {
   mc_plc_clear: 'Clear',
   mc_plc_total: 'Total:',
   mc_plc_use: 'Use {{n}} kg',
+  mc_ai_send_btn: 'Send',
 };

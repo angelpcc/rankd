@@ -43,4 +43,5 @@ export default {
   mc_pc_agenda_off: 'The plan is built, but the Agenda is not available yet.',
   mc_pc_no_ai: 'The AI key is missing, so I cannot build the plan yet. In the meantime you can plan by hand in Agenda › Plan.',
   mc_pc_new_chat: 'Start over',
+  mc_pc_send_btn: 'Send',
 };

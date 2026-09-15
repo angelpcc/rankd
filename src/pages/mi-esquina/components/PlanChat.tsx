@@ -235,19 +235,29 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
           <div ref={finRef} />
         </div>
 
-        {/* ── Escribir ── */}
-        <div className="flex items-end gap-2 mt-3 pt-3" style={{ borderTop: '1px solid var(--s-3)' }}>
+        {/* ── Escribir ──
+            En DOS filas, no en una.
+            El botón de dictar CAMBIA DE TAMAÑO mientras hablas: se convierte en
+            un botón ancho de "grabando" y saca debajo lo que va oyendo. Metido
+            en la misma fila que el texto y el enviar, en un móvil eso aplasta la
+            caja de escribir cada vez que abres la boca. Abajo y con la fila para
+            él solo, puede crecer sin empujar nada.
+            fontSize 16 no es un capricho de diseño: por debajo de 16px, Safari
+            de iPhone AMPLÍA la página entera al tocar el campo. */}
+        <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--s-3)' }}>
           <textarea value={texto} onChange={(e) => setTexto(e.target.value)} rows={2} maxLength={2000}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar(); } }}
             placeholder={t('mc_pc_ph')} disabled={sinIA}
-            className="flex-1 min-w-0 bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-500 resize-none disabled:opacity-50"
+            className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-500 resize-none disabled:opacity-50"
             style={{ fontSize: 16 }} />
-          <VoiceButton onResult={(s) => setTexto((p) => (p ? `${p} ${s}` : s))} />
-          <button onClick={() => enviar()} disabled={enviando || !texto.trim() || sinIA}
-            className="rk-btn rk-btn-primary flex-shrink-0 disabled:opacity-50"
-            style={{ minHeight: 46, padding: '0 1rem' }}>
-            <i className="ri-send-plane-fill" />
-          </button>
+          <div className="flex items-center justify-between gap-2 mt-2">
+            <VoiceButton onResult={(s) => setTexto((p) => (p ? `${p} ${s}` : s))} />
+            <button onClick={() => enviar()} disabled={enviando || !texto.trim() || sinIA}
+              className="rk-btn rk-btn-primary flex-shrink-0 flex items-center gap-2 disabled:opacity-50"
+              style={{ minHeight: 46, padding: '0 1.1rem' }}>
+              <i className="ri-send-plane-fill" />{t('mc_pc_send_btn')}
+            </button>
+          </div>
         </div>
         {sinIA && <p className="text-[11px] text-[#C9A84C] mt-2 leading-relaxed">{t('mc_pc_no_ai')}</p>}
       </div>
