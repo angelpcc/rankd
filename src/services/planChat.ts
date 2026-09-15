@@ -17,7 +17,7 @@
 
 import { supabase } from '@/lib/supabase';
 import type { WeekContext, WeekPlan } from '@/pages/mi-esquina/lib/weekPlan';
-import type { AgendaDia } from '@/pages/mi-esquina/lib/agendaSnapshot';
+import type { AgendaDia, DiaEntrenado } from '@/pages/mi-esquina/lib/agendaSnapshot';
 import { normalizeWeekPlan } from './weekPlanAdvisor';
 
 export interface PlanChatMessage {
@@ -49,6 +49,7 @@ export async function sendPlanChat(
   previous: WeekPlan | null,
   planId: string,
   agenda?: AgendaDia[],
+  historial?: DiaEntrenado[],
 ): Promise<PlanChatResult> {
   const { data: { session } } = await supabase.auth.getSession();
   const token = session?.access_token;
@@ -76,6 +77,9 @@ export async function sendPlanChat(
           // lo sabe la Agenda. Sin esto, "reajústame el cardio de esta semana"
           // recibía "no tengo ningún plan previo" con el plan delante.
           agenda: agenda && agenda.length ? agenda : null,
+          // Lo ENTRENADO de verdad, que es otra cosa que lo previsto: incluye lo
+          // que hizo por su cuenta y no estaba en ningún plan.
+          historial: historial && historial.length ? historial : null,
         },
         // El perfil va en la RAÍZ del cuerpo: es donde lo lee el servidor.
         // Metido dentro de `planChat` se perdería en silencio y el plan saldría

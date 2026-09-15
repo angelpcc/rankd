@@ -1004,6 +1004,22 @@ const PLAN_CHAT_SCHEMA = {
   },
 };
 
+/**
+ * Lo ENTRENADO de verdad, en texto corto. "" si no hay nada.
+ *
+ * Va aparte de la agenda porque son dos cosas distintas: la agenda es lo que
+ * está PREVISTO y el historial es lo que ha PASADO, incluido lo que se hizo sin
+ * estar planificado. Mezclarlos haría imposible distinguir "tenía que hacerlo"
+ * de "lo hice", que es justo la diferencia que importa.
+ */
+function historialComoTexto(historial) {
+  if (!Array.isArray(historial) || historial.length === 0) return '';
+  const NL = String.fromCharCode(10);
+  return historial.slice(-14)
+    .map((d) => '  ' + d.date + ': ' + String(d.text || '').slice(0, 200))
+    .join(NL);
+}
+
 /** Convierte la agenda real en texto corto. Devuelve "" si no hay nada. */
 function agendaComoTexto(agenda) {
   if (!Array.isArray(agenda) || agenda.length === 0) return '';
@@ -1018,10 +1034,11 @@ function agendaComoTexto(agenda) {
   return lineas.join(NL);
 }
 
-function planChatSystem(profile, ctx, previous, agenda) {
+function planChatSystem(profile, ctx, previous, agenda, historial) {
   const NL = String.fromCharCode(10);
   const kinds = (ctx.activityKinds || []).join(", ");
   const agendaTxt = agendaComoTexto(agenda);
+  const histTxt = historialComoTexto(historial);
   const prev = previous
     ? "PLAN ACTUAL (el que ya está montado; si te piden un cambio, devuelve este MISMO plan con ese cambio aplicado y nada más tocado):" + NL + JSON.stringify(previous)
     : "Todavía no hay plan montado en esta conversación.";
@@ -1163,6 +1180,18 @@ function planChatSystem(profile, ctx, previous, agenda) {
   // La agenda va en el bloque VOLÁTIL, junto al plan: cambia en cuanto el
   // usuario toca un día, así que meterla en el cacheado invalidaría la caché
   // cada vez, que es justo lo contrario de para lo que está.
+  const bloqueHist = histTxt
+    ? [
+      '',
+      'LO QUE HA ENTRENADO DE VERDAD ESTOS DÍAS (incluido lo que hizo por su',
+      'cuenta, sin estar planificado):',
+      histTxt,
+      'Úsalo para saber cómo llega: si lleva seis días seguidos, mete descanso;',
+      'si lleva tres parado, no le montes la semana más dura del mes. Y no le',
+      'digas que no ha hecho algo que aquí aparece hecho.',
+    ].join(NL)
+    : '';
+
   const volatil = agendaTxt
     ? [
       'LO QUE HAY PUESTO AHORA MISMO EN SU AGENDA. Esto es la VERDAD: manda sobre',
@@ -1180,10 +1209,11 @@ function planChatSystem(profile, ctx, previous, agenda) {
       '  a partir del siguiente y dilo en una línea.',
       '- Nunca digas que no tienes un plan previo si aquí arriba hay algo: lo',
       '  tienes delante.',
+      bloqueHist,
       '',
       prev,
     ].join(NL)
-    : prev;
+    : (bloqueHist ? bloqueHist + NL + NL + prev : prev);
 
   return [
     { type: 'text', text: estable, cache_control: { type: 'ephemeral' } },
@@ -1469,7 +1499,7 @@ export default async function handler(req, res) {
   const {
     section, profile, messages, extract, timerCombos, foodPhoto, routinePhoto,
     creatorStudio, objectivePlan, protocolText, routineText, weekPlan, boxingSession, planChat,
-    cardioDesign, agenda,
+    cardioDesign, agenda, historial,
   } = req.body || {};
   // Modos "estructurados": no usan `section` ni una conversación `messages`,
   // devuelven JSON validado. No deben pasar por las guardas de chat de abajo.
@@ -1784,7 +1814,7 @@ export default async function handler(req, res) {
       const response = await anthropic.messages.create({
         model: MODEL,
         max_tokens: 8000,
-        system: planChatSystem(profile || {}, ctx, planChat.previous || null, planChat.agenda),
+        system: planChatSystem(profile || {}, ctx, planChat.previous || null, planChat.agenda, planChat.historial),
         messages: mensajes,
         output_config: { format: { type: 'json_schema', schema: PLAN_CHAT_SCHEMA } },
       });
@@ -2027,7 +2057,15 @@ Responde en el idioma del usuario (por defecto español).`,
     // toca un día, y metida dentro del cacheado invalidaría la caché en cada
     // mensaje, que es exactamente lo contrario de para lo que está.
     const agendaTxt = agendaComoTexto(agenda);
+    const histTxt = historialComoTexto(historial);
     params.system = [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }];
+    if (histTxt) {
+      params.system.push({
+        type: 'text',
+        text: 'LO QUE HA ENTRENADO ESTOS DÍAS:' + String.fromCharCode(10) + histTxt
+          + String.fromCharCode(10) + 'No le digas que no ha hecho algo que aquí aparece hecho.',
+      });
+    }
     if (agendaTxt) {
       params.system.push({
         type: 'text',

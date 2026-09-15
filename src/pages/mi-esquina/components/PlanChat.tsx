@@ -11,7 +11,7 @@ import {
 import { buildWeekContext, checkWeekPlanAvailable } from '@/services/weekPlanAdvisor';
 import { sendPlanChat, type PlanChatMessage } from '@/services/planChat';
 import { clearChat, loadChat, saveChat } from '../lib/chatHistory';
-import { loadAgendaSnapshot, type AgendaDia } from '../lib/agendaSnapshot';
+import { loadAgendaSnapshot, loadTrainedRecent, type AgendaDia, type DiaEntrenado } from '../lib/agendaSnapshot';
 import PhotoAttach, { FotoPendiente } from './PhotoAttach';
 import type { ImagenLista } from '@/lib/imageInput';
 
@@ -81,6 +81,8 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
   const [agenda, setAgenda] = useState<AgendaDia[]>([]);
   /** Por dónde va el guardado. Montar los guiones de cardio tarda. */
   const [progreso, setProgreso] = useState<{ hechos: number; total: number } | null>(null);
+  /** Lo entrenado de verdad estos días, planificado o no. */
+  const [historial, setHistorial] = useState<DiaEntrenado[]>([]);
   const [foto, setFoto] = useState<ImagenLista | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -151,6 +153,7 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
 
       // La agenda real, en paralelo a todo lo anterior.
       void loadAgendaSnapshot(profile.id, weekStart, 3).then((a) => { if (alive) setAgenda(a); });
+      void loadTrainedRecent(profile.id, 7).then((h) => { if (alive) setHistorial(h); });
       const fr = f.data as { discipline?: string; weight_class?: string; experience_level?: string; age?: number } | null;
       setFighter({
         name: (profile.full_name || '').split(' ')[0] || undefined,
@@ -198,12 +201,16 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
 
     // La agenda se relee AHORA, no se usa la del montaje: entre dos mensajes
     // puedes haber ido a moverla. Si falla, se manda la que hubiera.
-    const agendaAhora = await loadAgendaSnapshot(profile.id, weekStart, 3).catch(() => agenda);
+    const [agendaAhora, histAhora] = await Promise.all([
+      loadAgendaSnapshot(profile.id, weekStart, 3).catch(() => agenda),
+      loadTrainedRecent(profile.id, 7).catch(() => historial),
+    ]);
     setAgenda(agendaAhora);
+    setHistorial(histAhora);
 
     // El id se conserva si ya había plan: es lo que impide que un cambio cree
     // un plan paralelo y duplique las entradas de la Agenda.
-    const res = await sendPlanChat(historia, ctx, fighter, plan, plan?.id || `wp_${Date.now().toString(36)}`, agendaAhora);
+    const res = await sendPlanChat(historia, ctx, fighter, plan, plan?.id || `wp_${Date.now().toString(36)}`, agendaAhora, histAhora);
     setEnviando(false);
 
     if (res.error) {
@@ -212,7 +219,7 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
     }
     setTurnos((p) => [...p, { role: 'assistant', content: res.reply, ...(res.plan ? { plan: res.plan } : {}) }]);
     if (res.plan) { setPlan(res.plan); setGuardado(null); }
-  }, [texto, foto, enviando, turnos, ctx, fighter, plan, agenda, weekStart, profile.id, showToast, t]);
+  }, [texto, foto, enviando, turnos, ctx, fighter, plan, agenda, historial, weekStart, profile.id, showToast, t]);
 
   const guardar = async () => {
     if (!plan || guardando) return;

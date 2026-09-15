@@ -7,7 +7,7 @@ import { clearChat, loadChat, saveChat } from '@/pages/mi-esquina/lib/chatHistor
 import VoiceButton from '@/components/feature/VoiceButton';
 import PhotoAttach, { FotoPendiente } from './PhotoAttach';
 import type { ImagenLista } from '@/lib/imageInput';
-import { loadAgendaSnapshot, type AgendaDia } from '@/pages/mi-esquina/lib/agendaSnapshot';
+import { loadAgendaSnapshot, loadTrainedRecent, type AgendaDia, type DiaEntrenado } from '@/pages/mi-esquina/lib/agendaSnapshot';
 import { currentWeekStart } from '@/pages/mi-esquina/lib/weekPlan';
 
 // 'general' es la CONSULTA ABIERTA (punto 18): cualquier duda, sin flujo. Los
@@ -145,6 +145,8 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
    * respuesta según lo que haya en la agenda.
    */
   const [agenda, setAgenda] = useState<AgendaDia[]>([]);
+  /** Lo entrenado de verdad: evita el "no has hecho cardio" a quien lo hizo. */
+  const [historial, setHistorial] = useState<DiaEntrenado[]>([]);
   const [messages, setMessages] = useState<ChatMsg[]>(
     () => loadChat(profile.id, section).map((x) => ({ role: x.role, content: x.content })) as ChatMsg[],
   );
@@ -156,6 +158,9 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
     loadAgendaSnapshot(profile.id, currentWeekStart(), 1)
       .then((a) => { if (vivo) setAgenda(a); })
       .catch(() => { /* sin agenda se responde igual, solo con menos contexto */ });
+    loadTrainedRecent(profile.id, 7)
+      .then((h) => { if (vivo) setHistorial(h); })
+      .catch(() => { /* igual: es contexto, no un requisito */ });
     return () => { vivo = false; };
   }, [profile.id]);
 
@@ -314,6 +319,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
           section,
           profile: physical,
           agenda: agenda.length ? agenda : undefined,
+          historial: historial.length ? historial : undefined,
           messages: next.map((m) => (m.image
             ? { role: m.role, content: m.content, image: { base64: m.image.base64, mediaType: m.image.mediaType } }
             : { role: m.role, content: m.content })),
@@ -408,7 +414,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
     setSearching(false);
     setStreaming(false);
     setSending(false);
-  }, [messages, physical, section, sending, t, foto, agenda]);
+  }, [messages, physical, section, sending, t, foto, agenda, historial]);
 
   // ── Guardar el plan acordado en el diario correspondiente ──
   const savePlan = useCallback(async () => {
