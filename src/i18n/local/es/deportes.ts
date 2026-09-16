@@ -94,4 +94,6 @@ export default {
   mc_sp_bx_tech: 'técnica',
   mc_sp_hx_done: '{{n}} de 8 estaciones',
   mc_sp_hx_running: 'corriendo',
+  mc_sp_other_what: '¿Qué hiciste?',
+  mc_sp_effort: 'Esfuerzo',
 };

@@ -261,6 +261,18 @@ export const SPORT_FIELDS: Record<string, ExtraField[]> = {
   boxeo: [
     { id: 'work', labelKey: 'mc_sp_bx_work', type: 'choice', wide: true, options: ['mc_sp_bx_shadow', 'mc_sp_bx_bag', 'mc_sp_bx_pads', 'mc_sp_bx_spar', 'mc_sp_bx_tech'] },
   ],
+  // ── "Otro" ──
+  //
+  // Es el cajón donde cae todo lo que no está en la lista: escalada, pádel,
+  // esquí, lo que sea. Era el único tipo que se quedaba solo con la duración, y
+  // precisamente ahí es donde más falta hace poder decir QUÉ era — si no, en el
+  // historial hay cuatro sesiones de "otro, 60 min" y no se sabe cuál fue cuál.
+  //
+  // Texto libre y no una lista: la gracia de este cajón es que no hay lista.
+  otro: [
+    { id: 'what', labelKey: 'mc_sp_other_what', type: 'text', placeholder: 'Escalada en rocódromo', wide: true },
+    { id: 'effort', labelKey: 'mc_sp_effort', type: 'number', unit: '/10', placeholder: '7' },
+  ],
 };
 
 /** Campos extra de ese deporte. [] si no tiene (o si usa formulario propio). */
