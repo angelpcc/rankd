@@ -15,10 +15,10 @@
 //
 // Módulo aparte porque `esquina.ts` ya pasa de 90 KB.
 export default {
-  mc_as_tab_boxing: 'Boxeo',
+  mc_as_tab_boxing: 'Sesión',
 
-  mc_bx_title: 'Entreno de boxeo por asaltos',
-  mc_bx_desc: 'Dime de cuánto tiempo dispones y dónde entrenas, y te monto la sesión entera: calentamiento, asaltos con lo que toca en cada uno, descansos y vuelta a la calma.',
+  mc_bx_title: 'Móntame un entreno',
+  mc_bx_desc: 'Dime qué deporte, cuánto tiempo tienes, dónde entrenas y qué material, y te monto la sesión entera. Los de combate salen por asaltos y arrancan el temporizador; el resto, con su tabla minuto a minuto.',
 
   mc_bx_q_time: '¿Cuánto tiempo tienes?',
   mc_bx_q_place: '¿Dónde entrenas?',
@@ -70,4 +70,7 @@ export default {
   mc_bx_gear_pads: 'manoplas',
   mc_bx_gear_kettlebell: 'kettlebell',
   mc_bx_gear_partner: 'compañero',
+  mc_bx_sitio_home: 'Entreno en casa, sin material pesado',
+  mc_bx_sitio_home_bag: 'Entreno en casa y tengo saco',
+  mc_bx_sitio_gym: 'Entreno en un gimnasio con material',
 };

@@ -70,12 +70,28 @@ export default function MealLog({ profile, showToast }: Props) {
 
   // Frecuentes: fetch ligero de los últimos 60 días, agrupado por texto
   // normalizado y devolviendo el más común primero. Sale como chips.
+  /**
+   * Lo que repites EN ESTA FRANJA.
+   *
+   * ── LOS DOS FALLOS QUE TENÍA ──
+   *
+   * 1. No miraba la franja. En "desayuno" te salían las cenas, porque contaba
+   *    todas las comidas juntas. Y el desayuno es justo el caso en que la
+   *    gente repite: si te sale "merluza al horno" al ir a desayunar, el
+   *    bloque estorba en vez de ahorrar.
+   * 2. Exigía TRES comidas repetidas distintas para enseñar nada. Quien solo
+   *    repite el desayuno —que es lo normal— no lo veía nunca.
+   *
+   * Ahora cuenta por franja y con UNA repetida basta. Sesenta días de ventana:
+   * lo de hace dos meses ya no es "lo de siempre".
+   */
   const loadFrequent = useCallback(async () => {
     const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 60);
     const iso = cutoff.toISOString().slice(0, 10);
     const { data } = await supabase.from('meal_entries')
       .select('description')
       .eq('fighter_profile_id', profile.id)
+      .eq('meal_type', type)
       .gte('entry_date', iso)
       .limit(500);
     if (!data || data.length === 0) { setFrequent([]); return; }
@@ -87,14 +103,10 @@ export default function MealLog({ profile, showToast }: Props) {
       const cur = map.get(k); if (cur) cur.count++;
       else map.set(k, { display: r.description.trim(), count: 1 });
     });
-    // Solo comidas repetidas ≥2 veces. Top 6 por frecuencia.
     const repeated = [...map.values()].filter((v) => v.count >= 2);
-    // El brief exige "al menos 3 comidas repetidas distintas" para no ocupar
-    // espacio sin motivo.
-    if (repeated.length < 3) { setFrequent([]); return; }
     repeated.sort((a, b) => b.count - a.count);
     setFrequent(repeated.slice(0, 6).map((v) => v.display));
-  }, [profile.id]);
+  }, [profile.id, type]);
 
   useEffect(() => { loadFrequent(); }, [loadFrequent]);
 
@@ -243,9 +255,13 @@ export default function MealLog({ profile, showToast }: Props) {
         ))}
       </div>
 
-      {/* 2. Frecuentes (solo si el usuario ya repite comidas) */}
+      {/* 2. Lo que repites en ESTA franja: un toque y registrado, sin foto y
+          sin gastar IA. Es la respuesta a "desayuno siempre lo mismo". */}
       {frequent.length > 0 && (
         <div className="mb-3">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5">
+            {t('mc_meal_usual', { slot: t(`mc_dp_slot_${type}`, { defaultValue: type }).toLowerCase() })}
+          </p>
           <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
             {frequent.map((f) => (
               <button key={f} onClick={() => addFromFrequent(f)} disabled={saving} title={t('mc_meal_frequent_add')}

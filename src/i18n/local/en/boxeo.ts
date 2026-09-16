@@ -15,10 +15,10 @@
 //
 // Its own module: `esquina.ts` is already over 90 KB.
 export default {
-  mc_as_tab_boxing: 'Boxing',
+  mc_as_tab_boxing: 'Session',
 
-  mc_bx_title: 'Round-based boxing workout',
-  mc_bx_desc: 'Tell me how long you have and where you train, and I will build the whole session: warm-up, rounds with what to do in each one, rests and cool-down.',
+  mc_bx_title: 'Build me a session',
+  mc_bx_desc: 'Tell me the sport, how long you have, where you train and what gear, and I will build the whole session. Combat sports come out in rounds and start the timer; the rest, with a minute-by-minute table.',
 
   mc_bx_q_time: 'How long have you got?',
   mc_bx_q_place: 'Where are you training?',
@@ -70,4 +70,7 @@ export default {
   mc_bx_gear_pads: 'pads',
   mc_bx_gear_kettlebell: 'kettlebell',
   mc_bx_gear_partner: 'a partner',
+  mc_bx_sitio_home: 'I train at home, no heavy gear',
+  mc_bx_sitio_home_bag: 'I train at home and I have a bag',
+  mc_bx_sitio_gym: 'I train at a gym with equipment',
 };

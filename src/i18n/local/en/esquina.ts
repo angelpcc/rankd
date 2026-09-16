@@ -1927,4 +1927,5 @@ export default {
   mc_chat_photo_ready: 'Photo ready to send',
   mc_chat_photo_remove: 'Remove photo',
   mc_chat_doc_ready: 'Document ready to send',
+  mc_meal_usual: 'Your usual {{slot}}',
 };

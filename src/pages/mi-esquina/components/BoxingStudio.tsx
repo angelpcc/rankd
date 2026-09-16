@@ -8,6 +8,9 @@ import {
   type BoxingPlace, type BoxingSession,
 } from '../lib/boxing';
 import { checkBoxingAvailable, generateBoxingSession } from '@/services/boxingAdvisor';
+import { designCardio } from '@/services/protocolImport';
+import { localId as protocolLocalId, saveProtocol, type Protocol } from '../lib/protocols';
+import ProtocolPlayer from './ProtocolPlayer';
 import PlanLanding from './PlanLanding';
 import { landBoxing } from '../lib/planLanding';
 import { loadAgendaSnapshot } from '../lib/agendaSnapshot';
@@ -50,12 +53,51 @@ interface Props {
  * prompt lo lee como contexto y una etiqueta suelta ("muay_thai") no le dice
  * qué cambiar.
  */
-const DISCIPLINAS: { v: string; labelKey: string; txt: string }[] = [
-  { v: 'boxeo', labelKey: 'mc_bx_disc_boxing', txt: 'Es una sesión de BOXEO: solo manos' },
-  { v: 'kickboxing', labelKey: 'mc_bx_disc_kick', txt: 'Es una sesión de KICKBOXING: manos y patadas, sin rodillas ni codos' },
-  { v: 'muay_thai', labelKey: 'mc_bx_disc_muay', txt: 'Es una sesión de MUAY THAI: manos, patadas, rodillas, codos y clinch' },
-  { v: 'mma', labelKey: 'mc_bx_disc_mma', txt: 'Es una sesión de MMA: golpeo de pie más entradas a derribo y trabajo en el suelo si el sitio lo permite' },
+/**
+ * Qué se puede pedir aquí.
+ *
+ * ── POR QUÉ NO SOLO BOXEO ──
+ *
+ * Esta pantalla hacía UNA cosa: una sesión de boxeo por asaltos. Pero la
+ * pregunta que resuelve —"tengo 45 minutos y este material, móntame algo"— no
+ * es de boxeo: es de cualquier deporte. Quien hace Hyrox o CrossFit tenía el
+ * plan semanal o nada.
+ *
+ * `porAsaltos` decide a dónde va cada uno, y no es un detalle: un combate se
+ * mide en ASALTOS y lo cuenta el temporizador del Ring; un Hyrox o una carrera
+ * se miden en TRAMOS por minutos y los lleva el reproductor con su tabla.
+ * Meterlos por el mismo sitio daría "esfuerzo 7" durante 40 minutos en un caso,
+ * o asaltos de 3 minutos de skierg en el otro.
+ */
+const DISCIPLINAS: { v: string; labelKey: string; txt: string; porAsaltos: boolean; kind: string }[] = [
+  { v: 'boxeo', labelKey: 'mc_bx_disc_boxing', porAsaltos: true, kind: 'boxeo', txt: 'Es una sesión de BOXEO: solo manos' },
+  { v: 'kickboxing', labelKey: 'mc_bx_disc_kick', porAsaltos: true, kind: 'boxeo', txt: 'Es una sesión de KICKBOXING: manos y patadas, sin rodillas ni codos' },
+  { v: 'muay_thai', labelKey: 'mc_bx_disc_muay', porAsaltos: true, kind: 'boxeo', txt: 'Es una sesión de MUAY THAI: manos, patadas, rodillas, codos y clinch' },
+  { v: 'mma', labelKey: 'mc_bx_disc_mma', porAsaltos: true, kind: 'boxeo', txt: 'Es una sesión de MMA: golpeo de pie más entradas a derribo y trabajo en el suelo si el sitio lo permite' },
+  { v: 'hyrox', labelKey: 'mc_act_kind_hyrox', porAsaltos: false, kind: 'hyrox', txt: 'Es un entreno de HYROX: correr cansado entre estaciones, trineos, farmers y wall balls' },
+  { v: 'crossfit', labelKey: 'mc_act_kind_crossfit', porAsaltos: false, kind: 'crossfit', txt: 'Es un entreno de CROSSFIT: dilo con su formato (AMRAP, EMOM, For Time), sus movimientos y sus kilos' },
+  { v: 'correr', labelKey: 'mc_act_kind_correr', porAsaltos: false, kind: 'correr', txt: 'Es una sesión de CARRERA' },
+  { v: 'cinta', labelKey: 'mc_act_kind_cinta', porAsaltos: false, kind: 'cinta', txt: 'Es una sesión de CINTA: di la inclinación y la velocidad de cada tramo' },
+  { v: 'bici', labelKey: 'mc_act_kind_bici', porAsaltos: false, kind: 'bici', txt: 'Es una sesión de BICI' },
+  { v: 'remo', labelKey: 'mc_act_kind_remo', porAsaltos: false, kind: 'remo', txt: 'Es una sesión de REMO en ergómetro' },
+  { v: 'natacion', labelKey: 'mc_act_kind_natacion', porAsaltos: false, kind: 'natacion', txt: 'Es una sesión de NATACIÓN: di el estilo y las series' },
+  { v: 'funcional', labelKey: 'mc_act_kind_funcional', porAsaltos: false, kind: 'funcional', txt: 'Es un entreno FUNCIONAL por circuitos' },
 ];
+
+const disciplina = (v: string) => DISCIPLINAS.find((d) => d.v === v) || DISCIPLINAS[0];
+
+/**
+ * El sitio, en palabras, para el generador de guiones.
+ *
+ * El de asaltos ya recibe `place` y lo traduce él; el de tramos no sabe nada de
+ * sitios, así que se le dice con la misma frase. Sin esto, pedir un Hyrox "en
+ * casa" devolvía trineos y skiergs que no tienes.
+ */
+const SITIO_TXT: Record<string, string> = {
+  home: 'mc_bx_sitio_home',
+  home_bag: 'mc_bx_sitio_home_bag',
+  gym: 'mc_bx_sitio_gym',
+};
 
 /** Lo que más se tiene en casa, para no teclearlo. */
 const MATERIAL_RAPIDO = [
@@ -94,6 +136,8 @@ export default function BoxingStudio({ profile, showToast }: Props) {
   const [fighter, setFighter] = useState<Record<string, unknown>>({});
   /** Sesión recién generada esperando a que se le asignen días en la semana. */
   const [porColocar, setPorColocar] = useState<BoxingSession | null>(null);
+  /** Guion recién generado para un deporte que no va por asaltos. */
+  const [reproducir, setReproducir] = useState<Protocol | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -125,6 +169,7 @@ export default function BoxingStudio({ profile, showToast }: Props) {
 
   const generar = async () => {
     if (minutes === null || place === null || busy) return;
+    const d = disciplina(disc);
     setBusy(true);
     // La agenda se lee AHORA, no al montar: puede haber cambiado mientras
     // elegías el tiempo y el sitio.
@@ -133,10 +178,44 @@ export default function BoxingStudio({ profile, showToast }: Props) {
     // leer texto libre ahí, así que no hace falta otro campo en el servidor
     // para algo que es, literalmente, contexto en palabras.
     const extra = [
-      DISCIPLINAS.find((x) => x.v === disc)?.txt,
+      d.txt,
+      t(SITIO_TXT[place] || 'mc_bx_place_home'),
       material.trim() ? `Material que tengo: ${material.trim()}` : '',
       notes.trim(),
     ].filter(Boolean).join('. ');
+
+    // ── Deportes que NO van por asaltos ──
+    //
+    // Un Hyrox, una carrera o un WOD se siguen por TRAMOS con sus minutos, no
+    // por asaltos: van al mismo generador de guiones que usan los cardios del
+    // plan, y acaban en el reproductor con su tabla. Meterlos por el generador
+    // de asaltos daría asaltos de 3 minutos de skierg, que no es nada.
+    if (!d.porAsaltos) {
+      const { protocol, error } = await designCardio({
+        kind: d.kind, minutes, intent: extra,
+        profile: fighter as unknown as Record<string, unknown>,
+      });
+      if (!protocol) {
+        setBusy(false);
+        showToast(error || t('mc_bx_err_gen'), 'error');
+        return;
+      }
+      const guardado = await saveProtocol(profile.id, {
+        id: protocolLocalId('prot'),
+        name: protocol.name,
+        kind: d.kind,
+        segments: protocol.segments,
+        note: protocol.note,
+        source: 'import',
+        createdAt: new Date().toISOString(),
+      });
+      setBusy(false);
+      if (guardado.storedLocally) { setLocalOnly(true); showToast(t('mc_bx_saved_local')); }
+      // Se abre en cuanto está: es lo que se venía a hacer.
+      setReproducir(guardado.protocol);
+      return;
+    }
+
     const res = await generateBoxingSession({ minutes, place, notes: extra, profile: fighter, agenda: agendaAhora });
     if (!res.session) {
       setBusy(false);
@@ -177,6 +256,16 @@ export default function BoxingStudio({ profile, showToast }: Props) {
     showToast(t('mc_land_added', { count: r.added }));
     setPorColocar(null);
   };
+
+  // El guion recién generado se abre encima. Al salir se queda guardado en
+  // Actividad, así que cerrar no pierde nada.
+  if (reproducir) {
+    return (
+      <ProtocolPlayer protocol={reproducir} saving={false}
+        onExit={() => setReproducir(null)}
+        onFinish={() => { setReproducir(null); showToast(t('mc_ag_run_done')); }} />
+    );
+  }
 
   if (porColocar) {
     return (
