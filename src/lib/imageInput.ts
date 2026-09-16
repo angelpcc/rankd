@@ -38,11 +38,17 @@ export interface ImagenLista {
   base64: string;
   /** Tipo real de lo que va dentro de `base64`. */
   mediaType: string;
-  /** Para pintar la miniatura sin volver a leer el fichero. */
+  /** Para pintar la miniatura sin volver a leer el fichero. Vacío en un PDF. */
   previewUrl: string;
   /** Tamaño aproximado ya reducido, en bytes. Para avisar si algo va mal. */
   bytes: number;
+  /** Un PDF no se encoge ni se previsualiza: viaja tal cual. */
+  esPdf?: boolean;
+  /** Nombre del archivo, para poder decir CUÁL has adjuntado. */
+  nombre?: string;
 }
+
+export const TIPO_PDF = 'application/pdf';
 
 /** Lee un archivo a base64 sin el prefijo. Salida directa, sin tocar nada. */
 function leerBase64(file: Blob): Promise<string> {
@@ -69,9 +75,29 @@ export async function prepararImagen(file: File): Promise<ImagenLista | null> {
         mediaType: file.type || 'image/jpeg',
         previewUrl: URL.createObjectURL(file),
         bytes: file.size,
+        nombre: file.name,
       };
     } catch { return null; }
   };
+
+  // ── Un PDF va TAL CUAL ──
+  //
+  // Nada de convertirlo a imagen ni de encogerlo: en un PDF el texto y la
+  // estructura de la tabla llegan enteros, y eso es justo lo que se importa
+  // aquí (tablas de cardio, hojas de rutina). Pasarlo por el canvas lo
+  // convertiría en una foto de un papel, que es de donde venimos.
+  if (file.type === TIPO_PDF) {
+    try {
+      return {
+        base64: await leerBase64(file),
+        mediaType: TIPO_PDF,
+        previewUrl: '',
+        bytes: file.size,
+        esPdf: true,
+        nombre: file.name,
+      };
+    } catch { return null; }
+  }
 
   try {
     const bitmap = await createImageBitmap(file);
@@ -107,3 +133,5 @@ export async function prepararImagen(file: File): Promise<ImagenLista | null> {
 
 /** Tipos que aceptamos en los selectores de archivo. */
 export const ACEPTA_IMAGEN = 'image/jpeg,image/png,image/webp';
+/** Lo mismo más PDF, para los sitios donde se importa un documento. */
+export const ACEPTA_DOCUMENTO = 'image/*,application/pdf';

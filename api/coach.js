@@ -559,12 +559,15 @@ const EXTRACT_SCHEMAS = {
 function contenidoDeMensaje(m) {
   const texto = String(m.content || '').slice(0, 4000);
   const img = m.role === 'user' ? m.image : null;
-  if (!img || typeof img.base64 !== 'string' || !img.base64) return texto;
-  if (img.base64.length > MAX_IMAGE_CHARS) return texto; // demasiado grande: se manda solo el texto
-  const tipo = TIPOS_IMAGEN.includes(img.mediaType) ? img.mediaType : 'image/jpeg';
+  if (!img) return texto;
+  const bloque = bloqueAdjunto(img.base64, img.mediaType);
+  // Demasiado grande o tipo que no vale: se manda solo el texto. Perder el
+  // adjunto es malo; perder el mensaje entero, peor.
+  if (!bloque) return texto;
+  const esPdf = img.mediaType === TIPO_PDF;
   return [
-    { type: 'image', source: { type: 'base64', media_type: tipo, data: img.base64 } },
-    { type: 'text', text: texto || 'Mira esta foto.' },
+    bloque,
+    { type: 'text', text: texto || (esPdf ? 'Mira este documento.' : 'Mira esta foto.') },
   ];
 }
 
@@ -652,6 +655,29 @@ Reglas:
  */
 const MAX_IMAGE_CHARS = 7_000_000;
 const TIPOS_IMAGEN = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const TIPO_PDF = 'application/pdf';
+
+/**
+ * Convierte un adjunto en el bloque que entiende la API.
+ *
+ * Un PDF NO es una imagen y no va como imagen: va como documento. La diferencia
+ * importa de verdad con lo que la gente importa aquí —tablas de cardio, hojas
+ * de rutina—, porque en un PDF el texto y la estructura de la tabla llegan tal
+ * cual, mientras que una captura hay que leerla a ojo y las columnas se cruzan.
+ * Era justo el fallo de "leer 0-5 | 2 | 6,5" y meter el 2 en velocidad.
+ *
+ * Devuelve null si el tipo no vale o si pesa demasiado; quien llama decide qué
+ * hacer con eso.
+ */
+function bloqueAdjunto(base64, mediaType) {
+  if (typeof base64 !== 'string' || !base64) return null;
+  if (base64.length > MAX_IMAGE_CHARS) return null;
+  if (mediaType === TIPO_PDF) {
+    return { type: 'document', source: { type: 'base64', media_type: TIPO_PDF, data: base64 } };
+  }
+  const tipo = TIPOS_IMAGEN.includes(mediaType) ? mediaType : 'image/jpeg';
+  return { type: 'image', source: { type: 'base64', media_type: tipo, data: base64 } };
+}
 
 const PROTOCOL_VALUE_KEYS = [
   'speed_kmh', 'incline_pct', 'resistance', 'cadence_rpm',
@@ -1362,9 +1388,16 @@ const MAX_IMPORT_TEXT = 12_000;
 function importContent({ text, imageBase64, mediaType }, prompt) {
   const parts = [];
   if (imageBase64) {
-    if (!ALLOWED_IMAGE_TYPES.includes(mediaType)) return { error: 'bad_image', message: 'Formato de imagen no válido. Usa JPEG, PNG o WebP.' };
-    if (imageBase64.length > MAX_IMAGE_CHARS) return { error: 'image_too_large', message: 'La foto debe pesar menos de 5MB.' };
-    parts.push({ type: 'image', source: { type: 'base64', media_type: mediaType, data: imageBase64 } });
+    const esPdf = mediaType === TIPO_PDF;
+    if (!esPdf && !ALLOWED_IMAGE_TYPES.includes(mediaType)) {
+      return { error: 'bad_image', message: 'Formato no válido. Sube un PDF o una foto JPEG, PNG o WebP.' };
+    }
+    if (imageBase64.length > MAX_IMAGE_CHARS) {
+      return { error: 'image_too_large', message: esPdf ? 'El PDF debe pesar menos de 5MB.' : 'La foto debe pesar menos de 5MB.' };
+    }
+    const bloque = bloqueAdjunto(imageBase64, mediaType);
+    if (!bloque) return { error: 'bad_image', message: 'No he podido leer ese archivo.' };
+    parts.push(bloque);
   }
   const clean = typeof text === 'string' ? text.slice(0, MAX_IMPORT_TEXT).trim() : '';
   if (clean) parts.push({ type: 'text', text: `Documento:\n\n${clean}` });
@@ -1677,11 +1710,12 @@ export default async function handler(req, res) {
   // por la misma pantalla de revisión. Cuenta como 1 turno (section='training').
   if (routinePhoto) {
     const { imageBase64, mediaType } = routinePhoto || {};
-    if (!imageBase64 || !ALLOWED_IMAGE_TYPES.includes(mediaType)) {
-      return res.status(400).json({ error: 'bad_image', message: 'Formato de imagen no válido. Usa JPEG, PNG o WebP.' });
+    const esPdfRutina = mediaType === TIPO_PDF;
+    if (!imageBase64 || (!esPdfRutina && !ALLOWED_IMAGE_TYPES.includes(mediaType))) {
+      return res.status(400).json({ error: 'bad_image', message: 'Formato no válido. Sube un PDF o una foto JPEG, PNG o WebP.' });
     }
     if (imageBase64.length > MAX_IMAGE_CHARS) {
-      return res.status(413).json({ error: 'image_too_large', message: 'La foto debe pesar menos de 5MB.' });
+      return res.status(413).json({ error: 'image_too_large', message: esPdfRutina ? 'El PDF debe pesar menos de 5MB.' : 'La foto debe pesar menos de 5MB.' });
     }
     try {
       const response = await anthropic.messages.create({
@@ -1691,8 +1725,8 @@ export default async function handler(req, res) {
         messages: [{
           role: 'user',
           content: [
-            { type: 'image', source: { type: 'base64', media_type: mediaType, data: imageBase64 } },
-            { type: 'text', text: 'Lee este plan de entrenamiento y devuélvelo estructurado. No inventes nada que no esté en la foto.' },
+            bloqueAdjunto(imageBase64, mediaType),
+            { type: 'text', text: 'Lee este plan de entrenamiento y devuélvelo estructurado. No inventes nada que no esté en el documento.' },
           ],
         }],
         output_config: { format: { type: 'json_schema', schema: OBJECTIVE_PLAN_SCHEMA } },

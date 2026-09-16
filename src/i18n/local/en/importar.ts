@@ -46,7 +46,6 @@ export default {
 
   // Photo of the document. AI only: the browser cannot read an image, so the
   // button stays hidden when no key is configured.
-  mc_imp_photo: 'Upload a photo of the plan',
   mc_imp_photo_clear: 'remove',
 
   // ── Notices in the libraries, where the import button used to be ──
@@ -77,4 +76,5 @@ export default {
   mc_imp_ej_routine_txt: 'Day A — Push\nBench press 4x8\nOverhead press 4x10\nDips 3x12\n\nDay B — Pull\nPull-ups 4x8\nBarbell row 4x10\nBiceps curl 3x12',
   mc_imp_ej_protocol: 'Cardio by blocks',
   mc_imp_ej_protocol_txt: 'Treadmill\n0-5 min · incline 2 · speed 6\n5-15 min · incline 4 · speed 8\n15-20 min · incline 2 · speed 6',
+  mc_imp_doc: 'Upload PDF or photo',
 };

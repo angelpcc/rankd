@@ -1930,4 +1930,5 @@ export default {
   mc_chat_photo: 'Adjuntar una foto',
   mc_chat_photo_ready: 'Foto lista para mandar',
   mc_chat_photo_remove: 'Quitar la foto',
+  mc_chat_doc_ready: 'Documento listo para mandar',
 };

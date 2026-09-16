@@ -581,8 +581,13 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
                   ? 'rk-bubble-mine rounded-2xl rounded-br-md'
                   : `rk-bubble-theirs text-zinc-200 rounded-2xl ${abre ? 'rounded-bl-md' : ''}`}`}>
                   {m.image && (
-                    <img src={m.image.previewUrl} alt=""
-                      className="rounded-xl mb-1.5 max-h-52 w-auto" style={{ maxWidth: '100%' }} />
+                    m.image.esPdf
+                      ? <span className="flex items-center gap-2 mb-1.5 rounded-xl px-3 py-2" style={{ background: 'rgba(0,0,0,0.22)' }}>
+                          <i className="ri-file-pdf-line text-lg" />
+                          <span className="text-xs font-semibold truncate">{m.image.nombre || 'PDF'}</span>
+                        </span>
+                      : <img src={m.image.previewUrl} alt=""
+                          className="rounded-xl mb-1.5 max-h-52 w-auto" style={{ maxWidth: '100%' }} />
                   )}
                   {m.role === 'assistant'
                     ? (searching && m.content === '' && i === messages.length - 1

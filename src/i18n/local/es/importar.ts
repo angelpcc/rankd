@@ -46,7 +46,6 @@ export default {
 
   // Foto del documento. Solo con IA: leer una imagen no lo puede hacer el
   // navegador, así que el botón no se enseña si no hay clave configurada.
-  mc_imp_photo: 'Subir foto del plan',
   mc_imp_photo_clear: 'quitar',
 
   // ── Avisos en las bibliotecas, donde ANTES estaba el botón de importar ──
@@ -76,4 +75,5 @@ export default {
   mc_imp_ej_routine_txt: 'Día A — Empuje\nPress banca 4x8\nPress militar 4x10\nFondos 3x12\n\nDía B — Tirón\nDominadas 4x8\nRemo con barra 4x10\nCurl bíceps 3x12',
   mc_imp_ej_protocol: 'Cardio por tramos',
   mc_imp_ej_protocol_txt: 'Cinta\n0-5 min · inclinación 2 · velocidad 6\n5-15 min · inclinación 4 · velocidad 8\n15-20 min · inclinación 2 · velocidad 6',
+  mc_imp_doc: 'Subir PDF o foto',
 };

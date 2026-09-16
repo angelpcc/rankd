@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { ACEPTA_DOCUMENTO, prepararImagen, TIPO_PDF } from '@/lib/imageInput';
 import { useTranslation } from 'react-i18next';
 import type { Profile } from '@/lib/supabase';
 import VoiceButton from '@/components/feature/VoiceButton';
@@ -68,14 +69,18 @@ const EJEMPLOS: { icon: string; labelKey: string; textKey: string }[] = [
   { icon: 'ri-timer-line',         labelKey: 'mc_imp_ej_protocol', textKey: 'mc_imp_ej_protocol_txt' },
 ];
 
-/** Lee un archivo a base64 SIN el prefijo `data:…;base64,` que espera la API. */
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(String(r.result).split(',')[1] || '');
-    r.onerror = reject;
-    r.readAsDataURL(file);
-  });
+/**
+ * Prepara el archivo para mandarlo.
+ *
+ * Se apoya en `prepararImagen`, que es quien sabe la diferencia: una foto se
+ * encoge a 1568px antes de salir (una foto de móvil son 4 MB y el límite son 5,
+ * y por encima de ese tamaño la API la reduce igualmente) y un PDF viaja entero.
+ * Antes esto leía el fichero en crudo, así que una foto de la cámara podía
+ * pasarse del límite y lo único que veías era "la foto debe pesar menos de 5MB".
+ */
+async function prepararArchivo(file: File): Promise<{ base64: string; mediaType: string } | null> {
+  const listo = await prepararImagen(file);
+  return listo ? { base64: listo.base64, mediaType: listo.mediaType } : null;
 }
 
 /**
@@ -159,8 +164,8 @@ export default function PlanImport({ profile, showToast, onImported, onWeekText,
         // lector del navegador saca lo que puede del mismo texto.
         let rutina: Routine | null = null;
         if (aiRoutine) {
-          const imageBase64 = file ? await fileToBase64(file) : undefined;
-          const res = await importRoutine({ text: text.trim() || undefined, imageBase64, mediaType: file?.type });
+          const adj = file ? await prepararArchivo(file) : null;
+          const res = await importRoutine({ text: text.trim() || undefined, imageBase64: adj?.base64, mediaType: adj?.mediaType });
           if (res.routine) {
             rutina = { ...res.routine, source: 'import' } as Routine;
           } else if (res.error) {
@@ -191,8 +196,8 @@ export default function PlanImport({ profile, showToast, onImported, onWeekText,
         if (!actKind) { setSaving(false); return; }
         let prot: Protocol | null = null;
         if (aiProtocol) {
-          const imageBase64 = file ? await fileToBase64(file) : undefined;
-          const res = await importProtocol({ text: text.trim() || undefined, imageBase64, mediaType: file?.type, kind: actKind });
+          const adj = file ? await prepararArchivo(file) : null;
+          const res = await importProtocol({ text: text.trim() || undefined, imageBase64: adj?.base64, mediaType: adj?.mediaType, kind: actKind });
           if (res.protocol) {
             prot = { ...res.protocol, kind: actKind, source: 'import' } as Protocol;
           } else if (res.error) {
@@ -279,19 +284,23 @@ export default function PlanImport({ profile, showToast, onImported, onWeekText,
         </div>
       </div>
 
-      {/* ── Foto del documento ──
-          Solo con IA: leer una imagen no lo puede hacer el navegador. Se enseña
-          únicamente cuando hay clave, para no ofrecer un botón que no haría
-          nada. */}
+      {/* ── El documento: PDF o foto ──
+          Solo con IA: ni un PDF ni una imagen los lee el navegador solo. Se
+          enseña únicamente cuando hay clave, para no ofrecer un botón muerto.
+
+          El PDF va primero en el texto del botón a propósito: es lo que mejor
+          sale. En un PDF las columnas de la tabla llegan enteras; en una foto
+          hay que leerlas a ojo y se cruzan —"0-5 | 2 | 6,5" acababa con el 2 en
+          velocidad— que es justo el fallo que esto evita. */}
       {(aiRoutine || aiProtocol) && (
         <>
-          <input ref={fileRef} type="file" accept="image/*" hidden
+          <input ref={fileRef} type="file" accept={ACEPTA_DOCUMENTO} hidden
             onChange={(e) => setFile(e.target.files?.[0] || null)} />
           <button onClick={() => fileRef.current?.click()}
             className="rk-nav-btn rk-press text-xs mt-2 inline-flex items-center gap-1.5"
             style={{ padding: '0.5rem 1rem' }}>
-            <i className="ri-image-add-line" />
-            {file ? file.name.slice(0, 28) : t('mc_imp_photo')}
+            <i className={file?.type === TIPO_PDF ? 'ri-file-pdf-line' : 'ri-attachment-2'} />
+            {file ? file.name.slice(0, 28) : t('mc_imp_doc')}
           </button>
           {file && (
             <button onClick={() => { setFile(null); if (fileRef.current) fileRef.current.value = ''; }}
