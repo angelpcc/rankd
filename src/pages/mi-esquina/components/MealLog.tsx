@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingColumn } from '@/lib/dbState';
@@ -47,6 +47,8 @@ export default function MealLog({ profile, showToast }: Props) {
   const [unavailable, setUnavailable] = useState(false);
   const [type, setType] = useState('comida');
   const [desc, setDesc] = useState('');
+  /** El campo de texto, para poder dejar el cursor dentro al variar una comida. */
+  const descRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   // Comidas frecuentes: se calculan sobre los últimos 60 días (agrupando por
@@ -157,6 +159,35 @@ export default function MealLog({ profile, showToast }: Props) {
     loadFrequent();
   };
 
+  /**
+   * "Lo de siempre, pero sin el plátano".
+   *
+   * No registra: baja el texto al campo y deja el cursor al final, para que
+   * quites o añadas lo que sea y guardes tú. Es la variación del día a día —
+   * el mismo desayuno menos una cosa— y hacerla a mano cuesta cuatro letras;
+   * pedírsela a la IA costaría una llamada entera por quitar una fruta.
+   *
+   * El cursor va AL FINAL y no se selecciona el texto: seleccionarlo haría que
+   * la primera tecla borrara el desayuno entero, que es lo contrario de lo que
+   * se quiere al pulsar un lápiz.
+   */
+  const variar = (description: string) => {
+    // El foco se pide AQUÍ, dentro del gesto, y no en el callback de abajo.
+    //
+    // Safari de iPhone solo abre el teclado si el focus() ocurre durante el
+    // evento que ha iniciado el usuario. Diferido a un requestAnimationFrame
+    // pierde esa condición: el campo se marcaría como activo, el teclado NO
+    // subiría, y el lápiz parecería no hacer nada en el único sitio donde de
+    // verdad se usa esto, que es el móvil.
+    descRef.current?.focus();
+    setDesc(description);
+    // El cursor sí va en el siguiente fotograma: hasta que React no repinta,
+    // el input aún tiene el texto viejo y colocarlo ahora no serviría de nada.
+    requestAnimationFrame(() => {
+      descRef.current?.setSelectionRange(description.length, description.length);
+    });
+  };
+
   const addFromFrequent = async (description: string) => {
     if (saving) return;
     setSaving(true);
@@ -264,11 +295,28 @@ export default function MealLog({ profile, showToast }: Props) {
           </p>
           <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
             {frequent.map((f) => (
-              <button key={f} onClick={() => addFromFrequent(f)} disabled={saving} title={t('mc_meal_frequent_add')}
-                className="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold text-zinc-200 bg-green-500/10 border border-green-500/25 hover:bg-green-500/15 hover:border-green-500/50 px-3 py-1.5 rounded-full cursor-pointer disabled:opacity-50 transition-colors whitespace-nowrap">
-                <i className="ri-add-line text-xs text-green-400"></i>
-                <span className="max-w-[180px] truncate">{f}</span>
-              </button>
+              // Dos zonas en la misma pastilla, no un botón: el cuerpo registra
+              // de un toque —que es para lo que está el bloque— y el lápiz lo
+              // baja al campo para cambiarlo. Un `button` dentro de otro no es
+              // HTML válido y el navegador lo desarma, así que el contenedor
+              // es un div y los botones son hermanos.
+              <div key={f}
+                className="flex-shrink-0 flex items-stretch bg-green-500/10 border border-green-500/25 rounded-full overflow-hidden transition-colors hover:border-green-500/50">
+                <button onClick={() => addFromFrequent(f)} disabled={saving} title={t('mc_meal_frequent_add')}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-zinc-200 hover:bg-green-500/15 pl-3.5 pr-2.5 py-2 cursor-pointer disabled:opacity-50 transition-colors whitespace-nowrap">
+                  <i className="ri-add-line text-xs text-green-400"></i>
+                  <span className="max-w-[180px] truncate">{f}</span>
+                </button>
+                {/* Ancho de sobra a propósito. El botón de al lado ESCRIBE en el
+                    diario en cuanto lo tocas, así que un lápiz estrecho no es solo
+                    incómodo: fallar el dedo te apunta un desayuno que no has comido
+                    y hay que ir a borrarlo. */}
+                <button onClick={() => variar(f)} disabled={saving} title={t('mc_meal_frequent_edit')}
+                  aria-label={t('mc_meal_frequent_edit')}
+                  className="flex items-center justify-center px-3.5 border-l border-green-500/25 text-green-400 hover:text-green-300 hover:bg-green-500/15 cursor-pointer disabled:opacity-50 transition-colors">
+                  <i className="ri-pencil-line text-sm"></i>
+                </button>
+              </div>
             ))}
           </div>
         </div>
@@ -276,7 +324,7 @@ export default function MealLog({ profile, showToast }: Props) {
 
       {/* 3. Entrada + buscador + micro + añadir */}
       <div className="flex gap-2">
-        <input value={desc} onChange={(e) => setDesc(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') add(); }}
+        <input ref={descRef} value={desc} onChange={(e) => setDesc(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') add(); }}
           className="flex-1 min-w-0 bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-green-500"
           style={{ fontSize: 16, minHeight: 44 }} placeholder={t('mc_meal_ph')} />
         <button onClick={() => setShowPicker(true)} aria-label={t('mc_food_picker_title')}

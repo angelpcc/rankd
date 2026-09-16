@@ -10,7 +10,8 @@ import { clearChat, loadChat, saveChat } from '@/pages/mi-esquina/lib/chatHistor
 import VoiceButton from '@/components/feature/VoiceButton';
 import PhotoAttach, { FotoPendiente } from './PhotoAttach';
 import type { ImagenLista } from '@/lib/imageInput';
-import { loadAgendaSnapshot, loadTrainedRecent, type AgendaDia, type DiaEntrenado } from '@/pages/mi-esquina/lib/agendaSnapshot';
+import { compactarAgenda, loadAgendaSnapshot, loadTrainedRecent, type AgendaDia, type DiaEntrenado } from '@/pages/mi-esquina/lib/agendaSnapshot';
+import { libraryLabels } from '@/pages/mi-esquina/lib/exercises';
 import { currentWeekStart } from '@/pages/mi-esquina/lib/weekPlan';
 
 // 'general' es la CONSULTA ABIERTA (punto 18): cualquier duda, sin flujo. Los
@@ -180,7 +181,7 @@ function renderRich(text: string, watchLabel: string) {
 }
 
 export default function SectionCoach({ section, profile, title, intro, suggestions, accent = 'red', showToast }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const a = ACCENTS[accent];
   const canSavePlan = section === 'training' || section === 'nutrition';
   const [physical, setPhysical] = useState<Record<string, unknown>>({});
@@ -566,16 +567,38 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
       showToast?.(t('mc_ai_change_no_plan'), 'error');
       return;
     }
+    const semanas = Math.max(1, activo.plan.weeks || 1);
+
+    // La agenda que se mira aqui NO es la del estado.
+    //
+    // La del estado es una semana contada desde el lunes de HOY, que es lo que
+    // Consulta necesita para responder "que ceno". El plan que se va a cambiar
+    // puede empezar otro lunes y durar tres semanas: con la del estado, el
+    // motor veria vacios los dias del plan que caen fuera de esa semana, y un
+    // dia que parece vacio es un dia en el que se puede poner lo que sea.
+    //
+    // Se pide con el id del plan y se poda: lo que salio del plan ya viaja
+    // dentro del propio plan, y mandarlo dos veces se paga dos veces.
+    const agendaPlan = await loadAgendaSnapshot(profile.id, activo.plan.weekStart, semanas, activo.plan.id)
+      .then(compactarAgenda)
+      .catch(() => [] as AgendaDia[]);
+
     const ctx = {
       weekStart: activo.plan.weekStart,
       today: todayISO(),
-      weeks: Math.max(1, activo.plan.weeks || 1),
-      exerciseNames: [],
+      weeks: semanas,
+      // Sin esta lista el motor se inventa los nombres.
+      //
+      // Iba vacia, y justo aqui es donde mas duele: el cambio tipico es
+      // "cambiame el press por otro ejercicio". Si el sustituto sale con un
+      // nombre que no esta en la biblioteca, al ir a registrarlo no enlaza con
+      // nada: ni tecnica, ni historico, ni el peso que movias la otra vez.
+      exerciseNames: libraryLabels(i18n.language === 'en' ? 'en' : 'es'),
       activityKinds: ACTIVITY_KINDS.map((k) => k.value),
     };
     const res = await sendPlanChat(
       [{ role: 'user', content: cambio }],
-      ctx, physical, activo.plan, activo.plan.id, agenda, historial,
+      ctx, physical, activo.plan, activo.plan.id, agendaPlan, historial, true,
     );
     if (!res.plan) {
       setAplicando(false);
@@ -587,7 +610,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
     setCambioDescartado(true);
     if (commit.agendaUnavailable) { showToast?.(t('mc_ai_change_failed'), 'error'); return; }
     showToast?.(t('mc_ai_change_done', { n: commit.agendaItems }));
-  }, [cambio, aplicando, profile.id, physical, agenda, historial, showToast, t]);
+  }, [cambio, aplicando, profile.id, physical, historial, showToast, t, i18n.language]);
 
   if (checking) {
     return (

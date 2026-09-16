@@ -1125,6 +1125,23 @@ function historialComoTexto(historial) {
     .join(NL);
 }
 
+/**
+ * Recorta sin partir un ejercicio por la mitad.
+ *
+ * Cortar a pelo por el carácter N deja cosas como "Elevaciones late", y el
+ * modelo no tiene forma de saber que eso es un recorte y no el nombre: te
+ * contesta sobre un ejercicio que no existe. Se corta por la última coma que
+ * quepa y se dice expresamente que hay más.
+ */
+function recortarLimpio(texto, limite) {
+  const s = String(texto || '');
+  if (s.length <= limite) return s;
+  const coma = s.lastIndexOf(', ', limite);
+  // Si la primera coma ya se pasa del límite (un nombre larguísimo), se corta
+  // por donde sea: es preferible a devolver la línea entera sin límite.
+  return (coma > limite * 0.5 ? s.slice(0, coma) : s.slice(0, limite)) + '… (y alguno más)';
+}
+
 /** Convierte la agenda real en texto corto. Devuelve "" si no hay nada. */
 function agendaComoTexto(agenda) {
   if (!Array.isArray(agenda) || agenda.length === 0) return '';
@@ -1132,7 +1149,12 @@ function agendaComoTexto(agenda) {
   const DIAS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
   const lineas = agenda.slice(0, 40).map((d) => {
     const items = (d.items || []).slice(0, 8)
-      .map((it) => '    - [' + it.kind + '] ' + String(it.text || '').slice(0, 200) + (it.done ? '  ← YA ENTRENADO' : ''))
+      // La fuerza tiene más sitio que lo demás, y no por capricho: un día de
+      // fuerza son seis u ocho ejercicios con series y repeticiones, y con 200
+      // caracteres se cortaba a la mitad. Es justo el dato que hace falta para
+      // responder a "cámbiame el press por otro". Las actividades y las comidas
+      // vienen ya recortadas a 120 desde el cliente, así que esto no las toca.
+      .map((it) => '    - [' + it.kind + '] ' + recortarLimpio(it.text, it.kind === 'strength' ? 340 : 200) + (it.done ? '  ← YA ENTRENADO' : ''))
       .join(NL);
     return '  ' + d.date + ' (' + (DIAS[d.weekday] || '?') + ', semana ' + ((d.week || 0) + 1) + '):' + NL + items;
   });

@@ -284,6 +284,7 @@ export default {
   mc_meal_saved: 'Meal logged',
   mc_meal_frequent_title: 'Frequent',
   mc_meal_frequent_add: 'Add to diary',
+  mc_meal_frequent_edit: 'Tweak it before saving',
   mc_meal_slot_empty: 'Nothing for {{slot}} yet today.',
   mc_meal_slot_total: '{{slot}} · {{n}} entries',
   mc_meal_past_days: 'Earlier days',
