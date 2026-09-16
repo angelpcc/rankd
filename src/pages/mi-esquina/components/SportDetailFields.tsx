@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════════
-// RANKD · Registrar Hyrox y CrossFit por lo que de verdad son
+// RANKD · Registrar cada deporte por lo que de verdad es
 //
 // ── EL PROBLEMA ──
 //
@@ -8,6 +8,11 @@
 // moviste en el trineo, ni si el remo fue mejor que el mes pasado. Y un WOD de
 // CrossFit no es una duración: es un FORMATO con su resultado propio, y el
 // resultado que cuenta cambia según el formato.
+//
+// Y no es solo cosa de esos dos: una natación sin el estilo ni el largo de la
+// piscina tampoco se compara con la de la semana pasada —1500 m a crol en una
+// de 50 no es lo mismo que 1500 a braza en una de 25— y un remo sin el ritmo
+// por 500 m ni las paladas es un número de metros suelto.
 //
 // ── LA REGLA ──
 //
@@ -23,8 +28,9 @@
 import { useTranslation } from 'react-i18next';
 import {
   HYROX_DIVISIONS, HYROX_STATIONS, WODS_CONOCIDOS, WOD_FORMATS,
-  hyroxKg, usaHyrox, usaWod, wodFormat,
-  type ActivityDetail, type HyroxDetail, type HyroxDivision, type WodDetail,
+  camposDe, hyroxKg, usaHyrox, usaWod, wodFormat,
+  type ActivityDetail, type ExtraField, type GenericDetail,
+  type HyroxDetail, type HyroxDivision, type WodDetail,
 } from '../lib/sportSpecs';
 
 interface Props {
@@ -55,10 +61,79 @@ export default function SportDetailFields({ kind, value, onChange }: Props) {
   const { t } = useTranslation();
   if (usaHyrox(kind)) return <Hyrox value={value as HyroxDetail | null} onChange={onChange} t={t} />;
   if (usaWod(kind)) return <Wod value={value as WodDetail | null} onChange={onChange} t={t} />;
-  return null;
+  const campos = camposDe(kind);
+  if (campos.length === 0) return null;
+  return <Generico campos={campos} value={value as GenericDetail | null} onChange={onChange} t={t} />;
 }
 
 type TFn = (k: string, o?: Record<string, unknown>) => string;
+
+// ── EL RESTO DE DEPORTES ─────────────────────────────────────────
+
+/**
+ * Pinta los dos o tres campos propios de un deporte cualquiera.
+ *
+ * Uno solo para los catorce, movido por la lista de `sportSpecs`. Hacer un
+ * formulario por deporte sería catorce sitios donde arreglar el mismo fallo, y
+ * añadir un deporte dejaría de ser añadir una línea.
+ */
+function Generico({ campos, value, onChange, t }: {
+  campos: ExtraField[]; value: GenericDetail | null;
+  onChange: (d: ActivityDetail | null) => void; t: TFn;
+}) {
+  const d: GenericDetail = value || { sport: 'generic', values: {} };
+  const set = (id: string, v: string | number | undefined) => {
+    const values = { ...d.values };
+    // Vacío no se guarda: un cero o una cadena vacía apuntados sin querer se
+    // leerían luego como un dato real ("0 W de media").
+    if (v === undefined || v === '') delete values[id];
+    else values[id] = v;
+    onChange(Object.keys(values).length ? { sport: 'generic', values } : null);
+  };
+
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {campos.map((c) => (
+        <div key={c.id} className={c.wide ? 'col-span-2' : ''}>
+          <span className="block text-[10px] text-zinc-500 mb-1">{t(c.labelKey)}</span>
+
+          {c.type === 'choice' ? (
+            <div className="flex flex-wrap gap-1.5">
+              {(c.options || []).map((o) => {
+                const on = d.values[c.id] === o;
+                return (
+                  <button key={o} type="button" onClick={() => set(c.id, on ? undefined : o)}
+                    className={`rk-chip text-[11px] font-semibold rounded-full px-2.5 py-1.5 cursor-pointer border ${on ? 'border-white/30 bg-white/[0.07] text-white' : 'border-white/10 text-zinc-400 hover:border-white/25'}`}>
+                    {t(o)}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="relative">
+              <input
+                inputMode={c.type === 'number' ? 'decimal' : 'text'}
+                placeholder={c.placeholder}
+                defaultValue={c.type === 'time' ? segAMmss(d.values[c.id] as number) : (d.values[c.id] ?? '')}
+                onBlur={(e) => {
+                  const v = e.target.value.trim();
+                  if (c.type === 'time') set(c.id, mmssASeg(v));
+                  else if (c.type === 'number') set(c.id, v ? Number(v.replace(',', '.')) : undefined);
+                  else set(c.id, v || undefined);
+                }}
+                className={campo} style={{ fontSize: 16, paddingRight: c.unit ? 44 : undefined }} />
+              {c.unit && (
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-zinc-500 pointer-events-none">
+                  {c.unit}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // ── HYROX ────────────────────────────────────────────────────────
 

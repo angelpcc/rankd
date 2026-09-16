@@ -178,7 +178,99 @@ export interface WodDetail {
   name?: string;
 }
 
-export type ActivityDetail = HyroxDetail | WodDetail;
+export type ActivityDetail = HyroxDetail | WodDetail | GenericDetail;
+
+// ── EL RESTO DE DEPORTES ───────────────────────────────────────
+//
+// Hyrox y los WOD necesitan un formulario propio porque su estructura es
+// propia: ocho estaciones fijas, o un formato con movimientos libres.
+//
+// Los demás no. Lo que les falta no es una pantalla distinta: son DOS O TRES
+// DATOS que su cardio sí tiene y el de al lado no. Una natación sin el estilo
+// ni el largo de la piscina no se puede comparar con la de la semana pasada —
+// 1500 m a crol en piscina de 50 no es lo mismo que 1500 a braza en una de 25.
+// Un remo sin el ritmo por 500 m ni las paladas es un número de metros suelto.
+//
+// Así que en vez de catorce formularios, una LISTA de campos por deporte que se
+// pinta sola. Añadir un deporte es añadir una entrada aquí, no una pantalla.
+
+export interface ExtraField {
+  /** Clave dentro de `values`. No se traduce: viaja a la base. */
+  id: string;
+  labelKey: string;
+  /** number = cifra, time = m:ss, choice = una de varias, text = libre. */
+  type: 'number' | 'time' | 'choice' | 'text';
+  /** Unidad que se pinta a la derecha ("spm", "W", "m"). */
+  unit?: string;
+  /** Opciones de `choice`: claves i18n. El valor guardado es la clave. */
+  options?: string[];
+  placeholder?: string;
+  /** Ocupa las dos columnas. Para textos y para listas largas. */
+  wide?: boolean;
+}
+
+/**
+ * Lo que de verdad define una sesión de cada deporte.
+ *
+ * Corto a propósito: dos o tres campos por deporte, los que cambian la lectura
+ * del registro. Un formulario de diez campos no se rellena, y un campo que
+ * nadie rellena es peor que no tenerlo — ocupa sitio y ensucia la pantalla.
+ */
+export const SPORT_FIELDS: Record<string, ExtraField[]> = {
+  natacion: [
+    { id: 'stroke', labelKey: 'mc_sp_sw_stroke', type: 'choice', options: ['mc_sp_sw_free', 'mc_sp_sw_back', 'mc_sp_sw_breast', 'mc_sp_sw_fly', 'mc_sp_sw_mixed'] },
+    { id: 'pool', labelKey: 'mc_sp_sw_pool', type: 'choice', options: ['mc_sp_sw_25', 'mc_sp_sw_50', 'mc_sp_sw_open'] },
+    { id: 'pace100', labelKey: 'mc_sp_sw_pace', type: 'time', placeholder: '1:45' },
+    { id: 'sets', labelKey: 'mc_sp_sets', type: 'text', placeholder: '10 × 100', wide: true },
+  ],
+  remo: [
+    { id: 'pace500', labelKey: 'mc_sp_rw_pace', type: 'time', placeholder: '2:05' },
+    { id: 'spm', labelKey: 'mc_sp_rw_spm', type: 'number', unit: 'spm', placeholder: '24' },
+    { id: 'watts', labelKey: 'mc_sp_watts', type: 'number', unit: 'W', placeholder: '210' },
+    { id: 'sets', labelKey: 'mc_sp_sets', type: 'text', placeholder: '4 × 500 m', wide: true },
+  ],
+  bici: [
+    { id: 'watts', labelKey: 'mc_sp_watts', type: 'number', unit: 'W', placeholder: '180' },
+    { id: 'rpm', labelKey: 'mc_sp_cadence', type: 'number', unit: 'rpm', placeholder: '85' },
+    { id: 'elev', labelKey: 'mc_sp_elev', type: 'number', unit: 'm', placeholder: '450' },
+    { id: 'where', labelKey: 'mc_sp_where', type: 'choice', options: ['mc_sp_indoor', 'mc_sp_outdoor'] },
+  ],
+  correr: [
+    { id: 'session', labelKey: 'mc_sp_run_type', type: 'choice', wide: true, options: ['mc_sp_run_easy', 'mc_sp_run_long', 'mc_sp_run_tempo', 'mc_sp_run_intervals', 'mc_sp_run_hills', 'mc_sp_run_fartlek'] },
+    { id: 'elev', labelKey: 'mc_sp_elev', type: 'number', unit: 'm', placeholder: '120' },
+    { id: 'surface', labelKey: 'mc_sp_surface', type: 'choice', options: ['mc_sp_road', 'mc_sp_trail', 'mc_sp_track'] },
+    { id: 'sets', labelKey: 'mc_sp_sets', type: 'text', placeholder: '6 × 800 m', wide: true },
+  ],
+  cinta: [
+    { id: 'session', labelKey: 'mc_sp_run_type', type: 'choice', wide: true, options: ['mc_sp_run_easy', 'mc_sp_run_tempo', 'mc_sp_run_intervals', 'mc_sp_run_hills'] },
+    { id: 'speed', labelKey: 'mc_sp_speed', type: 'number', unit: 'km/h', placeholder: '5' },
+  ],
+  caminar: [
+    { id: 'steps', labelKey: 'mc_sp_steps', type: 'number', placeholder: '8000' },
+    { id: 'elev', labelKey: 'mc_sp_elev', type: 'number', unit: 'm', placeholder: '80' },
+  ],
+  eliptica: [
+    { id: 'resistance', labelKey: 'mc_sp_resistance', type: 'number', placeholder: '8' },
+    { id: 'rpm', labelKey: 'mc_sp_cadence', type: 'number', unit: 'rpm', placeholder: '60' },
+  ],
+  cuerda: [
+    { id: 'jumps', labelKey: 'mc_sp_jumps', type: 'number', placeholder: '600' },
+    { id: 'doubles', labelKey: 'mc_sp_doubles', type: 'number', placeholder: '50' },
+    { id: 'sets', labelKey: 'mc_sp_sets', type: 'text', placeholder: '6 × 3 min', wide: true },
+  ],
+  boxeo: [
+    { id: 'work', labelKey: 'mc_sp_bx_work', type: 'choice', wide: true, options: ['mc_sp_bx_shadow', 'mc_sp_bx_bag', 'mc_sp_bx_pads', 'mc_sp_bx_spar', 'mc_sp_bx_tech'] },
+  ],
+};
+
+/** Campos extra de ese deporte. [] si no tiene (o si usa formulario propio). */
+export const camposDe = (kind: string): ExtraField[] => SPORT_FIELDS[kind] || [];
+
+/** Lo apuntado en los campos extra de un deporte cualquiera. */
+export interface GenericDetail {
+  sport: 'generic';
+  values: Record<string, string | number>;
+}
 
 /** ¿Este tipo de actividad se registra con estaciones de Hyrox? */
 export const usaHyrox = (kind: string): boolean => kind === 'hyrox';

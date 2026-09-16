@@ -15,7 +15,7 @@ import SectionHero from './SectionHero';
 import ActivityTodayCard from './ActivityTodayCard';
 import { useActivityLauncher } from './useActivityLauncher';
 import SportDetailFields from './SportDetailFields';
-import { usaHyrox, usaWod, type ActivityDetail } from '../lib/sportSpecs';
+import { camposDe, usaHyrox, usaWod, type ActivityDetail } from '../lib/sportSpecs';
 
 interface Props {
   profile: Profile;
@@ -287,7 +287,7 @@ export default function FighterTraining({ profile, showToast, initialDate, initi
       // aplicada, `writeDroppingMissingColumns` quita esta columna y la sesión
       // se guarda igual con lo que sí cabe — el detalle se pierde, pero el
       // registro no, que es lo que importa.
-      detail: (usaHyrox(kind) || usaWod(kind)) && detail ? detail : null,
+      detail: (usaHyrox(kind) || usaWod(kind) || camposDe(kind).length > 0) && detail ? detail : null,
       pace_sec_per_km: cfg.fields.includes('pace')
         ? (pace ? paceToSec(pace) : autoPace) || null
         : null,
@@ -678,7 +678,7 @@ export default function FighterTraining({ profile, showToast, initialDate, initi
                         formato con su resultado propio. Va aquí arriba, no en los
                         detalles plegados, porque en estos deportes NO es un
                         detalle: es la sesión. */}
-                    {(usaHyrox(kind) || usaWod(kind)) && (
+                    {(usaHyrox(kind) || usaWod(kind) || camposDe(kind).length > 0) && (
                       <SportDetailFields kind={kind} value={detail} onChange={setDetail} />
                     )}
 

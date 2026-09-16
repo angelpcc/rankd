@@ -18,6 +18,7 @@ import LastPerformanceCard from './LastPerformanceCard';
 import { buildLastPerformance, buildSuggestion, type LastPerformance, type Suggestion, type PerfRow } from '../lib/lastPerformance';
 import { loadDraft, saveDraft, clearDraft, type StrengthDraft } from '../lib/strengthDraft';
 import { useOnline } from '@/hooks/useOnline';
+import { aKg, desdeKg, guardarUnidad, leerUnidad, type WeightUnit } from '@/lib/units';
 
 // ── Sesión construida que se devuelve al padre para guardar ──
 // reps = valor bajo/fijo; repsMax = tope del rango (undefined = fijo). En
@@ -115,6 +116,23 @@ interface FExercise {
 interface FBlock { group: MuscleGroup; exercises: FExercise[] }
 
 const uid = () => Math.random().toString(36).slice(2, 9);
+
+/**
+ * Pasa lo que hay escrito en un campo de peso de una unidad a otra.
+ *
+ * Vacío se queda vacío: convertir "" a "0" metería un peso que el usuario no
+ * ha puesto, y en un ejercicio de peso corporal el 0 es correcto pero escrito
+ * a mano, no inventado.
+ */
+function convertirCampo(valor: string, de: WeightUnit, a: WeightUnit): string {
+  const v = valor.trim();
+  if (!v) return v;
+  const n = parseFloat(v.replace(',', '.'));
+  if (!Number.isFinite(n)) return v;
+  const enKg = aKg(n, de);
+  const salida = desdeKg(enKg, a);
+  return String(+salida.toFixed(2)).replace('.', ',');
+}
 const norm = (s: string) => s.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ');
 
 // Normaliza el nombre de máquina para comparar. Vacío, null y undefined son lo
@@ -191,41 +209,6 @@ interface Props {
 const SLOT_ORDER: SessionSlot[] = ['morning', 'afternoon', 'evening'];
 
 const uidLocal = () => Math.random().toString(36).slice(2, 9);
-/**
- * Bloques de partida a partir de lo PLANIFICADO para el día.
- *
- * Cada ejercicio del plan entra con sus series ya creadas y las repes puestas;
- * el peso se deja en blanco a propósito, porque es lo único que de verdad se
- * decide en el gimnasio. Los grupos sin ejercicios planificados entran vacíos,
- * igual que antes.
- *
- * Si un ejercicio pertenece a un grupo que no estaba en el plan (pasa cuando el
- * plan solo nombraba ejercicios), se le crea su bloque: perderlo sería tirar
- * justo el trabajo que se venía a ahorrar.
- */
-function blocksFromPlan(groups: MuscleGroup[], specs?: ExerciseSpec[]): FBlock[] {
-  const out: FBlock[] = groups.map((g) => ({ group: g, exercises: [] as FExercise[] }));
-  for (const s of specs || []) {
-    const name = (s.name || '').trim();
-    if (!name) continue;
-    const g = (muscleGroupOf(name) || groups[0] || 'other') as MuscleGroup;
-    let block = out.find((b) => b.group === g);
-    if (!block) { block = { group: g, exercises: [] }; out.push(block); }
-    const reps = s.reps_min && s.reps_min > 0
-      ? (s.reps_max && s.reps_max > s.reps_min ? `${s.reps_min}-${s.reps_max}` : String(s.reps_min))
-      : (s.value && s.value > 0 ? String(s.value) : '10');
-    block.exercises.push({
-      id: uidLocal(), label: name, query: '', open: false,
-      sets: Array.from({ length: Math.max(1, s.sets || 1) }, () => ({
-        reps,
-        // El peso prescrito se propone si lo trae; si no, en blanco.
-        weight: s.weight_kg && s.weight_kg > 0 ? String(s.weight_kg) : '',
-      })),
-    });
-  }
-  return out;
-}
-
 function blocksFromEdit(s: EditSession): FBlock[] {
   return s.blocks.map((b) => ({
     group: b.group,
@@ -308,6 +291,34 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
       .filter(([, ex]) => ex.length > 0)
       .map(([group, exercises]) => ({ group, exercises }));
   }, [initialExercises, startGroups]);
+
+  /**
+   * En qué unidad ESCRIBE los pesos.
+   *
+   * Solo afecta a lo que se teclea y a lo que se lee: en la base siempre van
+   * kilos (ver lib/units.ts). Se recuerda por dispositivo, que es lo que de
+   * verdad cambia — te vas a un gimnasio con las mancuernas en libras y lo
+   * quieres así mientras estés allí.
+   */
+  const [unidad, setUnidad] = useState<WeightUnit>(() => leerUnidad(fighterProfileId));
+  const cambiarUnidad = (u: WeightUnit) => {
+    if (u === unidad) return;
+    // Los números YA escritos se convierten, no se reinterpretan. Si tenías 100
+    // y pasas a libras, eran 100 kg y ahora ponen 220,5 — no 100 lb.
+    setBlocks((bs) => bs.map((b) => ({
+      ...b,
+      exercises: b.exercises.map((e) => ({
+        ...e,
+        sets: e.sets.map((s) => ({
+          ...s,
+          weight: convertirCampo(s.weight, unidad, u),
+          drops: s.drops?.map((dd) => ({ ...dd, weight: convertirCampo(dd.weight, unidad, u) })),
+        })),
+      })),
+    })));
+    setUnidad(u);
+    guardarUnidad(fighterProfileId, u);
+  };
 
   const [step, setStep] = useState<1 | 2>(prefill || startGroups.length > 0 ? 2 : 1);
   // Al editar manda la fecha de la sesión; si no, la que pida quien abre el
@@ -629,7 +640,10 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
         // Lee un par (reps/segundos/metros, peso) según cómo se mida el
         // ejercicio. Devuelve null si el valor principal no es válido.
         const readPair = (raw: { reps: string; weight: string }): BuiltDrop | null => {
-          const weight = parseFloat(raw.weight.replace(',', '.')) || 0;
+          // A KILOS antes de salir de aquí. En la base no entra una libra: ver
+          // lib/units.ts para por qué no es negociable.
+          const escrito = parseFloat(raw.weight.replace(',', '.')) || 0;
+          const weight = aKg(escrito, unidad);
           if (tm === 'reps') {
             const parsed = parseRepsInput(raw.reps);
             if (!parsed) return null;
@@ -837,9 +851,28 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
       {/* ── PASO 2: ejercicios por grupo ── */}
       {step === 2 && (
         <div className="space-y-5">
-          <button onClick={() => setStep(1)} className="text-xs text-zinc-400 hover:text-white flex items-center gap-1.5 cursor-pointer">
-            <i className="ri-arrow-left-line"></i>{t('mc_str_edit_groups')}
-          </button>
+          <div className="flex items-center justify-between gap-2">
+            <button onClick={() => setStep(1)} className="text-xs text-zinc-400 hover:text-white flex items-center gap-1.5 cursor-pointer">
+              <i className="ri-arrow-left-line"></i>{t('mc_str_edit_groups')}
+            </button>
+
+            {/* ── Kilos o libras ──
+                Aquí arriba y siempre visible, porque el momento de necesitarlo
+                es JUSTO al empezar a apuntar: estás delante de una máquina que
+                marca libras. Escondido en ajustes no serviría — para cuando lo
+                encuentras, ya has dividido entre 2,2 de cabeza.
+                Lo ya escrito se convierte al cambiar: si tenías 100 y pasas a
+                libras, eran 100 kg y ahora ponen 220,5, no 100 lb. */}
+            <div className="inline-flex gap-0.5 p-0.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.05)' }}>
+              {(['kg', 'lb'] as const).map((u) => (
+                <button key={u} type="button" onClick={() => cambiarUnidad(u)}
+                  aria-pressed={unidad === u}
+                  className={`text-[11px] font-bold uppercase rounded-md px-2.5 py-1 cursor-pointer transition-colors ${unidad === u ? 'bg-white/[0.12] text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
+                  {u}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {blocks.map((b) => (
             <div key={b.group}>
@@ -984,7 +1017,7 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
                             <input value={s.weight} inputMode="decimal" placeholder="0" style={{ fontSize: 16, minHeight: 44 }}
                               onChange={(ev) => patchSet(b.group, e.id, si, { weight: ev.target.value })}
                               className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl pl-3 pr-8 py-2.5 focus:outline-none focus:border-red-500" />
-                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-zinc-500 pointer-events-none">kg</span>
+                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-zinc-500 pointer-events-none">{unidad}</span>
                             {showBar && (
                               <button type="button" onClick={() => setPlateFor({ group: b.group, id: e.id, si })}
                                 aria-label={t('mc_plc_title')} title={t('mc_plc_title')}
@@ -1020,7 +1053,7 @@ export default function StrengthSessionForm({ open, onClose, saving, onSave, own
                                 aria-label={`${t('mc_str_drop_step')} ${di + 1} · ${t(weightLabelKey(wm))}`}
                                 onChange={(ev) => patchDrop(b.group, e.id, si, di, { weight: ev.target.value })}
                                 className="w-full bg-white/[0.02] border border-white/[0.08] text-white rounded-xl pl-3 pr-8 py-2 focus:outline-none focus:border-red-500" />
-                              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-zinc-500 pointer-events-none">kg</span>
+                              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-zinc-500 pointer-events-none">{unidad}</span>
                             </div>
                             <button onClick={() => removeDrop(b.group, e.id, si, di)} aria-label={t('mc_str_drop_remove')}
                               className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg text-zinc-600 hover:text-red-400 cursor-pointer">
