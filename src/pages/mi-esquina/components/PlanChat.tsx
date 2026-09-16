@@ -246,6 +246,19 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
     setEnviando(false);
 
     if (res.error) {
+      // El mensaje que ha fallado NO se queda colgado en la conversación.
+      //
+      // Antes se quedaba puesto y sin respuesta, así que al reintentar la
+      // pantalla acumulaba dos y tres mensajes tuyos seguidos sin que nadie
+      // contestara: parecía que la app te ignoraba, y encima cada reintento
+      // mandaba más conversación inútil.
+      //
+      // Vuelve al campo de escribir, con la foto si la había: así se puede
+      // reintentar tal cual o cambiarle una palabra, sin volver a dictarlo.
+      setTurnos((p) => p.slice(0, -1));
+      setTexto(msg);
+      if (foto) setFoto(foto);
+
       // Los códigos se traducen; cualquier otra cosa es un mensaje que ya
       // viene escrito desde el servidor y se enseña tal cual.
       const CLAVES: Record<string, string> = {

@@ -2096,12 +2096,34 @@ export default async function handler(req, res) {
       .map((m) => {
         const role = m.role === 'assistant' ? 'assistant' : 'user';
         return { role, content: contenidoDeMensaje({ ...m, role }) };
-      });
+      })
+      // Dos mensajes seguidos del mismo lado se juntan en uno.
+      //
+      // Pasa de verdad: cuando un turno falla, la pantalla conserva lo que
+      // escribiste y no añade respuesta, así que al reintentar la
+      // conversación lleva dos —o tres— mensajes tuyos pegados. Se leen
+      // peor y no aportan nada; juntarlos deja la conversación como si no
+      // hubiera pasado nada.
+      .reduce((acc, m) => {
+        const ultimo = acc[acc.length - 1];
+        if (!ultimo || ultimo.role !== m.role) { acc.push(m); return acc; }
+        const como = (c) => (Array.isArray(c) ? c : [{ type: 'text', text: String(c) }]);
+        ultimo.content = [...como(ultimo.content), ...como(m.content)];
+        return acc;
+      }, []);
 
     try {
       const response = await anthropic.messages.create({
         model: MODEL,
-        max_tokens: 8000,
+        // 16.000 y no 8.000.
+        //
+        // Si la respuesta se corta, el JSON queda a medias, `JSON.parse`
+        // revienta y el usuario lee "No he podido montarlo" sin ninguna
+        // pista de por que. Un plan de seis dias con sus ejercicios ya son
+        // ~5.000, y si encima pide detalle en las notas se acerca al tope.
+        //
+        // Subirlo sale gratis: se paga lo que se escribe, no el tope.
+        max_tokens: 16000,
         system: planChatSystem(profile || {}, ctx, planChat.previous || null, planChat.agenda, planChat.historial, !!planChat.agendaParcial),
         messages: cachearConversacion(mensajes),
         output_config: { format: { type: 'json_schema', schema: PLAN_CHAT_SCHEMA } },
@@ -2111,7 +2133,21 @@ export default async function handler(req, res) {
       try { out = JSON.parse(text); } catch { out = null; }
       await recordUsage(gate.db, gate.user.id, 'training', 'chat', response.usage);
       if (!out || typeof out.reply !== 'string') {
-        return res.status(422).json({ error: 'no_reply', message: 'No he podido montarlo. Prueba a decírmelo de otra forma.' });
+        // Se distingue el corte por longitud del resto.
+        //
+        // Son dos problemas distintos con dos salidas distintas: si se ha
+        // cortado, decirle "pruébalo de otra forma" es mentira —da igual cómo
+        // lo diga, lo que hay que hacer es pedir menos de una vez—. Y queda
+        // en el registro del servidor, que es lo unico que permite verlo
+        // desde fuera cuando le pasa a alguien.
+        const cortado = response.stop_reason === 'max_tokens';
+        console.error('[planChat] sin JSON. stop=' + response.stop_reason + ' chars=' + text.length + ' out=' + response.usage?.output_tokens);
+        return res.status(422).json({
+          error: cortado ? 'too_long' : 'no_reply',
+          message: cortado
+            ? 'Se me ha hecho demasiado largo y se ha cortado. Pídemelo por partes: primero los cardios y luego el resto.'
+            : 'No he podido montarlo. Prueba a decírmelo de otra forma.',
+        });
       }
       // El plan viene desgranado en la raíz: se vuelve a juntar aquí para que
       // el cliente reciba la misma forma de siempre y no se entere del cambio.
