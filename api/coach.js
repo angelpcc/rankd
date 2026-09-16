@@ -1486,6 +1486,52 @@ Reglas:
 - Si en la foto NO hay comida reconocible, devuelve la lista de alimentos vacía.
 - Responde SIEMPRE en el idioma del usuario (por defecto español).`;
 
+// ── LEER LA ETIQUETA DE UN BOTE (punto: batidos y suplementos) ──
+//
+// Es lo contrario de analizar un plato. Un plato se ESTIMA: cuanto arroz hay,
+// cuanto aceite lleva. Una etiqueta no se estima, se LEE: los numeros estan
+// impresos y la unica forma de equivocarse es leerlos mal.
+//
+// Por eso va aparte y con su propio esquema. Con el analizador de platos, una
+// foto de un bote de proteina devolvia "un bote de plastico, 300 g, 1.100
+// kcal", que es una estimacion de la comida que se ve, no la tabla nutricional.
+//
+// Lo que interesa es POR DOSIS, no por 100 g: nadie se toma 100 gramos de
+// proteina en polvo, se toma un cacito. Si la etiqueta solo da 100 g, se
+// calcula la dosis a partir del tamano del cacito, y se dice que se ha hecho.
+const LABEL_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['producto', 'dosis_g', 'por_dosis', 'leido', 'aviso'],
+  properties: {
+    producto: { type: 'string', description: 'Nombre del producto tal y como se lee en el bote. Si no se lee, describe qué es ("proteína de suero sabor chocolate").' },
+    dosis_g: { type: 'number', description: 'Gramos de UNA dosis (un cacito / scoop / sobre). Si la etiqueta no lo dice, pon 30, que es el cacito estándar, y avísalo.' },
+    por_dosis: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['calorias', 'proteina', 'carbohidratos', 'grasas'],
+      properties: {
+        calorias: { type: 'number', description: 'kcal por dosis.' },
+        proteina: { type: 'number', description: 'Gramos de proteína por dosis.' },
+        carbohidratos: { type: 'number', description: 'Gramos de hidratos por dosis.' },
+        grasas: { type: 'number', description: 'Gramos de grasa por dosis.' },
+      },
+    },
+    leido: { type: 'boolean', description: 'true si los números salen de la tabla nutricional de la foto. false si has tenido que estimarlos porque no se leía.' },
+    aviso: { type: ['string', 'null'], description: 'Una frase SOLO si hay algo que el usuario deba saber: que la tabla venía por 100 g y has calculado la dosis, que la foto está borrosa, que faltaba un dato. Null si se ha leído todo limpio.' },
+  },
+};
+
+const LABEL_SYSTEM = [
+  'Lees la tabla nutricional de la etiqueta de un producto y la devuelves POR DOSIS.',
+  '',
+  'REGLAS:',
+  '- LEE, no estimes. Los números están impresos en la foto. Si un número se lee, se copia tal cual; no lo redondees ni lo "ajustes" a lo que suele traer ese tipo de producto.',
+  '- Lo que se devuelve es UNA DOSIS: un cacito, un sobre, una barrita. Si la tabla viene por 100 g, calcula la dosis con el tamaño del cacito y dilo en "aviso".',
+  '- Si la etiqueta da los dos (por 100 g y por dosis), usa la de POR DOSIS: es la que el fabricante ha medido.',
+  '- Si algo no se lee, pon el valor más probable para ese producto, marca leido=false y dilo en "aviso". Nunca inventes en silencio.',
+  '- Si en la foto no hay ninguna etiqueta, pon leido=false, calorías 0 y explica en "aviso" que no ves una tabla nutricional.',
+].join(String.fromCharCode(10));
 const FOOD_PHOTO_SCHEMA = {
   type: 'object',
   properties: {
@@ -1701,12 +1747,12 @@ export default async function handler(req, res) {
 
   const {
     section, profile, messages, extract, timerCombos, foodPhoto, routinePhoto,
-    creatorStudio, objectivePlan, protocolText, routineText, weekPlan, boxingSession, planChat,
+    creatorStudio, objectivePlan, protocolText, routineText, weekPlan, boxingSession, planChat, labelPhoto,
     cardioDesign, agenda, historial,
   } = req.body || {};
   // Modos "estructurados": no usan `section` ni una conversación `messages`,
   // devuelven JSON validado. No deben pasar por las guardas de chat de abajo.
-  const structuredMode = !!(objectivePlan || foodPhoto || routinePhoto || protocolText || routineText || weekPlan || boxingSession || planChat || cardioDesign);
+  const structuredMode = !!(objectivePlan || foodPhoto || labelPhoto || routinePhoto || protocolText || routineText || weekPlan || boxingSession || planChat || cardioDesign);
 
   // ── CREATOR STUDIO: solo admin, gasto contabilizado aparte de las cuotas
   //    de Mi Esquina (section:'creator-studio' en ai_usage) ──
@@ -1816,6 +1862,44 @@ export default async function handler(req, res) {
 
   // ── MODO FOTO DE COMIDA: imagen → estimación de macros ──
   // Cuenta como un turno normal de la cuota. Devuelve JSON validado.
+  // ── MODO ETIQUETA: leer la tabla nutricional de un bote ──
+  // Cuenta como 1 turno de la cuota (section='nutrition').
+  if (labelPhoto) {
+    const { imageBase64, mediaType } = labelPhoto || {};
+    if (!imageBase64 || !ALLOWED_IMAGE_TYPES.includes(mediaType)) {
+      return res.status(400).json({ error: 'bad_image', message: 'Formato de imagen no válido. Usa JPEG, PNG o WebP.' });
+    }
+    if (imageBase64.length > MAX_IMAGE_CHARS) {
+      return res.status(413).json({ error: 'image_too_large', message: 'La foto pesa demasiado.' });
+    }
+    try {
+      const response = await anthropic.messages.create({
+        model: MODEL,
+        max_tokens: 900,
+        system: LABEL_SYSTEM,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: mediaType, data: imageBase64 } },
+            { type: 'text', text: 'Lee la tabla nutricional de esta etiqueta y dame los valores de UNA dosis.' },
+          ],
+        }],
+        output_config: { format: { type: 'json_schema', schema: LABEL_SCHEMA } },
+      });
+      const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
+      let out;
+      try { out = JSON.parse(text); } catch { out = null; }
+      await recordUsage(gate.db, gate.user.id, 'nutrition', 'photo', response.usage);
+      if (!out || !out.por_dosis) {
+        return res.status(422).json({ error: 'no_label', message: 'No he podido leer la etiqueta. Prueba con la tabla nutricional más cerca y enfocada.' });
+      }
+      return res.status(200).json({ label: out, usage: response.usage });
+    } catch (err) {
+      console.error('[ia]', err?.status, err?.message);
+      const e = iaError(err);
+      return res.status(e.status).json({ error: 'ia_error', message: e.message });
+    }
+  }
   if (foodPhoto) {
     const { imageBase64, mediaType } = foodPhoto || {};
     if (!imageBase64 || !ALLOWED_IMAGE_TYPES.includes(mediaType)) {

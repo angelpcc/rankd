@@ -4,6 +4,7 @@ import { supabase, Profile } from '@/lib/supabase';
 import { isMissingColumn } from '@/lib/dbState';
 import VoiceButton from '@/components/feature/VoiceButton';
 import CommonFoodPicker, { type PickedFood } from '@/pages/mi-esquina/components/CommonFoodPicker';
+import SupplementQuickAdd from '@/pages/mi-esquina/components/SupplementQuickAdd';
 import { reconcileDayTicks } from '@/pages/mi-esquina/lib/planTicks';
 
 interface Props {
@@ -39,6 +40,28 @@ function isMissingTable(error: { code?: string; message?: string } | null): bool
   return code === '42P01' || code === 'PGRST205' || code === 'PGRST200' || msg.includes('does not exist') || msg.includes('could not find the table');
 }
 
+/**
+ * ¿Lo que está escribiendo es un batido o un suplemento?
+ *
+ * No decide nada por él: solo ENCIENDE el botón del matraz para que se vea
+ * que hay un camino mejor que escribir "batido de proteína" a pelo y que se
+ * guarde sin un solo macro. Acertar de más aquí no molesta —el botón sigue
+ * estando ahí igual— y acertar de menos tampoco rompe nada.
+ *
+ * Se quita el acento antes de comparar: media España escribe "proteina".
+ */
+function esSuplemento(texto: string): boolean {
+  const s = texto.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  if (s.length < 3) return false;
+  return PALABRAS_SUPLEMENTO.some((p) => s.includes(p));
+}
+
+const PALABRAS_SUPLEMENTO = [
+  'batido', 'proteina', 'protein', 'whey', 'caseina', 'scoop', 'cacito',
+  'creatina', 'ganador', 'gainer', 'aislado', 'isolate', 'concentrado',
+  'barrita', 'barra proteica', 'suplemento', 'shake', 'bcaa', 'glutamina',
+  'pre-entreno', 'preentreno', 'pre entreno',
+];
 export default function MealLog({ profile, showToast }: Props) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
@@ -49,6 +72,7 @@ export default function MealLog({ profile, showToast }: Props) {
   const [desc, setDesc] = useState('');
   /** El campo de texto, para poder dejar el cursor dentro al variar una comida. */
   const descRef = useRef<HTMLInputElement>(null);
+  const [showSup, setShowSup] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   // Comidas frecuentes: se calculan sobre los últimos 60 días (agrupando por
@@ -331,6 +355,17 @@ export default function MealLog({ profile, showToast }: Props) {
           className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-xl bg-white/[0.04] border border-white/10 text-zinc-300 hover:border-white/25 hover:text-white transition-colors cursor-pointer">
           <i className="ri-search-line"></i>
         </button>
+        {/* Batidos y suplementos tienen su propia puerta.
+
+            No es un alimento más del buscador: de un bote los números están
+            IMPRESOS, así que no hay por qué estimarlos. Y es de lo que más
+            se repite, así que la segunda vez tiene que ser un toque. */}
+        <button onClick={() => setShowSup(true)} aria-label={t('mc_bat_title')} title={t('mc_bat_title')}
+          className={`w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-xl border transition-colors cursor-pointer ${esSuplemento(desc)
+            ? 'bg-green-500/15 border-green-500/50 text-green-300'
+            : 'bg-white/[0.04] border-white/10 text-zinc-300 hover:border-white/25 hover:text-white'}`}>
+          <i className="ri-flask-line"></i>
+        </button>
         <VoiceButton onResult={(txt) => setDesc((prev) => (prev.trim() ? prev + ' ' + txt : txt))} compact />
         <button onClick={add} disabled={saving || !desc.trim()} className="rk-btn rk-btn-primary flex items-center disabled:opacity-50" style={{ padding: '0 1.1rem', fontSize: '0.95rem', minHeight: 44 }}>
           {saving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <i className="ri-add-line"></i>}
@@ -338,6 +373,25 @@ export default function MealLog({ profile, showToast }: Props) {
       </div>
 
       {showPicker && <CommonFoodPicker onPick={addFromPicker} onClose={() => setShowPicker(false)} />}
+
+      {showSup && (
+        <SupplementQuickAdd
+          profileId={profile.id}
+          inicial={esSuplemento(desc) ? desc : undefined}
+          showToast={showToast}
+          onClose={() => setShowSup(false)}
+          onAdd={async (description, macros) => {
+            setShowSup(false);
+            setSaving(true);
+            const meal = await insertMeal(description, type, macros);
+            setSaving(false);
+            if (!meal) { showToast(t('error_save'), 'error'); return; }
+            setMeals((p) => [meal, ...p]);
+            setDesc('');
+            showToast(t('mc_meal_saved'));
+            loadFrequent();
+          }} />
+      )}
 
       {/* 4. Lo registrado HOY en esta franja + 5. total de la franja */}
       <div className="mt-4">
