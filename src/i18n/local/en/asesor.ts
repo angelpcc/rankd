@@ -14,8 +14,6 @@ export default {
 
   // ── Open chat ──
   mc_as_ask_eyebrow: 'ASK',
-  mc_as_ask_title: 'Ask',
-  mc_as_ask_title_2: 'anything',
   mc_as_ask_sub: 'Loose questions about nutrition, technique, training or anything else. No forms: you ask, it answers, and you can keep pulling on the same thread.',
   mc_as_ask_coach_title: 'Advisor',
   mc_as_ask_coach_intro: 'Ask me anything: what to cook with what you have in, a technique question, how to spread the week out, or what to do if you are coming in heavy.',
@@ -53,4 +51,7 @@ export default {
   // ══════════════════════════════════════════════════════════════
   mc_ai_plan_added_agenda: 'Added {{count}} sessions to your Agenda',
   mc_ai_meals_added: 'Added {{count}} meals to your diary',
+  mc_as_hero_title: 'Your corner',
+  mc_as_sub_plan: 'Build it by talking and send it to your agenda',
+  mc_as_sub_boxing: 'Tell us your time and get the round-by-round session',
 };

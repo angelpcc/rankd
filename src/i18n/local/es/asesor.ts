@@ -15,8 +15,6 @@ export default {
 
   // ── Consulta abierta ──
   mc_as_ask_eyebrow: 'CONSULTA',
-  mc_as_ask_title: 'Pregunta',
-  mc_as_ask_title_2: 'lo que quieras',
   mc_as_ask_sub: 'Dudas sueltas de nutrición, técnica, entrenamiento o cualquier otra cosa. Sin formularios: preguntas y te contesta, y puedes seguir tirando del hilo.',
   mc_as_ask_coach_title: 'Asesor',
   mc_as_ask_coach_intro: 'Pregúntame lo que sea: qué cenar con lo que tienes en casa, una duda de técnica, cómo repartir la semana o qué hacer si llegas justo de peso.',
@@ -55,4 +53,7 @@ export default {
   // ══════════════════════════════════════════════════════════════
   mc_ai_plan_added_agenda: 'Añadidas {{count}} sesiones a tu Agenda',
   mc_ai_meals_added: 'Añadidas {{count}} comidas a tu diario',
+  mc_as_hero_title: 'Tu esquina',
+  mc_as_sub_plan: 'Móntalo hablando y mándalo a la agenda',
+  mc_as_sub_boxing: 'Dinos el tiempo y sale la sesión por asaltos',
 };

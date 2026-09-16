@@ -8,7 +8,7 @@ import PhotoCard from '@/components/base/PhotoCard';
 //
 // Si la foto no carga, PhotoCard pinta su fondo diseñado — nunca un hueco.
 
-export type HeroKind = 'strength' | 'activity' | 'agenda' | 'nutrition' | 'ring';
+export type HeroKind = 'strength' | 'activity' | 'agenda' | 'nutrition' | 'ring' | 'advisor';
 
 // Fotos reales (Unsplash, licencia libre) en WebP. `art` solo donde la foto no
 // aportaba nada mejor que un dibujo.
@@ -19,6 +19,11 @@ const HERO: Record<HeroKind, { image?: string; art?: 'agenda'; icon: string }> =
   ring:      { image: '/images/sparring.webp',  icon: 'ri-boxing-line' },
   // La foto de silueta no decía nada de una agenda; la rejilla de mes sí.
   agenda:    { art: 'agenda',                   icon: 'ri-calendar-todo-line' },
+  // El Asesor era la ÚNICA sección sin cabecera: empezaba en un cuadro de texto
+  // y al lado de Fuerza o Actividad parecía media pantalla sin terminar.
+  // Guantes y no sparring: sparring ya es la del Ring, y dos secciones con la
+  // misma foto se confunden al navegar rápido.
+  advisor:   { image: '/images/guantes.webp',   icon: 'ri-sparkling-2-line' },
 };
 
 interface Props {

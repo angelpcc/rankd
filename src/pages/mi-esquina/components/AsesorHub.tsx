@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type Profile } from '@/lib/supabase';
 import HubTabs, { type HubTab } from './HubTabs';
+import SectionHero from './SectionHero';
 import SectionCoach from './SectionCoach';
 import PlanChat from './PlanChat';
 import BoxingStudio from './BoxingStudio';
@@ -74,19 +75,29 @@ export default function AsesorHub({ profile, showToast, onGoPlan, onGoAgenda, in
 
   const isAsk = tab === 'consulta';
 
+  /**
+   * El subtítulo de la cabecera cambia con la pestaña.
+   *
+   * Una cabecera fija diciendo "Asesor" encima de tres herramientas distintas
+   * no dice nada; diciendo qué hace LA QUE TIENES ABIERTA, la cabecera deja de
+   * ser decoración y sustituye a los tres párrafos de texto que había debajo.
+   */
+  const subtitulo = tab === 'plan' ? t('mc_as_sub_plan')
+    : tab === 'boxeo' ? t('mc_as_sub_boxing')
+      : t('mc_as_ask_sub');
+
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-4xl rk-blocks">
+      {/* Era la única sección de Mi Esquina sin cabecera con imagen: empezaba
+          directamente en un cuadro de texto y, al lado de Fuerza o Actividad,
+          parecía media pantalla sin terminar. */}
+      <SectionHero kind="advisor" eyebrow={t('mc_as_ask_eyebrow')}
+        title={t('mc_as_hero_title')} subtitle={subtitulo} />
+
       <HubTabs tabs={TABS} active={tab} onChange={setTab} />
 
       {/* ── CONSULTA ABIERTA ── */}
       <div className={isAsk ? 'space-y-4' : 'hidden'}>
-        <header>
-          <p className="rk-eyebrow">{t('mc_as_ask_eyebrow')}</p>
-          <h2 className="rk-h3" style={{ fontSize: '1.25rem', color: '#fff', margin: '4px 0 0' }}>
-            {t('mc_as_ask_title')} <span className="rk-red-glow">{t('mc_as_ask_title_2')}</span>
-          </h2>
-          <p className="rk-body-14 mt-1">{t('mc_as_ask_sub')}</p>
-        </header>
 
         <SectionCoach
           section="general"

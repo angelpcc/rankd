@@ -172,8 +172,14 @@ export default function BoxingStudio({ profile, showToast }: Props) {
         <div className="grid grid-cols-5 gap-1.5">
           {MINUTOS.map((m) => (
             <button key={m} type="button" onClick={() => setMinutes(m)}
-              className={`rounded-xl border text-xs font-bold cursor-pointer transition-colors ${minutes === m ? 'border-white/30 text-white' : 'border-white/10 text-zinc-400 hover:border-white/25'}`}
-              style={{ minHeight: 44, background: minutes === m ? 'var(--accent)' : 'rgba(255,255,255,0.02)' }}>
+              className={`rk-chip rounded-xl border text-sm font-bold cursor-pointer ${minutes === m ? 'border-white/30 text-white' : 'border-white/10 text-zinc-400 hover:border-white/25'}`}
+              style={{
+                minHeight: 46,
+                // El elegido con el mismo relieve que la burbuja propia del chat:
+                // plano se confundía con los demás en una pantalla al sol.
+                background: minutes === m ? 'linear-gradient(145deg, #F01A14 0%, #C60500 100%)' : 'rgba(255,255,255,0.02)',
+                boxShadow: minutes === m ? '0 6px 16px -8px rgba(225,6,0,0.8)' : 'none',
+              }}>
               {m}′
             </button>
           ))}
@@ -222,28 +228,45 @@ export default function BoxingStudio({ profile, showToast }: Props) {
             <Reveal key={s.id} delay={Math.min(i, 6) * 40}>
               <div className="rk-card" style={{ padding: '14px 16px' }}>
                 <div className="flex items-start gap-3">
-                  <div className="w-11 h-11 flex items-center justify-center rounded-xl border flex-shrink-0"
-                    style={{ background: 'rgba(225,6,0,0.12)', borderColor: 'rgba(225,6,0,0.3)', color: 'var(--accent)' }}>
+                  <div className="w-11 h-11 flex items-center justify-center rounded-xl flex-shrink-0 rk-ai-avatar">
                     <i className="ri-boxing-line text-xl" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-white truncate">{s.name}</p>
-                    <p className="text-[11px] text-zinc-500">
-                      {boxingSummary(s)} · {t('mc_bx_total', { n: boxingTotalMin(s) })}
-                      {' · '}{t(BOXING_PLACES.find((p) => p.v === s.place)?.label || 'mc_bx_place_home')}
-                    </p>
+                    {/* Los números en pastillas, no en una línea gris separada por
+                        puntos: de un vistazo se ve cuánto dura y cómo está
+                        repartida, que es lo que se mira antes de elegir una. */}
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      {[
+                        { icon: 'ri-repeat-2-line', txt: boxingSummary(s) },
+                        { icon: 'ri-time-line', txt: t('mc_bx_total', { n: boxingTotalMin(s) }) },
+                        {
+                          icon: BOXING_PLACES.find((p) => p.v === s.place)?.icon || 'ri-home-4-line',
+                          txt: t(BOXING_PLACES.find((p) => p.v === s.place)?.label || 'mc_bx_place_home'),
+                        },
+                      ].map(({ icon, txt }) => (
+                        <span key={txt} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-zinc-200 rounded-lg px-2 py-1"
+                          style={{ background: 'rgba(255,255,255,0.05)' }}>
+                          <i className={icon} style={{ color: 'var(--accent)' }} />{txt}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
                 {s.script.length > 0 && (
-                  <ol className="mt-2.5 space-y-1">
+                  <ol className="mt-3 space-y-1.5">
                     {s.script.slice(0, 4).map((r) => (
-                      <li key={r.round} className="text-[11px] text-zinc-400 leading-snug">
-                        <span className="text-zinc-600 mr-1.5">{r.round}.</span>
-                        <span className="text-zinc-200 font-semibold">{r.title}</span>
+                      <li key={r.round} className="flex items-center gap-2.5">
+                        {/* El número del asalto en su chapa. Un "1." en gris
+                            delante del texto se pierde; así se cuentan los
+                            asaltos sin leer. */}
+                        <span className="w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-lg text-[11px] font-bold text-white"
+                          style={{ background: 'rgba(225,6,0,0.18)' }}>{r.round}</span>
+                        <span className="text-xs text-zinc-200 font-semibold truncate">{r.title}</span>
                       </li>
                     ))}
                     {s.script.length > 4 && (
-                      <li className="text-[11px] text-zinc-600">{t('mc_bx_more', { n: s.script.length - 4 })}</li>
+                      <li className="text-[11px] text-zinc-600 pl-[34px]">{t('mc_bx_more', { n: s.script.length - 4 })}</li>
                     )}
                   </ol>
                 )}
