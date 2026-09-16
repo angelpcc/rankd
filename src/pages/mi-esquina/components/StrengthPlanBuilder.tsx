@@ -6,7 +6,7 @@ import {
   MUSCLE_GROUPS, exercisesByGroup, weightModeOf, trackingModeOf, usesBar,
   type MuscleGroup, type WeightMode,
 } from '../lib/exercises';
-import { parseRepsInput } from './StrengthSessionForm';
+import { parseRepsInput } from '../lib/repsInput';
 import type { ExerciseSpec } from '../lib/dayPlan';
 import PlateCalculator from './PlateCalculator';
 

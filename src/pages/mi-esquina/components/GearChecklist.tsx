@@ -57,10 +57,15 @@ function isMissingColumn(error: { code?: string; message?: string } | null): boo
   return code === '42703' || code === 'PGRST204' || (msg.includes('column') && (msg.includes('does not exist') || msg.includes('could not find')));
 }
 
+// Las cuatro funciones de abajo NO se exportan: no las usa nadie fuera de
+// este fichero, y exportar funciones desde un fichero de componentes rompe el
+// refresco en caliente de Vite (al tocarlo recarga la página entera en vez de
+// solo el componente). Si alguna hace falta fuera, se saca a su propio módulo,
+// no se le vuelve a poner el export.
 export type GearRepState = 'overdue' | 'due_soon' | 'ok' | 'untracked';
 
 /** Fecha de reemplazo = compra + vida útil (meses). */
-export function gearDueDate(item: Pick<GearItem, 'acquired_at' | 'lifespan_months'>): Date | null {
+function gearDueDate(item: Pick<GearItem, 'acquired_at' | 'lifespan_months'>): Date | null {
   if (!item.acquired_at) return null;
   const months = item.lifespan_months ?? DEFAULT_MONTHS;
   const d = new Date(item.acquired_at + 'T12:00:00');
@@ -69,7 +74,7 @@ export function gearDueDate(item: Pick<GearItem, 'acquired_at' | 'lifespan_month
   return d;
 }
 
-export function gearDaysUntil(item: Pick<GearItem, 'acquired_at' | 'lifespan_months'>): number | null {
+function gearDaysUntil(item: Pick<GearItem, 'acquired_at' | 'lifespan_months'>): number | null {
   const due = gearDueDate(item);
   if (!due) return null;
   const now = new Date(); now.setHours(0, 0, 0, 0);
@@ -77,14 +82,14 @@ export function gearDaysUntil(item: Pick<GearItem, 'acquired_at' | 'lifespan_mon
 }
 
 /** Días transcurridos desde la fecha de compra ("Llevas X días con este material"). */
-export function gearDaysOwned(item: Pick<GearItem, 'acquired_at'>): number | null {
+function gearDaysOwned(item: Pick<GearItem, 'acquired_at'>): number | null {
   if (!item.acquired_at) return null;
   const start = new Date(item.acquired_at + 'T12:00:00');
   const now = new Date(); now.setHours(12, 0, 0, 0);
   return Math.max(0, Math.round((now.getTime() - start.getTime()) / 86400000));
 }
 
-export function gearRepState(item: Pick<GearItem, 'acquired_at' | 'lifespan_months'>): GearRepState {
+function gearRepState(item: Pick<GearItem, 'acquired_at' | 'lifespan_months'>): GearRepState {
   const days = gearDaysUntil(item);
   if (days === null) return 'untracked';
   if (days < 0) return 'overdue';

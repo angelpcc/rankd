@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { parseRepsInput } from '../lib/repsInput';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
 import { isMissingColumn } from '@/lib/dbState';
@@ -68,34 +69,6 @@ export interface EditSessionExercise {
 }
 export interface EditSessionBlock { group: MuscleGroup; exercises: EditSessionExercise[] }
 export interface EditSession { date: string; slot: SessionSlot | null; blocks: EditSessionBlock[] }
-
-/**
- * Parsea el valor del input de reps.
- * Acepta:
- *   "8"        → { reps: 8 }
- *   "8-10"     → { reps: 8, repsMax: 10 }
- *   "8 a 10"   → { reps: 8, repsMax: 10 }
- *   "8 - 10"   → { reps: 8, repsMax: 10 }
- * Devuelve null si no se puede parsear o el rango es inválido (min > max).
- */
-export function parseRepsInput(raw: string): { reps: number; repsMax?: number } | null {
-  const s = raw.trim().toLowerCase().replace(/\s+/g, ' ');
-  if (!s) return null;
-  // Rango: "8-10", "8 - 10", "8 a 10", "8 to 10"
-  const range = s.match(/^(\d+)\s*(?:-|–|a|to)\s*(\d+)$/);
-  if (range) {
-    const lo = parseInt(range[1], 10);
-    const hi = parseInt(range[2], 10);
-    if (!lo || !hi || lo <= 0 || hi <= 0 || hi < lo) return null;
-    return lo === hi ? { reps: lo } : { reps: lo, repsMax: hi };
-  }
-  const single = s.match(/^(\d+)$/);
-  if (single) {
-    const n = parseInt(single[1], 10);
-    return n > 0 ? { reps: n } : null;
-  }
-  return null;
-}
 
 // ── Estado editable interno (inputs como texto) ──
 interface FSet {

@@ -4,7 +4,8 @@ import { supabase, type Profile } from '@/lib/supabase';
 import Reveal from '@/components/base/Reveal';
 import SegmentedProgress from '@/components/base/SegmentedProgress';
 import MacroRings from './MacroRings';
-import WeekBars, { last7Days } from '@/components/base/WeekBars';
+import WeekBars from '@/components/base/WeekBars';
+import { last7Days } from '@/components/base/weekBarsData';
 
 // Nutrición · NIVEL 1 (resumen). Solo consulta: anillos de macros, barra de
 // calorías segmentada y diario del día compacto (4 franjas). Un botón lleva al

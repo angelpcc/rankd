@@ -11,7 +11,7 @@ import OpportunityCard from './components/OpportunityCard';
 import OpportunitiesFilters from './components/OpportunitiesFilters';
 import ApplyModal from './components/ApplyModal';
 import FeaturedOpportunity from './components/FeaturedOpportunity';
-import { isSponsorshipType } from './components/OpportunityCard';
+import { isSponsorshipType } from './lib/opportunityTypes';
 
 function daysUntil(d?: string | null): number | null {
   if (!d) return null;

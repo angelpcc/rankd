@@ -8,7 +8,8 @@ import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis
 import { ACTIVITY_KINDS, activityKindCfg, computePace, paceLabel, paceToSec, todayISO, type ActivityPayload } from '../lib/dayPlan';
 import ActivityGlyph from './ActivityGlyph';
 import StreakRow from './StreakRow';
-import WeekBars, { last7Days } from '@/components/base/WeekBars';
+import WeekBars from '@/components/base/WeekBars';
+import { last7Days } from '@/components/base/weekBarsData';
 import CountUp from '@/components/base/CountUp';
 import { reconcileDayTicks } from '../lib/planTicks';
 import SectionHero from './SectionHero';

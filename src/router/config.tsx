@@ -1,26 +1,10 @@
 import { lazy, Suspense } from 'react';
 import type { RouteObject } from 'react-router-dom';
 import NotFound from '../pages/NotFound';
-import { SkeletonBox } from '../components/base/Skeleton';
 import PublicGate from '../components/feature/PublicGate';
 import PreviewEntry from '../pages/preview-entry/page';
+import RouteLoading from './RouteLoading';
 
-// Espera mientras se descarga el trozo de la página. Es lo PRIMERO que ve el
-// usuario, así que en vez de un spinner suelto se pinta la silueta de una
-// pantalla (cabecera + contenido): la página no aparece de golpe sobre un vacío.
-const LoadingSpinner = () => (
-  <div className="min-h-screen bg-[#0B0B0B] px-5 py-8" role="status" aria-busy="true">
-    <div className="max-w-4xl mx-auto space-y-5">
-      <SkeletonBox height={12} width={110} />
-      <SkeletonBox height={34} width="62%" />
-      <SkeletonBox height={180} radius={20} style={{ marginTop: 24 }} />
-      <div className="grid grid-cols-2 gap-3">
-        <SkeletonBox height={90} radius={16} />
-        <SkeletonBox height={90} radius={16} />
-      </div>
-    </div>
-  </div>
-);
 
 const Home = lazy(() => import('../pages/home/page'));
 const AuthPage = lazy(() => import('../pages/auth/page'));
@@ -60,7 +44,7 @@ const routes: RouteObject[] = [
   {
     path: '/',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <PublicGate><Home /></PublicGate>
       </Suspense>
     ),
@@ -70,7 +54,7 @@ const routes: RouteObject[] = [
   {
     path: '/beta',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <PublicGate><Home /></PublicGate>
       </Suspense>
     ),
@@ -83,7 +67,7 @@ const routes: RouteObject[] = [
   {
     path: '/auth',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <AuthPage />
       </Suspense>
     ),
@@ -91,7 +75,7 @@ const routes: RouteObject[] = [
   {
     path: '/registro',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <RegistroPage />
       </Suspense>
     ),
@@ -99,7 +83,7 @@ const routes: RouteObject[] = [
   {
     path: '/onboarding/fighter',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <FighterOnboardingPage />
       </Suspense>
     ),
@@ -107,7 +91,7 @@ const routes: RouteObject[] = [
   {
     path: '/onboarding/org',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <OrgOnboardingPage />
       </Suspense>
     ),
@@ -115,7 +99,7 @@ const routes: RouteObject[] = [
   {
     path: '/dashboard',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <DashboardPage />
       </Suspense>
     ),
@@ -123,7 +107,7 @@ const routes: RouteObject[] = [
   {
     path: '/dashboard/fighter',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <DashboardPage />
       </Suspense>
     ),
@@ -131,7 +115,7 @@ const routes: RouteObject[] = [
   {
     path: '/dashboard/org',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <DashboardPage />
       </Suspense>
     ),
@@ -139,7 +123,7 @@ const routes: RouteObject[] = [
   {
     path: '/dashboard/brand',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <DashboardPage />
       </Suspense>
     ),
@@ -147,7 +131,7 @@ const routes: RouteObject[] = [
   {
     path: '/fighter/:id',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <PublicGate><FighterPublicPage /></PublicGate>
       </Suspense>
     ),
@@ -155,7 +139,7 @@ const routes: RouteObject[] = [
   {
     path: '/fighters',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <PublicGate><FightersDirectoryPage /></PublicGate>
       </Suspense>
     ),
@@ -163,7 +147,7 @@ const routes: RouteObject[] = [
   {
     path: '/opportunities',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <PublicGate><OpportunitiesPage /></PublicGate>
       </Suspense>
     ),
@@ -171,7 +155,7 @@ const routes: RouteObject[] = [
   {
     path: '/brands',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <PublicGate><BrandsPage /></PublicGate>
       </Suspense>
     ),
@@ -179,7 +163,7 @@ const routes: RouteObject[] = [
   {
     path: '/eventos',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <PublicGate><EventosPage /></PublicGate>
       </Suspense>
     ),
@@ -187,7 +171,7 @@ const routes: RouteObject[] = [
   {
     path: '/como-funciona',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <PublicGate><ComoFuncionaPage /></PublicGate>
       </Suspense>
     ),
@@ -195,7 +179,7 @@ const routes: RouteObject[] = [
   {
     path: '/promotoras',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <PublicGate><PromotorasPage /></PublicGate>
       </Suspense>
     ),
@@ -203,7 +187,7 @@ const routes: RouteObject[] = [
   {
     path: '/promotora/:id',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <PublicGate><PromotoraPublicPage /></PublicGate>
       </Suspense>
     ),
@@ -211,7 +195,7 @@ const routes: RouteObject[] = [
   {
     path: '/marca/:id',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <PublicGate><MarcaPublicPage /></PublicGate>
       </Suspense>
     ),
@@ -219,7 +203,7 @@ const routes: RouteObject[] = [
   {
     path: '/evento/:id',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <PublicGate><EventoDetailPage /></PublicGate>
       </Suspense>
     ),
@@ -227,7 +211,7 @@ const routes: RouteObject[] = [
   {
     path: '/esquina',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <PublicGate><EsquinaPage /></PublicGate>
       </Suspense>
     ),
@@ -235,7 +219,7 @@ const routes: RouteObject[] = [
   {
     path: '/mi-esquina',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <MiEsquinaPage />
       </Suspense>
     ),
@@ -243,7 +227,7 @@ const routes: RouteObject[] = [
   {
     path: '/mi-esquina/timer',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <TimerPage />
       </Suspense>
     ),
@@ -251,7 +235,7 @@ const routes: RouteObject[] = [
   {
     path: '/mi-esquina/plan/imprimir',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <PlanPrintPage />
       </Suspense>
     ),
@@ -259,7 +243,7 @@ const routes: RouteObject[] = [
   {
     path: '/mi-esquina/informe/imprimir',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <ReportPrintPage />
       </Suspense>
     ),
@@ -267,7 +251,7 @@ const routes: RouteObject[] = [
   {
     path: '/club',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <ClubPage />
       </Suspense>
     ),
@@ -275,7 +259,7 @@ const routes: RouteObject[] = [
   {
     path: '/unirse',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <ClubInvitePage />
       </Suspense>
     ),
@@ -283,7 +267,7 @@ const routes: RouteObject[] = [
   {
     path: '/noticias',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <PublicGate><NewsPage /></PublicGate>
       </Suspense>
     ),
@@ -291,7 +275,7 @@ const routes: RouteObject[] = [
   {
     path: '/admin',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <AdminPage />
       </Suspense>
     ),
@@ -299,7 +283,7 @@ const routes: RouteObject[] = [
   {
     path: '/creator-studio',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <CreatorStudioPage />
       </Suspense>
     ),
@@ -307,7 +291,7 @@ const routes: RouteObject[] = [
   {
     path: '/tienda',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <PublicGate><StorePage /></PublicGate>
       </Suspense>
     ),
@@ -315,7 +299,7 @@ const routes: RouteObject[] = [
   {
     path: '/terms',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <TermsPage />
       </Suspense>
     ),
@@ -323,7 +307,7 @@ const routes: RouteObject[] = [
   {
     path: '/privacy',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <PrivacyPage />
       </Suspense>
     ),
@@ -333,7 +317,7 @@ const routes: RouteObject[] = [
   {
     path: '/privacidad',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <PrivacyPage />
       </Suspense>
     ),
@@ -341,7 +325,7 @@ const routes: RouteObject[] = [
   {
     path: '/aviso-legal',
     element: (
-      <Suspense fallback={<LoadingSpinner />}>
+      <Suspense fallback={<RouteLoading />}>
         <AvisoLegalPage />
       </Suspense>
     ),

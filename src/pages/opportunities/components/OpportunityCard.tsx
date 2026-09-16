@@ -1,13 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { Opportunity, Profile } from '@/lib/supabase';
+import { isFighterType, isSponsorshipType } from '../lib/opportunityTypes';
 
-// Tipos que son exclusivamente deportivos (solo fighters pueden postularse)
-const FIGHTER_ONLY_TYPES = ['combate', 'sparring', 'contrato', 'campamento', 'entrenamiento', 'scouting'];
-// Tipos de patrocinio/marca (fighters NO pueden postularse)
-const SPONSORSHIP_TYPES = ['patrocinio'];
-
-export const isSponsorshipType = (type: string) => SPONSORSHIP_TYPES.includes(type);
-export const isFighterType = (type: string) => FIGHTER_ONLY_TYPES.includes(type);
+// Las dos listas y sus comprobaciones viven en lib/opportunityTypes: las usan
+// tres pantallas y no pintan nada.
 
 const typeConfig: Record<string, { labelKey: string; textColor: string; bgColor: string; borderColor: string; icon: string; accentFrom: string; accentTo: string }> = {
   combate:       { labelKey: 'opp_type_combate',       textColor: 'text-red-400',     bgColor: 'bg-red-500/12',     borderColor: 'border-red-500/30',     icon: 'ri-boxing-line',        accentFrom: 'from-red-500',     accentTo: 'to-red-700' },

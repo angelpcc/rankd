@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import type { WeekBarDay } from './weekBarsData';
 
 // Tira de los últimos 7 días en barras.
 //
@@ -10,12 +11,10 @@ import { useTranslation } from 'react-i18next';
 // SIEMPRE datos reales. Un día sin dato se pinta como hueco, no como cero
 // inventado: no es lo mismo "ese día comí 0 kcal" que "ese día no apunté nada".
 
-export interface WeekBarDay {
-  /** YYYY-MM-DD */
-  iso: string;
-  /** Valor del día. null = ese día no hay dato (hueco, no cero). */
-  value: number | null;
-}
+// El tipo y el cálculo viven en `weekBarsData`: son datos, no pintura, y un
+// fichero que exporta componentes Y funciones rompe el refresco en caliente.
+// Se re-exporta el tipo para no obligar a nadie a importar de dos sitios.
+export type { WeekBarDay } from './weekBarsData';
 
 interface Props {
   days: WeekBarDay[];
@@ -30,19 +29,6 @@ interface Props {
 }
 
 const DAY_INITIALS_ES = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-
-/** Últimos 7 días terminando HOY, con el valor que le corresponda a cada uno. */
-export function last7Days(valueByISO: Map<string, number>): WeekBarDay[] {
-  const out: WeekBarDay[] = [];
-  for (let i = 6; i >= 0; i -= 1) {
-    const d = new Date();
-    d.setHours(12, 0, 0, 0);
-    d.setDate(d.getDate() - i);
-    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    out.push({ iso, value: valueByISO.has(iso) ? valueByISO.get(iso)! : null });
-  }
-  return out;
-}
 
 export default function WeekBars({ days, color = 'var(--accent)', unit, height = 64, emptyLabel }: Props) {
   const { t } = useTranslation();

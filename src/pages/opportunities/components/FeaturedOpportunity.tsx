@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import type { Opportunity, Profile } from '@/lib/supabase';
-import { isSponsorshipType } from './OpportunityCard';
+import { isSponsorshipType } from '../lib/opportunityTypes';
 
 // Card DESTACADA del directorio de Oportunidades: la de fecha más próxima, en
 // formato banner ancho y distinto del grid (regla: nada de scroll plano).
