@@ -40,6 +40,7 @@ export default {
   mc_pc_keep_talking: 'Seguir cambiándolo',
 
   mc_pc_err_auth: 'Tienes que iniciar sesión para esto.',
+  mc_pc_err_timeout: 'Ha tardado demasiado y se ha cortado. Pídemelo por partes: primero la fuerza y luego el cardio.',
   mc_pc_agenda_off: 'El plan se ha montado, pero la Agenda no está disponible todavía.',
   mc_pc_no_ai: 'Falta la clave de IA, así que todavía no puedo montarte el plan. Mientras tanto puedes planificar a mano en Agenda › Planificar.',
   mc_pc_new_chat: 'Empezar de cero',

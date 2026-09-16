@@ -251,6 +251,7 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
       const CLAVES: Record<string, string> = {
         auth: 'mc_pc_err_auth',
         too_large: 'mc_chat_too_big_send',
+        timeout: 'mc_pc_err_timeout',
         server: 'mc_ai_err_generate',
         network: 'mc_ai_err_generate',
         error: 'mc_ai_err_generate',

@@ -40,6 +40,7 @@ export default {
   mc_pc_keep_talking: 'Keep changing it',
 
   mc_pc_err_auth: 'You need to sign in for this.',
+  mc_pc_err_timeout: 'That took too long and got cut off. Ask me in two goes: strength first, then cardio.',
   mc_pc_agenda_off: 'The plan is built, but the Agenda is not available yet.',
   mc_pc_no_ai: 'The AI key is missing, so I cannot build the plan yet. In the meantime you can plan by hand in Agenda › Plan.',
   mc_pc_new_chat: 'Start over',

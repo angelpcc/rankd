@@ -99,7 +99,14 @@ export async function sendPlanChat(
       // 413 de Vercel llega como texto plano (`FUNCTION_PAYLOAD_TOO_LARGE`),
       // `data` sale null y el aviso acababa diciendo literalmente "error".
       // Se devuelve un código que la pantalla sabe traducir.
-      const codigo = res.status === 413 ? 'too_large' : 'server';
+      // 504/502 tampoco los manda la app: es Vercel matando la función.
+      // Montar un plan de seis días son ~53 s medidos, así que este caso
+      // NO es raro, y decir "no se pudo generar respuesta" no ayuda a nadie:
+      // lo que hay que saber es que tardó demasiado y que se puede pedir
+      // por partes.
+      const codigo = res.status === 413 ? 'too_large'
+        : (res.status === 504 || res.status === 502) ? 'timeout'
+          : 'server';
       return { reply: '', plan: null, error: data?.message || codigo };
     }
 
