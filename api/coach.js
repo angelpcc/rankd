@@ -24,6 +24,34 @@ export const config = { maxDuration: 60 };
 //   · claude-haiku-4-5-20251001 — el más barato y rápido, para mucho volumen.
 const MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5';
 
+/**
+ * El modelo para COPIAR. El de arriba es para DECIDIR.
+ *
+ * ── LO MEDIDO ──
+ *
+ * Transcribir una rutina de tres días (trabajo mecánico: copiar lo que pone
+ * en el papel), mismo prompt y mismo esquema:
+ *
+ *   Sonnet 5    2.237 tokens de salida   $0,02708   3 días, 15 ejercicios  ✓
+ *   Haiku 4.5     966 tokens de salida   $0,00679   3 días, 15 ejercicios  ✓
+ *
+ * Mismo resultado exacto por la cuarta parte.
+ *
+ * ── DÓNDE **NO** SE USA, Y POR QUÉ ──
+ *
+ * Haiku copia bien y decide mal. Probado en las dos rutas que deciden:
+ *
+ *   · cambiar los cardios de un plan  → devolvió el plan SIN cardios.
+ *   · Consulta                        → se dejó el marcador [CAMBIO:...],
+ *                                       o sea que el botón de aplicar no sale.
+ *
+ * Sale un 91% más barato y hace mal el trabajo, que es la forma más cara de
+ * ahorrar. Así que solo entra donde la respuesta ya está escrita en la
+ * entrada: leer una etiqueta, transcribir una rutina, transcribir un
+ * protocolo. En todo lo que haya que decidir algo, manda el de arriba.
+ */
+const MODEL_COPIA = process.env.ANTHROPIC_MODEL_COPIA || 'claude-haiku-4-5';
+
 // Tarifa vigente del modelo, en USD por millón de tokens.
 const PRICE_IN_PER_M = 5;
 const PRICE_OUT_PER_M = 25;
@@ -1913,7 +1941,7 @@ export default async function handler(req, res) {
     }
     try {
       const response = await anthropic.messages.create({
-        model: MODEL,
+        model: MODEL_COPIA,
         max_tokens: 900,
         system: LABEL_SYSTEM,
         messages: [{
@@ -1993,7 +2021,7 @@ export default async function handler(req, res) {
     }
     try {
       const response = await anthropic.messages.create({
-        model: MODEL,
+        model: MODEL_COPIA,
         max_tokens: 4000,
         system: ROUTINE_PHOTO_SYSTEM,
         messages: [{
@@ -2032,7 +2060,7 @@ export default async function handler(req, res) {
     }
     try {
       const response = await anthropic.messages.create({
-        model: MODEL,
+        model: MODEL_COPIA,
         max_tokens: 4000,
         system: protocolSystem(kind, protocolText.variables),
         messages: [{ role: 'user', content: built.content }],
@@ -2091,7 +2119,7 @@ export default async function handler(req, res) {
     }
     try {
       const response = await anthropic.messages.create({
-        model: MODEL,
+        model: MODEL_COPIA,
         max_tokens: 5000,
         system: ROUTINE_TEXT_SYSTEM,
         messages: [{ role: 'user', content: built.content }],
@@ -2165,7 +2193,7 @@ export default async function handler(req, res) {
         max_tokens: 16000,
         system: planChatSystem(profile || {}, ctx, planChat.previous || null, planChat.agenda, planChat.historial, !!planChat.agendaParcial),
         messages: cachearConversacion(mensajes),
-        output_config: { format: { type: 'json_schema', schema: PLAN_CHAT_SCHEMA } },
+        output_config: { format: { type: 'json_schema', schema: PLAN_CHAT_SCHEMA }, effort: 'low' },
       });
       const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
       let out;
@@ -2405,7 +2433,19 @@ Responde en el idioma del usuario (por defecto español).`,
     // salía y desde fuera se veía como "le pido un cambio y no lo hace".
     //
     // Sale gratis: se paga por lo que se escribe, no por el tope.
-    const params = { model: MODEL, max_tokens: 4000, messages: cachearConversacion(clean) };
+    // Esfuerzo BAJO a propósito.
+    //
+    // Sonnet 5 razona en modo adaptativo por defecto, y ese razonamiento se
+    // factura como salida. En una conversación no hace falta: medido en
+    // Consulta, pedir un cambio de cardio pasa de 454 tokens de salida a 204
+    // —un 22% más barato— y el marcador [CAMBIO:...] que enciende el botón
+    // sigue saliendo igual. Es pagar por pensar donde no hay nada que pensar.
+    const params = {
+      model: MODEL,
+      max_tokens: 4000,
+      output_config: { effort: 'low' },
+      messages: cachearConversacion(clean),
+    };
     if (canSearch) {
       systemPrompt += '\n\n' + GEAR_SEARCH_ADDENDUM;
       params.tools = [{
