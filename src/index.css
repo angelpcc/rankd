@@ -1039,3 +1039,21 @@ input[type="datetime-local"]::-webkit-inner-spin-button {
   border: 1px solid rgba(225, 6, 0, 0.5);
   color: #ff5a55;
 }
+
+/* Borde superior de una conversación.
+   Una lista con scroll cortada en seco parece un error de pintado: no se sabe
+   si arriba hay más o el mensaje empieza ahí. Un degradado corto sobre el
+   borde dice "sigue" sin ocupar sitio ni robar un toque. Va sobre el envoltorio
+   y no sobre la lista, porque dentro de la lista se iría con el scroll. */
+.rk-chat-wrap { position: relative; }
+.rk-chat-wrap::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 22px;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(to bottom, var(--s-1) 0%, transparent 100%);
+}

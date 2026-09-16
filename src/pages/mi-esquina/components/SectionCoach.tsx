@@ -120,11 +120,35 @@ function renderInline(text: string, keyBase: string, watchLabel: string) {
 function renderRich(text: string, watchLabel: string) {
   return text.split('\n').map((line, i) => {
     const trimmed = line.trim();
+
+    // ── Lista numerada ("1. …", "2) …") ──
+    //
+    // Salía como texto plano, con el número pegado a la frase. Y desde que el
+    // prompt pide respuestas densas y con pasos, es lo que más devuelve: una
+    // receta de cinco pasos se leía como un párrafo corrido. El número en su
+    // chapa se cuenta de un vistazo, que es para lo que está numerado.
+    const num = trimmed.match(/^(\d{1,2})[.)]\s+(.*)$/);
+    if (num) {
+      return (
+        <div key={i} className="flex gap-2.5 items-start mt-1.5">
+          <span className="w-5 h-5 flex-shrink-0 flex items-center justify-center rounded-md text-[10px] font-bold text-white mt-0.5"
+            style={{ background: 'rgba(225,6,0,0.22)' }}>{num[1]}</span>
+          <span className="min-w-0">{renderInline(num[2], `l${i}`, watchLabel)}</span>
+        </div>
+      );
+    }
+
     const bullet = /^[-*•]\s+/.test(trimmed);
     const clean = bullet ? trimmed.replace(/^[-*•]\s+/, '') : line;
     const parts = renderInline(clean, `l${i}`, watchLabel);
     if (bullet) {
-      return <div key={i} className="flex gap-2 pl-1"><span className="text-zinc-600 mt-1.5 flex-shrink-0" style={{ fontSize: 6 }}>●</span><span>{parts}</span></div>;
+      return (
+        <div key={i} className="flex gap-2 pl-1">
+          <span className="flex-shrink-0 mt-[7px] rounded-full"
+            style={{ width: 4, height: 4, background: 'var(--accent)', opacity: 0.7 }} />
+          <span className="min-w-0">{parts}</span>
+        </div>
+      );
     }
     if (trimmed === '') return <div key={i} style={{ height: 6 }} />;
     return <div key={i}>{parts}</div>;
@@ -547,18 +571,24 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
       )}
 
       {/* Conversación */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      <div className="rk-chat-wrap flex-1 min-h-0">
+      <div ref={scrollRef} className="h-full overflow-y-auto px-4 py-4 space-y-3">
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center px-2 anim-scale-in">
             <div className={`w-14 h-14 flex items-center justify-center rounded-2xl ${a.bg} border ${a.border} ${a.text} mb-3 anim-float`}>
               <i className="ri-chat-smile-3-line text-2xl"></i>
             </div>
             <p className="text-sm text-zinc-300 font-medium max-w-xs">{intro}</p>
-            <div className="flex flex-wrap gap-2 justify-center mt-4">
+            {/* Tarjetas, no pastillas. Son preguntas enteras: en pastilla se
+                parten en dos líneas y quedan rotas, y además el chat del plan
+                ya las enseña así — dos chats hermanos con la misma pantalla
+                vacía hecha de dos formas distintas se notan. */}
+            <div className="grid gap-1.5 mt-4 w-full max-w-sm mx-auto">
               {suggestions.map((s) => (
                 <button key={s} onClick={() => send(s)} disabled={sending}
-                  className="rk-chip text-xs text-zinc-300 bg-white/[0.04] border border-white/10 hover:border-white/25 hover:text-white hover:bg-white/[0.07] rounded-full px-3 py-1.5 cursor-pointer disabled:opacity-50">
-                  {s}
+                  className="rk-chip flex items-center gap-2.5 text-left text-xs text-zinc-300 bg-white/[0.04] border border-white/10 hover:border-white/25 hover:text-white hover:bg-white/[0.07] rounded-xl px-3 py-2.5 cursor-pointer disabled:opacity-50">
+                  <i className="ri-chat-1-line text-base flex-shrink-0" style={{ color: 'var(--accent)' }} />
+                  <span className="min-w-0">{s}</span>
                 </button>
               ))}
             </div>
@@ -600,7 +630,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
           })
         )}
         {sending && !streaming && (
-          <div className="flex items-end gap-2 justify-start rk-msg-yours">
+          <div className="flex items-end gap-2 justify-start rk-msg-yours mt-3">
             <div className="w-7 h-7 flex-shrink-0 rounded-lg flex items-center justify-center rk-ai-avatar">
               <i className="ri-sparkling-2-line text-sm" />
             </div>
@@ -609,6 +639,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
             </div>
           </div>
         )}
+      </div>
       </div>
 
       {/* Cuota agotada o control de gasto sin configurar */}

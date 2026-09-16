@@ -106,7 +106,7 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
   const [weeks, setWeeks] = useState(1);
   const [aiOk, setAiOk] = useState<boolean | null>(null);
   const [fighter, setFighter] = useState<Record<string, unknown>>({});
-  const finRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const weekStart = useMemo(() => currentWeekStart(), []);
   const today = useMemo(() => {
@@ -179,7 +179,15 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
     return () => { alive = false; };
   }, [profile.id, profile.full_name, weekStart, t]);
 
-  useEffect(() => { finRef.current?.scrollIntoView({ block: 'end' }); }, [turnos, enviando]);
+  // scrollTo sobre el contenedor, no scrollIntoView sobre el final.
+  //
+  // scrollIntoView mueve el ancestro con scroll MÁS CERCANO, y cuando la lista
+  // no tenía altura propia ese ancestro era la página: cada mensaje te bajaba
+  // la pantalla entera. Con la tarjeta ya a altura fija el efecto sería aún más
+  // visible. Consulta ya lo hacía así; ahora los dos igual.
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+  }, [turnos, enviando]);
 
   // Se guarda en cada cambio, no al salir: de una pantalla se sale cerrando la
   // pestaña o pulsando atrás, y ahí no hay ocasión de despedirse.
@@ -296,12 +304,17 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
   return (
     <div className="rk-blocks max-w-3xl">
       {/* ── La conversación ── */}
-      <div className="rk-card overflow-hidden" style={{ padding: 0 }}>
+      {/* Altura fija y columna, como Consulta.
+          Antes la lista crecía hasta 58vh y la caja de escribir bajaba con
+          ella: escribías en un sitio distinto según lo larga que fuera la
+          conversación. Con altura fija, el campo está SIEMPRE donde lo dejaste,
+          que es como se comporta cualquier chat. */}
+      <div className="rk-card overflow-hidden flex flex-col" style={{ padding: 0, height: 'min(620px, 74vh)' }}>
         {/* Cabecera.
             No la tenía: el chat empezaba en un cuadro de texto suelto y no se
             sabía con qué estabas hablando. La misma que Consulta a propósito —
             son dos conversaciones de lo mismo y tienen que parecerlo. */}
-        <div className="px-4 py-3 border-b border-white/[0.07] flex items-center gap-3">
+        <div className="px-4 py-3 border-b border-white/[0.07] flex items-center gap-3 flex-shrink-0">
           <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl rk-ai-avatar">
             <i className="ri-calendar-todo-line text-lg" />
           </div>
@@ -338,7 +351,8 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
           )}
         </div>
 
-        <div className="space-y-3 px-4 py-4" style={{ maxHeight: '58vh', overflowY: 'auto' }}>
+        <div className="rk-chat-wrap flex-1 min-h-0">
+        <div ref={scrollRef} className="h-full overflow-y-auto space-y-3 px-4 py-4">
           {turnos.length === 0 && (
             <div className="py-6 text-center anim-scale-in">
               <div className="w-14 h-14 mx-auto mb-3 flex items-center justify-center rounded-2xl anim-float rk-ai-avatar">
@@ -412,7 +426,7 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
               </div>
             </div>
           )}
-          <div ref={finRef} />
+        </div>
         </div>
 
         {/* ── Escribir ──
@@ -424,7 +438,7 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
             él solo, puede crecer sin empujar nada.
             fontSize 16 no es un capricho de diseño: por debajo de 16px, Safari
             de iPhone AMPLÍA la página entera al tocar el campo. */}
-        <div className="px-4 pb-4 pt-3" style={{ borderTop: '1px solid var(--s-3)' }}>
+        <div className="px-4 pb-4 pt-3 flex-shrink-0" style={{ borderTop: '1px solid var(--s-3)' }}>
           {foto && <FotoPendiente foto={foto} onQuitar={() => setFoto(null)} />}
           <textarea value={texto} onChange={(e) => setTexto(e.target.value)} rows={2} maxLength={2000}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar(); } }}
