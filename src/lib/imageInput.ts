@@ -163,8 +163,20 @@ function leerBase64(file: Blob): Promise<string> {
 export async function prepararImagen(file: File, maxLado = MAX_LADO): Promise<ImagenLista | null> {
   const original = async (): Promise<ImagenLista | null> => {
     try {
+      const base64 = await leerBase64(file);
+      // La ÚLTIMA red.
+      //
+      // Este camino se toma cuando el encogido falla (navegador raro,
+      // imagen que no decodifica, memoria), y entonces sale el fichero
+      // ENTERO. Una foto de 5 MB son 6,7 MB en base64 y la petición no
+      // sale: 413 antes de llegar a la IA.
+      //
+      // Está aquí y no en cada pantalla a propósito: las pantallas que
+      // eligen ficheros son ocho y van a ser más. Comprobarlo en el único
+      // sitio por el que pasan todas es lo que hace que no se escape una.
+      if (base64.length > MAX_ADJUNTOS_B64) return null;
       return {
-        base64: await leerBase64(file),
+        base64,
         mediaType: file.type || 'image/jpeg',
         previewUrl: URL.createObjectURL(file),
         bytes: file.size,
@@ -181,8 +193,10 @@ export async function prepararImagen(file: File, maxLado = MAX_LADO): Promise<Im
   // convertiría en una foto de un papel, que es de donde venimos.
   if (file.type === TIPO_PDF) {
     try {
+      const base64 = await leerBase64(file);
+      if (base64.length > MAX_ADJUNTOS_B64) return null;
       return {
-        base64: await leerBase64(file),
+        base64,
         mediaType: TIPO_PDF,
         previewUrl: '',
         bytes: file.size,
@@ -213,8 +227,13 @@ export async function prepararImagen(file: File, maxLado = MAX_LADO): Promise<Im
     const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/jpeg', CALIDAD));
     if (!blob) return original();
 
+    const base64 = await leerBase64(blob);
+    // Una foto ya encogida no se acerca al tope ni de lejos, pero se
+    // comprueba igual: así la regla "de aquí no sale nada que no quepa" no
+    // tiene excepciones, y nadie tiene que recordar cuál era la que sí.
+    if (base64.length > MAX_ADJUNTOS_B64) return null;
     return {
-      base64: await leerBase64(blob),
+      base64,
       mediaType: 'image/jpeg',
       previewUrl: URL.createObjectURL(blob),
       bytes: blob.size,

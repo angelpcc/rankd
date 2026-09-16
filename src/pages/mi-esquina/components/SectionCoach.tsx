@@ -376,9 +376,13 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
           profile: physical,
           agenda: agenda.length ? agenda : undefined,
           historial: historial.length ? historial : undefined,
-          messages: next.map((m) => (m.image
+          // Igual que en el chat del plan: las fotos viejas se caen si no
+          // caben todas. La conversación crece sola y la petición tiene un
+          // techo duro (ver MAX_ADJUNTOS_B64); sin esto, la tercera foto
+          // rompía un mensaje en el que no habías adjuntado nada.
+          messages: limitarAdjuntos(next.map((m) => (m.image
             ? { role: m.role, content: m.content, image: { base64: m.image.base64, mediaType: m.image.mediaType } }
-            : { role: m.role, content: m.content })),
+            : { role: m.role, content: m.content }))),
         }),
       });
 

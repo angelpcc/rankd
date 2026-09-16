@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ACEPTA_DOCUMENTO, LADO_DOCUMENTO, prepararImagen, TIPO_PDF } from '@/lib/imageInput';
+import { ACEPTA_DOCUMENTO, LADO_DOCUMENTO, MAX_ADJUNTO_BYTES, mbDe, prepararImagen, TIPO_PDF } from '@/lib/imageInput';
 import { useTranslation } from 'react-i18next';
 import type { Profile } from '@/lib/supabase';
 import VoiceButton from '@/components/feature/VoiceButton';
@@ -73,10 +73,13 @@ const EJEMPLOS: { icon: string; labelKey: string; textKey: string }[] = [
  * Prepara el archivo para mandarlo.
  *
  * Se apoya en `prepararImagen`, que es quien sabe la diferencia: una foto se
- * encoge a 1568px antes de salir (una foto de móvil son 4 MB y el límite son 5,
- * y por encima de ese tamaño la API la reduce igualmente) y un PDF viaja entero.
- * Antes esto leía el fichero en crudo, así que una foto de la cámara podía
- * pasarse del límite y lo único que veías era "la foto debe pesar menos de 5MB".
+ * encoge antes de salir y un PDF viaja entero. Antes esto leía el fichero en
+ * crudo, así que una foto de la cámara podía pasarse sin avisar.
+ *
+ * El límite real no es el de la API: es el del cuerpo de la petición, que
+ * corta Vercel antes de que la IA exista (ver MAX_ADJUNTOS_B64 en
+ * lib/imageInput.ts, con la medida). Por eso el tamaño se mira ya al elegir
+ * el fichero, y `prepararImagen` vuelve a mirarlo por si acaso.
  */
 async function prepararArchivo(file: File): Promise<{ base64: string; mediaType: string } | null> {
   // Más resolución que en un chat: aquí se fotografía un DOCUMENTO con letra
@@ -297,8 +300,23 @@ export default function PlanImport({ profile, showToast, onImported, onWeekText,
           velocidad— que es justo el fallo que esto evita. */}
       {(aiRoutine || aiProtocol) && (
         <>
+          {/* El tamaño se mira AQUÍ, al elegirlo.
+
+              Esta es la puerta por la que entra una rutina en PDF, o sea el
+              sitio donde más fácil es pasarse, y era la única de las que
+              van a la IA sin ningún tope. Un PDF viaja entero y la
+              petición tiene un techo duro: dejarte elegir algo más grande
+              es dejarte empezar algo que no puede terminar. */}
           <input ref={fileRef} type="file" accept={ACEPTA_DOCUMENTO} hidden
-            onChange={(e) => setFile(e.target.files?.[0] || null)} />
+            onChange={(e) => {
+              const f = e.target.files?.[0] || null;
+              if (f && f.size > MAX_ADJUNTO_BYTES) {
+                showToast(t('mc_chat_file_too_big', { max: mbDe(MAX_ADJUNTO_BYTES), tam: mbDe(f.size) }), 'error');
+                e.target.value = '';
+                return;
+              }
+              setFile(f);
+            }} />
           <button onClick={() => fileRef.current?.click()}
             className="rk-nav-btn rk-press text-xs mt-2 inline-flex items-center gap-1.5"
             style={{ padding: '0.5rem 1rem' }}>
