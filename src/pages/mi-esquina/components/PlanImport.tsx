@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ACEPTA_DOCUMENTO, prepararImagen, TIPO_PDF } from '@/lib/imageInput';
+import { ACEPTA_DOCUMENTO, LADO_DOCUMENTO, prepararImagen, TIPO_PDF } from '@/lib/imageInput';
 import { useTranslation } from 'react-i18next';
 import type { Profile } from '@/lib/supabase';
 import VoiceButton from '@/components/feature/VoiceButton';
@@ -79,7 +79,10 @@ const EJEMPLOS: { icon: string; labelKey: string; textKey: string }[] = [
  * pasarse del límite y lo único que veías era "la foto debe pesar menos de 5MB".
  */
 async function prepararArchivo(file: File): Promise<{ base64: string; mediaType: string } | null> {
-  const listo = await prepararImagen(file);
+  // Más resolución que en un chat: aquí se fotografía un DOCUMENTO con letra
+  // pequeña, y leer mal una tabla de cardio —meter la inclinación en la columna
+  // de la velocidad— sale peor que pagar unos tokens de más.
+  const listo = await prepararImagen(file, LADO_DOCUMENTO);
   return listo ? { base64: listo.base64, mediaType: listo.mediaType } : null;
 }
 

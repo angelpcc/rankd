@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { prepararImagen } from '@/lib/imageInput';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable } from '@/lib/dbState';
@@ -35,15 +36,6 @@ interface Props {
 
 const IMG_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const IMG_MAX = 5 * 1024 * 1024;
-function fileToB64(file: File): Promise<string> {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res(String(r.result || '').split(',')[1] || '');
-    r.onerror = () => rej(new Error('read'));
-    r.readAsDataURL(file);
-  });
-}
-
 interface Answers {
   days_per_week?: number;
   session_minutes?: number;
@@ -401,7 +393,11 @@ export default function ObjectiveWizard({ profile, showToast, onGoPlan }: Props)
     if (file.size > IMG_MAX) { showToast(t('op_img_err_size'), 'error'); return; }
     setFlowBusy(true);
     try {
-      const b64 = await fileToB64(file);
+      // Reducida antes de salir: una foto de móvil sin reducir cuesta el doble
+      // de tokens y pesa cuatro megas. Ver lib/imageInput.
+      const listo = await prepararImagen(file);
+      if (!listo) throw new Error('read');
+      const b64 = listo.base64;
       const r = await analyzeRoutinePhoto(b64, file.type);
       if (r.plan) setProposal(r.plan as unknown as Plan);
       else showToast(r.error || t('op_err_import'), 'error');

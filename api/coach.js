@@ -608,6 +608,49 @@ function limitarFotos(messages) {
   return out;
 }
 
+/**
+ * Marca la conversación para que no se pague entera en cada turno.
+ *
+ * ── CÓMO FUNCIONA LA CACHÉ ──
+ *
+ * Se cachea un PREFIJO: todo lo que va antes de la marca. Poniendo la marca en
+ * el penúltimo mensaje, en el turno siguiente todo eso ya está cacheado y solo
+ * se paga entero lo nuevo — la pregunta que acabas de escribir.
+ *
+ * El prompt de sistema ya iba marcado, pero la conversación no: se reenviaba
+ * completa y se pagaba completa cada vez. En una charla larga eso es pagar diez
+ * veces por los mismos mensajes.
+ *
+ * ── POR QUÉ EN EL PENÚLTIMO Y NO EN EL ÚLTIMO ──
+ *
+ * El último cambia en cada turno (es lo que acabas de escribir), así que una
+ * marca ahí no serviría de nada: el prefijo sería distinto siempre y nunca
+ * habría acierto. El penúltimo ya estaba en el turno anterior, y es justo la
+ * parte que se repite.
+ *
+ * Con menos de tres mensajes no se marca: el prefijo no llega al mínimo
+ * cacheable y una marca de más solo gasta uno de los pocos puntos que hay.
+ */
+function cachearConversacion(mensajes) {
+  if (mensajes.length < 3) return mensajes;
+  const i = mensajes.length - 2;
+  const m = mensajes[i];
+  // El contenido puede ser texto suelto o ya una lista de bloques (cuando lleva
+  // foto). La marca va SIEMPRE en el último bloque, que es donde cierra el
+  // prefijo que se quiere cachear.
+  const bloques = typeof m.content === 'string'
+    ? [{ type: 'text', text: m.content }]
+    : m.content.slice();
+  if (bloques.length === 0) return mensajes;
+  bloques[bloques.length - 1] = {
+    ...bloques[bloques.length - 1],
+    cache_control: { type: 'ephemeral' },
+  };
+  const out = mensajes.slice();
+  out[i] = { ...m, content: bloques };
+  return out;
+}
+
 function sanitize(messages) {
   return limitarFotos(messages || [])
     .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
@@ -1907,7 +1950,7 @@ export default async function handler(req, res) {
         model: MODEL,
         max_tokens: 8000,
         system: planChatSystem(profile || {}, ctx, planChat.previous || null, planChat.agenda, planChat.historial, !!planChat.agendaParcial),
-        messages: mensajes,
+        messages: cachearConversacion(mensajes),
         output_config: { format: { type: 'json_schema', schema: PLAN_CHAT_SCHEMA } },
       });
       const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
@@ -2122,7 +2165,7 @@ Responde en el idioma del usuario (por defecto español).`,
     let systemPrompt = buildSystem(profile || {});
     // 2000 y no 1500: con fotos, una respuesta que primero dice qué ha leído en
     // la imagen y luego contesta se quedaba a medias y se cortaba en seco.
-    const params = { model: MODEL, max_tokens: 2000, messages: clean };
+    const params = { model: MODEL, max_tokens: 2000, messages: cachearConversacion(clean) };
     if (canSearch) {
       systemPrompt += '\n\n' + GEAR_SEARCH_ADDENDUM;
       params.tools = [{

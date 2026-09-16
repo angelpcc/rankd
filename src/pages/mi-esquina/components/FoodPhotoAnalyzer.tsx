@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { prepararImagen } from '@/lib/imageInput';
 import { useTranslation } from 'react-i18next';
 import {
   checkPhotoAnalysisAvailable, analyzeFoodPhoto, type NutritionAnalysis,
@@ -22,14 +23,9 @@ interface Props {
 const MAX_BYTES = 5 * 1024 * 1024; // 5MB
 const ACCEPT = 'image/jpeg,image/png,image/webp';
 
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || '').split(',')[1] || '');
-    reader.onerror = () => reject(new Error('read'));
-    reader.readAsDataURL(file);
-  });
-}
+// El lector crudo que había aquí se ha ido a `lib/imageInput`, que además
+// REDUCE la foto antes de mandarla. Ver abajo por qué importa tanto en esta
+// pantalla en concreto.
 
 export default function FoodPhotoAnalyzer({ showToast, onSave }: Props) {
   const { t } = useTranslation();
@@ -63,8 +59,20 @@ export default function FoodPhotoAnalyzer({ showToast, onSave }: Props) {
     if (!file) return;
     setAnalyzing(true);
     try {
-      const base64 = await fileToBase64(file);
-      const res = await analyzeFoodPhoto(base64, file.type);
+      // ── Se REDUCE antes de mandarla ──
+      //
+      // Esta pantalla mandaba la foto a resolución completa, y es la que más se
+      // usa: una foto por comida. Medido, la API cobra las imágenes por píxeles
+      // y una foto de móvil sin reducir cuesta unos 2459 tokens — más que una
+      // conversación entera de Consulta. Reducida a 1100 px cuesta 1210, y para
+      // reconocer un plato sobra de largo.
+      //
+      // Además pesaba tres o cuatro megas: tardaba un mundo por datos móviles y
+      // podía pasarse del límite de 5 MB, y entonces lo único que veías era un
+      // error sobre una foto recién hecha con la cámara de la app.
+      const listo = await prepararImagen(file);
+      if (!listo) { showToast(t('mc_food_photo_err_type'), 'error'); setAnalyzing(false); return; }
+      const res = await analyzeFoodPhoto(listo.base64, listo.mediaType);
       if (res.analysis) setResult(res.analysis);
       else showToast(res.error || t('mc_food_photo_err_type'), 'error');
     } catch {

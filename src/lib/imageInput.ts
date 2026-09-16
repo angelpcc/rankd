@@ -17,10 +17,24 @@
 //
 // Así que se reduce aquí, en el navegador, antes de que salga nada por la red.
 //
-// ── POR QUÉ 1568 ──
+// ── CUÁNTO CUESTA UNA FOTO, Y POR QUÉ 1100 Y NO 1568 ──
 //
-// Es el lado largo por encima del cual la API reduce por su cuenta. Mandar más
-// no aporta ni un detalle y se paga igual.
+// La API cobra las imágenes por PÍXELES: unos (ancho × alto) / 750 tokens.
+// Medido, con una foto de móvil en 4:3:
+//
+//     1568 px de lado largo  →  2459 tokens
+//     1100 px                →  1210 tokens
+//      900 px                →   810 tokens
+//
+// Para ponerlo en contexto: UNA foto a 1568 cuesta más que una conversación
+// entera de Consulta. Y la foto es lo que más se usa —cada comida—, así que es
+// de lejos donde se va el saldo.
+//
+// 1568 es el tope por encima del cual la API reduce por su cuenta, pero no es
+// una recomendación: es un techo. Para lo que se manda aquí —un plato, una hoja
+// de plan, la pantalla de una cinta— 1100 px se lee igual de bien y cuesta la
+// mitad. Quien necesite más resolución (fotografiar un documento con letra
+// pequeña) la pide expresamente: ver `maxLado`.
 //
 // ── POR QUÉ JPEG ──
 //
@@ -29,8 +43,16 @@
 // la cinta— calidad 0.82 se lee perfectamente.
 // ════════════════════════════════════════════════════════════════
 
-/** Lado largo máximo. Ver arriba: por encima, la API reduce igualmente. */
-const MAX_LADO = 1568;
+/** Lado largo por defecto. Ver arriba: la mitad de coste que 1568. */
+const MAX_LADO = 1100;
+/**
+ * Para fotos de DOCUMENTOS con letra pequeña.
+ *
+ * Más caro, pero leer mal una tabla de cardio y meter la inclinación en la
+ * columna de la velocidad sale peor que pagar unos tokens de más. Aun así se
+ * queda por debajo del tope: los PDF, que es el caso bueno, no pasan por aquí.
+ */
+export const LADO_DOCUMENTO = 1400;
 const CALIDAD = 0.82;
 
 export interface ImagenLista {
@@ -67,7 +89,7 @@ function leerBase64(file: Blob): Promise<string> {
  * memoria— NO se rinde: cae a mandar el fichero original. Peor que reducida,
  * pero muchísimo mejor que no poder mandar la foto.
  */
-export async function prepararImagen(file: File): Promise<ImagenLista | null> {
+export async function prepararImagen(file: File, maxLado = MAX_LADO): Promise<ImagenLista | null> {
   const original = async (): Promise<ImagenLista | null> => {
     try {
       return {
@@ -103,9 +125,9 @@ export async function prepararImagen(file: File): Promise<ImagenLista | null> {
     const bitmap = await createImageBitmap(file);
     const lado = Math.max(bitmap.width, bitmap.height);
     // Ya es pequeña: reencodificarla solo la degradaría sin ahorrar nada.
-    if (lado <= MAX_LADO && file.size < 1_500_000) { bitmap.close(); return original(); }
+    if (lado <= maxLado && file.size < 1_500_000) { bitmap.close(); return original(); }
 
-    const escala = Math.min(1, MAX_LADO / lado);
+    const escala = Math.min(1, maxLado / lado);
     const w = Math.max(1, Math.round(bitmap.width * escala));
     const h = Math.max(1, Math.round(bitmap.height * escala));
 
