@@ -62,6 +62,8 @@ const PALABRAS_SUPLEMENTO = [
   'barrita', 'barra proteica', 'suplemento', 'shake', 'bcaa', 'glutamina',
   'pre-entreno', 'preentreno', 'pre entreno',
 ];
+interface PlanRow { id: string; payload: { slot?: string; text?: string } | null }
+
 export default function MealLog({ profile, showToast }: Props) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
@@ -73,6 +75,8 @@ export default function MealLog({ profile, showToast }: Props) {
   /** El campo de texto, para poder dejar el cursor dentro al variar una comida. */
   const descRef = useRef<HTMLInputElement>(null);
   const [showSup, setShowSup] = useState(false);
+  /** Comidas que el plan tiene puestas para hoy en esta franja, sin marcar. */
+  const [planned, setPlanned] = useState<{ id: string; text: string }[]>([]);
   const [saving, setSaving] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   // Comidas frecuentes: se calculan sobre los últimos 60 días (agrupando por
@@ -212,6 +216,56 @@ export default function MealLog({ profile, showToast }: Props) {
     });
   };
 
+
+  /**
+   * Lo que el PLAN dice que toca comer hoy en esta franja.
+   *
+   * ── LA DESCONEXIÓN QUE HABÍA ──
+   *
+   * Si le pedías al Asesor un plan de nutrición, las comidas se guardaban en la
+   * Agenda (`day_plan_items`) y Nutrición no las leía JAMÁS. O sea: pedías el
+   * plan, te lo montaba, y en la pantalla donde ibas a buscarlo no había nada.
+   *
+   * ── POR QUÉ NO SE ESCRIBEN DIRECTAMENTE EN EL DIARIO ──
+   *
+   * Porque no es lo mismo lo que TIENES QUE comer que lo que HAS comido.
+   * Meterlas en el diario al guardar el plan sería dar por hecho que te lo has
+   * comido todo, y tus macros del día serían mentira desde el minuto uno.
+   *
+   * Así que se enseñan aparte, y con un toque pasan al diario. Ahí sí: lo has
+   * comido porque lo has dicho tú.
+   */
+  const loadPlanned = useCallback(async () => {
+    const { data, error } = await supabase.from('day_plan_items')
+      .select('id, payload')
+      .eq('fighter_profile_id', profile.id)
+      .eq('plan_date', todayISO())
+      .eq('kind', 'meal')
+      .eq('completed', false);
+    if (error || !data) { setPlanned([]); return; }
+    setPlanned((data as PlanRow[])
+      .filter((r) => r.payload?.slot === type && String(r.payload?.text || '').trim())
+      .map((r) => ({ id: r.id, text: String(r.payload.text).trim() })));
+  }, [profile.id, type]);
+
+  useEffect(() => { loadPlanned(); }, [loadPlanned]);
+
+  /** Del plan al diario. Se marca hecho para que deje de salir como pendiente. */
+  const comerDelPlan = async (p: { id: string; text: string }) => {
+    if (saving) return;
+    setSaving(true);
+    const meal = await insertMeal(p.text, type);
+    if (!meal) { showToast(t('error_save'), 'error'); setSaving(false); return; }
+    setMeals((prev) => [meal, ...prev]);
+    // Best-effort: si esto falla, la comida YA está apuntada, que es lo que
+    // importa. Volvería a salir como pendiente, que es molesto pero no grave.
+    await supabase.from('day_plan_items').update({ completed: true }).eq('id', p.id);
+    setSaving(false);
+    showToast(t('mc_meal_saved'));
+    loadPlanned();
+    loadFrequent();
+  };
+
   const addFromFrequent = async (description: string) => {
     if (saving) return;
     setSaving(true);
@@ -310,6 +364,25 @@ export default function MealLog({ profile, showToast }: Props) {
         ))}
       </div>
 
+      {/* Lo que toca hoy según el plan. Va ANTES de lo que repites: si has
+          pedido un plan, lo que quieres ver primero es el plan. */}
+      {planned.length > 0 && (
+        <div className="mb-3">
+          <p className="text-[11px] font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--accent)' }}>
+            {t('mc_meal_planned')}
+          </p>
+          <div className="space-y-1.5">
+            {planned.map((p) => (
+              <button key={p.id} onClick={() => comerDelPlan(p)} disabled={saving}
+                className="w-full flex items-center gap-2.5 text-left text-xs font-semibold text-zinc-200 bg-red-600/[0.08] border border-red-500/25 hover:border-red-500/50 hover:bg-red-600/[0.12] rounded-xl px-3 py-2.5 cursor-pointer disabled:opacity-50 transition-colors">
+                <i className="ri-checkbox-circle-line text-base flex-shrink-0" style={{ color: 'var(--accent)' }} />
+                <span className="min-w-0 flex-1">{p.text}</span>
+                <span className="text-[10px] text-zinc-500 flex-shrink-0">{t('mc_meal_planned_eat')}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       {/* 2. Lo que repites en ESTA franja: un toque y registrado, sin foto y
           sin gastar IA. Es la respuesta a "desayuno siempre lo mismo". */}
       {frequent.length > 0 && (

@@ -143,6 +143,8 @@ const TICK_KINDS: DayPlanKind[] = ['strength', 'activity'];
 
 export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoActivity, onGoStrength, onGoBoxing, onGoPlanificar, onLogged }: Props) {
   const { t, i18n } = useTranslation();
+  /** Día que se va a vaciar y si es solo ese o de ahí en adelante. */
+  const [confirmarVaciar, setConfirmarVaciar] = useState<{ date: string; enAdelante: boolean } | null>(null);
   // Kilos o libras: preferencia de ESTE dispositivo, no un dato guardado. En
   // la base solo hay kilos; esto solo decide como se leen. Baja como prop
   // igual que `locale` y `mode`, porque DayItemRow no conoce el perfil.
@@ -349,6 +351,35 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
     const { error } = await supabase.from('day_plan_items').delete().eq('id', id);
     if (error) { showToast(t('error_save'), 'error'); load(); } else showToast(t('mc_ag_item_removed'));
   };
+  /**
+   * Vaciar un día, o vaciar de un día EN ADELANTE.
+   *
+   * ── LO QUE NUNCA SE BORRA ──
+   *
+   * Lo que ya está HECHO (`completed`) y lo que se registró de verdad
+   * (`source: 'logged'`). Eso no es un plan: es lo que entrenaste. Borrarlo
+   * sería borrarte el historial, y no es lo que pide nadie cuando dice
+   * "quítame esto de la agenda" — quiere quitarse lo que TIENE POR HACER.
+   *
+   * ── POR QUÉ 'EN ADELANTE' NO TIENE FECHA FINAL ──
+   *
+   * Un plan puede ser de seis semanas y otro de una. Poner un tope de un mes
+   * dejaría bloques sueltos más allá, que es justo el estado que lleva a
+   * pensar que la app no ha borrado nada.
+   */
+  const vaciar = useCallback(async (desde: string, enAdelante: boolean) => {
+    let q = supabase.from('day_plan_items')
+      .delete()
+      .eq('fighter_profile_id', profile.id)
+      .eq('completed', false)
+      .neq('source', 'logged');
+    q = enAdelante ? q.gte('plan_date', desde) : q.eq('plan_date', desde);
+    const { error } = await q;
+    if (error) { showToast(t('error_save'), 'error'); return; }
+    showToast(t(enAdelante ? 'mc_ag_wiped_from' : 'mc_ag_wiped_day'));
+    setConfirmarVaciar(null);
+    load();
+  }, [profile.id, showToast, t, load]);
 
   // ── ACCESO DIRECTO A LA EJECUCIÓN (punto 21bis) ──
 
@@ -463,6 +494,37 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
         }}
       />
       {/* Reprogramar: elegir el nuevo día sin perder el contenido */}
+
+      {/* ── VACIAR LA AGENDA ──
+          Con confirmación y diciendo QUÉ se va a borrar y qué no. Un botón que
+          borra una semana entera sin avisar es un botón que nadie usa dos
+          veces. */}
+      <BottomSheet open={!!confirmarVaciar} onClose={() => setConfirmarVaciar(null)} title={t('mc_ag_wipe_title')}>
+        {confirmarVaciar && (
+          <div className="space-y-4">
+            <p className="text-sm text-zinc-300 leading-relaxed">
+              {t(confirmarVaciar.enAdelante ? 'mc_ag_wipe_from_desc' : 'mc_ag_wipe_day_desc', {
+                date: new Date(confirmarVaciar.date + 'T12:00:00').toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' }),
+              })}
+            </p>
+            <p className="text-xs text-zinc-500 leading-relaxed flex items-start gap-1.5">
+              <i className="ri-shield-check-line mt-0.5 flex-shrink-0" style={{ color: '#4ade80' }} />
+              {t('mc_ag_wipe_safe')}
+            </p>
+            <div className="flex gap-2">
+              <button onClick={() => setConfirmarVaciar(null)} className="rk-nav-btn rk-press flex-1" style={{ minHeight: 48 }}>
+                {t('mc_cancel')}
+              </button>
+              <button onClick={() => vaciar(confirmarVaciar.date, confirmarVaciar.enAdelante)}
+                className="rk-btn rk-press flex-1 flex items-center justify-center gap-2"
+                style={{ minHeight: 48, background: '#E10600', color: '#fff' }}>
+                <i className="ri-delete-bin-line" />{t('mc_ag_wipe_confirm')}
+              </button>
+            </div>
+          </div>
+        )}
+      </BottomSheet>
+
       <BottomSheet open={!!moveFor} onClose={() => setMoveFor(null)} title={t('mc_ag_move_title')}>
         {moveFor && (
           <>
@@ -539,6 +601,7 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
             logged={loggedByDate.get(dayISO) || EMPTY_LOG}
             mode={mode}
             unidad={unidad}
+            onWipe={(enAdelante) => setConfirmarVaciar({ date: dayISO, enAdelante })}
             onPrev={() => setDayISO(iso(addDays(new Date(dayISO + 'T12:00:00'), -1)))}
             onNext={() => setDayISO(iso(addDays(new Date(dayISO + 'T12:00:00'), 1)))}
             onAdd={(kind) => (kind === 'strength' ? setStrengthSheet({ date: dayISO }) : setSheetFor({ date: dayISO, kind }))}
@@ -823,6 +886,8 @@ interface DayViewProps {
   mode: 'pro' | 'hobby';
   /** En que unidad se PINTAN los pesos. Lo guardado siempre son kilos. */
   unidad: WeightUnit;
+  /** Vaciar este día, o de este día en adelante. */
+  onWipe: (enAdelante: boolean) => void;
   onPrev: () => void;
   onNext: () => void;
   onAdd: (kind: DayPlanKind) => void;
@@ -840,7 +905,7 @@ interface DayViewProps {
   onToggleDone?: (id: string, value: boolean) => void;
 }
 
-function DayView({ supps, suppNames, date, locale, items, comp, logged, mode, unidad, onPrev, onNext, onAdd, onRemove, onMove, onPlanThisDay, onPlanWeek, onGoActivity, onRun, opening, onToggleDone }: DayViewProps) {
+function DayView({ supps, suppNames, date, locale, items, comp, logged, mode, unidad, onWipe, onPrev, onNext, onAdd, onRemove, onMove, onPlanThisDay, onPlanWeek, onGoActivity, onRun, opening, onToggleDone }: DayViewProps) {
   const { t } = useTranslation();
   const dObj = new Date(date + 'T12:00:00');
   const isToday = date === todayISO();
@@ -881,6 +946,21 @@ function DayView({ supps, suppNames, date, locale, items, comp, logged, mode, un
           <i className="ri-arrow-right-s-line text-xl"></i>
         </button>
       </div>
+
+      {/* Vaciar. Solo si hay algo PENDIENTE que vaciar: un botón de borrar
+          sobre un día vacío no hace nada y confunde. */}
+      {items.some((i) => !i.completed && i.source !== 'logged') && (
+        <div className="flex gap-2 justify-center">
+          <button onClick={() => onWipe(false)}
+            className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-zinc-500 hover:text-red-400 border border-white/10 hover:border-red-500/40 rounded-lg px-3 py-2 cursor-pointer transition-colors">
+            <i className="ri-eraser-line" />{t('mc_ag_wipe_day')}
+          </button>
+          <button onClick={() => onWipe(true)}
+            className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-zinc-500 hover:text-red-400 border border-white/10 hover:border-red-500/40 rounded-lg px-3 py-2 cursor-pointer transition-colors">
+            <i className="ri-delete-bin-line" />{t('mc_ag_wipe_from')}
+          </button>
+        </div>
+      )}
 
       {/* Marcadores de competición (pro) */}
       {mode === 'pro' && comp.length > 0 && (
