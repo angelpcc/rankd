@@ -73,6 +73,8 @@ export default {
   // ── Reproductor ──
   mc_pt_player_eyebrow: 'EN CURSO',
   mc_pt_segment_of: 'Tramo {{n}} de {{total}}',
+  mc_pt_last_full: 'lo terminaste entero',
+  mc_pt_last_cut: 'lo dejaste en {{done}} de {{total}}',
   mc_pt_remaining: 'Queda de este tramo',
   mc_pt_distance_manual: 'Este tramo va por distancia: dale a "Hecho" cuando lo completes.',
   mc_pt_next: 'A continuación',

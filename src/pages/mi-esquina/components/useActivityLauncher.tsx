@@ -43,7 +43,7 @@ import { supabase, type Profile } from '@/lib/supabase';
 import BottomSheet from '@/components/base/BottomSheet';
 import ProtocolPlayer from './ProtocolPlayer';
 import { activityKindCfg, type ActivityPayload } from '../lib/dayPlan';
-import { finishRun, loadProtocolById, localId as protocolLocalId, saveProtocol, type Protocol } from '../lib/protocols';
+import { finishRun, loadProtocolById, localId as protocolLocalId, saveProtocol, ultimaVezDe, type Protocol, type ProtocolRun } from '../lib/protocols';
 import { BOXING_PLACES, saveBoxingSession, type BoxingPlace } from '../lib/boxing';
 import { designCardio } from '@/services/protocolImport';
 import { generateBoxingSession } from '@/services/boxingAdvisor';
@@ -86,7 +86,7 @@ export function puedeMontarGuion(source: string, p: ActivityPayload): boolean {
 export function useActivityLauncher({ profile, showToast, onGoBoxing, onLogManual, onDone }: Opciones) {
   const { t } = useTranslation();
   const [abriendo, setAbriendo] = useState<string | null>(null);
-  const [player, setPlayer] = useState<{ item: ActividadLanzable; protocol: Protocol } | null>(null);
+  const [player, setPlayer] = useState<{ item: ActividadLanzable; protocol: Protocol; ultima?: ProtocolRun | null } | null>(null);
   const [guardando, setGuardando] = useState(false);
   /** Bloque al que le falta el guion, esperando respuesta. */
   const [preguntar, setPreguntar] = useState<ActividadLanzable | null>(null);
@@ -106,7 +106,14 @@ export function useActivityLauncher({ profile, showToast, onGoBoxing, onLogManua
       // 2. Con protocolo detrás, se reproduce aquí mismo.
       if (p.protocol_id) {
         const protocol = await loadProtocolById(profile.id, p.protocol_id);
-        if (protocol) { setPlayer({ item, protocol }); return; }
+        if (protocol) {
+          // La última vez que se hizo ESTE protocolo. En paralelo no: el
+          // protocolo hace falta para abrir y esto solo adorna, así que si
+          // falla se abre igual con `null` y no se le dice nada al usuario.
+          const ultima = await ultimaVezDe(profile.id, protocol.id, protocol.name, protocol.kind);
+          setPlayer({ item, protocol, ultima });
+          return;
+        }
         // Borrado después de planificarlo: no se deja al usuario tirado.
         showToast(t('mc_ag_run_missing'), 'error');
       }
@@ -211,7 +218,7 @@ export function useActivityLauncher({ profile, showToast, onGoBoxing, onLogManua
   const overlays: ReactNode = (
     <>
       {player && (
-        <ProtocolPlayer protocol={player.protocol} saving={guardando}
+        <ProtocolPlayer protocol={player.protocol} saving={guardando} ultima={player.ultima}
           onExit={() => setPlayer(null)} onFinish={terminar} />
       )}
 

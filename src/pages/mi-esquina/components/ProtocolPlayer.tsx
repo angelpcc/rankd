@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useWakeLock } from '@/pages/timer/hooks/useWakeLock';
 import {
   changedVars, clock, formatVarValue, protocolColumnOrder, protocolTotals, protocolVarsFor, segmentStarts,
-  type Protocol, type ProtocolSegment, type ProtocolVarDef,
+  type Protocol, type ProtocolRun, type ProtocolSegment, type ProtocolVarDef,
 } from '@/pages/mi-esquina/lib/protocols';
+import { todayISO } from '@/pages/mi-esquina/lib/dayPlan';
 
 // Reproductor en vivo de un protocolo (punto 16).
 //
@@ -21,6 +22,15 @@ import {
 interface Props {
   protocol: Protocol;
   saving: boolean;
+  /**
+   * La última vez que se hizo ESTE protocolo, si hay constancia.
+   *
+   * Se venía guardando en `protocol_runs` desde siempre y no se enseñaba en
+   * ningún sitio: la marca entraba y no salía. Es el dato que contesta
+   * "¿la semana pasada aguanté esto entero?" justo cuando sirve de algo,
+   * que es con el dedo encima del play y no después.
+   */
+  ultima?: ProtocolRun | null;
   /** Cerrar sin guardar nada. */
   onExit: () => void;
   /** Terminar: guarda la sesión en el historial y marca el protocolo. */
@@ -50,7 +60,7 @@ function useBeep() {
   }, []);
 }
 
-export default function ProtocolPlayer({ protocol, saving, onExit, onFinish }: Props) {
+export default function ProtocolPlayer({ protocol, saving, ultima, onExit, onFinish }: Props) {
   const { t } = useTranslation();
   const vars = protocolVarsFor(protocol.kind);
   // Las mismas variables pero en el orden en que se leen en una tabla impresa:
@@ -212,6 +222,20 @@ export default function ProtocolPlayer({ protocol, saving, onExit, onFinish }: P
 
   const highlight = new Set(changedVars(protocol.segments[index - 1], segment));
 
+  // "hace 3 d · 28:14 de 40:00, a medias" / "ayer · completo".
+  //
+  // Se reutilizan las mismas palabras que la tarjeta de fuerza (hoy / ayer /
+  // hace N d) para que la app no tenga dos formas de decir lo mismo.
+  let ultimaTexto = '';
+  if (ultima) {
+    const dias = Math.round((Date.parse(todayISO() + 'T12:00:00') - Date.parse(ultima.runDate + 'T12:00:00')) / 86400000);
+    const cuando = dias <= 0 ? t('mc_str_today') : dias === 1 ? t('mc_str_yesterday') : t('mc_str_days_ago', { n: dias });
+    const resultado = ultima.completed
+      ? t('mc_pt_last_full')
+      : t('mc_pt_last_cut', { done: clock(ultima.secondsDone), total: clock(totals.seconds) });
+    ultimaTexto = cuando + ' · ' + resultado;
+  }
+
   return (
     <Shell onClose={() => (running || segElapsed > 0 ? setConfirmExit(true) : onExit())} title={protocol.name}>
       {/* Progreso global */}
@@ -225,6 +249,18 @@ export default function ProtocolPlayer({ protocol, saving, onExit, onFinish }: P
           </span>
           <span className="text-[11px] text-zinc-500">{clock(totalDone)} / {clock(totals.seconds)}</span>
         </div>
+
+        {/* Solo ANTES de empezar. Una vez en marcha, lo de la otra vez
+            estorba: lo que importa es el número que toca ahora. */}
+        {ultima && index === 0 && !running && segElapsed === 0 && (
+          <p className="text-[11px] mt-2 flex items-center gap-1.5 leading-snug" style={{ color: 'var(--t-3)' }}>
+            <i className="ri-history-line" style={{ color: 'var(--t-2)' }} />
+            <span>
+              <strong style={{ color: 'var(--t-2)', fontWeight: 600 }}>{t('mc_lp_last')}</strong>
+              {' · '}{ultimaTexto}
+            </span>
+          </p>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-4">

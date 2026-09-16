@@ -73,6 +73,8 @@ export default {
   // ── Player ──
   mc_pt_player_eyebrow: 'IN PROGRESS',
   mc_pt_segment_of: 'Segment {{n}} of {{total}}',
+  mc_pt_last_full: 'you finished it',
+  mc_pt_last_cut: 'you stopped at {{done}} of {{total}}',
   mc_pt_remaining: 'Left in this segment',
   mc_pt_distance_manual: 'This segment goes by distance: tap "Done" when you finish it.',
   mc_pt_next: 'Up next',

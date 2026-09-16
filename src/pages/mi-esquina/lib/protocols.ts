@@ -613,6 +613,34 @@ export async function loadRuns(profileId: string): Promise<ProtocolRun[]> {
   }));
 }
 
+
+/**
+ * La última vez que se hizo ESTE cardio, si hay constancia.
+ *
+ * ── POR QUÉ NO BASTA CON EL ID ──
+ *
+ * Al guardar un plan se crea un protocolo NUEVO por cada cardio, con id nuevo.
+ * Si replanificas cada semana, el "mismo" cardio de siempre es un id distinto
+ * cada lunes, y buscando solo por id no se encontraría nunca nada: la marca
+ * existiría y seguiría sin verse, que es justo lo que se viene a arreglar.
+ *
+ * Así que se busca por id y, si no hay, por NOMBRE y tipo. El nombre lo pone
+ * quien planifica ("Cardio tarde — grasa"), así que dos protocolos que se
+ * llaman igual y son del mismo tipo son, a efectos de esto, el mismo entreno.
+ * Puede acertar de más en un caso raro; equivocarse por no enseñar nada es
+ * peor y es lo que había.
+ */
+export async function ultimaVezDe(profileId: string, protocolId: string, nombre?: string, kind?: string): Promise<ProtocolRun | null> {
+  const runs = await loadRuns(profileId);
+  // `loadRuns` ya viene ordenado de más reciente a más antiguo, así que el
+  // primero que case es el bueno sin volver a ordenar.
+  const porId = runs.find((r) => r.protocolId === protocolId);
+  if (porId) return porId;
+  if (!nombre) return null;
+  const n = nombre.trim().toLowerCase();
+  return runs.find((r) => (r.protocolName || '').trim().toLowerCase() === n && (!kind || r.kind === kind)) || null;
+}
+
 export interface FinishResult {
   /** Sesión creada en el historial de Actividad. */
   sessionId: string | null;
