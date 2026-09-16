@@ -597,6 +597,29 @@ export async function commitWeekPlan(
   plan.nutrition.forEach((n) => weeksOf(total, n.week)
     .forEach((w) => dates.add(dateOfWeekday(plan.weekStart, n.weekday, w))));
 
+  // ── Los días que este plan ocupaba ANTES también se limpian ──
+  //
+  // Este era el fallo de "le pido otro cardio y no quita el que estaba".
+  //
+  // La limpieza miraba solo las fechas que va a ocupar el plan NUEVO. Si al
+  // cambiar el cardio el Asesor lo movía de día —de lunes y miércoles a martes
+  // y jueves, por ejemplo—, el lunes y el miércoles ya no estaban en esa lista,
+  // así que los cardios viejos no los borraba nadie: te quedaban los dos, el
+  // que pediste quitar y el nuevo.
+  //
+  // Se preguntan al servidor los días donde este plan tiene algo puesto y se
+  // suman a los del plan nuevo. Así "cámbiame los cardios" REEMPLAZA, que es
+  // lo que quiere decir cambiar.
+  //
+  // Solo aplica a bloques de ESTE plan: lo que pusiste a mano o lo que salió de
+  // otro plan no se toca, y lo ya entrenado tampoco.
+  const { data: delPlan } = await supabase.from('day_plan_items')
+    .select('plan_date, payload')
+    .eq('fighter_profile_id', profileId);
+  for (const r of ((delPlan || []) as { plan_date: string; payload: Record<string, unknown> | null }[])) {
+    if (r.payload?.week_plan_id === plan.id) dates.add(r.plan_date);
+  }
+
   // ── Limpieza quirúrgica, no una escoba ──
   //
   // Antes esto borraba TODO lo que el Asesor hubiera dejado en esas fechas.
@@ -605,7 +628,7 @@ export async function commitWeekPlan(
   // planes que compartieran fecha.
   //
   // Ahora solo se retira lo que cumple las tres condiciones: es de ESTE plan,
-  // sigue PENDIENTE y está en una de las fechas que el plan nuevo va a ocupar.
+  // sigue PENDIENTE y está en una fecha que el plan ocupa o ocupaba.
   const keptCompleted = new Set<string>();
   if (dates.size > 0) {
     const { data: previos } = await supabase.from('day_plan_items')

@@ -591,12 +591,39 @@ function contenidoDeMensaje(m) {
  */
 const MAX_FOTOS_EN_CONTEXTO = 2;
 
+/**
+ * Un DOCUMENTO viaja una vez y no vuelve.
+ *
+ * Una foto de un plato o de una máquina se sigue mirando: "¿y esta comparada
+ * con la de antes?". Un PDF de una rutina NO. Se manda una vez, se transcribe
+ * al plan, y a partir de ahí lo que se discute es el PLAN —que ya viaja aparte
+ * y en texto—, no el papel.
+ *
+ * Y es lo más caro de la conversación con diferencia: una rutina de varias
+ * páginas son miles de tokens que se volvían a pagar EN CADA mensaje. Diez
+ * turnos hablando del plan = diez veces el mismo PDF, para nada.
+ *
+ * Se conserva solo si llegó en el ÚLTIMO mensaje, que es el turno en el que de
+ * verdad hay que leerlo.
+ */
+const esDocumento = (m) => m?.image?.mediaType === TIPO_PDF;
+
 function limitarFotos(messages) {
   let quedan = MAX_FOTOS_EN_CONTEXTO;
   const out = new Array(messages.length);
   // De atrás hacia delante: las que se conservan son las ÚLTIMAS.
   for (let i = messages.length - 1; i >= 0; i--) {
     const m = messages[i];
+    const ultimo = i === messages.length - 1;
+    if (esDocumento(m) && !ultimo) {
+      // El documento se cae, pero queda dicho que existió: sin esto el modelo
+      // no entiende de dónde ha salido el plan del que se está hablando.
+      const c = { ...m };
+      delete c.image;
+      if (!String(c.content || '').trim()) c.content = '[el documento que te mandé antes]';
+      out[i] = c;
+      continue;
+    }
     if (m?.image?.base64 && quedan > 0) { quedan--; out[i] = m; }
     else if (m?.image) {
       const c = { ...m };
@@ -1263,6 +1290,18 @@ function planChatSystem(profile, ctx, previous, agenda, historial, parcial) {
     "   día antes de competir— NO lo montes en silencio ni lo montes mal. Dilo en",
     "   una línea y propón la salida: \"así no te recuperas; te lo paso al jueves,",
     "   ¿lo hago?\". Eres su entrenador, no un formulario que obedece.",
+    "",
+    "2.quinquies. CAMBIAR ES SUSTITUIR. AÑADIR ES SUMAR. No es lo mismo y se",
+    "   nota mucho cuando te equivocas.",
+    "   · \"cámbiame los cardios\", \"hazme otros cardios\", \"dame otra rutina\"",
+    "     → devuelve ESE apartado con lo NUEVO y SOLO lo nuevo. Lo que había",
+    "     se va. No lo arrastres por si acaso: si lo dejas, se queda el viejo",
+    "     Y el nuevo, y acaba con dos cardios el mismo día.",
+    "   · \"añádeme un cardio el sábado\", \"mete un día más de pierna\"",
+    "     → devuelve ese apartado ENTERO: lo que ya había MÁS lo nuevo.",
+    "   Si de verdad no sabes cuál de las dos te piden, pregúntalo en una",
+    "   línea antes de tocar nada. Equivocarse aquí le deja el plan sucio y",
+    "   tiene que ir a borrarlo a mano.",
     "",
     "2.ter. NO REESCRIBAS LO QUE NO CAMBIAS. Si ya hay plan y te piden tocar",
     "   UNA parte —\"cámbiame los cardios\", \"quita el press del lunes\"—",
