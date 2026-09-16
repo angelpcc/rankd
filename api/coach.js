@@ -1905,12 +1905,12 @@ export default async function handler(req, res) {
     try {
       const response = await anthropic.messages.create({
         model: MODEL,
-        max_tokens: 4000,
+        max_tokens: 8000,
         system: objectivePlanSystem(profile || {}, objective, answers, previous, adjustments),
         messages: [{ role: 'user', content: previous && adjustments
           ? `Aquí tienes el objetivo, mi plan actual y los ajustes que quiero. Devuelve el plan entero con los ajustes aplicados.`
           : `Genera el plan semanal para mi objetivo.` }],
-        output_config: { format: { type: 'json_schema', schema: OBJECTIVE_PLAN_SCHEMA } },
+        output_config: { format: { type: 'json_schema', schema: OBJECTIVE_PLAN_SCHEMA }, effort: 'low' },
       });
       const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
       let plan;
@@ -2092,7 +2092,7 @@ export default async function handler(req, res) {
         max_tokens: 3000,
         system: cardioDesignSystem(profile, kind, minutes, intent, cardioDesign.variables),
         messages: [{ role: 'user', content: 'Escríbeme el guion de esa sesión, tramo a tramo.' }],
-        output_config: { format: { type: 'json_schema', schema: PROTOCOL_SCHEMA } },
+        output_config: { format: { type: 'json_schema', schema: PROTOCOL_SCHEMA }, effort: 'low' },
       });
       const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
       let protocol;
@@ -2315,7 +2315,7 @@ export default async function handler(req, res) {
             ? `Aquí tienes mi plan y el cambio que quiero. Devuélvemelo entero con ese cambio aplicado.`
             : request,
         }],
-        output_config: { format: { type: 'json_schema', schema: WEEK_PLAN_SCHEMA } },
+        output_config: { format: { type: 'json_schema', schema: WEEK_PLAN_SCHEMA }, effort: 'low' },
       });
       const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
       let plan;

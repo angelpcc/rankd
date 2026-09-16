@@ -36,8 +36,7 @@ export function emptyPhysical(): FighterPhysical {
 // Campos que cuentan para el % de completitud (injuries_notes NO cuenta: "sin
 // lesiones" es un estado válido, no un hueco por rellenar).
 export const CORE_PHYSICAL_FIELDS: (keyof FighterPhysical)[] = [
-  'weight_kg', 'height_cm', 'birth_date', 'sex', 'sport', 'level',
-  'training_days_per_week', 'session_minutes', 'equipment_access',
+  'weight_kg', 'height_cm', 'birth_date', 'sex',
 ];
 
 export interface Completeness { pct: number; filled: number; total: number; missing: (keyof FighterPhysical)[] }

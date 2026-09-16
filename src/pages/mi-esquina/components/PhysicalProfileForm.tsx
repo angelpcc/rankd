@@ -55,9 +55,10 @@ export default function PhysicalProfileForm({ open, onClose, profileId, showToas
 
   const set = <K extends keyof FighterPhysical>(k: K, v: FighterPhysical[K]) => setP((prev) => ({ ...prev, [k]: v }));
 
-  // Con esto ya se puede montar un plan con sentido. Sin ello, ofrecerlo sería
-  // ruido: el Asesor no tendría con qué trabajar.
-  const enoughToPlan = p.training_days_per_week != null && (p.level != null || p.sport != null);
+  // Con el peso y la altura ya se puede montar algo con sentido: son los que
+  // condicionan las cargas y las calorías. Los días y el material los pregunta
+  // el Asesor cuando montas la rutina, que es cuando se saben de verdad.
+  const enoughToPlan = p.weight_kg != null && p.height_cm != null;
 
   const save = async () => {
     setSaving(true);
@@ -115,7 +116,7 @@ export default function PhysicalProfileForm({ open, onClose, profileId, showToas
               <i className="ri-check-line text-2xl" style={{ color: '#4ade80' }} />
             </div>
             <p className="text-sm text-zinc-300 leading-relaxed max-w-xs mx-auto">
-              {t('mc_pp_done_desc', { n: p.training_days_per_week ?? 0 })}
+              {t('mc_pp_done_ready')}
             </p>
           </div>
           {onGoAsesor && (
@@ -172,63 +173,21 @@ export default function PhysicalProfileForm({ open, onClose, profileId, showToas
             {chips(p.sex, SEX_OPTS, (v) => set('sex', v), 'mc_pp_sex_')}
           </div>
 
-          {/* Deporte */}
-          <div>
-            <label className={labelCls}>{t('mc_pp_sport')}</label>
-            {chips(p.sport, SPORT_OPTS, (v) => set('sport', v), 'mc_pp_sport_')}
-          </div>
+          {/* ── LO QUE YA NO SE PREGUNTA AQUÍ ──
 
-          {/* Nivel */}
-          <div>
-            <label className={labelCls}>{t('mc_pp_level')}</label>
-            {chips(p.level, LEVEL_OPTS, (v) => set('level', v), 'mc_pp_level_')}
-          </div>
+              Estaban el deporte, el nivel, los días entrenables, los minutos
+              por sesión y el material. Cinco campos fuera.
 
-          {/* Días entrenables: pastillas del 1 al 7. Era un campo numérico
-              libre, y poner "5" o "6" obligaba a abrir el teclado para un dato
-              que solo tiene siete valores posibles. */}
-          <div>
-            <label className={labelCls}>{t('mc_pp_days')}</label>
-            <div className="flex flex-wrap gap-2">
-              {[1, 2, 3, 4, 5, 6, 7].map((n) => {
-                const active = p.training_days_per_week === n;
-                return (
-                  <button key={n} type="button" style={{ minHeight: 44, minWidth: 44 }}
-                    onClick={() => set('training_days_per_week', active ? null : n)}
-                    className={`rounded-xl text-sm font-bold border transition-all cursor-pointer ${active ? 'bg-red-600 border-red-600 text-white' : 'bg-white/[0.03] border-white/12 text-zinc-300 hover:border-white/30'}`}>
-                    {n}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+              No es por acortar el formulario: es que son datos que CAMBIAN y
+              que además se preguntan justo cuando hacen falta. Los días que
+              puedes entrenar no son un rasgo tuyo, son los de esta semana; el
+              material depende de dónde entrenes hoy. Guardarlos en el perfil
+              hacía que un dato de hace tres meses mandara sobre lo que acabas
+              de decirle al Asesor.
 
-          {/* Minutos por sesión: valores habituales de un toque, y campo libre
-              debajo para cualquier otro. */}
-          <div>
-            <label className={labelCls}>{t('mc_pp_minutes')}</label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {[30, 45, 60, 75, 90, 120].map((n) => {
-                const active = p.session_minutes === n;
-                return (
-                  <button key={n} type="button" style={{ minHeight: 44 }}
-                    onClick={() => set('session_minutes', active ? null : n)}
-                    className={`px-3.5 rounded-xl text-sm font-semibold border transition-all cursor-pointer ${active ? 'bg-red-600 border-red-600 text-white' : 'bg-white/[0.03] border-white/12 text-zinc-300 hover:border-white/30'}`}>
-                    {n}′
-                  </button>
-                );
-              })}
-            </div>
-            <input value={p.session_minutes ?? ''} inputMode="numeric" placeholder={t('mc_pp_minutes_other')}
-              style={{ fontSize: 16, minHeight: 44 }}
-              onChange={(e) => set('session_minutes', num(e.target.value))} className={inputCls} />
-          </div>
+              Aquí queda lo que de verdad no cambia de un día para otro: cuánto
+              pesas, cuánto mides, cuántos años tienes, y qué te duele. */}
 
-          {/* Material */}
-          <div>
-            <label className={labelCls}>{t('mc_pp_equipment')}</label>
-            {chips(p.equipment_access, EQUIP_OPTS, (v) => set('equipment_access', v), 'mc_pp_eq_')}
-          </div>
 
           {/* Lesiones */}
           <div>
