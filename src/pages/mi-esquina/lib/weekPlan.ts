@@ -505,7 +505,15 @@ export async function commitWeekPlan(
         const { protocol } = await designCardio({
           kind: p.kind,
           minutes: p.minutes || 30,
-          intent: [p.name, p.note].filter(Boolean).join('. '),
+          // Lo que el usuario PIDIO, con sus palabras, va delante.
+          //
+          // Antes solo viajaban el nombre y la nota que habia escrito el que
+          // monto el plan ("Cardio tarde"), asi que quien escribe el guion no
+          // tenia ni idea de que se habia pedido: si dijiste "suave, que no me
+          // reviente las piernas" o "metelo tal cual viene en mi hoja", eso se
+          // quedaba por el camino y el guion salia inventado de cero. Es
+          // exactamente el "pone el cardio como le da la gana".
+          intent: [plan.request, p.name, p.note].filter(Boolean).join('. ').slice(0, 900),
           profile: opts.profile,
         });
         // Si falla, el plan se guarda igual y sin guion: perder el plan entero
