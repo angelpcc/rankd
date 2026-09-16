@@ -1,4 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { sendPlanChat } from '@/services/planChat';
+import { commitWeekPlan, loadActivePlan } from '@/pages/mi-esquina/lib/weekPlan';
+import { ACTIVITY_KINDS, todayISO } from '@/pages/mi-esquina/lib/dayPlan';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
@@ -65,6 +68,27 @@ function isoFromOffset(offset: number): string {
 //  - [texto](https://...)   → Asesor de Material: enlace real de compra que sale
 //    de la búsqueda web. Se limita a http/https para no colar esquemas raros.
 const INLINE_RE = /\[VIDEO:\s*([^\]]+)\]|\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/gi;
+
+/**
+ * El marcador de cambio de plan que puede dejar el asesor.
+ *
+ * Es el mismo truco que [VIDEO: …]: un marcador que NO se enseña y que
+ * enciende una acción. Aquí enciende el botón de aplicar el cambio a la
+ * agenda — la diferencia entre "deberías mover el jueves" y que el jueves se
+ * mueva de verdad.
+ */
+const CAMBIO_RE = /\[CAMBIO:\s*([^\]]+)\]/i;
+
+/** La instrucción del último mensaje del asesor, si la hay. */
+function cambioPropuesto(texto) {
+  const m = texto.match(CAMBIO_RE);
+  return m ? m[1].trim() : null;
+}
+
+/** El texto sin el marcador, que es como se enseña. */
+function sinMarcadorCambio(texto) {
+  return texto.replace(CAMBIO_RE, '').trimEnd();
+}
 
 function youtubeSearch(query: string): string {
   return `https://www.youtube.com/results?search_query=${encodeURIComponent(query.trim() + ' técnica tutorial')}`;
@@ -171,6 +195,10 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
   const [agenda, setAgenda] = useState<AgendaDia[]>([]);
   /** Lo entrenado de verdad: evita el "no has hecho cardio" a quien lo hizo. */
   const [historial, setHistorial] = useState<DiaEntrenado[]>([]);
+  /** Cambio que el asesor propone aplicar al plan, si lo ha propuesto. */
+  const [cambioDescartado, setCambioDescartado] = useState(false);
+  const [aplicando, setAplicando] = useState(false);
+
   const [messages, setMessages] = useState<ChatMsg[]>(
     () => loadChat(profile.id, section).map((x) => ({ role: x.role, content: x.content })) as ChatMsg[],
   );
@@ -324,6 +352,9 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
     setSending(true);
     setSavedNote(null);
     setDismissedPlan(false);
+    // Un cambio propuesto pertenece a la respuesta anterior: al preguntar otra
+    // cosa deja de tener sentido ofrecerlo.
+    setCambioDescartado(false);
     setSearching(false);
 
     try {
@@ -508,8 +539,55 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
     setSavingPlan(false);
   }, [savingPlan, section, physical, messages, profile.id, showToast, t]);
 
+  // Solo en Consulta: las otras secciones no editan el plan semanal.
+  const ultimo = messages.length > 0 ? messages[messages.length - 1] : null;
+  const cambio = (section === 'general' && !cambioDescartado && !streaming && !sending
+    && ultimo?.role === 'assistant')
+    ? cambioPropuesto(ultimo.content)
+    : null;
+
   const lastIsAssistant = messages.length > 0 && messages[messages.length - 1].role === 'assistant';
   const showSaveBar = canSavePlan && lastIsAssistant && !streaming && !sending && !dismissedPlan && messages[messages.length - 1].content.length > 80;
+
+  /**
+   * Lleva el cambio propuesto al plan de verdad.
+   *
+   * No lo aplica este chat a mano: se lo pide al MISMO motor que monta el plan,
+   * pasándole el plan actual y la instrucción en una frase. Así el cambio entra
+   * con sus reglas —solo se toca lo que se pide, lo ya entrenado se respeta— en
+   * vez de con una segunda lógica que acabaría discrepando de la primera.
+   */
+  const aplicarCambio = useCallback(async () => {
+    if (!cambio || aplicando) return;
+    setAplicando(true);
+    const activo = await loadActivePlan(profile.id);
+    if (!activo) {
+      setAplicando(false);
+      showToast?.(t('mc_ai_change_no_plan'), 'error');
+      return;
+    }
+    const ctx = {
+      weekStart: activo.plan.weekStart,
+      today: todayISO(),
+      weeks: Math.max(1, activo.plan.weeks || 1),
+      exerciseNames: [],
+      activityKinds: ACTIVITY_KINDS.map((k) => k.value),
+    };
+    const res = await sendPlanChat(
+      [{ role: 'user', content: cambio }],
+      ctx, physical, activo.plan, activo.plan.id, agenda, historial,
+    );
+    if (!res.plan) {
+      setAplicando(false);
+      showToast?.(res.error || t('mc_ai_change_failed'), 'error');
+      return;
+    }
+    const commit = await commitWeekPlan(profile.id, res.plan, { profile: physical });
+    setAplicando(false);
+    setCambioDescartado(true);
+    if (commit.agendaUnavailable) { showToast?.(t('mc_ai_change_failed'), 'error'); return; }
+    showToast?.(t('mc_ai_change_done', { n: commit.agendaItems }));
+  }, [cambio, aplicando, profile.id, physical, agenda, historial, showToast, t]);
 
   if (checking) {
     return (
@@ -622,7 +700,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
                   {m.role === 'assistant'
                     ? (searching && m.content === '' && i === messages.length - 1
                         ? <span className="flex items-center gap-2 text-zinc-400"><i className="ri-earth-line text-sky-400 animate-pulse"></i>{t('mc_ai_searching')}</span>
-                        : <div className="space-y-0.5">{renderRich(m.content, t('mc_ai_video_watch'))}{streaming && i === messages.length - 1 && <span className="rk-caret" />}</div>)
+                        : <div className="space-y-0.5">{renderRich(sinMarcadorCambio(m.content), t('mc_ai_video_watch'))}{streaming && i === messages.length - 1 && <span className="rk-caret" />}</div>)
                     : m.content}
                 </div>
               </div>
@@ -662,6 +740,36 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
           <div className="flex items-center gap-2 rounded-xl bg-white/[0.04] border border-white/12 px-3.5 py-2">
             <i className="ri-battery-low-line text-orange-400 flex-shrink-0"></i>
             <p className="text-[11px] text-zinc-300">{t('mc_ai_quota_warn', { n: Math.max(0, quota.quota - quota.used) })}</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Aplicar un cambio al plan, desde aquí ──
+          El asesor ya ve la agenda, así que puede razonar sobre el plan. Lo
+          que faltaba era poder APLICARLO: sin esto, te decía "muévelo al
+          viernes" y tenías que irte al chat de plan a repetírselo.
+          Se apoya en el mismo motor del plan, así que el cambio entra con las
+          mismas reglas: lo ya entrenado no se toca. */}
+      {cambio && !quotaBlocked && (
+        <div className="px-3 pb-2 flex-shrink-0">
+          <div className="rounded-xl bg-white/[0.04] border border-white/12 px-3.5 py-2.5">
+            <p className="text-xs text-zinc-300 mb-2 flex items-start gap-1.5">
+              <i className="ri-calendar-check-line text-zinc-500 mt-0.5 flex-shrink-0" />
+              <span className="min-w-0">{cambio}</span>
+            </p>
+            <div className="flex gap-2">
+              <button onClick={aplicarCambio} disabled={aplicando}
+                className="rk-btn rk-btn-primary flex-1 flex items-center justify-center gap-2 text-sm disabled:opacity-60"
+                style={{ minHeight: 42 }}>
+                {aplicando
+                  ? <><div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t('mc_ai_change_applying')}</>
+                  : <><i className="ri-check-line" /> {t('mc_ai_change_apply')}</>}
+              </button>
+              <button onClick={() => setCambioDescartado(true)} disabled={aplicando}
+                className="px-3.5 rounded-lg border border-white/12 text-sm text-zinc-400 hover:text-white hover:border-white/30 cursor-pointer disabled:opacity-60">
+                {t('mc_ai_plan_no')}
+              </button>
+            </div>
           </div>
         </div>
       )}

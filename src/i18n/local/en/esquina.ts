@@ -1928,4 +1928,9 @@ export default {
   mc_chat_photo_remove: 'Remove photo',
   mc_chat_doc_ready: 'Document ready to send',
   mc_meal_usual: 'Your usual {{slot}}',
+  mc_ai_change_apply: 'Apply it to the plan',
+  mc_ai_change_applying: 'Applying…',
+  mc_ai_change_done: 'Plan updated: {{n}} blocks on the agenda',
+  mc_ai_change_failed: "I couldn't apply it. Try again.",
+  mc_ai_change_no_plan: 'You have no plan in place yet. Build it in Plan.',
 };

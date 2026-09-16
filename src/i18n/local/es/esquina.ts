@@ -1932,4 +1932,9 @@ export default {
   mc_chat_photo_remove: 'Quitar la foto',
   mc_chat_doc_ready: 'Documento listo para mandar',
   mc_meal_usual: 'Tu {{slot}} de siempre',
+  mc_ai_change_apply: 'Aplicarlo al plan',
+  mc_ai_change_applying: 'Aplicando…',
+  mc_ai_change_done: 'Plan actualizado: {{n}} bloques en la agenda',
+  mc_ai_change_failed: 'No he podido aplicarlo. Vuelve a intentarlo.',
+  mc_ai_change_no_plan: 'No tienes ningún plan puesto todavía. Móntalo en Plan.',
 };
