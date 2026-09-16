@@ -87,7 +87,10 @@ export default function AsesorHub({ profile, showToast, onGoPlan, onGoAgenda, in
       : t('mc_as_ask_sub');
 
   return (
-    <div className="max-w-4xl rk-blocks">
+    // 896 px en un monitor de 1500 dejan media pantalla vacia. Se ensancha
+    // solo a partir de 1280, y lo que crece es la CAJA: el texto de los
+    // mensajes tiene su propio tope de lectura (ver .rk-ai-burbuja).
+    <div className="max-w-4xl xl:max-w-[1180px] rk-blocks">
       {/* Era la única sección de Mi Esquina sin cabecera con imagen: empezaba
           directamente en un cuadro de texto y, al lado de Fuerza o Actividad,
           parecía media pantalla sin terminar. */}

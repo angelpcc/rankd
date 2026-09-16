@@ -40,7 +40,9 @@ export default {
   op_see_more: 'Ver más',
 
   // Restos de la página de oportunidades
-  opp_eyebrow: 'Oportunidades',
+  // No repite el titular que va justo debajo (que es 'Oportunidades'): ponia
+  // la misma palabra dos veces, una encima de otra.
+  opp_eyebrow: 'Del sector, ahora mismo',
   // Destacada + agrupación por urgencia
   opp_featured: 'MÁS URGENTE',
   opp_no_date: 'Fecha por confirmar',

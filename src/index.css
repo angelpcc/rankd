@@ -1045,6 +1045,83 @@ input[type="datetime-local"]::-webkit-inner-spin-button {
    si arriba hay más o el mensaje empieza ahí. Un degradado corto sobre el
    borde dice "sigue" sin ocupar sitio ni robar un toque. Va sobre el envoltorio
    y no sobre la lista, porque dentro de la lista se iría con el scroll. */
+
+/* ══════════════════════════════════════════════════════════════
+   LAS IA EN PANTALLA GRANDE
+
+   En el movil estaban bien; en un monitor se veian pequenas y sueltas: una
+   tarjeta de 620 px de alto y 896 de ancho flotando en medio de una pantalla
+   de 1500. Sobraba sitio por todos lados y no se usaba ninguno.
+
+   Tres decisiones, y la tercera es la que importa:
+
+   1. ALTO. El chat crece con la ventana en vez de quedarse en 620 px. En el
+      movil NO se toca nada: la altura de ahi esta medida contra el teclado
+      del telefono y bajarla seria empeorar lo que ya funciona.
+
+   2. ANCHO. La caja se ensancha, pero los mensajes NO. Una linea de 1000 px
+      no se lee: el ojo pierde el renglon al volver. El ancho de mas se lo
+      queda la caja —cabecera, campo de escribir, lo que acompana—, y el texto
+      se queda en una medida de lectura. Es lo que hace cualquier chat de
+      escritorio que no canse.
+
+   3. COLUMNAS. Lo que SALE de la conversacion (el plan montado, listo para
+      mandar) deja de ir debajo y se pone al lado. En el movil no cabe y va
+      debajo, que es lo correcto ahi; en un monitor, tener que bajar para ver
+      lo que acabas de pedir es justo el "desordenado" del que se quejaba.
+   ══════════════════════════════════════════════════════════════ */
+
+/* Los mensajes se apoyan ABAJO, pegados al campo de escribir.
+
+   Una conversacion de dos mensajes en una caja de 650 px dejaba 400 px de
+   vacio EN MEDIO: los mensajes arriba del todo, el campo abajo del todo y
+   un agujero entre medias. Es lo que hacia que la pantalla pareciera vacia
+   por mucho que se agrandara, y agrandarla lo empeoraba.
+
+   Asi funciona cualquier chat: lo ultimo que se ha dicho esta junto a donde
+   escribes, no a un palmo.
+
+   `margin-top: auto` en el primero y no `justify-content: flex-end` en el
+   contenedor: con flex-end, en cuanto la conversacion es mas larga que la
+   caja, los mensajes de arriba se salen por encima y NO se puede subir a
+   leerlos. Con el margen automatico, cuando ya no sobra sitio vale cero y el
+   scroll se comporta con normalidad. */
+.rk-chat-abajo { display: flex; flex-direction: column; }
+.rk-chat-abajo > *:first-child { margin-top: auto; }
+
+/* Alto del chat. El valor del movil es el que habia y se conserva igual. */
+.rk-ai-h { height: min(620px, 74vh); }
+
+@media (min-width: 1280px) {
+  /* Lo que se resta son la cabecera de seccion y las pestanas de arriba.
+     El minimo evita que en un portatil bajito quede un chat de tres lineas;
+     el maximo, que en un monitor vertical salga una columna de dos metros.
+
+     El `max()` con el 74vh de siempre NO sobra: en una ventana baja y ancha
+     —un portatil de 1512x835— restar 250 px da 585, o sea MENOS que los 618
+     que salian antes. Sin esto, arreglar el escritorio lo habria encogido
+     justo en el tamano de pantalla mas comun. Asi nunca queda peor que
+     antes, y en cuanto hay sitio, crece. */
+  .rk-ai-h { height: clamp(560px, max(74vh, calc(100vh - 250px)), 900px); }
+
+  /* Medida de lectura del globo. Sin esto, ensanchar la caja empeora el chat
+     en vez de mejorarlo. */
+  .rk-ai-burbuja { max-width: 620px; }
+
+  /* Conversacion a la izquierda, lo que produce a la derecha. */
+  .rk-ai-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: var(--sp-8);
+    align-items: start;
+  }
+  /* `rk-blocks` separa a sus hijos por arriba; dentro de la rejilla lo hace
+     el `gap`, y la separacion vertical descolocaria la segunda columna. */
+  .rk-ai-split > * + * { margin-top: 0; }
+  /* La columna de al lado acompana al hacer scroll en vez de irse arriba. */
+  .rk-ai-side { position: sticky; top: 12px; }
+}
+
 .rk-chat-wrap { position: relative; }
 .rk-chat-wrap::before {
   content: '';

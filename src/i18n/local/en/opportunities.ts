@@ -40,7 +40,7 @@ export default {
   op_see_more: 'See more',
 
   // Opportunities page leftovers
-  opp_eyebrow: 'Opportunities',
+  opp_eyebrow: 'Live across the scene',
   // Featured + urgency grouping
   opp_featured: 'MOST URGENT',
   opp_no_date: 'Date TBC',

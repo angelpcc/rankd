@@ -314,15 +314,25 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
 
   const sinIA = aiOk === false;
 
+  // Las dos tarjetas de abajo son excluyentes: o el plan está listo para
+  // mandar, o ya está mandado. Nunca las dos.
+  const hayLateral = !!plan || !!guardado;
+
   return (
-    <div className="rk-blocks max-w-3xl">
+    // En monitor: conversación a la izquierda y el plan al lado, pero SOLO
+    // cuando hay plan. Partir en dos con la columna derecha vacía dejaría un
+    // hueco de 360 px sin nada, que es peor que no partir.
+    //
+    // En móvil ninguna de las dos clases hace nada: la rejilla vive dentro de
+    // una consulta de 1280 px para arriba.
+    <div className={`rk-blocks ${hayLateral ? 'rk-ai-split' : 'max-w-3xl xl:max-w-none'}`}>
       {/* ── La conversación ── */}
       {/* Altura fija y columna, como Consulta.
           Antes la lista crecía hasta 58vh y la caja de escribir bajaba con
           ella: escribías en un sitio distinto según lo larga que fuera la
           conversación. Con altura fija, el campo está SIEMPRE donde lo dejaste,
           que es como se comporta cualquier chat. */}
-      <div className="rk-card overflow-hidden flex flex-col" style={{ padding: 0, height: 'min(620px, 74vh)' }}>
+      <div className="rk-card overflow-hidden flex flex-col rk-ai-h" style={{ padding: 0 }}>
         {/* Cabecera.
             No la tenía: el chat empezaba en un cuadro de texto suelto y no se
             sabía con qué estabas hablando. La misma que Consulta a propósito —
@@ -365,7 +375,7 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
         </div>
 
         <div className="rk-chat-wrap flex-1 min-h-0">
-        <div ref={scrollRef} className="h-full overflow-y-auto space-y-3 px-4 py-4">
+        <div ref={scrollRef} className={`h-full overflow-y-auto space-y-3 px-4 py-4 ${turnos.length > 0 ? 'rk-chat-abajo' : ''}`}>
           {turnos.length === 0 && (
             <div className="py-6 text-center anim-scale-in">
               <div className="w-14 h-14 mx-auto mb-3 flex items-center justify-center rounded-2xl anim-float rk-ai-avatar">
@@ -403,7 +413,7 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
                     <i className="ri-sparkling-2-line text-sm" />
                   </div>
                 )}
-                <div className={`max-w-[85%] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${mio
+                <div className={`max-w-[85%] rk-ai-burbuja px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${mio
                   ? 'rk-bubble-mine rounded-2xl rounded-br-md'
                   : `rk-bubble-theirs text-zinc-200 rounded-2xl ${abre ? 'rounded-bl-md' : ''}`}`}>
                   {x.image && (
@@ -479,7 +489,7 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
           el botón tiene que referirse SIEMPRE al último, no a una versión que
           quedó a mitad de la conversación. */}
       {plan && !guardado && (
-        <div className="rk-card" style={{ padding: 16, borderColor: 'rgba(225,6,0,0.35)' }}>
+        <div className="rk-card rk-ai-side" style={{ padding: 16, borderColor: 'rgba(225,6,0,0.35)' }}>
           {/* Lo que va a pasar al pulsar, en números.
               "Se manda a la agenda" no dice cuánto es: con los tres datos
               delante se ve si el plan es el que querías ANTES de meterlo, que
@@ -587,7 +597,7 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
       </BottomSheet>
 
       {guardado && (
-        <div className="rk-card" style={{ padding: 16, borderColor: 'rgba(74,222,128,0.35)' }}>
+        <div className="rk-card rk-ai-side" style={{ padding: 16, borderColor: 'rgba(74,222,128,0.35)' }}>
           {/* El check con su aro verde, no un icono suelto en una línea.
               Guardar el plan es el final del camino: se nota o no se nota. */}
           <div className="flex items-start gap-3">

@@ -622,7 +622,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
 
   if (checking) {
     return (
-      <div className="rk-card flex items-center justify-center" style={{ height: 'min(560px, 72vh)' }}>
+      <div className="rk-card flex items-center justify-center rk-ai-h">
         <div className={`w-7 h-7 border-2 border-t-transparent rounded-full animate-spin ${a.spin}`}></div>
       </div>
     );
@@ -653,7 +653,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
   }
 
   return (
-    <div className="rk-card overflow-hidden flex flex-col" style={{ height: 'min(560px, 72vh)' }}>
+    <div className="rk-card overflow-hidden flex flex-col rk-ai-h">
       {/* Cabecera */}
       <div className="px-5 py-3.5 border-b border-white/[0.07] flex items-center gap-3 flex-shrink-0">
         <div className={`w-10 h-10 flex items-center justify-center rounded-xl ${a.bg} border ${a.border} ${a.text}`}>
@@ -681,7 +681,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
 
       {/* Conversación */}
       <div className="rk-chat-wrap flex-1 min-h-0">
-      <div ref={scrollRef} className="h-full overflow-y-auto px-4 py-4 space-y-3">
+      <div ref={scrollRef} className={`h-full overflow-y-auto px-4 py-4 space-y-3 ${messages.length > 0 ? 'rk-chat-abajo' : ''}`}>
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center px-2 anim-scale-in">
             <div className={`w-14 h-14 flex items-center justify-center rounded-2xl ${a.bg} border ${a.border} ${a.text} mb-3 anim-float`}>
@@ -716,7 +716,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
                     <i className="ri-sparkling-2-line text-sm" />
                   </div>
                 )}
-                <div className={`max-w-[85%] px-3.5 py-2.5 text-sm leading-relaxed ${mio
+                <div className={`max-w-[85%] rk-ai-burbuja px-3.5 py-2.5 text-sm leading-relaxed ${mio
                   ? 'rk-bubble-mine rounded-2xl rounded-br-md'
                   : `rk-bubble-theirs text-zinc-200 rounded-2xl ${abre ? 'rounded-bl-md' : ''}`}`}>
                   {m.image && (
