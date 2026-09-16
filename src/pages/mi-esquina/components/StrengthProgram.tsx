@@ -6,6 +6,7 @@ import { isMissingTable } from '@/lib/dbState';
 import Reveal from '@/components/base/Reveal';
 import StrengthPlanBuilder from './StrengthPlanBuilder';
 import { exerciseLines, type StrengthPayload, type ExerciseSpec } from '../lib/dayPlan';
+import { leerUnidad } from '@/lib/units';
 
 // Fuerza · nivel 2 · Programar.
 // Planifica fuerza en detalle para un día concreto (reutiliza
@@ -26,6 +27,9 @@ function todayISO(): string {
 
 export default function StrengthProgram({ profile, showToast }: Props) {
   const { t, i18n } = useTranslation();
+  // Kilos o libras: es preferencia de ESTE dispositivo, no un dato guardado.
+  // En la base solo hay kilos; aqui solo se decide como se leen.
+  const unidad = leerUnidad(profile.id);
   const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
   const [rows, setRows] = useState<PlanRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,7 +120,7 @@ export default function StrengthProgram({ profile, showToast }: Props) {
         <div className="rk-stack">
           {rows.map((r, i) => {
             const groups = (r.payload.groups || []).map((g) => t(`mc_str_mg_${g}`, { defaultValue: g })).join(' + ');
-            const lines = exerciseLines(r.payload.exercises, t);
+            const lines = exerciseLines(r.payload.exercises, t, unidad);
             return (
               <Reveal key={r.id} delay={Math.min(i, 6) * 40}>
                 <div className="rk-card" style={{ padding: '14px 16px' }}>

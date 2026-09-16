@@ -6,6 +6,7 @@
 
 import type { MuscleGroup, WeightMode, TrackingMode } from './exercises';
 import { weightModeOf, trackingModeOf } from './exercises';
+import { desdeKg, type WeightUnit } from '@/lib/units';
 
 export type DayPlanKind = 'strength' | 'activity' | 'meal' | 'supplement' | 'note';
 
@@ -215,15 +216,33 @@ export function paceToSec(raw: string): number {
 
 // ── Formato de un ejercicio / serie de fuerza según sus modos ──
 
-/** Peso de una serie ya con su modo: "55 kg" / "22 kg/mancuerna" / "20 kg/lado" / "peso corporal" / "+10 kg lastre". */
-export function fmtWeight(weightKg: number | undefined, mode: WeightMode | undefined, t: TFn): string {
-  const w = weightKg ?? 0;
+/**
+ * Peso de una serie ya con su modo: "55 kg" / "22 kg/mancuerna" / "20 kg/lado"
+ * / "peso corporal" / "+10 kg lastre".
+ *
+ * ── POR QUÉ LLEVA UNIDAD ──
+ *
+ * En la base solo hay kilos y eso no cambia (ver lib/units.ts). Pero quien
+ * entrena con discos y máquinas en libras metía "135 lb" en el formulario, se
+ * guardaban 61,23 kg, y al mirar el historial leía 61,23. Es decir: podías
+ * APUNTAR en libras pero no VOLVER A LEERLO en libras, que es la mitad que
+ * sirve para algo. Con la máquina delante marcada en 135, tener que convertir
+ * de cabeza a mitad de serie es justo el problema que las libras venían a
+ * quitar.
+ *
+ * Por defecto kilos, para que cualquier llamada que no se entere siga bien.
+ */
+export function fmtWeight(weightKg: number | undefined, mode: WeightMode | undefined, t: TFn, unidad: WeightUnit = 'kg'): string {
+  const w = desdeKg(weightKg ?? 0, unidad);
   const m = mode ?? 'total';
-  if (m === 'bodyweight') return w > 0 ? t('mc_str_wt_bw_load', { n: w }) : t('mc_str_wt_bw');
+  // `u` es la unidad que se pinta. Iba escrita a mano dentro del texto
+  // traducido ("{{n}} kg"), que es lo que hacía imposible cambiarla.
+  const u = unidad;
+  if (m === 'bodyweight') return w > 0 ? t('mc_str_wt_bw_load', { n: w, u }) : t('mc_str_wt_bw');
   if (w <= 0) return '';
-  if (m === 'per_side') return t('mc_str_wt_per_side', { n: w });
-  if (m === 'per_dumbbell') return t('mc_str_wt_per_dumbbell', { n: w });
-  return t('mc_str_wt_total', { n: w });
+  if (m === 'per_side') return t('mc_str_wt_per_side', { n: w, u });
+  if (m === 'per_dumbbell') return t('mc_str_wt_per_dumbbell', { n: w, u });
+  return t('mc_str_wt_total', { n: w, u });
 }
 
 interface SetOpts { repsMin?: number; repsMax?: number; value?: number; trackingMode?: TrackingMode }
@@ -244,19 +263,19 @@ export function fmtSetCount(sets: number, opts: SetOpts, t: TFn): string {
 }
 
 /** "Jalón al pecho · 4×10 · 55 kg" / "Plancha · 3×45 s" / "Crunch · 4×20". */
-export function fmtExerciseSpec(spec: ExerciseSpec, t: TFn): string {
+export function fmtExerciseSpec(spec: ExerciseSpec, t: TFn, unidad: WeightUnit = 'kg'): string {
   const wm = spec.weight_mode ?? weightModeOf(spec.name);
   const tm = spec.tracking_mode ?? trackingModeOf(spec.name);
   const count = fmtSetCount(spec.sets, { repsMin: spec.reps_min, repsMax: spec.reps_max, value: spec.value, trackingMode: tm }, t);
-  const weight = fmtWeight(spec.weight_kg, wm, t);
+  const weight = fmtWeight(spec.weight_kg, wm, t, unidad);
   return [spec.name, count, weight].filter(Boolean).join(' · ');
 }
 
 /** Normaliza `payload.exercises` a array de líneas de texto para mostrar. */
-export function exerciseLines(exercises: string | ExerciseSpec[] | undefined, t: TFn): string[] {
+export function exerciseLines(exercises: string | ExerciseSpec[] | undefined, t: TFn, unidad: WeightUnit = 'kg'): string[] {
   if (!exercises) return [];
   if (typeof exercises === 'string') return exercises.split(/[,;\n]+/).map((s) => s.trim()).filter(Boolean);
-  return exercises.map((e) => fmtExerciseSpec(e, t));
+  return exercises.map((e) => fmtExerciseSpec(e, t, unidad));
 }
 
 /** Resumen de una línea para el preview de la vista Semana / la vista Día. */

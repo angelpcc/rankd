@@ -4,6 +4,7 @@ import { supabase, Profile } from '@/lib/supabase';
 import PhotoCard from '@/components/base/PhotoCard';
 import { SkeletonBox } from '@/components/base/Skeleton';
 import { type StrengthPayload, type ActivityPayload, activityKindCfg, exerciseLines, KIND_META } from '../lib/dayPlan';
+import { leerUnidad } from '@/lib/units';
 import { loadTodayTraining, type PlannedEntry } from '../lib/todayTraining';
 
 // "Tu siguiente acción" — el elemento PRINCIPAL del Resumen y el ÚNICO CTA rojo
@@ -74,6 +75,9 @@ interface FightRow { event_date: string; title: string; kind: string }
 
 export default function TodayCard({ profile, mode, onStart, onCreatePlan, onLogWeight, onLogToday, onGoStrength, refreshKey = 0 }: Props) {
   const { t, i18n } = useTranslation();
+  // Kilos o libras: es preferencia de ESTE dispositivo, no un dato guardado.
+  // En la base solo hay kilos; aqui solo se decide como se leen.
+  const unidad = leerUnidad(profile.id);
   const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
   const [loading, setLoading] = useState(true);
   // Dos listas, no una: ver la nota de cabecera. Resolver la actividad no puede
@@ -111,7 +115,7 @@ export default function TodayCard({ profile, mode, onStart, onCreatePlan, onLogW
       const describe = (b: PlannedEntry): TrainToday => {
         if (b.kind === 'strength') {
           const p = b.payload as StrengthPayload;
-          const exLine = exerciseLines(p.exercises, t).join(' · ');
+          const exLine = exerciseLines(p.exercises, t, unidad).join(' · ');
           return {
             icon: KIND_META.strength.icon,
             title: p.routine_name
@@ -150,7 +154,7 @@ export default function TodayCard({ profile, mode, onStart, onCreatePlan, onLogW
       setLoading(false);
     })();
     return () => { alive = false; };
-  }, [profile.id, mode, t, refreshKey]);
+  }, [profile.id, mode, t, refreshKey, unidad]);
 
   if (loading) {
     // Esqueleto con la forma de la PhotoCard: chip arriba, titular abajo y

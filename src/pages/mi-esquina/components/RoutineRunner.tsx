@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import DateField from '@/components/base/DateField';
 import { type Profile } from '@/lib/supabase';
 import { fmtSetCount, fmtWeight, todayISO } from '@/pages/mi-esquina/lib/dayPlan';
+import { leerUnidad } from '@/lib/units';
 import { lastWeights, type LoggedSet, type PrescribedExercise, type Routine, type RoutineDay } from '@/pages/mi-esquina/lib/routines';
 
 // Checklist en vivo de un día de rutina (punto 17).
@@ -56,6 +57,9 @@ function initialSet(ex: PrescribedExercise, weight: number): SetState {
 
 export default function RoutineRunner({ profile, routine, day, saving, initialDate, onExit, onFinish }: Props) {
   const { t } = useTranslation();
+  // Kilos o libras: es preferencia de ESTE dispositivo, no un dato guardado.
+  // En la base solo hay kilos; aqui solo se decide como se leen.
+  const unidad = leerUnidad(profile.id);
   const [state, setState] = useState<Record<string, SetState[]>>({});
   const [ready, setReady] = useState(false);
   const [date, setDate] = useState(() => {
@@ -226,7 +230,7 @@ export default function RoutineRunner({ profile, routine, day, saving, initialDa
             const prescribed = fmtSetCount(ex.sets, {
               repsMin: ex.reps_min, repsMax: ex.reps_max, value: ex.value, trackingMode: ex.tracking_mode,
             }, t);
-            const prescribedWeight = ex.weight_kg ? fmtWeight(ex.weight_kg, ex.weight_mode, t) : '';
+            const prescribedWeight = ex.weight_kg ? fmtWeight(ex.weight_kg, ex.weight_mode, t, unidad) : '';
 
             return (
               <div key={ex.id} className="rk-card" style={{ padding: '14px 14px', opacity: allDone ? 0.75 : 1 }}>

@@ -1899,11 +1899,11 @@ export default {
   mc_str_unit_sec: 's',
   mc_str_unit_m: 'm',
   mc_str_unit_reps: 'reps',
-  mc_str_wt_total: '{{n}} kg',
-  mc_str_wt_per_side: '{{n}} kg/side',
-  mc_str_wt_per_dumbbell: '{{n}} kg/dumbbell',
+  mc_str_wt_total: '{{n}} {{u}}',
+  mc_str_wt_per_side: '{{n}} {{u}}/side',
+  mc_str_wt_per_dumbbell: '{{n}} {{u}}/dumbbell',
   mc_str_wt_bw: 'bodyweight',
-  mc_str_wt_bw_load: '+{{n}} kg added',
+  mc_str_wt_bw_load: '+{{n}} {{u}} added',
   mc_str_last_time_detail: 'Last time: {{detail}}',
 
   // ── Plan strength in detail ──

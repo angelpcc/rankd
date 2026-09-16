@@ -4,6 +4,7 @@ import { supabase, type Profile } from '@/lib/supabase';
 import { isMissingTable, isMissingColumn } from '@/lib/dbState';
 import { MUSCLE_GROUPS, muscleGroupOf, type MuscleGroup } from '../lib/exercises';
 import { exerciseLines, type StrengthPayload } from '../lib/dayPlan';
+import { leerUnidad } from '@/lib/units';
 import { loadTodayTraining, type TodayTraining } from '../lib/todayTraining';
 import MuscleMap, { type MapGroup, type TrainState } from './MuscleMap';
 import Reveal from '@/components/base/Reveal';
@@ -37,6 +38,9 @@ function iso(d: Date): string {
 
 export default function StrengthSummary({ profile, onEnter, onGoAsesor, refreshKey = 0 }: Props) {
   const { t, i18n } = useTranslation();
+  // Kilos o libras: es preferencia de ESTE dispositivo, no un dato guardado.
+  // En la base solo hay kilos; aqui solo se decide como se leen.
+  const unidad = leerUnidad(profile.id);
   const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
 
   const [rows, setRows] = useState<Row[]>([]);
@@ -183,7 +187,7 @@ export default function StrengthSummary({ profile, onEnter, onGoAsesor, refreshK
             {todayItems.map((x, i) => {
               const p = x.payload as StrengthPayload;
               const groups = (p.groups || []).map((g) => t(`mc_str_mg_${g}`, { defaultValue: g })).join(' + ');
-              const lines = exerciseLines(p.exercises, t);
+              const lines = exerciseLines(p.exercises, t, unidad);
               return (
                 <div key={i} className={i > 0 ? 'mt-3 pt-3 border-t border-white/[0.08]' : ''}>
                   <p className="text-base font-bold text-white">{groups || t('mc_dp_kind_strength')}</p>

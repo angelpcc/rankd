@@ -54,12 +54,6 @@ export function desdeKg(kg: number, unidad: WeightUnit): number {
   return Math.round(kgALb(kg) * 2) / 2;
 }
 
-/** "62,5 kg" / "137,5 lb". Con coma, que es como se escribe en español. */
-export function fmtPeso(kg: number, unidad: WeightUnit): string {
-  const v = desdeKg(kg, unidad);
-  const n = Number.isInteger(v) ? String(v) : String(+v.toFixed(1)).replace('.', ',');
-  return `${n} ${unidad}`;
-}
 
 // ── La preferencia ───────────────────────────────────────────────
 

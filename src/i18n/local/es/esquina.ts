@@ -1903,11 +1903,11 @@ export default {
   mc_str_unit_sec: 's',
   mc_str_unit_m: 'm',
   mc_str_unit_reps: 'reps',
-  mc_str_wt_total: '{{n}} kg',
-  mc_str_wt_per_side: '{{n}} kg/lado',
-  mc_str_wt_per_dumbbell: '{{n}} kg/mancuerna',
+  mc_str_wt_total: '{{n}} {{u}}',
+  mc_str_wt_per_side: '{{n}} {{u}}/lado',
+  mc_str_wt_per_dumbbell: '{{n}} {{u}}/mancuerna',
   mc_str_wt_bw: 'peso corporal',
-  mc_str_wt_bw_load: '+{{n}} kg lastre',
+  mc_str_wt_bw_load: '+{{n}} {{u}} lastre',
   mc_str_last_time_detail: 'Última vez: {{detail}}',
 
   // ── Planificar fuerza en detalle ──

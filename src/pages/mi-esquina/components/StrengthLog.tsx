@@ -7,6 +7,7 @@ import {
   type MuscleGroup, type WeightMode, type TrackingMode,
 } from '../lib/exercises';
 import { fmtWeight, fmtSetCount, fmtSetValue, type ExerciseSpec, type StrengthPayload } from '../lib/dayPlan';
+import { leerUnidad } from '@/lib/units';
 import { reconcileDayTicks } from '../lib/planTicks';
 import { loadTodayTraining } from '../lib/todayTraining';
 import { clearDraft } from '../lib/strengthDraft';
@@ -125,6 +126,9 @@ function slotKey(s: SessionSlot | null): string { return s || '_none'; }
  */
 export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hideHistory, hideRegisterCta, onSeeHistory, onLogged, initialDate }: Props) {
   const { t, i18n } = useTranslation();
+  // Kilos o libras: es preferencia de ESTE dispositivo, no un dato guardado.
+  // En la base solo hay kilos; aqui solo se decide como se leen.
+  const unidad = leerUnidad(profile.id);
   const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
 
   const [rows, setRows] = useState<StrengthSet[]>([]);
@@ -843,7 +847,7 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
                                   const first = series[0].main;
                                   const summary = [
                                     fmtSetCount(series.length, { repsMin: first.reps, repsMax: first.reps_max ?? undefined, value: first.reps, trackingMode: ex.tm }, t),
-                                    fmtWeight(maxW, ex.wm, t),
+                                    fmtWeight(maxW, ex.wm, t, unidad),
                                   ].filter(Boolean).join(' · ');
                                   const exPRs = prs.get(prKey(s.date, ex.exercise)) || [];
                                   return (
@@ -894,7 +898,7 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
                                             {series.map((se) => {
                                               const txt = (st: StrengthSet) => [
                                                 fmtSetValue({ repsMin: st.reps, repsMax: st.reps_max ?? undefined, value: st.reps, trackingMode: ex.tm }, t),
-                                                fmtWeight(Number(st.weight_kg), ex.wm, t),
+                                                fmtWeight(Number(st.weight_kg), ex.wm, t, unidad),
                                               ].filter(Boolean).join(' · ');
                                               const isDrop = se.drops.length > 0;
                                               return (

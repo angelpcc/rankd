@@ -12,6 +12,7 @@ import { activeSupplementsOn } from '../lib/supplements';
 import { loadRoutineById, saveRoutineSession, touchRoutine, type LoggedSet, type Routine, type RoutineDay } from '../lib/routines';
 import { useActivityLauncher, puedeMontarGuion } from './useActivityLauncher';
 import { reconcileDayTicks } from '../lib/planTicks';
+import { leerUnidad, type WeightUnit } from '@/lib/units';
 import {
   type DayPlanItem, type DayPlanKind, type StrengthPayload, type ActivityPayload,
   type MealPayload, type SupplementPayload, type NotePayload, type MealSlot, type ExerciseSpec,
@@ -142,6 +143,10 @@ const TICK_KINDS: DayPlanKind[] = ['strength', 'activity'];
 
 export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoActivity, onGoStrength, onGoBoxing, onGoPlanificar, onLogged }: Props) {
   const { t, i18n } = useTranslation();
+  // Kilos o libras: preferencia de ESTE dispositivo, no un dato guardado. En
+  // la base solo hay kilos; esto solo decide como se leen. Baja como prop
+  // igual que `locale` y `mode`, porque DayItemRow no conoce el perfil.
+  const unidad = leerUnidad(profile.id);
   const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
 
   // Se abre en DÍA: al entrar en Agenda lo que se quiere ver es lo de hoy, no
@@ -533,6 +538,7 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
             comp={compByDate.get(dayISO) || []}
             logged={loggedByDate.get(dayISO) || EMPTY_LOG}
             mode={mode}
+            unidad={unidad}
             onPrev={() => setDayISO(iso(addDays(new Date(dayISO + 'T12:00:00'), -1)))}
             onNext={() => setDayISO(iso(addDays(new Date(dayISO + 'T12:00:00'), 1)))}
             onAdd={(kind) => (kind === 'strength' ? setStrengthSheet({ date: dayISO }) : setSheetFor({ date: dayISO, kind }))}
@@ -815,6 +821,8 @@ interface DayViewProps {
   comp: CompEvent[];
   logged: DayLog;
   mode: 'pro' | 'hobby';
+  /** En que unidad se PINTAN los pesos. Lo guardado siempre son kilos. */
+  unidad: WeightUnit;
   onPrev: () => void;
   onNext: () => void;
   onAdd: (kind: DayPlanKind) => void;
@@ -832,7 +840,7 @@ interface DayViewProps {
   onToggleDone?: (id: string, value: boolean) => void;
 }
 
-function DayView({ supps, suppNames, date, locale, items, comp, logged, mode, onPrev, onNext, onAdd, onRemove, onMove, onPlanThisDay, onPlanWeek, onGoActivity, onRun, opening, onToggleDone }: DayViewProps) {
+function DayView({ supps, suppNames, date, locale, items, comp, logged, mode, unidad, onPrev, onNext, onAdd, onRemove, onMove, onPlanThisDay, onPlanWeek, onGoActivity, onRun, opening, onToggleDone }: DayViewProps) {
   const { t } = useTranslation();
   const dObj = new Date(date + 'T12:00:00');
   const isToday = date === todayISO();
@@ -1020,7 +1028,7 @@ function DayView({ supps, suppNames, date, locale, items, comp, logged, mode, on
                 </div>
                 <div className="space-y-2">
                   {list.map((it) => (
-                    <DayItemRow key={it.id} item={it}
+                    <DayItemRow key={it.id} item={it} unidad={unidad}
                       onRemove={() => onRemove(it.id)}
                       onMove={onMove ? () => onMove(it) : undefined}
                       onRun={onRun ? () => onRun(it) : undefined}
@@ -1053,8 +1061,10 @@ function DayView({ supps, suppNames, date, locale, items, comp, logged, mode, on
   );
 }
 
-function DayItemRow({ item, onRemove, onMove, onRun, opening, onToggleDone }: {
+function DayItemRow({ item, unidad, onRemove, onMove, onRun, opening, onToggleDone }: {
   item: DayPlanItem;
+  /** Unidad en la que se PINTAN los pesos. Lo guardado siempre son kilos. */
+  unidad: WeightUnit;
   onRemove: () => void;
   onMove?: () => void;
   /** Abrir lo que resuelve el bloque. Solo si hay algo que abrir. */
@@ -1113,7 +1123,7 @@ function DayItemRow({ item, onRemove, onMove, onRun, opening, onToggleDone }: {
   if (item.kind === 'strength') {
     const p = strengthPayload as StrengthPayload;
     main = (p.groups || []).map((g) => t(`mc_str_mg_${g}`, { defaultValue: g })).join(' + ') || t('mc_dp_kind_strength');
-    exLines = exerciseLines(p.exercises, t);
+    exLines = exerciseLines(p.exercises, t, unidad);
     if (p.note) sub = p.note;
   } else if (item.kind === 'activity') {
     const p = activityPayload as ActivityPayload;

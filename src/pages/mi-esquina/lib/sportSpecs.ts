@@ -78,8 +78,6 @@ export const HYROX_STATIONS: SpecStation[] = [
   },
 ];
 
-/** Kilómetros de carrera de un Hyrox completo: 8 tramos de 1 km. */
-export const HYROX_RUN_KM = 8;
 
 export type HyroxDivision = 'open_m' | 'open_f' | 'pro_m' | 'pro_f';
 

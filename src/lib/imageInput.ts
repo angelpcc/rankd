@@ -154,6 +154,4 @@ export async function prepararImagen(file: File, maxLado = MAX_LADO): Promise<Im
 }
 
 /** Tipos que aceptamos en los selectores de archivo. */
-export const ACEPTA_IMAGEN = 'image/jpeg,image/png,image/webp';
-/** Lo mismo más PDF, para los sitios donde se importa un documento. */
 export const ACEPTA_DOCUMENTO = 'image/*,application/pdf';
