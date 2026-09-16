@@ -452,8 +452,37 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
           quedó a mitad de la conversación. */}
       {plan && !guardado && (
         <div className="rk-card" style={{ padding: 16, borderColor: 'rgba(225,6,0,0.35)' }}>
-          <p className="text-sm font-bold text-white">{t('mc_pc_ready_title')}</p>
-          <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{t('mc_pc_ready_desc')}</p>
+          {/* Lo que va a pasar al pulsar, en números.
+              "Se manda a la agenda" no dice cuánto es: con los tres datos
+              delante se ve si el plan es el que querías ANTES de meterlo, que
+              es cuando sale barato cambiar de idea. */}
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl rk-ai-avatar">
+              <i className="ri-calendar-check-line text-lg" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-white">{t('mc_pc_ready_title')}</p>
+              <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{t('mc_pc_ready_desc')}</p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {(() => {
+              const st = planTotals(plan);
+              return [
+                { icon: 'ri-calendar-2-line', hex: '#a1a1aa', txt: plan.weeks > 1 ? t('mc_pc_weeks_n', { n: plan.weeks }) : t('mc_pc_weeks_1') },
+                { icon: 'ri-hammer-line', hex: '#fb923c', txt: t('mc_pc_stat_strength', { n: st.strengthDays }) },
+                ...(st.cardioSlots > 0 ? [{ icon: 'ri-heart-pulse-line', hex: '#4ade80', txt: t('mc_pc_stat_cardio', { n: st.cardioSlots }) }] : []),
+                ...(st.meals > 0 ? [{ icon: 'ri-restaurant-line', hex: '#38bdf8', txt: t('mc_pc_stat_meals', { n: st.meals }) }] : []),
+              ].map(({ icon, hex, txt }) => (
+                <span key={txt} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-zinc-200 rounded-lg px-2 py-1"
+                  style={{ background: 'rgba(255,255,255,0.05)' }}>
+                  <i className={icon} style={{ color: hex }} />{txt}
+                </span>
+              ));
+            })()}
+          </div>
+
           <button onClick={() => guardar()} disabled={guardando}
             className="rk-cta rk-press w-full flex items-center justify-center gap-2 mt-3 disabled:opacity-60"
             style={{ minHeight: 48 }}>
@@ -531,13 +560,23 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
 
       {guardado && (
         <div className="rk-card" style={{ padding: 16, borderColor: 'rgba(74,222,128,0.35)' }}>
-          <p className="text-sm font-bold flex items-center gap-1.5" style={{ color: '#4ade80' }}>
-            <i className="ri-check-double-line" />{t('mc_pc_done_title')}
-          </p>
-          <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-            {t('mc_pc_done_desc', { n: guardado.agendaItems })}
-            {guardado.keptCompleted.length > 0 && ` ${t('mc_pc_done_kept', { n: guardado.keptCompleted.length })}`}
-          </p>
+          {/* El check con su aro verde, no un icono suelto en una línea.
+              Guardar el plan es el final del camino: se nota o no se nota. */}
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl"
+              style={{ background: 'rgba(74,222,128,0.14)', border: '1px solid rgba(74,222,128,0.4)', color: '#4ade80' }}>
+              <i className="ri-check-double-line text-lg" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold" style={{ color: '#4ade80' }}>
+                {t('mc_pc_done_title')}
+              </p>
+              <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                {t('mc_pc_done_desc', { n: guardado.agendaItems })}
+                {guardado.keptCompleted.length > 0 && ` ${t('mc_pc_done_kept', { n: guardado.keptCompleted.length })}`}
+              </p>
+            </div>
+          </div>
           <div className="flex gap-2 mt-3">
             {onGoAgenda && (
               <button onClick={onGoAgenda} className="rk-nav-btn rk-press text-xs flex-1" style={{ minHeight: 44 }}>
