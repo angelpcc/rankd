@@ -272,6 +272,80 @@ export interface GenericDetail {
   values: Record<string, string | number>;
 }
 
+/**
+ * El detalle de una sesión, en trocitos legibles para el historial.
+ *
+ * ── POR QUÉ HACE FALTA ──
+ *
+ * Sin esto, todo lo que se apunta aquí ENTRA Y NO VUELVE A SALIR: registrabas
+ * un Hyrox con sus ocho tiempos y sus pesos, y el historial seguía diciendo
+ * "75 min". Un dato que no se puede volver a mirar no es un registro, es un
+ * formulario que te ha hecho perder el tiempo.
+ *
+ * Corto a propósito: lo que identifica la sesión de un vistazo. El detalle
+ * completo está al abrirla.
+ */
+export function resumenDetalle(
+  detail: ActivityDetail | null | undefined,
+  t: (k: string, o?: Record<string, unknown>) => string,
+): string[] {
+  if (!detail) return [];
+  const mmss = (s?: number) => (s && s > 0 ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` : '');
+
+  if (detail.sport === 'hyrox') {
+    const out: string[] = [];
+    const div = HYROX_DIVISIONS.find((x) => x.value === (detail.division || 'open_m'));
+    if (div) out.push(t(div.labelKey));
+    const conTiempo = detail.stations.filter((s) => s.seconds && s.seconds > 0);
+    if (conTiempo.length > 0) out.push(t('mc_sp_hx_done', { n: conTiempo.length }));
+    // El trineo de empuje es LA referencia de un Hyrox: es donde se decide la
+    // carrera y lo primero que se compara entre dos.
+    const push = detail.stations.find((s) => s.id === 'sled_push');
+    if (push?.kg) out.push(`${t('mc_sp_hx_push')} ${push.kg} kg`);
+    if (detail.runSeconds) out.push(`${mmss(detail.runSeconds)} ${t('mc_sp_hx_running')}`);
+    return out;
+  }
+
+  if (detail.sport === 'wod') {
+    const out: string[] = [];
+    if (detail.name) out.push(detail.name);
+    const f = wodFormat(detail.format);
+    if (f) out.push(detail.capMin ? `${t(f.labelKey)} ${detail.capMin}′` : t(f.labelKey));
+    // El resultado, en la unidad de ESTE formato. Es el dato por el que se
+    // compara un WOD con el mismo WOD de hace un mes.
+    if (detail.rounds !== undefined) {
+      out.push(detail.extraReps ? `${detail.rounds}+${detail.extraReps}` : `${detail.rounds} ${t('mc_sp_rounds').toLowerCase()}`);
+    }
+    if (detail.seconds) out.push(mmss(detail.seconds));
+    if (detail.reps) out.push(`${detail.reps} ${t('mc_sp_reps')}`);
+    if (detail.kg) out.push(`${detail.kg} kg`);
+    return out;
+  }
+
+  // ── Genérico ──
+  //
+  // Se recorren los VALORES guardados, no todos los campos de todos los
+  // deportes: `sets`, `watts` o `elev` aparecen en varios, y recorriendo los
+  // campos el mismo dato salía repetido tantas veces como deportes lo usen.
+  const porId = new Map<string, ExtraField>();
+  for (const campos of Object.values(SPORT_FIELDS)) {
+    for (const c of campos) if (!porId.has(c.id)) porId.set(c.id, c);
+  }
+
+  const out: string[] = [];
+  for (const [id, v] of Object.entries(detail.values)) {
+    if (out.length >= 4) break;
+    const c = porId.get(id);
+    if (!c) continue;
+    if (c.type === 'choice') out.push(t(String(v)));
+    // La etiqueta delante en los tiempos: un "1:45" suelto no dice si es por
+    // 100 metros o por 500, y son cosas muy distintas.
+    else if (c.type === 'time') out.push(`${t(c.labelKey)} ${mmss(Number(v))}`);
+    else out.push(`${v}${c.unit ? ` ${c.unit}` : ''}`);
+  }
+  return out;
+}
+
 /** ¿Este tipo de actividad se registra con estaciones de Hyrox? */
 export const usaHyrox = (kind: string): boolean => kind === 'hyrox';
 

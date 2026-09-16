@@ -92,4 +92,6 @@ export default {
   mc_sp_bx_pads: 'pads',
   mc_sp_bx_spar: 'sparring',
   mc_sp_bx_tech: 'technique',
+  mc_sp_hx_done: '{{n}} of 8 stations',
+  mc_sp_hx_running: 'running',
 };

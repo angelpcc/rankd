@@ -15,7 +15,7 @@ import SectionHero from './SectionHero';
 import ActivityTodayCard from './ActivityTodayCard';
 import { useActivityLauncher } from './useActivityLauncher';
 import SportDetailFields from './SportDetailFields';
-import { camposDe, usaHyrox, usaWod, type ActivityDetail } from '../lib/sportSpecs';
+import { camposDe, resumenDetalle, usaHyrox, usaWod, type ActivityDetail } from '../lib/sportSpecs';
 
 interface Props {
   profile: Profile;
@@ -886,6 +886,9 @@ export default function FighterTraining({ profile, showToast, initialDate, initi
     if (s.meters) out.push(`${s.meters} m`);
     if (s.incline_percent) out.push(t('mc_av_incline_chip', { n: s.incline_percent }));
     if (s.rounds) out.push(t('mc_av_rounds_short', { n: s.rounds }));
+    // Lo propio del deporte: las estaciones del Hyrox, el formato del WOD, el
+    // estilo de la natación. Sin esto, todo eso se apuntaba y no volvía a verse.
+    out.push(...resumenDetalle(s.detail, t));
     return out;
   }
 }
@@ -896,6 +899,7 @@ function sessionSummary(s: ActSession, t: (k: string, o?: Record<string, unknown
   if (s.meters) bits.push(`${s.meters} m`);
   if (s.incline_percent) bits.push(t('mc_av_incline_chip', { n: s.incline_percent }));
   if (s.rounds) bits.push(t('mc_av_rounds_short', { n: s.rounds }));
+  bits.push(...resumenDetalle(s.detail, t));
   bits.push(new Date(s.session_date + 'T12:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'long' }));
   return bits.join(' · ');
 }
