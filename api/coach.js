@@ -73,6 +73,52 @@ function currentPeriod() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
+/**
+ * Techo de GASTO por usuario y mes, en dólares.
+ *
+ * ── POR QUÉ HACÍA FALTA ──
+ *
+ * La cuota contaba LLAMADAS, no dinero, y una llamada no cuesta lo mismo que
+ * otra. Medido sobre el uso real de estos tres días: 43 llamadas, $3,87. La
+ * media salía a $0,09, pero catorce de ellas costaron más de $0,15 y entre
+ * esas catorce se fue el 74% del dinero.
+ *
+ * Con un límite de 65 llamadas, el techo real eran ~$6 al mes POR USUARIO, y
+ * nadie lo había decidido: salía de multiplicar dos números que vivían en
+ * sitios distintos.
+ *
+ * ── POR QUÉ 10 Y NO 4 ──
+ *
+ * Con 4 cortaría HOY: el gasto de este mes ya va por $3,87. Un tope que te
+ * deja fuera de tu propia app al día siguiente de ponerlo no protege nada,
+ * solo molesta. 10 deja margen para seguir probando y sigue siendo un techo
+ * de verdad: con un usuario son 10 dólares como mucho, pase lo que pase.
+ *
+ * Se cambia con AI_MAX_USD_MES en Vercel, sin tocar código. A 0 se desactiva.
+ */
+const MAX_USD_MES = Number(process.env.AI_MAX_USD_MES ?? 10);
+
+/**
+ * Lo gastado este mes por este usuario, en dólares.
+ *
+ * Sale de `ai_usage`, que es donde ya se apuntaba cada llamada con su coste.
+ * El dato estaba; lo que no había era nadie mirándolo antes de gastar más.
+ *
+ * Si la consulta falla NO se bloquea: el control por número de llamadas sigue
+ * en pie y cortarle la IA a alguien porque una tabla no responde es peor que
+ * pasarse unos céntimos.
+ */
+async function gastadoEsteMes(db, userId) {
+  try {
+    const { data, error } = await db.from('ai_usage')
+      .select('cost_usd')
+      .eq('user_id', userId)
+      .eq('period', currentPeriod());
+    if (error || !data) return null;
+    return data.reduce((a, r) => a + Number(r.cost_usd || 0), 0);
+  } catch { return null; }
+}
+
 function admin() {
   const url = process.env.SUPABASE_URL || process.env.VITE_PUBLIC_SUPABASE_URL || '';
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -116,6 +162,18 @@ async function checkQuota(req) {
   if (enabled && used >= quota) {
     return { ok: false, status: 429, code: 'quota_reached', used, quota,
       message: 'Has agotado tus consultas de IA de este mes. Se renuevan el día 1. Si necesitas más, escríbenos y te ampliamos la cuota.' };
+  }
+
+  // El techo de DINERO, además del de llamadas.
+  //
+  // Va después del de llamadas a propósito: si alguien se pasa de los dos, el
+  // mensaje que se lleva es el de siempre, que se entiende mejor.
+  if (enabled && MAX_USD_MES > 0) {
+    const gastado = await gastadoEsteMes(db, user.id);
+    if (gastado !== null && gastado >= MAX_USD_MES) {
+      return { ok: false, status: 429, code: 'quota_reached', used, quota,
+        message: 'Has llegado al tope de gasto de IA de este mes. Se renueva el día 1.' };
+    }
   }
   return {
     ok: true, db, user, used, quota, warnAtPct: row?.warn_at_pct ?? 80,
