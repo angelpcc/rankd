@@ -94,7 +94,14 @@ export async function sendPlanChat(
     });
 
     const data = await res.json().catch(() => null);
-    if (!res.ok) return { reply: '', plan: null, error: data?.message || 'error' };
+    if (!res.ok) {
+      // Cuando falla la PLATAFORMA y no la app, la respuesta no es JSON: un
+      // 413 de Vercel llega como texto plano (`FUNCTION_PAYLOAD_TOO_LARGE`),
+      // `data` sale null y el aviso acababa diciendo literalmente "error".
+      // Se devuelve un código que la pantalla sabe traducir.
+      const codigo = res.status === 413 ? 'too_large' : 'server';
+      return { reply: '', plan: null, error: data?.message || codigo };
+    }
 
     const reply = String(data?.reply || '').trim();
     // El plan se normaliza con el MISMO normalizador que usaba el formulario:

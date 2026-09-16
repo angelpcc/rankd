@@ -22,27 +22,47 @@
 
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ACEPTA_DOCUMENTO, prepararImagen, type ImagenLista } from '@/lib/imageInput';
+import { ACEPTA_DOCUMENTO, MAX_ADJUNTO_BYTES, mbDe, prepararImagen, type ImagenLista } from '@/lib/imageInput';
 
 interface Props {
   /** La foto elegida, ya reducida. null si no hay ninguna. */
   foto: ImagenLista | null;
   onFoto: (f: ImagenLista | null) => void;
   disabled?: boolean;
+  /** Para contar por qué no se ha podido adjuntar. Sin esto fallaba en silencio. */
+  onError?: (msg: string) => void;
 }
 
 /** El botón. La miniatura se pinta aparte (ver `FotoPendiente`). */
-export default function PhotoAttach({ foto, onFoto, disabled }: Props) {
+export default function PhotoAttach({ foto, onFoto, disabled, onError }: Props) {
   const { t } = useTranslation();
   const ref = useRef<HTMLInputElement>(null);
   const [leyendo, setLeyendo] = useState(false);
 
   const elegir = async (file: File | undefined) => {
     if (!file) return;
+
+    // Se comprueba ANTES de leerlo.
+    //
+    // Un PDF viaja entero y Vercel corta la petición por tamaño antes de que
+    // la IA llegue a existir, así que dejarte adjuntar algo más grande es
+    // dejarte mandar un mensaje que no puede salir nunca. Y fallaba sin
+    // decir por qué: el aviso ponía literalmente "error".
+    //
+    // Solo afecta a los PDF en la práctica: las fotos se encogen luego y
+    // nunca se acercan al tope, así que el aviso menciona la salida buena,
+    // que es hacerle una foto a la hoja.
+    if (file.size > MAX_ADJUNTO_BYTES) {
+      onError?.(t('mc_chat_file_too_big', { max: mbDe(MAX_ADJUNTO_BYTES), tam: mbDe(file.size) }));
+      if (ref.current) ref.current.value = '';
+      return;
+    }
+
     setLeyendo(true);
     const img = await prepararImagen(file);
     setLeyendo(false);
     if (img) onFoto(img);
+    else onError?.(t('mc_chat_file_failed'));
     // El input se vacía siempre: si no, elegir la MISMA foto dos veces seguidas
     // no dispara el change y parece que la app ha ignorado el toque.
     if (ref.current) ref.current.value = '';

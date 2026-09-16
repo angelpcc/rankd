@@ -694,14 +694,25 @@ Reglas:
 // Es transcripción, no creación: si el documento no dice una cadencia, no se
 // inventa una.
 /**
- * Tope de una imagen en base64 (~5 MB de fichero).
+ * Tope de un adjunto en base64.
+ *
+ * Estaba en 7.000.000 (~5 MB de fichero) y era un número imposible: Vercel
+ * corta el cuerpo de la petición ANTES de que esta función exista. Medido
+ * contra el servidor real: 4 MB pasan y 4,5 MB devuelven 413
+ * `FUNCTION_PAYLOAD_TOO_LARGE` en texto plano. Es decir, nada que llegara
+ * aquí podía superar los 7 millones jamás, así que la comprobación no
+ * protegía de nada.
+ *
+ * Ahora va donde el cliente ya recorta (ver MAX_ADJUNTOS_B64 en
+ * src/lib/imageInput.ts), con un poco de holgura para no tirar en silencio
+ * un adjunto legítimo que llegue justo al límite.
  *
  * Se declara aquí arriba y no junto al importador porque `sanitize` —que corre
  * en los dos chats— también lo necesita, y estaba más abajo en el fichero: una
  * constante usada antes de declararse es un `undefined` silencioso, y el
  * único síntoma habría sido que las fotos dejan de llegar sin decir por qué.
  */
-const MAX_IMAGE_CHARS = 7_000_000;
+const MAX_IMAGE_CHARS = 3_400_000;
 const TIPOS_IMAGEN = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const TIPO_PDF = 'application/pdf';
 

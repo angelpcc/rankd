@@ -72,6 +72,77 @@ export interface ImagenLista {
 
 export const TIPO_PDF = 'application/pdf';
 
+// ── CUÁNTO CABE DE VERDAD EN UNA PETICIÓN ──
+//
+// La IA corre en una función sin servidor de Vercel, y Vercel corta el cuerpo
+// de la petición ANTES de que la función llegue a existir. Medido contra el
+// servidor real: 4 MB pasan, 4,5 MB devuelven `FUNCTION_PAYLOAD_TOO_LARGE` en
+// texto plano, que el cliente no sabe leer y acababa en un aviso que ponía
+// literalmente "error".
+//
+// Las fotos se encogen y nunca llegan ahí. Un PDF viaja entero, así que es el
+// único que puede pasarse — y pasarse significaba adjuntar un fichero que la
+// app te dejaba elegir y no podía mandar jamás.
+//
+// 3,2 MB de base64 deja 1,3 MB de margen para todo lo demás (la conversación,
+// el plan, la agenda, la lista de ejercicios), que junto no llega a 100 KB.
+// El margen es grande a propósito: quedarse corto aquí no cuesta nada y
+// pasarse rompe el mensaje entero.
+export const MAX_ADJUNTOS_B64 = 3_200_000;
+
+/**
+ * Tamaño máximo de UN fichero, en bytes.
+ *
+ * base64 engorda 4/3, así que el fichero puede ocupar tres cuartas partes del
+ * presupuesto. Salen ~2,4 MB, que para una hoja de rutina o una tabla de
+ * cardio sobra: los que se pasan son los que llevan fotos dentro.
+ */
+export const MAX_ADJUNTO_BYTES = Math.floor((MAX_ADJUNTOS_B64 * 3) / 4);
+
+/** Para enseñarlo en un aviso: "2,4 MB". */
+export const mbDe = (bytes: number): string => (bytes / (1024 * 1024)).toFixed(1).replace('.', ',');
+
+/** Lo mínimo que hace falta saber de un mensaje para pesarlo. */
+interface MensajeConAdjunto {
+  image?: { base64: string; mediaType: string };
+}
+
+/**
+ * Quita los adjuntos VIEJOS hasta que la petición quepa.
+ *
+ * ── EL CASO QUE ROMPÍA ──
+ *
+ * Los adjuntos de turnos anteriores siguen viajando, y con razón: si en el
+ * turno 1 mandas la hoja del plan y en el 3 dices "cámbiame el martes", sin
+ * ella el modelo ya no sabe de qué martes le hablas.
+ *
+ * Pero eso hace que la petición CREZCA sola. Dos PDF que caben de uno en uno
+ * no caben juntos, y el mensaje que reventaba era uno en el que no habías
+ * adjuntado nada: escribías "y el jueves?" y fallaba, sin ninguna pista de
+ * por qué.
+ *
+ * Se recorre de atrás hacia delante —lo reciente es de lo que se está
+ * hablando— y se van dejando adjuntos mientras quepan. El texto NUNCA se
+ * toca: perder la foto de hace cuatro turnos es asumible, perder lo que se
+ * dijo no.
+ */
+export function limitarAdjuntos<T extends MensajeConAdjunto>(mensajes: T[]): T[] {
+  let gastado = 0;
+  const alReves = [...mensajes].reverse().map((m) => {
+    const n = m.image?.base64?.length || 0;
+    if (!n) return m;
+    if (gastado + n > MAX_ADJUNTOS_B64) {
+      // Se cae el adjunto, se queda el mensaje.
+      const { image: _fuera, ...resto } = m;
+      void _fuera;
+      return resto as T;
+    }
+    gastado += n;
+    return m;
+  });
+  return alReves.reverse();
+}
+
 /** Lee un archivo a base64 sin el prefijo. Salida directa, sin tocar nada. */
 function leerBase64(file: Blob): Promise<string> {
   return new Promise((resolve, reject) => {

@@ -9,7 +9,7 @@ import { isMissingColumn } from '@/lib/dbState';
 import { clearChat, loadChat, saveChat } from '@/pages/mi-esquina/lib/chatHistory';
 import VoiceButton from '@/components/feature/VoiceButton';
 import PhotoAttach, { FotoPendiente } from './PhotoAttach';
-import type { ImagenLista } from '@/lib/imageInput';
+import { limitarAdjuntos, type ImagenLista } from '@/lib/imageInput';
 import { compactarAgenda, loadAgendaSnapshot, loadTrainedRecent, type AgendaDia, type DiaEntrenado } from '@/pages/mi-esquina/lib/agendaSnapshot';
 import { libraryLabels } from '@/pages/mi-esquina/lib/exercises';
 import { currentWeekStart } from '@/pages/mi-esquina/lib/weekPlan';
@@ -403,8 +403,12 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
         setNotConfigured(true); setSending(false); return;
       }
       if (!res.ok || !res.body) {
+        // Un 413 no lo manda la app: lo manda Vercel, en texto plano y antes
+        // de que la función exista. Sin este caso el usuario leía un "no se
+        // pudo generar respuesta" que no le decía qué arreglar.
         const d = await res.json().catch(() => ({}));
-        setMessages((prev) => [...prev, { role: 'assistant', content: d.message || t('mc_ai_err_generate') }]);
+        const generico = res.status === 413 ? t('mc_chat_too_big_send') : t('mc_ai_err_generate');
+        setMessages((prev) => [...prev, { role: 'assistant', content: d.message || generico }]);
         setSending(false);
         return;
       }
@@ -850,7 +854,8 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
         />
         <div className="flex items-center justify-between gap-2 mt-2">
           <div className="flex items-center gap-2 min-w-0">
-            <PhotoAttach foto={foto} onFoto={setFoto} disabled={sending} />
+            <PhotoAttach foto={foto} onFoto={setFoto} disabled={sending}
+              onError={(m) => showToast?.(m, 'error')} />
             <VoiceButton onResult={(s) => setInput((p) => (p ? `${p} ${s}` : s))} />
           </div>
           <button onClick={() => send(input)} disabled={sending || (!input.trim() && !foto)}

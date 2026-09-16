@@ -14,7 +14,7 @@ import { sendPlanChat, type PlanChatMessage } from '@/services/planChat';
 import { clearChat, loadChat, saveChat } from '../lib/chatHistory';
 import { compactarAgenda, loadAgendaSnapshot, loadTrainedRecent, type AgendaDia, type DiaEntrenado } from '../lib/agendaSnapshot';
 import PhotoAttach, { FotoPendiente } from './PhotoAttach';
-import type { ImagenLista } from '@/lib/imageInput';
+import { limitarAdjuntos, type ImagenLista } from '@/lib/imageInput';
 
 // ════════════════════════════════════════════════════════════════
 // EL PLAN, HABLANDO
@@ -233,7 +233,10 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
 
     // El id se conserva si ya había plan: es lo que impide que un cambio cree
     // un plan paralelo y duplique las entradas de la Agenda.
-    const res = await sendPlanChat(historia, ctx, fighter, plan, plan?.id || `wp_${Date.now().toString(36)}`,
+    // Los adjuntos viejos se caen si no caben TODOS. Sin esto, dos PDF que
+    // van bien de uno en uno reventaban juntos, y el mensaje que fallaba era
+    // uno en el que no habías adjuntado nada.
+    const res = await sendPlanChat(limitarAdjuntos(historia), ctx, fighter, plan, plan?.id || `wp_${Date.now().toString(36)}`,
       // Con plan delante, la agenda solo lleva lo que el plan no puede decir:
       // lo ya entrenado y lo que se movió a mano. Lo demás viaja en el plan y
       // mandarlo dos veces se paga dos veces.
@@ -243,7 +246,16 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
     setEnviando(false);
 
     if (res.error) {
-      showToast(res.error === 'auth' ? t('mc_pc_err_auth') : res.error, 'error');
+      // Los códigos se traducen; cualquier otra cosa es un mensaje que ya
+      // viene escrito desde el servidor y se enseña tal cual.
+      const CLAVES: Record<string, string> = {
+        auth: 'mc_pc_err_auth',
+        too_large: 'mc_chat_too_big_send',
+        server: 'mc_ai_err_generate',
+        network: 'mc_ai_err_generate',
+        error: 'mc_ai_err_generate',
+      };
+      showToast(CLAVES[res.error] ? t(CLAVES[res.error]) : res.error, 'error');
       return;
     }
     setTurnos((p) => [...p, { role: 'assistant', content: res.reply, ...(res.plan ? { plan: res.plan } : {}) }]);
@@ -447,7 +459,8 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
             style={{ fontSize: 16 }} />
           <div className="flex items-center justify-between gap-2 mt-2">
             <div className="flex items-center gap-2 min-w-0">
-              <PhotoAttach foto={foto} onFoto={setFoto} disabled={enviando || sinIA} />
+              <PhotoAttach foto={foto} onFoto={setFoto} disabled={enviando || sinIA}
+                onError={(m) => showToast(m, 'error')} />
               <VoiceButton onResult={(s) => setTexto((p) => (p ? `${p} ${s}` : s))} />
             </div>
             <button onClick={() => enviar()} disabled={enviando || (!texto.trim() && !foto) || sinIA}
