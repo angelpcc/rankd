@@ -52,20 +52,58 @@ const MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5';
  */
 const MODEL_COPIA = process.env.ANTHROPIC_MODEL_COPIA || 'claude-haiku-4-5';
 
-// Tarifa vigente del modelo, en USD por millón de tokens.
-const PRICE_IN_PER_M = 5;
-const PRICE_OUT_PER_M = 25;
+/**
+ * Tarifa por millón de tokens, POR MODELO.
+ *
+ * ── EL FALLO QUE HABÍA ──
+ *
+ * Estaban puestos 5 de entrada y 25 de salida: los precios de Opus. Pero la
+ * app corre Sonnet 5, que va a 2 y 10. O sea que el contador cobraba DOS VECES
+ * Y MEDIA de más, y ese número es el que se enseña, el que se guarda en
+ * `ai_usage` y —desde hoy— el que corta cuando se llega al tope de gasto.
+ *
+ * Un medidor mal calibrado es peor que no tener medidor: tomas decisiones con
+ * él. Toda la conversación sobre "esto gasta mucho" se tuvo con estos números.
+ *
+ * ── Y LA CACHÉ NO SE CONTABA ──
+ *
+ * `costOf` solo miraba `input_tokens`. Los tokens que se ESCRIBEN en caché y
+ * los que se LEEN de ella no aparecían por ningún lado, y ahora son la mayor
+ * parte de la entrada: en un turno normal del plan son ~10.000 leídos contra
+ * 20 sin cachear. Contarlos como cero es tan falso como cobrarlos enteros.
+ */
+const PRECIOS = {
+  'claude-sonnet-5': { in: 2, out: 10 },
+  'claude-haiku-4-5': { in: 1, out: 5 },
+};
+
+/** Multiplicadores de la caché sobre el precio de entrada. */
+const CACHE_ESCRIBIR_5M = 1.25;
+const CACHE_ESCRIBIR_1H = 2;
+const CACHE_LEER = 0.1;
+
 // Búsqueda web del asesor de Material: $10 por cada 1.000 búsquedas.
 const PRICE_SEARCH = 0.01;
 // Tope de búsquedas por respuesta: acota el coste de un solo turno aunque el
 // usuario tenga muchas disponibles en el mes.
 const SEARCHES_PER_TURN = 3;
 
-function costOf(usage) {
-  const inTok = usage?.input_tokens || 0;
-  const outTok = usage?.output_tokens || 0;
+function costOf(usage, model) {
+  const p = PRECIOS[model] || PRECIOS['claude-sonnet-5'];
+  const cc = usage?.cache_creation || {};
+  const w5 = cc.ephemeral_5m_input_tokens || 0;
+  const w1h = cc.ephemeral_1h_input_tokens || 0;
+  // Si la API no manda el desglose, el total se cuenta como caché corta: es la
+  // estimación conservadora de las dos, y más vale pasarse que quedarse corto
+  // en el número que decide si se corta el grifo.
+  const escrito = (w5 + w1h) > 0 ? 0 : (usage?.cache_creation_input_tokens || 0);
+  const entrada = (usage?.input_tokens || 0) * p.in
+    + (w5 + escrito) * p.in * CACHE_ESCRIBIR_5M
+    + w1h * p.in * CACHE_ESCRIBIR_1H
+    + (usage?.cache_read_input_tokens || 0) * p.in * CACHE_LEER;
+  const salida = (usage?.output_tokens || 0) * p.out;
   const searches = usage?.server_tool_use?.web_search_requests || 0;
-  return +(((inTok * PRICE_IN_PER_M) + (outTok * PRICE_OUT_PER_M)) / 1_000_000 + searches * PRICE_SEARCH).toFixed(5);
+  return +(((entrada + salida) / 1_000_000) + searches * PRICE_SEARCH).toFixed(5);
 }
 
 function currentPeriod() {
@@ -206,7 +244,7 @@ async function checkQuota(req) {
 }
 
 /** Deja constancia del consumo real. Nunca debe tumbar la respuesta al usuario. */
-async function recordUsage(db, userId, section, kind, usage, searches) {
+async function recordUsage(db, userId, section, kind, usage, searches, model) {
   try {
     const row = {
       user_id: userId,
@@ -215,7 +253,9 @@ async function recordUsage(db, userId, section, kind, usage, searches) {
       kind,
       input_tokens: usage?.input_tokens || 0,
       output_tokens: usage?.output_tokens || 0,
-      cost_usd: costOf(usage),
+      // Sin modelo se asume el caro de los dos, que es el que manda en casi
+      // todas las rutas. Equivocarse hacia arriba aqui solo adelanta el tope.
+      cost_usd: costOf(usage, model || MODEL),
     };
     // Solo se envía la columna 'searches' cuando la búsqueda estaba activa. Así,
     // si la migración 0015 no está, nunca se intenta escribir una columna que no
@@ -2036,7 +2076,7 @@ export default async function handler(req, res) {
       const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
       let out;
       try { out = JSON.parse(text); } catch { out = null; }
-      await recordUsage(gate.db, gate.user.id, 'nutrition', 'photo', response.usage);
+      await recordUsage(gate.db, gate.user.id, 'nutrition', 'photo', response.usage, undefined, MODEL_COPIA);
       if (!out || !out.por_dosis) {
         return res.status(422).json({ error: 'no_label', message: 'No he podido leer la etiqueta. Prueba con la tabla nutricional más cerca y enfocada.' });
       }
@@ -2116,7 +2156,7 @@ export default async function handler(req, res) {
       const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
       let plan;
       try { plan = JSON.parse(text); } catch { plan = null; }
-      await recordUsage(gate.db, gate.user.id, 'training', 'chat', response.usage);
+      await recordUsage(gate.db, gate.user.id, 'training', 'chat', response.usage, undefined, MODEL_COPIA);
       if (!plan || !Array.isArray(plan.weeks) || plan.weeks.length === 0) {
         return res.status(422).json({ error: 'no_plan', message: 'No he podido leer un plan en esa foto. Prueba con una imagen más nítida o mételo a mano.' });
       }
@@ -2149,7 +2189,7 @@ export default async function handler(req, res) {
       const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
       let protocol;
       try { protocol = JSON.parse(text); } catch { protocol = null; }
-      await recordUsage(gate.db, gate.user.id, 'training', 'chat', response.usage);
+      await recordUsage(gate.db, gate.user.id, 'training', 'chat', response.usage, undefined, MODEL_COPIA);
       if (!protocol || !Array.isArray(protocol.segments) || protocol.segments.length === 0) {
         return res.status(422).json({ error: 'no_protocol', message: 'No he podido leer una sesión por tramos en ese documento. Revísalo o mete los tramos a mano.' });
       }
@@ -2208,7 +2248,7 @@ export default async function handler(req, res) {
       const text = (response.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
       let routine;
       try { routine = JSON.parse(text); } catch { routine = null; }
-      await recordUsage(gate.db, gate.user.id, 'training', 'chat', response.usage);
+      await recordUsage(gate.db, gate.user.id, 'training', 'chat', response.usage, undefined, MODEL_COPIA);
       if (!routine || !Array.isArray(routine.days) || routine.days.length === 0) {
         return res.status(422).json({ error: 'no_routine', message: 'No he podido leer una rutina en ese documento. Revísalo o métela a mano.' });
       }
