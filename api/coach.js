@@ -119,6 +119,28 @@ async function gastadoEsteMes(db, userId) {
   } catch { return null; }
 }
 
+/**
+ * Cuánto vive la caché del prompt.
+ *
+ * ── POR QUÉ UNA HORA Y NO CINCO MINUTOS ──
+ *
+ * La caché por defecto dura 5 minutos. Medido en el chat del plan: el primer
+ * turno ESCRIBE 6.529 tokens en caché y cuesta $0,038; el segundo los LEE y
+ * cuesta $0,005. Siete veces menos.
+ *
+ * Pero eso solo pasa si el segundo mensaje llega antes de cinco minutos. Y
+ * nadie usa esto así: abres la app, le pides el plan, lo miras, piensas, y a
+ * los diez minutos le dices que te cambie el jueves. Con cinco minutos, ese
+ * segundo mensaje vuelve a escribir la caché entera — se paga el prompt
+ * completo otra vez, y otra, y otra.
+ *
+ * Con una hora, una tarde entera de trastear escribe la caché UNA vez.
+ *
+ * Escribir con una hora cuesta algo más que con cinco minutos, así que una
+ * conversación de un solo mensaje sale un pelín más cara. Compensa en cuanto
+ * hay un segundo mensaje, que es lo normal: nadie pide un plan y se va.
+ */
+const CACHE_LARGA = { type: 'ephemeral', ttl: '1h' };
 function admin() {
   const url = process.env.SUPABASE_URL || process.env.VITE_PUBLIC_SUPABASE_URL || '';
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -1537,7 +1559,7 @@ function planChatSystem(profile, ctx, previous, agenda, historial, parcial) {
     : (bloqueHist ? bloqueHist + NL + NL + prev : prev);
 
   return [
-    { type: 'text', text: estable, cache_control: { type: 'ephemeral' } },
+    { type: 'text', text: estable, cache_control: CACHE_LARGA },
     { type: 'text', text: volatil },
   ];
 }
@@ -2531,7 +2553,7 @@ Responde en el idioma del usuario (por defecto español).`,
     // mensaje, que es exactamente lo contrario de para lo que está.
     const agendaTxt = agendaComoTexto(agenda);
     const histTxt = historialComoTexto(historial);
-    params.system = [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }];
+    params.system = [{ type: 'text', text: systemPrompt, cache_control: CACHE_LARGA }];
     if (histTxt) {
       params.system.push({
         type: 'text',

@@ -602,6 +602,7 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
             mode={mode}
             unidad={unidad}
             onWipe={(enAdelante) => setConfirmarVaciar({ date: dayISO, enAdelante })}
+            hayPorDelante={items.some((i) => i.plan_date >= dayISO && !i.completed && i.source !== 'logged')}
             onPrev={() => setDayISO(iso(addDays(new Date(dayISO + 'T12:00:00'), -1)))}
             onNext={() => setDayISO(iso(addDays(new Date(dayISO + 'T12:00:00'), 1)))}
             onAdd={(kind) => (kind === 'strength' ? setStrengthSheet({ date: dayISO }) : setSheetFor({ date: dayISO, kind }))}
@@ -888,6 +889,9 @@ interface DayViewProps {
   unidad: WeightUnit;
   /** Vaciar este día, o de este día en adelante. */
   onWipe: (enAdelante: boolean) => void;
+  /** ¿Queda algo PENDIENTE de este día en adelante? Puede haberlo aunque hoy
+   *  esté vacío, y es justo el caso en el que hace falta el botón. */
+  hayPorDelante: boolean;
   onPrev: () => void;
   onNext: () => void;
   onAdd: (kind: DayPlanKind) => void;
@@ -905,7 +909,7 @@ interface DayViewProps {
   onToggleDone?: (id: string, value: boolean) => void;
 }
 
-function DayView({ supps, suppNames, date, locale, items, comp, logged, mode, unidad, onWipe, onPrev, onNext, onAdd, onRemove, onMove, onPlanThisDay, onPlanWeek, onGoActivity, onRun, opening, onToggleDone }: DayViewProps) {
+function DayView({ supps, suppNames, date, locale, items, comp, logged, mode, unidad, onWipe, hayPorDelante, onPrev, onNext, onAdd, onRemove, onMove, onPlanThisDay, onPlanWeek, onGoActivity, onRun, opening, onToggleDone }: DayViewProps) {
   const { t } = useTranslation();
   const dObj = new Date(date + 'T12:00:00');
   const isToday = date === todayISO();
@@ -915,6 +919,7 @@ function DayView({ supps, suppNames, date, locale, items, comp, logged, mode, un
 
   const byKind = (k: DayPlanKind) => items.filter((i) => i.kind === k);
   const empty = items.length === 0;
+  const hayEsteDia = items.some((i) => !i.completed && i.source !== 'logged');
 
   // Suplementos que estaban vigentes ESE día, ordenados por hora de toma.
   const daySupps = activeSupplementsOn(supps, date)
@@ -947,18 +952,26 @@ function DayView({ supps, suppNames, date, locale, items, comp, logged, mode, un
         </button>
       </div>
 
-      {/* Vaciar. Solo si hay algo PENDIENTE que vaciar: un botón de borrar
-          sobre un día vacío no hace nada y confunde. */}
-      {items.some((i) => !i.completed && i.source !== 'logged') && (
-        <div className="flex gap-2 justify-center">
-          <button onClick={() => onWipe(false)}
-            className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-zinc-500 hover:text-red-400 border border-white/10 hover:border-red-500/40 rounded-lg px-3 py-2 cursor-pointer transition-colors">
-            <i className="ri-eraser-line" />{t('mc_ag_wipe_day')}
-          </button>
-          <button onClick={() => onWipe(true)}
-            className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-zinc-500 hover:text-red-400 border border-white/10 hover:border-red-500/40 rounded-lg px-3 py-2 cursor-pointer transition-colors">
-            <i className="ri-delete-bin-line" />{t('mc_ag_wipe_from')}
-          </button>
+      {/* Vaciar.
+
+          Cada botón con SU condición, que es donde me equivoqué al ponerlos:
+          los dos dependían de que ESTE día tuviera algo. Si hoy estaba vacío y
+          el resto de la semana llena, no salía ninguno y no había forma de
+          vaciar nada — justo cuando más falta hace. */}
+      {(hayEsteDia || hayPorDelante) && (
+        <div className="flex gap-2 justify-center flex-wrap">
+          {hayEsteDia && (
+            <button onClick={() => onWipe(false)}
+              className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-zinc-500 hover:text-red-400 border border-white/10 hover:border-red-500/40 rounded-lg px-3 py-2 cursor-pointer transition-colors">
+              <i className="ri-eraser-line" />{t('mc_ag_wipe_day')}
+            </button>
+          )}
+          {hayPorDelante && (
+            <button onClick={() => onWipe(true)}
+              className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-zinc-500 hover:text-red-400 border border-white/10 hover:border-red-500/40 rounded-lg px-3 py-2 cursor-pointer transition-colors">
+              <i className="ri-delete-bin-line" />{t('mc_ag_wipe_from')}
+            </button>
+          )}
         </div>
       )}
 
