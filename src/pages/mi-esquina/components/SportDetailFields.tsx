@@ -301,7 +301,7 @@ function Wod({ value, onChange, t }: { value: WodDetail | null; onChange: (d: Ac
         {fmt.result === 'rounds_reps' && (
           <div className="grid grid-cols-2 gap-2">
             <label className="block">
-              <span className="block text-[10px] text-zinc-500 mb-1">{t('mc_sp_rounds')}</span>
+              <span className="block text-[10px] text-zinc-500 mb-1">{t('mc_sp_wod_rounds')}</span>
               <input inputMode="numeric" defaultValue={d.rounds ?? ''} placeholder="12"
                 onBlur={(e) => onChange({ ...d, rounds: e.target.value ? parseInt(e.target.value, 10) : undefined })}
                 className={campo} style={{ fontSize: 16 }} />

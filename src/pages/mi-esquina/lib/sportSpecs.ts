@@ -221,13 +221,13 @@ export const SPORT_FIELDS: Record<string, ExtraField[]> = {
     { id: 'stroke', labelKey: 'mc_sp_sw_stroke', type: 'choice', options: ['mc_sp_sw_free', 'mc_sp_sw_back', 'mc_sp_sw_breast', 'mc_sp_sw_fly', 'mc_sp_sw_mixed'] },
     { id: 'pool', labelKey: 'mc_sp_sw_pool', type: 'choice', options: ['mc_sp_sw_25', 'mc_sp_sw_50', 'mc_sp_sw_open'] },
     { id: 'pace100', labelKey: 'mc_sp_sw_pace', type: 'time', placeholder: '1:45' },
-    { id: 'sets', labelKey: 'mc_sp_sets', type: 'text', placeholder: '10 × 100', wide: true },
+    { id: 'sets', labelKey: 'mc_sp_series', type: 'text', placeholder: '10 × 100', wide: true },
   ],
   remo: [
     { id: 'pace500', labelKey: 'mc_sp_rw_pace', type: 'time', placeholder: '2:05' },
     { id: 'spm', labelKey: 'mc_sp_rw_spm', type: 'number', unit: 'spm', placeholder: '24' },
     { id: 'watts', labelKey: 'mc_sp_watts', type: 'number', unit: 'W', placeholder: '210' },
-    { id: 'sets', labelKey: 'mc_sp_sets', type: 'text', placeholder: '4 × 500 m', wide: true },
+    { id: 'sets', labelKey: 'mc_sp_series', type: 'text', placeholder: '4 × 500 m', wide: true },
   ],
   bici: [
     { id: 'watts', labelKey: 'mc_sp_watts', type: 'number', unit: 'W', placeholder: '180' },
@@ -239,7 +239,7 @@ export const SPORT_FIELDS: Record<string, ExtraField[]> = {
     { id: 'session', labelKey: 'mc_sp_run_type', type: 'choice', wide: true, options: ['mc_sp_run_easy', 'mc_sp_run_long', 'mc_sp_run_tempo', 'mc_sp_run_intervals', 'mc_sp_run_hills', 'mc_sp_run_fartlek'] },
     { id: 'elev', labelKey: 'mc_sp_elev', type: 'number', unit: 'm', placeholder: '120' },
     { id: 'surface', labelKey: 'mc_sp_surface', type: 'choice', options: ['mc_sp_road', 'mc_sp_trail', 'mc_sp_track'] },
-    { id: 'sets', labelKey: 'mc_sp_sets', type: 'text', placeholder: '6 × 800 m', wide: true },
+    { id: 'sets', labelKey: 'mc_sp_series', type: 'text', placeholder: '6 × 800 m', wide: true },
   ],
   cinta: [
     { id: 'session', labelKey: 'mc_sp_run_type', type: 'choice', wide: true, options: ['mc_sp_run_easy', 'mc_sp_run_tempo', 'mc_sp_run_intervals', 'mc_sp_run_hills'] },
@@ -256,7 +256,7 @@ export const SPORT_FIELDS: Record<string, ExtraField[]> = {
   cuerda: [
     { id: 'jumps', labelKey: 'mc_sp_jumps', type: 'number', placeholder: '600' },
     { id: 'doubles', labelKey: 'mc_sp_doubles', type: 'number', placeholder: '50' },
-    { id: 'sets', labelKey: 'mc_sp_sets', type: 'text', placeholder: '6 × 3 min', wide: true },
+    { id: 'sets', labelKey: 'mc_sp_series', type: 'text', placeholder: '6 × 3 min', wide: true },
   ],
   boxeo: [
     { id: 'work', labelKey: 'mc_sp_bx_work', type: 'choice', wide: true, options: ['mc_sp_bx_shadow', 'mc_sp_bx_bag', 'mc_sp_bx_pads', 'mc_sp_bx_spar', 'mc_sp_bx_tech'] },
@@ -326,7 +326,7 @@ export function resumenDetalle(
     // El resultado, en la unidad de ESTE formato. Es el dato por el que se
     // compara un WOD con el mismo WOD de hace un mes.
     if (detail.rounds !== undefined) {
-      out.push(detail.extraReps ? `${detail.rounds}+${detail.extraReps}` : `${detail.rounds} ${t('mc_sp_rounds').toLowerCase()}`);
+      out.push(detail.extraReps ? `${detail.rounds}+${detail.extraReps}` : `${detail.rounds} ${t('mc_sp_wod_rounds').toLowerCase()}`);
     }
     if (detail.seconds) out.push(mmss(detail.seconds));
     if (detail.reps) out.push(`${detail.reps} ${t('mc_sp_reps')}`);
