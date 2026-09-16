@@ -41,7 +41,10 @@ export default {
   how_role_see_path: 'Ver mi camino',
 
   // Opportunities section
-  opp_eyebrow: 'Conexiones del sector',
+  // Su propia clave y no 'opp_eyebrow': la pagina de Oportunidades usaba ese
+  // mismo nombre con otro texto, y como los ficheros se mezclan por orden
+  // alfabetico ganaba 'opportunities.ts'. Resultado: esto no se veia NUNCA.
+  opp_home_eyebrow: 'Conexiones del sector',
   opp_headline_1: 'Donde el sector',
   opp_headline_2: 'se conecta',
   opp_subtext: 'Personas y organizaciones que se encuentran en RANKD.',
@@ -247,13 +250,6 @@ export default {
   opp_home_empty_desc: 'Las promotoras y organizaciones publicarán combates, contratos y patrocinios aquí.',
   opp_home_publish_btn: 'Publicar oportunidad',
   opp_home_no_type: 'No hay oportunidades de este tipo todavía.',
-  opp_type_combate: 'Combate',
-  opp_type_contrato: 'Contrato',
-  opp_type_patrocinio: 'Patrocinio',
-  opp_type_campamento: 'Campamento',
-  opp_type_sparring: 'Sparring',
-  opp_type_entrenamiento: 'Entrenamiento',
-  opp_type_scouting: 'Scouting',
 
   // Partners section — hardcoded
   partners_type_promoter: 'Promotora',

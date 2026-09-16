@@ -41,7 +41,7 @@ export default {
   how_role_see_path: 'See my path',
 
   // Opportunities section
-  opp_eyebrow: 'Connections across the scene',
+  opp_home_eyebrow: 'Connections across the scene',
   opp_headline_1: 'Where the scene',
   opp_headline_2: 'connects',
   opp_subtext: 'People and organizations meeting on RANKD.',
@@ -247,13 +247,6 @@ export default {
   opp_home_empty_desc: 'Promoters and organizations will post fights, contracts and sponsorships here.',
   opp_home_publish_btn: 'Post opportunity',
   opp_home_no_type: 'No opportunities of this type yet.',
-  opp_type_combate: 'Fight',
-  opp_type_contrato: 'Contract',
-  opp_type_patrocinio: 'Sponsorship',
-  opp_type_campamento: 'Camp',
-  opp_type_sparring: 'Sparring',
-  opp_type_entrenamiento: 'Training',
-  opp_type_scouting: 'Scouting',
 
   // Partners section — hardcoded
   partners_type_promoter: 'Promoter',

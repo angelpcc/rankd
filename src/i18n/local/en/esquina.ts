@@ -463,9 +463,6 @@ export default {
   mc_st_pesaje: 'Weigh-in',
   mc_st_otro: 'Other',
   // ── Export options ──
-  op_export_weekly: 'Weekly',
-  op_export_monthly: 'Monthly',
-  op_export_custom: 'Custom',
   // ── Redesigned summary: TODAY card + metrics + AI line ──
   mc_hoy_eyebrow: 'Today',
   mc_hoy_start: 'Start training',

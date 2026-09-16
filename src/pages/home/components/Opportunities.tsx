@@ -97,7 +97,7 @@ export default function Opportunities() {
           <div>
             <div className="flex items-center gap-3 mb-5">
               <div className="w-6 h-px bg-[#E10600]" />
-              <span className="text-[#E10600] text-xs font-semibold tracking-[0.2em] uppercase font-inter">{t('opp_eyebrow')}</span>
+              <span className="text-[#E10600] text-xs font-semibold tracking-[0.2em] uppercase font-inter">{t('opp_home_eyebrow')}</span>
             </div>
             <h2 className="font-unbounded font-black text-white leading-tight" style={{ fontSize: 'clamp(2rem, 4vw, 3.5rem)' }}>
               {t('opp_headline_1')}<br />

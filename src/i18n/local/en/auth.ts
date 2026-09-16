@@ -110,15 +110,10 @@ export default {
   registro_terms_and: 'and',
 
   // Opportunities page
-  opp_page_title: 'Opportunities',
   opp_page_subtitle: 'Fights, sparring, camps, contracts and more. Connect with promoters, clubs and organizers.',
-  opp_page_home: 'Home',
-  opp_page_directory: 'Directory',
-  opp_page_active: 'Active',
   opp_page_search: 'Search opportunities...',
   opp_page_found_singular: 'opportunity found',
   opp_page_found_plural: 'opportunities found',
-  opp_page_loading: 'Loading...',
   opp_page_no_results: 'No opportunities match those filters.',
   opp_page_no_results_sub: 'Try changing the filters or come back later.',
   opp_page_clear_filters: 'Clear filters',
@@ -138,8 +133,6 @@ export default {
 
   // Brands page
   brands_page_eyebrow: 'Equipment & Brands',
-  brands_page_headline_1: 'Combat sports',
-  brands_page_headline_2: 'brands',
   brands_page_subtitle: 'The directory of brands and equipment for fighters, clubs and promoters. Coming soon with direct collaborations between brands and athletes.',
   brands_page_directory_eyebrow: 'Directory',
   brands_page_all_brands: 'All brands',

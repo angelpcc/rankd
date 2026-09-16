@@ -110,15 +110,10 @@ export default {
   registro_terms_and: 'y',
 
   // Opportunities page
-  opp_page_title: 'Oportunidades',
   opp_page_subtitle: 'Combates, sparrings, campamentos, contratos y más. Conecta con promotoras, clubes y organizadores.',
-  opp_page_home: 'Inicio',
-  opp_page_directory: 'Directorio',
-  opp_page_active: 'Activas',
   opp_page_search: 'Buscar oportunidades...',
   opp_page_found_singular: 'oportunidad encontrada',
   opp_page_found_plural: 'oportunidades encontradas',
-  opp_page_loading: 'Cargando...',
   opp_page_no_results: 'No hay oportunidades con esos filtros.',
   opp_page_no_results_sub: 'Prueba a cambiar los filtros o vuelve más tarde.',
   opp_page_clear_filters: 'Limpiar filtros',
@@ -138,8 +133,6 @@ export default {
 
   // Brands page
   brands_page_eyebrow: 'Equipamiento & Marcas',
-  brands_page_headline_1: 'Marcas del deporte',
-  brands_page_headline_2: 'de combate',
   brands_page_subtitle: 'El directorio de marcas y equipamiento para peleadores, clubes y promotoras. Próximamente con colaboraciones directas entre marcas y atletas.',
   brands_page_directory_eyebrow: 'Directorio',
   brands_page_all_brands: 'Todas las marcas',
