@@ -356,6 +356,43 @@ export async function clearPlanPending(
 }
 
 /**
+ * Retira el plan de en medio: quita lo pendiente y lo saca de la Agenda.
+ *
+ * ── QUÉ SE BORRA Y QUÉ NO ──
+ *
+ * Lo PENDIENTE se borra. Lo ya ENTRENADO se queda, siempre: es historial, un
+ * hecho, no una intención. Borrar un día entrenado porque cambias de plan sería
+ * reescribir lo que hiciste, y eso no se toca nunca.
+ *
+ * ── POR QUÉ 'archived' Y NO BORRAR LA FILA ──
+ *
+ * El plan sigue existiendo para los días que ya se entrenaron con él: si se
+ * borrara la fila, esos bloques completados apuntarían a un plan que no existe.
+ * 'archived' ya está permitido por la tabla (migración 0056), así que esto no
+ * necesita ninguna migración nueva. `loadActivePlan` solo mira los 'committed',
+ * así que archivado deja de salir por todas partes.
+ */
+export async function archiveWeekPlan(
+  profileId: string,
+  planId: string,
+): Promise<{ removed: number; keptCompleted: string[] }> {
+  const limpieza = await clearPlanPending(profileId, planId);
+
+  // Un id local ("wp_…") nunca llegó a la base: solo vivía aquí.
+  if (!planId.startsWith('wp_')) {
+    await supabase.from('week_plans')
+      .update({ status: 'archived', updated_at: new Date().toISOString() })
+      .eq('id', planId);
+  }
+
+  // Y la copia local, si la que hay guardada era ésta.
+  const local = readLocal(profileId);
+  if (local && local.id === planId) writeLocal(profileId, null);
+
+  return limpieza;
+}
+
+/**
  * Días de este plan que ya están entrenados.
  *
  * Se consulta ANTES de pedirle un cambio al Asesor para poder decírselo: si no,

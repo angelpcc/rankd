@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import BottomSheet from '@/components/base/BottomSheet';
 import { useTranslation } from 'react-i18next';
 import { supabase, type Profile } from '@/lib/supabase';
 import Reveal from '@/components/base/Reveal';
 import VoiceButton from '@/components/feature/VoiceButton';
 import { activityKindCfg, fmtSetCount } from '../lib/dayPlan';
 import {
-  commitWeekPlan, currentWeekStart, dateOfWeekday, loadActivePlan, planTotals, weeksOf,
+  archiveWeekPlan, commitWeekPlan, currentWeekStart, dateOfWeekday, loadActivePlan, planTotals, weeksOf,
   type CommitResult, type WeekPlan,
 } from '../lib/weekPlan';
 import { buildWeekContext, checkWeekPlanAvailable } from '@/services/weekPlanAdvisor';
@@ -83,6 +84,17 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
   const [progreso, setProgreso] = useState<{ hechos: number; total: number } | null>(null);
   /** Lo entrenado de verdad estos días, planificado o no. */
   const [historial, setHistorial] = useState<DiaEntrenado[]>([]);
+  /**
+   * El plan que está AHORA MISMO en la Agenda, si hay alguno.
+   *
+   * No es lo mismo que `plan`: `plan` es el de esta conversación, que puede ser
+   * uno nuevo todavía sin guardar. Hacen falta los dos para poder preguntar
+   * "ya tienes uno, ¿lo sustituyo?" en vez de apilarlos.
+   */
+  const [activoEnAgenda, setActivoEnAgenda] = useState<WeekPlan | null>(null);
+  /** Plan viejo esperando a que decidas qué hacer con él. */
+  const [choque, setChoque] = useState<WeekPlan | null>(null);
+  const [quitando, setQuitando] = useState(false);
   const [foto, setFoto] = useState<ImagenLista | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -122,6 +134,7 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
       // Primero la conversación que quedó a medias: es lo que el usuario dejó
       // abierto. Salir a mirar la Agenda y volver no puede borrar cinco turnos
       // de trabajo, y menos cuando cada turno cuesta dinero.
+      if (activo) setActivoEnAgenda(activo.plan);
       const guardados = loadChat(profile.id, 'plan');
       if (guardados.length > 0) {
         setTurnos(guardados.map((x) => ({
@@ -229,8 +242,23 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
     if (res.plan) { setPlan(res.plan); setGuardado(null); }
   }, [texto, foto, enviando, turnos, ctx, fighter, plan, agenda, historial, weekStart, profile.id, showToast, t]);
 
-  const guardar = async () => {
+  /**
+   * Manda el plan a la Agenda.
+   *
+   * Antes de nada mira si YA hay otro plan puesto. La limpieza al guardar solo
+   * retira los bloques sellados con el MISMO id, así que un plan nuevo se
+   * sumaba al viejo y los días salían duplicados: dos fuerzas el lunes, dos
+   * cardios el martes. Ahora se pregunta, que es la única respuesta honesta —
+   * sustituir y no sustituir son las dos cosas razonables según el caso.
+   */
+  const guardar = async (sustituyendo = false) => {
     if (!plan || guardando) return;
+
+    if (!sustituyendo && activoEnAgenda && activoEnAgenda.id !== plan.id) {
+      setChoque(activoEnAgenda);
+      return;
+    }
+
     setGuardando(true);
     const res = await commitWeekPlan(profile.id, plan, {
       profile: fighter as unknown as Record<string, unknown>,
@@ -240,7 +268,27 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
     setProgreso(null);
     setGuardado(res);
     if (res.agendaUnavailable) { showToast(t('mc_pc_agenda_off'), 'error'); return; }
+    // A partir de ahora, el de la Agenda es éste.
+    setActivoEnAgenda(plan);
     showToast(t('mc_pc_saved', { n: res.agendaItems }));
+  };
+
+  /**
+   * Saca el plan de la Agenda.
+   *
+   * Lo pendiente se va; lo YA ENTRENADO se queda siempre. Un día entrenado es
+   * un hecho, no una intención: borrarlo porque cambias de plan sería reescribir
+   * lo que hiciste.
+   */
+  const quitarPlan = async (p: WeekPlan, seguirGuardando: boolean) => {
+    setQuitando(true);
+    const r = await archiveWeekPlan(profile.id, p.id);
+    setQuitando(false);
+    setChoque(null);
+    setActivoEnAgenda(null);
+    showToast(t('mc_pc_removed', { n: r.removed }));
+    if (r.keptCompleted.length > 0) showToast(t('mc_pc_removed_kept', { n: r.keptCompleted.length }));
+    if (seguirGuardando) await guardar(true);
   };
 
   const sinIA = aiOk === false;
@@ -264,6 +312,17 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
               {t('mc_pc_head_sub')}
             </p>
           </div>
+          {/* Quitar el plan que hay puesto. Aquí y no escondido en un menú:
+              cambiar de plan es una cosa normal, y sin esto la única salida era
+              borrar los bloques uno a uno desde la Agenda. */}
+          {activoEnAgenda && (
+            <button onClick={() => setChoque(activoEnAgenda)}
+              title={t('mc_pc_remove_plan')}
+              aria-label={t('mc_pc_remove_plan')}
+              className="w-9 h-9 flex-shrink-0 rounded-lg flex items-center justify-center text-zinc-500 hover:text-red-400 hover:bg-white/[0.06] transition-colors cursor-pointer">
+              <i className="ri-delete-bin-line" />
+            </button>
+          )}
           {turnos.length > 0 && (
             <button onClick={() => {
               // Se borra también el plan en curso: dejarlo colgando de una
@@ -395,7 +454,7 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
         <div className="rk-card" style={{ padding: 16, borderColor: 'rgba(225,6,0,0.35)' }}>
           <p className="text-sm font-bold text-white">{t('mc_pc_ready_title')}</p>
           <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{t('mc_pc_ready_desc')}</p>
-          <button onClick={guardar} disabled={guardando}
+          <button onClick={() => guardar()} disabled={guardando}
             className="rk-cta rk-press w-full flex items-center justify-center gap-2 mt-3 disabled:opacity-60"
             style={{ minHeight: 48 }}>
             {guardando
@@ -412,6 +471,63 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
           </button>
         </div>
       )}
+
+      {/* ── Ya hay un plan puesto: ¿qué hago con él? ──
+          Las dos salidas son razonables según el caso, así que se preguntan las
+          dos en vez de decidir por él. Y la tercera —no hacer nada— también
+          tiene que estar: cerrar la hoja no guarda ni borra. */}
+      <BottomSheet open={!!choque} onClose={() => { if (!quitando && !guardando) setChoque(null); }}
+        title={t('mc_pc_clash_title')}>
+        {choque && (
+          <>
+            <div className="rk-card mb-4" style={{ padding: 14 }}>
+              <p className="text-[10px] font-bold tracking-[0.2em] uppercase" style={{ color: 'var(--t-3)' }}>
+                {t('mc_pc_clash_current')}
+              </p>
+              <p className="text-sm font-bold text-white mt-1">{choque.summary || t('mc_pc_plan_current')}</p>
+              <p className="text-[11px] text-zinc-400 mt-0.5">
+                {choque.weeks > 1 ? t('mc_pc_weeks_n', { n: choque.weeks }) : t('mc_pc_weeks_1')}
+                {' · '}{t('mc_pc_stat_strength', { n: choque.strength.length })}
+              </p>
+            </div>
+
+            <p className="text-sm mb-4 leading-relaxed" style={{ color: 'var(--t-2)' }}>
+              {t('mc_pc_clash_desc')}
+            </p>
+
+            {/* Sustituir Y guardar el nuevo, que es lo que se viene a hacer
+                cuando llegas aquí desde el botón de mandar a la Agenda. */}
+            {plan && plan.id !== choque.id && (
+              <button onClick={() => quitarPlan(choque, true)} disabled={quitando || guardando}
+                className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60"
+                style={{ minHeight: 48 }}>
+                {(quitando || guardando)
+                  ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  : <><i className="ri-loop-left-line" /> {t('mc_pc_clash_replace')}</>}
+              </button>
+            )}
+
+            {/* Solo quitarlo, sin poner nada. Es lo que se hace desde la papelera. */}
+            <button onClick={() => quitarPlan(choque, false)} disabled={quitando || guardando}
+              className={`rk-btn w-full flex items-center justify-center gap-2 disabled:opacity-60 ${plan && plan.id !== choque.id ? 'mt-2' : ''}`}
+              style={{ minHeight: 48 }}>
+              <i className="ri-delete-bin-line" /> {t('mc_pc_clash_remove_only')}
+            </button>
+
+            {plan && plan.id !== choque.id && (
+              <button onClick={() => { setChoque(null); void guardar(true); }} disabled={quitando || guardando}
+                className="w-full text-xs text-zinc-500 hover:text-zinc-300 cursor-pointer mt-3 disabled:opacity-60"
+                style={{ minHeight: 40 }}>
+                {t('mc_pc_clash_keep_both')}
+              </button>
+            )}
+
+            <p className="text-[11px] text-zinc-600 mt-3 leading-relaxed flex items-start gap-1.5">
+              <i className="ri-information-line mt-0.5 flex-shrink-0" />{t('mc_pc_clash_note')}
+            </p>
+          </>
+        )}
+      </BottomSheet>
 
       {guardado && (
         <div className="rk-card" style={{ padding: 16, borderColor: 'rgba(74,222,128,0.35)' }}>
