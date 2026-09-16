@@ -43,6 +43,26 @@ interface Props {
 }
 
 /** Tiempos que la gente dice de verdad. Evita teclear un número. */
+/**
+ * Disciplinas que sabe montar por asaltos.
+ *
+ * `txt` es lo que se le dice al generador: una frase, no un código, porque el
+ * prompt lo lee como contexto y una etiqueta suelta ("muay_thai") no le dice
+ * qué cambiar.
+ */
+const DISCIPLINAS: { v: string; labelKey: string; txt: string }[] = [
+  { v: 'boxeo', labelKey: 'mc_bx_disc_boxing', txt: 'Es una sesión de BOXEO: solo manos' },
+  { v: 'kickboxing', labelKey: 'mc_bx_disc_kick', txt: 'Es una sesión de KICKBOXING: manos y patadas, sin rodillas ni codos' },
+  { v: 'muay_thai', labelKey: 'mc_bx_disc_muay', txt: 'Es una sesión de MUAY THAI: manos, patadas, rodillas, codos y clinch' },
+  { v: 'mma', labelKey: 'mc_bx_disc_mma', txt: 'Es una sesión de MMA: golpeo de pie más entradas a derribo y trabajo en el suelo si el sitio lo permite' },
+];
+
+/** Lo que más se tiene en casa, para no teclearlo. */
+const MATERIAL_RAPIDO = [
+  'mc_bx_gear_rope', 'mc_bx_gear_dumbbells', 'mc_bx_gear_bands',
+  'mc_bx_gear_pads', 'mc_bx_gear_kettlebell', 'mc_bx_gear_partner',
+];
+
 const MINUTOS = [30, 45, 60, 75, 90];
 
 export default function BoxingStudio({ profile, showToast }: Props) {
@@ -51,6 +71,21 @@ export default function BoxingStudio({ profile, showToast }: Props) {
 
   const [minutes, setMinutes] = useState<number | null>(null);
   const [place, setPlace] = useState<BoxingPlace | null>(null);
+  /**
+   * Qué se entrena. El boxeo es el caso principal, pero el guion de un asalto
+   * de muay thai o de MMA no es el mismo: cambian los golpes y cambia el
+   * trabajo de piernas. Con una sola opción, a un tailandés le salían solo
+   * manos.
+   */
+  const [disc, setDisc] = useState<string>('boxeo');
+  /**
+   * Material que tiene de verdad.
+   *
+   * "En casa" y "en casa con saco" cubren lo más común, pero no el resto: unas
+   * peras, unas mancuernas, una comba, unas bandas. Sin poder decirlo, el
+   * guion daba por hecho lo mínimo y se dejaba fuera lo que sí tienes.
+   */
+  const [material, setMaterial] = useState('');
   const [notes, setNotes] = useState('');
   const [busy, setBusy] = useState(false);
   const [sessions, setSessions] = useState<BoxingSession[]>([]);
@@ -94,7 +129,15 @@ export default function BoxingStudio({ profile, showToast }: Props) {
     // La agenda se lee AHORA, no al montar: puede haber cambiado mientras
     // elegías el tiempo y el sitio.
     const agendaAhora = await loadAgendaSnapshot(profile.id, currentWeekStart(), 1).catch(() => []);
-    const res = await generateBoxingSession({ minutes, place, notes: notes.trim(), profile: fighter, agenda: agendaAhora });
+    // El material y la disciplina viajan con las notas: el generador ya sabe
+    // leer texto libre ahí, así que no hace falta otro campo en el servidor
+    // para algo que es, literalmente, contexto en palabras.
+    const extra = [
+      DISCIPLINAS.find((x) => x.v === disc)?.txt,
+      material.trim() ? `Material que tengo: ${material.trim()}` : '',
+      notes.trim(),
+    ].filter(Boolean).join('. ');
+    const res = await generateBoxingSession({ minutes, place, notes: extra, profile: fighter, agenda: agendaAhora });
     if (!res.session) {
       setBusy(false);
       showToast(res.error === 'auth' ? t('mc_bx_err_auth') : (res.error || t('mc_bx_err_gen')), 'error');
@@ -165,6 +208,21 @@ export default function BoxingStudio({ profile, showToast }: Props) {
         </div>
         <p className="text-xs text-zinc-400 mt-3 leading-relaxed">{t('mc_bx_desc')}</p>
 
+        {/* ── 0. Qué entrena ──
+            Primero porque cambia TODO lo de abajo: los golpes, el trabajo de
+            piernas y hasta qué material tiene sentido. */}
+        <p className="text-[11px] uppercase tracking-wider font-bold text-zinc-500 mt-4 mb-1.5">
+          {t('mc_bx_q_disc')}
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {DISCIPLINAS.map((o) => (
+            <button key={o.v} type="button" onClick={() => setDisc(o.v)}
+              className={`rk-chip text-xs font-semibold rounded-full px-3 py-2 cursor-pointer border ${disc === o.v ? 'border-white/30 bg-white/[0.07] text-white' : 'border-white/10 text-zinc-300 hover:border-white/25'}`}>
+              {t(o.labelKey)}
+            </button>
+          ))}
+        </div>
+
         {/* ── 1. Cuánto tiempo ── */}
         <p className="text-[11px] uppercase tracking-wider font-bold text-zinc-500 mt-4 mb-1.5">
           {t('mc_bx_q_time')}
@@ -200,6 +258,30 @@ export default function BoxingStudio({ profile, showToast }: Props) {
                 <span className="block text-xs font-bold text-white">{t(o.label)}</span>
                 <span className="block text-[10px] text-zinc-500 mt-0.5 leading-tight">{t(o.hint)}</span>
               </span>
+            </button>
+          ))}
+        </div>
+
+        {/* ── 3. Qué material tienes ──
+            Va DEBAJO del sitio y no dentro: el sitio dice si hay saco o no, que
+            es lo que parte el guion en dos; el material es el matiz que lo
+            afina. Con las dos cosas, "en casa" deja de significar "solo sombra"
+            si resulta que tienes comba y mancuernas. */}
+        <p className="text-[11px] uppercase tracking-wider font-bold text-zinc-500 mt-4 mb-1.5">
+          {t('mc_bx_q_gear')}
+        </p>
+        <input value={material} onChange={(e) => setMaterial(e.target.value)} maxLength={200}
+          placeholder={t('mc_bx_gear_ph')}
+          className="w-full rounded-xl bg-white/[0.03] border border-white/10 text-white p-3 focus:outline-none focus:border-white/25"
+          style={{ fontSize: 16 }} />
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {/* Atajos para lo que más se tiene. Se suman al texto en vez de
+              reemplazarlo: quien tiene tres cosas las toca las tres. */}
+          {MATERIAL_RAPIDO.map((k) => (
+            <button key={k} type="button"
+              onClick={() => setMaterial((p) => (p.trim() ? `${p.trim()}, ${t(k)}` : t(k)))}
+              className="rk-chip text-[11px] text-zinc-400 border border-white/10 hover:border-white/25 hover:text-white rounded-full px-2.5 py-1 cursor-pointer">
+              + {t(k)}
             </button>
           ))}
         </div>

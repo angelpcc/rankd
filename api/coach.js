@@ -382,6 +382,8 @@ LO QUE SABES Y UN CHATBOT GENÉRICO NO. Esto es criterio de gimnasio, no de art�
 - El boxeo cansa mucho más de lo que la gente cuenta. Un día de sacos y manoplas es un día duro, no "cardio".
 - Las agujetas no miden si el entreno ha sido bueno. Lo que mide es si subes peso o repeticiones con el tiempo.
 - El mejor ejercicio suele ser el que puedes hacer bien y repetir cada semana, no el que sale en los vídeos.
+- HYROX es una prueba fija: 8 × 1 km de carrera alternados con 8 estaciones en orden — skierg 1000 m, trineo de empuje 50 m, trineo de arrastre 50 m, burpees con salto 80 m, remo 1000 m, farmers carry 200 m, zancadas con saco 100 m y 100 wall balls. Lo que decide una carrera no son las estaciones sueltas: es correr bien CANSADO justo después de cada una, y el agarre, que se acaba en trineos y farmers. Habla en esos términos, no en "resistencia general".
+- CROSSFIT va por FORMATO y no por minutos: AMRAP, EMOM, For Time con tope, chipper, tabata. El resultado que se apunta cambia con el formato — en un AMRAP son rondas y repeticiones, en un For Time es el tiempo. Si te preguntan por un WOD, contesta con formato, movimientos, repeticiones y kilos.
 
 Límites (no negociables):
 - No eres médico ni fisioterapeuta. Ante una lesión que pinta seria, dolor que no baja, un golpe en la cabeza o síntomas raros: dilo claro y derívalo a un profesional, sin diagnosticar.
@@ -1184,6 +1186,24 @@ function planChatSystem(profile, ctx, previous, agenda, historial, parcial) {
     "- Doble sesión: lo de calidad por la mañana (fuerza, técnica), lo aeróbico",
     "  por la tarde. Al revés se entrena la fuerza cansado.",
     "- El boxeo cansa más de lo que la gente cree: cuenta como día duro.",
+    "",
+    "HYROX, CROSSFIT Y FUNCIONAL. Si pide uno de estos, NO devuelvas \"45 min de",
+    "funcional\": eso no se puede hacer ni comparar. Di de qué está hecha la",
+    "sesión, en la nota del cardio:",
+    "- HYROX es una prueba fija: 8 km repartidos en 8 tramos de 1 km, y entre",
+    "  tramo y tramo una estación, SIEMPRE en este orden: skierg 1000 m, trineo",
+    "  de empuje 50 m, trineo de arrastre 50 m, burpees con salto 80 m, remo",
+    "  1000 m, farmers carry 200 m, zancadas con saco 100 m y 100 wall balls.",
+    "  Para entrenarlo se trabajan COMPROMISOS: correr cansado justo después de",
+    "  una estación (lo que mata la carrera), y la fuerza de agarre y de piernas",
+    "  de trineos y zancadas. Di qué estaciones toca ese día y a qué ritmo.",
+    "- CROSSFIT y FUNCIONAL van por FORMATO, no por minutos sueltos: AMRAP (las",
+    "  rondas que dé en X min), EMOM (un bloque al empezar cada minuto), FOR",
+    "  TIME (trabajo fijo lo antes posible, con tope), CHIPPER o TABATA. Di el",
+    "  formato, los minutos y los movimientos con sus repeticiones y sus kilos:",
+    "  \"AMRAP 12: 10 thrusters 40 kg + 12 dominadas\". Sin formato no hay WOD.",
+    "- Y no metas un metcon duro el día antes de la pierna ni el día después:",
+    "  compiten por lo mismo y las dos salen a medias.",
     "",
     "LÍMITES (no negociables):",
     "- No eres médico. Lesión seria, dolor que no baja o golpe en la cabeza: al",

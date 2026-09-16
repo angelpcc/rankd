@@ -14,6 +14,8 @@ import { reconcileDayTicks } from '../lib/planTicks';
 import SectionHero from './SectionHero';
 import ActivityTodayCard from './ActivityTodayCard';
 import { useActivityLauncher } from './useActivityLauncher';
+import SportDetailFields from './SportDetailFields';
+import { usaHyrox, usaWod, type ActivityDetail } from '../lib/sportSpecs';
 
 interface Props {
   profile: Profile;
@@ -54,6 +56,8 @@ interface ActSession {
   incline_percent: number | null;
   /** Frecuencia cardíaca media en ppm (migración 0047). */
   avg_hr?: number | null;
+  /** Detalle propio del deporte: estaciones de Hyrox o WOD (migración 0058). */
+  detail?: ActivityDetail | null;
   note: string | null;
   created_at: string;
 }
@@ -164,6 +168,12 @@ export default function FighterTraining({ profile, showToast, initialDate, initi
   // nadie: el usuario ve desaparecer el aviso al pulsar guardar, que es cuando
   // lo espera.
   const navigate = useNavigate();
+  /**
+   * El detalle propio del deporte: estaciones de Hyrox, o formato y movimientos
+   * de un WOD. null para los que no lo usan (correr, bici…), que se registran
+   * enteros con las columnas de siempre.
+   */
+  const [detail, setDetail] = useState<ActivityDetail | null>(null);
   const [localRefresh, setLocalRefresh] = useState(0);
   /** Algo ha cambiado aquí: relee la card y avisa al Resumen. */
   const bumpToday = () => setLocalRefresh((k) => k + 1);
@@ -225,6 +235,9 @@ export default function FighterTraining({ profile, showToast, initialDate, initi
   const resetForm = () => {
     setDuration('30'); setDistanceKm(''); setPace(''); setMeters(''); setRounds(''); setRoundDur('');
     setIncline(''); setNote(''); setAvgHr(''); setMoreOpen(false);
+    // Si no se limpia, las estaciones de un Hyrox se arrastrarían al siguiente
+    // registro y aparecerían pre-rellenas en una sesión que no las tuvo.
+    setDetail(null);
   };
 
   // Cierra el formulario y limpia el modo edición.
@@ -244,6 +257,7 @@ export default function FighterTraining({ profile, showToast, initialDate, initi
     setIncline(s.incline_percent != null ? String(s.incline_percent) : '');
     setAvgHr(s.avg_hr != null ? String(s.avg_hr) : '');
     setNote(s.note ?? '');
+    setDetail(s.detail ?? null);
     // Si la sesión ya trae algún dato de los plegados, se abre el bloque: si
     // no, parecería que al editar se han perdido.
     setMoreOpen(!!(s.pace_sec_per_km || s.incline_percent != null || s.round_duration_sec != null || s.avg_hr != null || (s.note || '').trim()));
@@ -269,6 +283,11 @@ export default function FighterTraining({ profile, showToast, initialDate, initi
       round_duration_sec: cfg.fields.includes('round_duration') && roundDur ? parseInt(roundDur, 10) : null,
       incline_percent: cfg.fields.includes('incline') && incline ? parseFloat(incline.replace(',', '.')) : null,
       avg_hr: avgHr ? parseInt(avgHr, 10) : null,
+      // Solo para los deportes que lo usan. Si la migración 0058 no está
+      // aplicada, `writeDroppingMissingColumns` quita esta columna y la sesión
+      // se guarda igual con lo que sí cabe — el detalle se pierde, pero el
+      // registro no, que es lo que importa.
+      detail: (usaHyrox(kind) || usaWod(kind)) && detail ? detail : null,
       pace_sec_per_km: cfg.fields.includes('pace')
         ? (pace ? paceToSec(pace) : autoPace) || null
         : null,
@@ -651,6 +670,16 @@ export default function FighterTraining({ profile, showToast, initialDate, initi
                     </div>
                     {cfg.fields.includes('pace') && shownPace && (
                       <p className="text-[11px] text-zinc-500 -mt-1">{t('mc_av_pace_auto', { pace: shownPace })}</p>
+                    )}
+
+                    {/* ── Lo que de verdad define ESTE deporte ──
+                        Un Hyrox no son "75 minutos y 8 rondas": son 8 estaciones
+                        con su tiempo y su carga. Un WOD no es una duración: es un
+                        formato con su resultado propio. Va aquí arriba, no en los
+                        detalles plegados, porque en estos deportes NO es un
+                        detalle: es la sesión. */}
+                    {(usaHyrox(kind) || usaWod(kind)) && (
+                      <SportDetailFields kind={kind} value={detail} onChange={setDetail} />
                     )}
 
                     {/* ── DETALLES OPCIONALES ──
