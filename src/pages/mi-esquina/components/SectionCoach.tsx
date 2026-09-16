@@ -411,7 +411,11 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
         // de que la función exista. Sin este caso el usuario leía un "no se
         // pudo generar respuesta" que no le decía qué arreglar.
         const d = await res.json().catch(() => ({}));
-        const generico = res.status === 413 ? t('mc_chat_too_big_send') : t('mc_ai_err_generate');
+        const generico = res.status === 413 ? t('mc_chat_too_big_send')
+          : (res.status === 504 || res.status === 502) ? t('mc_pc_err_timeout')
+            // Con el codigo delante: sin el, cualquier fallo de fuera de la app
+            // se lee igual y no hay por donde empezar a mirar.
+            : t('mc_ai_err_code', { code: res.status });
         setMessages((prev) => [...prev, { role: 'assistant', content: d.message || generico }]);
         setSending(false);
         return;

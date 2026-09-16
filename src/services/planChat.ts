@@ -28,6 +28,16 @@ export interface PlanChatMessage {
 }
 
 export interface PlanChatResult {
+  /**
+   * Codigo HTTP cuando algo falla. Existe para poder DECIRLO.
+   *
+   * Sin esto, cualquier fallo que no viniera de la propia app —la funcion
+   * cortada por tiempo, la red, un 500— acababa en el mismo "no se pudo
+   * generar respuesta", y desde fuera no habia forma de saber cual de los
+   * tres era. Se enseña al usuario a proposito: es lo unico que permite
+   * que cuente lo que ha visto y se pueda arreglar.
+   */
+  status?: number;
   /** Lo que te dice, en lenguaje normal. */
   reply: string;
   /** El plan, si ya ha podido montarlo. null mientras pregunta. */
@@ -107,7 +117,7 @@ export async function sendPlanChat(
       const codigo = res.status === 413 ? 'too_large'
         : (res.status === 504 || res.status === 502) ? 'timeout'
           : 'server';
-      return { reply: '', plan: null, error: data?.message || codigo };
+      return { reply: '', plan: null, status: res.status, error: data?.message || codigo };
     }
 
     const reply = String(data?.reply || '').trim();
@@ -118,9 +128,29 @@ export async function sendPlanChat(
       ? normalizeWeekPlan(data.plan as Record<string, unknown>, lastUserText(messages), ctx, planId)
       : null;
 
+    // Lo que el modelo NO ha tocado vuelve del plan que ya teniamos.
+    //
+    // Se le pide expresamente que no reescriba lo que no cambia: medido,
+    // cambiar tres cardios le costaba reescribir los seis dias de fuerza con
+    // sus 36 ejercicios, 5.044 tokens y 42 segundos. Ahora manda el apartado
+    // vacio y dice "este lo dejo igual", y se rellena aqui.
+    //
+    // Solo se rellena si viene VACIO: si el modelo se contradice y manda a la
+    // vez el apartado con contenido y su nombre en `keep`, gana lo que ha
+    // escrito. Pisarlo con lo viejo seria descartar un cambio que si pidio.
+    if (plan && previous && Array.isArray(data?.keep)) {
+      for (const parte of data.keep as string[]) {
+        if (parte === 'strength' && (plan.strength || []).length === 0) plan.strength = previous.strength;
+        if (parte === 'protocols' && (plan.protocols || []).length === 0) plan.protocols = previous.protocols;
+        if (parte === 'nutrition' && (plan.nutrition || []).length === 0) plan.nutrition = previous.nutrition;
+      }
+    }
+
     return { reply, plan, error: null };
   } catch {
-    return { reply: '', plan: null, error: 'network' };
+    // 0 = ni siquiera hubo respuesta: se corto la conexion o el navegador
+    // aborto. Se distingue de un error del servidor a proposito.
+    return { reply: '', plan: null, status: 0, error: 'network' };
   }
 }
 

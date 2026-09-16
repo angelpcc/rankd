@@ -1109,13 +1109,36 @@ const WEEK_PLAN_SCHEMA = {
 // ha quitado ninguna regla: se ha quitado la COPIA.
 //
 // Si añades una regla nueva, escríbela en el prompt, no aquí.
+/**
+ * Lo que se le pide al modelo en el chat del plan.
+ *
+ * ── POR QUE EXISTE `keep` ──
+ *
+ * Medido: cambiar SOLO los tres cardios de un plan de seis dias costaba 5.044
+ * tokens de salida y 42 segundos, porque el modelo tenia que reescribir los
+ * seis dias de fuerza con sus 36 ejercicios enteros para no perderlos. Cinco
+ * mil tokens para tocar tres lineas.
+ *
+ * Y no es solo caro: montar el plan de cero ya tardaba 53 s y la funcion se
+ * muere a los 300. Cada cosa que no haga falta reescribir es margen que no se
+ * gasta.
+ *
+ * Con `keep`, el modelo dice que apartados NO ha tocado y los devuelve vacios;
+ * el cliente los coge del plan que ya tenia. Si no dice nada, todo funciona
+ * como antes: lista vacia = no se conserva nada = comportamiento de siempre.
+ */
 const PLAN_CHAT_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['reply', 'ready', ...WEEK_PLAN_SCHEMA.required],
+  required: ['reply', 'ready', 'keep', ...WEEK_PLAN_SCHEMA.required],
   properties: {
     reply: { type: 'string', description: 'Lo que le dices al usuario. Breve y de tú a tú. Si preguntas algo, que sean UNA o DOS preguntas cortas, nunca un cuestionario.' },
     ready: { type: 'boolean', description: 'true cuando el plan ya está montado y sirve. false mientras preguntas: en ese caso deja strength, protocols y nutrition como listas vacías y no te esfuerces en rellenarlas.' },
+    keep: {
+      type: 'array',
+      description: 'Apartados del plan anterior que NO cambias en este turno. Ponlos aquí y devuelve ESE apartado como lista VACÍA: se conserva tal cual el que ya había. Si te piden cambiar solo el cardio, pon ["strength","nutrition"] y no reescribas la fuerza. Lista vacía si cambias todo o si es un plan nuevo.',
+      items: { type: 'string', enum: ['strength', 'protocols', 'nutrition'] },
+    },
     ...WEEK_PLAN_SCHEMA.properties,
   },
 };
@@ -1239,6 +1262,15 @@ function planChatSystem(profile, ctx, previous, agenda, historial, parcial) {
     "   día antes de competir— NO lo montes en silencio ni lo montes mal. Dilo en",
     "   una línea y propón la salida: \"así no te recuperas; te lo paso al jueves,",
     "   ¿lo hago?\". Eres su entrenador, no un formulario que obedece.",
+    "",
+    "2.ter. NO REESCRIBAS LO QUE NO CAMBIAS. Si ya hay plan y te piden tocar",
+    "   UNA parte —\"cámbiame los cardios\", \"quita el press del lunes\"—",
+    "   devuelve SOLO esa parte y pon las otras en \"keep\", con su lista",
+    "   VACÍA. Ejemplo: te piden otro cardio → keep: [\"strength\",\"nutrition\"],",
+    "   protocols con los cardios nuevos, strength y nutrition vacíos.",
+    "   Reescribir los seis días de fuerza para cambiar tres líneas de cardio",
+    "   tarda cuarenta segundos y le cuesta dinero a quien lo usa, y encima",
+    "   es donde se cuelan los cambios que nadie ha pedido.",
     "",
     "2.bis. CUÁNDO **NO** DEVOLVER EL PLAN. Si el plan ya está montado y este",
     "   turno NO lo cambia —te preguntan por qué algo, te dan las gracias, te",
@@ -1998,12 +2030,16 @@ export default async function handler(req, res) {
       }
       // El plan viene desgranado en la raíz: se vuelve a juntar aquí para que
       // el cliente reciba la misma forma de siempre y no se entere del cambio.
-      const { reply, ready, ...plan } = out;
+      const { reply, ready, keep, ...plan } = out;
       // Sin `ready` no hay plan: mientras pregunta, las listas vienen vacías y
       // colarlo borraría de la pantalla el plan bueno que ya estuviera montado.
+      // `keep` cuenta como contenido: si el modelo cambia solo el cardio y
+      // conserva la fuerza, `strength` llega vacio a proposito y sin esto el
+      // plan se daria por no listo y se tiraria el cambio entero.
+      const conservados = Array.isArray(keep) ? keep.filter((k) => ['strength', 'protocols', 'nutrition'].includes(k)) : [];
       const listo = ready === true
-        && ((plan.strength || []).length > 0 || (plan.protocols || []).length > 0);
-      return res.status(200).json({ reply, plan: listo ? plan : null, usage: response.usage });
+        && ((plan.strength || []).length > 0 || (plan.protocols || []).length > 0 || conservados.length > 0);
+      return res.status(200).json({ reply, plan: listo ? plan : null, keep: conservados, usage: response.usage });
     } catch (err) {
       console.error('[ia]', err?.status, err?.message);
       const e = iaError(err);

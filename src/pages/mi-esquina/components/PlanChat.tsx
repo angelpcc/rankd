@@ -256,7 +256,14 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
         network: 'mc_ai_err_generate',
         error: 'mc_ai_err_generate',
       };
-      showToast(CLAVES[res.error] ? t(CLAVES[res.error]) : res.error, 'error');
+      // `server` es el cajon de "algo ha fallado y no se sabe que": ahi va el
+      // codigo, que es el unico dato que permite arreglarlo despues. En los
+      // demas casos el mensaje ya explica que pasa y el numero solo asusta.
+      const clave = CLAVES[res.error];
+      const texto = res.error === 'server' && res.status
+        ? t('mc_ai_err_code', { code: res.status })
+        : clave ? t(clave) : res.error;
+      showToast(texto, 'error');
       return;
     }
     setTurnos((p) => [...p, { role: 'assistant', content: res.reply, ...(res.plan ? { plan: res.plan } : {}) }]);

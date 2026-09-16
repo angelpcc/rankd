@@ -312,6 +312,7 @@ export default {
   mc_ai_soon_desc: 'We’re fine-tuning this assistant. Once it’s live, it will use your physical profile and your My Corner data to answer you{{extra}}. Meanwhile, the rest of the section works as normal.',
   mc_ai_soon_desc_save: ', and you’ll be able to save the plan straight into your diary',
   mc_ai_err_generate: 'Couldn’t generate a response. Please try again.',
+  mc_ai_err_code: 'Couldn’t generate a response (error {{code}}). Tell me that number if it keeps happening.',
   mc_chat_file_too_big: 'That file is {{tam}} MB and the limit is {{max}} MB. Take a photo of the page, or send only the routine pages.',
   mc_chat_file_failed: 'Couldn’t read that file. Try a photo instead.',
   mc_chat_too_big_send: 'The message is too heavy with those attachments. Remove one or send it in two goes.',

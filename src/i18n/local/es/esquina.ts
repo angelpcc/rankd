@@ -312,6 +312,7 @@ export default {
   mc_ai_soon_desc: 'Estamos afinando este asistente. Cuando se active, usará tu perfil físico y tus datos de Mi Esquina para responderte{{extra}}. Mientras tanto, el resto de la sección funciona con normalidad.',
   mc_ai_soon_desc_save: ', y podrás guardar el plan directamente en tu diario',
   mc_ai_err_generate: 'No se pudo generar respuesta. Inténtalo de nuevo.',
+  mc_ai_err_code: 'No se pudo generar respuesta (error {{code}}). Dime ese número si se repite.',
   mc_chat_file_too_big: 'Ese archivo pesa {{tam}} MB y el máximo son {{max}} MB. Hazle una foto a la hoja, o mándame solo las páginas de la rutina.',
   mc_chat_file_failed: 'No he podido leer ese archivo. Prueba con una foto.',
   mc_chat_too_big_send: 'El mensaje pesa demasiado con los archivos adjuntos. Quita alguno o mándalo en dos veces.',
