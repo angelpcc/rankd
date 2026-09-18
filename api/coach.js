@@ -996,21 +996,80 @@ Reglas:
 // Un plan de dos semanas trae diez cardios y nueve no se van a abrir hoy:
 // generarlos todos al guardar sería pagar diez llamadas para usar una. Una vez
 // generado se guarda como protocolo y ya no se vuelve a pagar.
+/**
+ * El guion de un cardio, en DOS bloques.
+ *
+ * ── POR QUÉ PARTIDO Y REORDENADO ──
+ *
+ * Al guardar un plan se llama a esto una vez POR CARDIO: un plan con seis
+ * cardios son seis llamadas seguidas. Y medido, el 90% del prompt (1.264 de
+ * 1.408 tokens) es IDÉNTICO en las seis: solo cambian la actividad, los
+ * minutos y lo que se busca.
+ *
+ * Se pagaba entero seis veces. Marcando la parte común como cacheable, la
+ * primera la escribe y las demás la leen a una décima parte.
+ *
+ * Por eso los datos de la sesión pasan del principio AL FINAL: la caché cubre
+ * un PREFIJO, así que lo que cambia tiene que ir detrás. Y de paso se lee
+ * mejor — las reglas primero y el encargo concreto al final, que es lo último
+ * que ve antes de escribir.
+ */
+/**
+ * Cuadra los minutos del guion con los que se pidieron.
+ *
+ * ── POR QUÉ NO BASTA CON PEDIRLO ──
+ *
+ * El prompt dice, con mayúsculas, que la suma tiene que dar los minutos
+ * EXACTOS. Y aun así no los da: medido con "intervalos cortos" de 42 minutos,
+ * TRES de tres intentos fallaron — 34, 37 y 36. Con el prompt en el orden
+ * viejo, otros tres: 33, 37 y 30. No es cuestión de insistir más: sumar doce
+ * números mientras diseñas una sesión es justo lo que un modelo hace peor.
+ *
+ * Así que se comprueba aquí, que es donde sumar sale bien y gratis.
+ *
+ * ── CÓMO SE REPARTE LA DIFERENCIA ──
+ *
+ * Poca diferencia (3 minutos o menos): se la lleva el tramo más largo. Es el
+ * bloque de trabajo continuo, y que dure 28 en vez de 30 no cambia la sesión.
+ *
+ * Mucha: se escalan todos en proporción y lo que sobre del redondeo se lo
+ * lleva otra vez el más largo. Tocar solo uno le sumaría doce minutos a un
+ * tramo, y eso ya no es la sesión que escribió.
+ *
+ * Los tramos por DISTANCIA no se tocan: sus minutos son 0 a propósito y
+ * estirarlos convertiría "500 m" en otra cosa.
+ */
+function cuadrarMinutos(segments, objetivo) {
+  if (!Array.isArray(segments) || segments.length === 0 || !(objetivo > 0)) return segments;
+  const porTiempo = segments.filter((s) => (s.minutes || 0) > 0);
+  if (porTiempo.length === 0) return segments;
+
+  const suma = () => porTiempo.reduce((n, s) => n + (s.minutes || 0), 0);
+  const inicial = suma();
+  if (inicial === objetivo) return segments;
+
+  if (Math.abs(objetivo - inicial) > 3) {
+    const factor = objetivo / inicial;
+    // Mínimo un minuto: un tramo de cero no se puede hacer.
+    porTiempo.forEach((s) => { s.minutes = Math.max(1, Math.round((s.minutes || 0) * factor)); });
+  }
+
+  // Lo que falte o sobre, al tramo más largo.
+  const resto = objetivo - suma();
+  if (resto !== 0) {
+    const largo = porTiempo.reduce((a, b) => ((b.minutes || 0) > (a.minutes || 0) ? b : a));
+    largo.minutes = Math.max(1, (largo.minutes || 0) + resto);
+  }
+  return segments;
+}
 function cardioDesignSystem(profile, kind, minutes, intent, variables) {
   const NL = String.fromCharCode(10);
   const allowed = (Array.isArray(variables) && variables.length ? variables : ['effort'])
     .filter((v) => PROTOCOL_VALUE_KEYS.includes(v));
 
-  return [
+  // Lo que NO cambia de un cardio a otro. Esto es lo que se cachea.
+  const reglas = [
     'Eres el entrenador de RANKD escribiendo el guion de UNA sesión de cardio, tramo a tramo, para que se pueda seguir mirando la máquina.',
-    '',
-    fighterContext(profile),
-    '',
-    'LA SESIÓN:',
-    '- Actividad: "' + kind + '".',
-    '- Duración TOTAL: ' + minutes + ' minutos. La suma de los tramos tiene que dar ' + minutes + ' EXACTOS, ni uno más ni uno menos, calentamiento y vuelta a la calma incluidos.',
-    intent ? '- Lo que se busca: ' + intent : '- Sesión de cardio general.',
-    '- Variables que puedes usar: ' + allowed.join(', ') + '. Cualquier otra va a null SIEMPRE.',
     '',
     'CÓMO ESCRIBIRLO:',
     '- Un tramo por cada cambio de ritmo. Ni uno por minuto (30 tramos idénticos no se leen), ni cuatro de quince minutos (eso no es un guion, es un resumen). Entre 6 y 14 tramos para una sesión normal.',
@@ -1046,6 +1105,22 @@ function cardioDesignSystem(profile, kind, minutes, intent, variables) {
     '',
     'Idioma: español. "name": un nombre corto y descriptivo de la sesión.',
   ].join(NL);
+
+  // El encargo concreto. Va detrás de la marca de caché a propósito.
+  const encargo = [
+    fighterContext(profile),
+    '',
+    'LA SESIÓN QUE TIENES QUE ESCRIBIR AHORA:',
+    '- Actividad: "' + kind + '".',
+    '- Duración TOTAL: ' + minutes + ' minutos. La suma de los tramos tiene que dar ' + minutes + ' EXACTOS, ni uno más ni uno menos, calentamiento y vuelta a la calma incluidos.',
+    intent ? '- Lo que se busca: ' + intent : '- Sesión de cardio general.',
+    '- Variables que puedes usar: ' + allowed.join(', ') + '. Cualquier otra va a null SIEMPRE.',
+  ].join(NL);
+
+  return [
+    { type: 'text', text: reglas, cache_control: CACHE_LARGA },
+    { type: 'text', text: encargo },
+  ];
 }
 
 // ── RUTINA PREESCRITA (punto 17) ──
@@ -2221,6 +2296,10 @@ export default async function handler(req, res) {
       if (!protocol || !Array.isArray(protocol.segments) || protocol.segments.length === 0) {
         return res.status(422).json({ error: 'no_protocol', message: 'No he podido montar el guion de ese cardio. Vuelve a intentarlo.' });
       }
+      // Se cuadran los minutos ANTES de devolverlo. El modelo no suma bien y
+      // aqui sumar es gratis: ver `cuadrarMinutos`.
+      protocol.segments = cuadrarMinutos(protocol.segments, minutes);
+
       return res.status(200).json({ protocol, usage: response.usage });
     } catch (err) {
       console.error('[ia]', err?.status, err?.message);
