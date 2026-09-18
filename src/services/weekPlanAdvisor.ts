@@ -239,6 +239,9 @@ export function normalizeWeekPlan(raw: Record<string, unknown>, request: string,
         kind,
         when: (WHENS as readonly string[]).includes(String(p.when)) ? (p.when as WeekProtocol['when']) : 'afternoon',
         segments,
+        // Ante la duda, opcional NO: marcar de mas como opcional haria que
+        // la fuerza de siempre dejara de avisar, que es peor que lo contrario.
+        optional: p.optional === true,
         minutes: minutos > 0 ? minutos : undefined,
         weekdays: [...new Set(weekdays)].sort((a, b) => a - b),
         ...(Array.isArray(p.weeks) && p.weeks.length > 0

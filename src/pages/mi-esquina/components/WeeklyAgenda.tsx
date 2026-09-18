@@ -1206,6 +1206,11 @@ function DayItemRow({ item, unidad, onRemove, onMove, onRun, opening, onToggleDo
   // pantalla que rechaza lo que se acaba de pedir. Ejecutarlo en vivo sí se
   // permite —quien le da al play lo está haciendo ahora—; lo que se corta es
   // solo el atajo a "registrar a mano".
+  // Opcional: está puesto ese día, pero no es una obligación. Se pinta
+  // apagado y con su etiqueta para que se distinga de un vistazo de lo que
+  // sí toca hacer; si no, es un pendiente más y vuelve a ser una lista que
+  // no se cumple.
+  const opcional = !!(item.payload as { optional?: boolean })?.optional;
   const future = item.plan_date > todayISO();
   const runnable = !!onRun && isTraining && !done && item.source !== 'logged'
     && (runsInPlace || !future);
@@ -1248,8 +1253,16 @@ function DayItemRow({ item, unidad, onRemove, onMove, onRun, opening, onToggleDo
   // toda la fila es el acceso directo, no un icono escondido a la derecha.
   const body = (
     <>
-      <p className={`text-sm font-semibold flex items-center gap-1.5 ${done ? 'text-zinc-500 line-through' : 'text-white'}`}>
+      <p className={`text-sm font-semibold flex items-center gap-1.5 flex-wrap ${done ? 'text-zinc-500 line-through' : opcional ? 'text-zinc-400' : 'text-white'}`}>
         {main}
+        {/* Se dice con PALABRA, no solo apagando el color: un bloque más gris
+            se confunde con uno ya hecho, y significan cosas opuestas. */}
+        {opcional && !done && (
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider rounded px-1.5 py-0.5 flex-shrink-0"
+            style={{ color: 'var(--t-3)', background: 'var(--s-2)', border: '1px solid var(--s-3)' }}>
+            {t('mc_ag_optional')}
+          </span>
+        )}
         {runnable && (
           <i className={runsInPlace ? 'ri-play-circle-line flex-shrink-0' : 'ri-edit-box-line flex-shrink-0'}
             style={{ color: 'var(--accent)' }} />

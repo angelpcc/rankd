@@ -65,6 +65,15 @@ export interface WeekProtocol {
   kind: string;
   /** Franja del día en la que toca. Solo informativa. */
   when: 'morning' | 'midday' | 'afternoon' | 'evening';
+  /**
+   * Se ve en la Agenda ese día, pero NO cuenta como pendiente.
+   *
+   * Es el estado de en medio entre "lo hago seguro" y "lo guardo sin
+   * fecha": un cardio de por la mañana por si hay rato, un express después
+   * del gimnasio, o cada una de las opciones de un mismo día. Está puesto,
+   * se puede hacer y marcar, y no te reclama nada.
+   */
+  optional?: boolean;
   segments: ProtocolSegment[];
   /**
    * Minutos totales, cuando el cardio NO trae tramos.
@@ -735,6 +744,8 @@ export async function commitWeekPlan(
           note: p.note,
           protocol_id: saved?.id,
           protocol_name: p.name,
+          // Se ve en la Agenda pero no reclama nada. Ver `optional` arriba.
+          ...(p.optional ? { optional: true } : {}),
         }),
         source: 'advisor',
         completed: false,

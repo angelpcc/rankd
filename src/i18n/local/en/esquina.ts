@@ -1790,6 +1790,7 @@ export default {
   mc_sc_deleted: 'Deleted',
   mc_sc_logged: 'Logged',
   mc_sc_segments: '{{n}} segments',
+  mc_ag_optional: 'optional',
   mc_ag_wipe_day: 'Clear this day',
   mc_ag_wipe_from: 'Clear from here on',
   mc_ag_wipe_title: 'Clear the agenda',

@@ -181,6 +181,17 @@ export async function loadTodayTraining(
 
   const pending = rows
     .filter((r) => isPlanned(r.source))
+    // Lo OPCIONAL se ve en la Agenda pero no es un pendiente.
+    //
+    // Un cardio de por la mañana "por si tengo 30 minutos" o las tres
+    // opciones de un sábado no son cosas que TENGAS que hacer: son cosas
+    // que puedes. Contarlas como pendientes llena el aviso de "te falta"
+    // con cosas que no faltan, y un aviso que casi siempre está encendido
+    // deja de mirarse — que es justo lo contrario de para lo que está.
+    //
+    // Siguen en la Agenda, en su día, y se pueden hacer y marcar. Lo que no
+    // hacen es reclamarte.
+    .filter((r) => !(r.payload as { optional?: boolean })?.optional)
     .map((r): PlannedEntry => ({
       id: r.id,
       kind: r.kind === 'activity' ? 'activity' : 'strength',

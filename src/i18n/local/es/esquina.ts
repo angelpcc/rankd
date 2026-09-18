@@ -1794,6 +1794,7 @@ export default {
   mc_sc_deleted: 'Borrado',
   mc_sc_logged: 'Registrado',
   mc_sc_segments: '{{n}} tramos',
+  mc_ag_optional: 'opcional',
   mc_ag_wipe_day: 'Vaciar este día',
   mc_ag_wipe_from: 'Vaciar de aquí en adelante',
   mc_ag_wipe_title: 'Vaciar la agenda',
