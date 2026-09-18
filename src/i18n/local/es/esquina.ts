@@ -1783,6 +1783,17 @@ export default {
   mc_ag_add_item: 'Añadir al plan',
   mc_ag_item_removed: 'Quitado del plan',
   // ── Vaciar la agenda ──
+  // ── Cardios guardados (sin fecha) ──
+  mc_sc_title: 'Cardios guardados',
+  mc_sc_sub: 'Lo que puedes hacer, no lo que tienes que hacer. Sin fecha: lo haces el día que te apetezca o lo pones en un día cuando lo sepas.',
+  mc_sc_do_now: 'Hacerlo ahora',
+  mc_sc_place: 'Un día',
+  mc_sc_place_title: '¿Qué día lo pones?',
+  mc_sc_place_confirm: 'Ponerlo',
+  mc_sc_placed: 'Puesto el {{date}}',
+  mc_sc_deleted: 'Borrado',
+  mc_sc_logged: 'Registrado',
+  mc_sc_segments: '{{n}} tramos',
   mc_ag_wipe_day: 'Vaciar este día',
   mc_ag_wipe_from: 'Vaciar de aquí en adelante',
   mc_ag_wipe_title: 'Vaciar la agenda',

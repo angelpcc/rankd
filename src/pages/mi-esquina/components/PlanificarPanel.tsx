@@ -5,6 +5,7 @@ import { isMissingTable, isMissingColumn } from '@/lib/dbState';
 import { parseWeekPlanFromSpeech, type WeekPlanLine, type WeekPlanKind } from '@/lib/dictation';
 import BottomSheet from '@/components/base/BottomSheet';
 import PlanImport from './PlanImport';
+import SavedCardios from './SavedCardios';
 import SectionHero from './SectionHero';
 import { MUSCLE_GROUPS } from '../lib/exercises';
 import {
@@ -205,6 +206,11 @@ export default function PlanificarPanel({ profile, showToast, onLogged }: Props)
         onWeekText={(txt) => { setText(txt); setRows(parseWeekPlanFromSpeech(txt).map(lineToRow)); }}
         onMealsText={(txt) => { setText(txt); setRows(parseWeekPlanFromSpeech(txt).map(lineToRow)); }}
       />
+
+      {/* Lo que puede que hagas, separado de lo que tienes que hacer.
+          Va aquí, al lado de las plantillas, porque es lo mismo: cosas
+          guardadas listas para volcar a un día cuando toque. */}
+      <SavedCardios profile={profile} showToast={showToast} onChanged={onLogged} />
 
       <SavedTemplates profile={profile} showToast={showToast} weekStart={weekStart} onApplied={onLogged} />
     </div>

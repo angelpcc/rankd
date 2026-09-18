@@ -1779,6 +1779,17 @@ export default {
   mc_ag_add_item: 'Add to plan',
   mc_ag_item_removed: 'Removed from plan',
   // ── Vaciar la agenda ──
+  // ── Cardios guardados (sin fecha) ──
+  mc_sc_title: 'Saved cardio',
+  mc_sc_sub: 'What you can do, not what you have to. No date: do it when you feel like it, or drop it on a day once you know.',
+  mc_sc_do_now: 'Do it now',
+  mc_sc_place: 'A day',
+  mc_sc_place_title: 'Which day?',
+  mc_sc_place_confirm: 'Place it',
+  mc_sc_placed: 'Placed on {{date}}',
+  mc_sc_deleted: 'Deleted',
+  mc_sc_logged: 'Logged',
+  mc_sc_segments: '{{n}} segments',
   mc_ag_wipe_day: 'Clear this day',
   mc_ag_wipe_from: 'Clear from here on',
   mc_ag_wipe_title: 'Clear the agenda',
