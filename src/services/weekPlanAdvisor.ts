@@ -116,7 +116,18 @@ function normalizeSegments(raw: unknown, kind: string): ProtocolSegment[] {
   return raw.slice(0, 90).map((item) => {
     const s = (item || {}) as Record<string, unknown>;
     const values: Partial<Record<ProtocolVarId, number>> = {};
-    const rawValues = (s.values || {}) as Record<string, unknown>;
+    // Dos formas posibles, y las dos son válidas:
+    //
+    //   · anidada  { values: { speed_kmh: 5, ... } }  -> la del guion de cardio
+    //   · plana    { speed_kmh: 5, ... }              -> la del PLAN
+    //
+    // El plan la usa plana porque la API rechaza el esquema anidado: cada
+    // campo que admite null cuenta como unión y hay un tope de 16. Con la
+    // anidada, TODA petición de plan devolvía 400. Ver PLAN_SEGMENT_SCHEMA.
+    //
+    // En la plana un 0 significa "no aplica", así que se descarta abajo igual
+    // que un null: nadie prescribe 0 km/h.
+    const rawValues = (s.values || s) as Record<string, unknown>;
 
     (Object.keys(rawValues) as ProtocolVarId[]).forEach((k) => {
       if (!allowed.has(k)) return;
@@ -128,6 +139,9 @@ function normalizeSegments(raw: unknown, kind: string): ProtocolSegment[] {
       if (v === null || v === undefined || v === '') return;
       const n = Number(v);
       if (!Number.isFinite(n)) return;
+      // 0 = "no aplica" en la forma plana. Guardarlo pintaría "0 km/h" en la
+      // tabla que se mira entrenando, que es peor que dejar el hueco.
+      if (n === 0) return;
       values[k] = Math.min(def.max, Math.max(def.min, n));
     });
 

@@ -1243,6 +1243,39 @@ const WEEK_SEGMENT_SCHEMA = {
   additionalProperties: false,
 };
 
+/**
+ * Un tramo de cardio DENTRO del plan, en versión plana y sin nullables.
+ *
+ * ── POR QUÉ NO SE REUTILIZA `WEEK_SEGMENT_SCHEMA` ──
+ *
+ * Se intentó, y la API lo rechaza con un 400: "too many parameters with union
+ * types (18, límite 16)". Cada campo que admite null cuenta como unión, y el
+ * de tramos completo trae once. Metido en el plan, TODA petición de plan
+ * fallaría — no solo las que traen tabla.
+ *
+ * Así que aquí los valores van planos y sin null: 0 significa "no aplica". Se
+ * pierde la distinción entre "cero" y "sin dato", y en un cardio da igual:
+ * nadie prescribe 0 km/h ni 0 de resistencia.
+ *
+ * Y solo las cuatro variables que se usan de verdad en un plan. Ritmo por 100
+ * y por 500 metros, cadencia y paladas son de natación y remo, que no se
+ * prescriben con una tabla de minutos en un plan semanal; si hicieran falta,
+ * el guion se escribe aparte y ahí sí está el esquema completo.
+ */
+const PLAN_SEGMENT_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['label', 'minutes', 'meters', 'speed_kmh', 'incline_pct', 'resistance', 'effort'],
+  properties: {
+    label: { type: 'string', description: 'Nombre del tramo ("Calentamiento", "Bloque 1"). Cadena vacía si el documento no le pone nombre.' },
+    minutes: { type: 'number', description: 'Duración del tramo EN MINUTOS. Si el documento dice "8-38", son 30 minutos.' },
+    meters: { type: 'number', description: 'Metros si el tramo va por distancia. 0 si va por tiempo.' },
+    speed_kmh: { type: 'number', description: 'Velocidad en km/h. 0 si no aplica o no la dice.' },
+    incline_pct: { type: 'number', description: 'Inclinación en %. 0 si no aplica o no la dice.' },
+    resistance: { type: 'number', description: 'Nivel de resistencia de la máquina. 0 si no aplica.' },
+    effort: { type: 'number', description: 'Esfuerzo percibido del 1 al 10. 0 si no lo dice.' },
+  },
+};
 const WEEK_PLAN_SCHEMA = {
   type: 'object',
   properties: {
@@ -1284,9 +1317,14 @@ const WEEK_PLAN_SCHEMA = {
           when: { type: 'string', enum: ['morning', 'midday', 'afternoon', 'evening'], description: 'Franja del día. La que él haya dicho, y no otra.' },
           weekdays: { type: 'array', description: 'Días (0 = lunes) en los que toca este cardio.', items: { type: 'integer' } },
           minutes: { type: 'integer', description: 'Duración total del cardio en minutos.' },
-          note: { type: ['string', 'null'], description: 'UNA línea con la intención ("ritmo cómodo, que puedas hablar"). Nunca una tabla de cifras. Null si no aplica.' },
+          note: { type: ['string', 'null'], description: 'UNA línea con la intención ("ritmo cómodo, que puedas hablar"). Null si no aplica.' },
+          segments: {
+            type: 'array',
+            description: 'Los tramos MINUTO A MINUTO, SOLO si el usuario te los ha dado (en un documento, una foto o escritos). Cópialos TAL CUAL: sus minutos, sus inclinaciones y sus velocidades, sin redondear ni "mejorar" nada. Lista VACÍA si no te los ha dado — entonces el guion se escribe aparte y no es cosa tuya.',
+            items: PLAN_SEGMENT_SCHEMA,
+          },
         },
-        required: ['key', 'name', 'kind', 'when', 'weekdays', 'minutes', 'note'],
+        required: ['key', 'name', 'kind', 'when', 'weekdays', 'minutes', 'note', 'segments'],
         additionalProperties: false,
       },
     },
@@ -1513,6 +1551,23 @@ function planChatSystem(profile, ctx, previous, agenda, historial, parcial) {
     "   día antes de competir— NO lo montes en silencio ni lo montes mal. Dilo en",
     "   una línea y propón la salida: \"así no te recuperas; te lo paso al jueves,",
     "   ¿lo hago?\". Eres su entrenador, no un formulario que obedece.",
+    "",
+    "2.sexies. SI TE LO DAN HECHO, CÓPIALO. NO LO MEJORES.",
+    "   Cuando te pasa un documento, una foto o un texto con los cardios ya",
+    "   escritos —una tabla de minutos con inclinación y velocidad, por",
+    "   ejemplo— y te dice \"ponlos tal cual\", \"usa los de 45 minutos\" o",
+    "   \"méteme esto en la app\": eso NO es un encargo de diseño. Es un",
+    "   encargo de COPIA.",
+    "   · Rellena \"segments\" con SUS tramos: sus minutos, sus inclinaciones,",
+    "     sus velocidades. Tal cual. Sin redondear, sin añadir calentamiento",
+    "     si él no lo puso, sin quitarle nada porque a ti te parezca mucho.",
+    "   · Si el documento trae VARIAS versiones (una de 45 min y otra de 30) y",
+    "     te dice cuál quiere, coge ESA y deja la otra.",
+    "   · Si algo del documento no se entiende, PREGÚNTALO. No lo rellenes a",
+    "     ojo: un tramo inventado dentro de una tabla que él reconoce es peor",
+    "     que un hueco, porque no se ve.",
+    "   Solo cuando NO te dé los tramos dejas \"segments\" vacío: entonces el",
+    "   guion se escribe aparte y ahí sí decides tú.",
     "",
     "2.quinquies. CAMBIAR ES SUSTITUIR. AÑADIR ES SUMAR. No es lo mismo y se",
     "   nota mucho cuando te equivocas.",
