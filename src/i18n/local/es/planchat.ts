@@ -39,6 +39,10 @@ export default {
   mc_pc_go_agenda: 'Ver la Agenda',
   mc_pc_keep_talking: 'Seguir cambiándolo',
 
+  mc_pc_no_day: 'Guardados, sin día',
+  mc_pc_no_day_sub: 'No van a la agenda. Los tienes en Planificar para hacerlos cuando quieras.',
+  mc_pc_segs: '{{n}} tramos',
+  mc_pc_incline_max: '{{n}}% máx',
   mc_pc_err_auth: 'Tienes que iniciar sesión para esto.',
   mc_pc_err_timeout: 'Ha tardado demasiado y se ha cortado. Pídemelo por partes: primero la fuerza y luego el cardio.',
   mc_pc_agenda_off: 'El plan se ha montado, pero la Agenda no está disponible todavía.',

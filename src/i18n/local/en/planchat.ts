@@ -39,6 +39,10 @@ export default {
   mc_pc_go_agenda: 'Open the Agenda',
   mc_pc_keep_talking: 'Keep changing it',
 
+  mc_pc_no_day: 'Saved, no day',
+  mc_pc_no_day_sub: 'Not in the agenda. They live in Planificar, ready when you want them.',
+  mc_pc_segs: '{{n}} segments',
+  mc_pc_incline_max: '{{n}}% max',
   mc_pc_err_auth: 'You need to sign in for this.',
   mc_pc_err_timeout: 'That took too long and got cut off. Ask me in two goes: strength first, then cardio.',
   mc_pc_agenda_off: 'The plan is built, but the Agenda is not available yet.',

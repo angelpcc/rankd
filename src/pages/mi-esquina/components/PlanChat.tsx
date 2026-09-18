@@ -5,6 +5,7 @@ import { supabase, type Profile } from '@/lib/supabase';
 import Reveal from '@/components/base/Reveal';
 import VoiceButton from '@/components/feature/VoiceButton';
 import { activityKindCfg, fmtSetCount } from '../lib/dayPlan';
+import type { ProtocolSegment } from '../lib/protocols';
 import {
   archiveWeekPlan, commitWeekPlan, currentWeekStart, dateOfWeekday, loadActivePlan, planTotals, weeksOf,
   type CommitResult, type WeekPlan,
@@ -661,6 +662,30 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
  * "cuántos cardios hay". Con el reparto por días también se ve solo si un día
  * está cargado de más.
  */
+/**
+ * "5 tramos · 12% máx · 4-5 km/h" — la tabla de un cardio, en una línea.
+ *
+ * Cuando le pasas un documento con tu tabla y le dices "tal cual", esto es lo
+ * único que te deja comprobar de un vistazo que ha copiado la tuya y no se ha
+ * inventado otra. Sin esto, el plan solo dice "cinta · 45 min", que es
+ * exactamente lo mismo que decía cuando SÍ se la inventaba.
+ */
+function resumenTramos(segments: ProtocolSegment[], t: (k: string, o?: Record<string, unknown>) => string): string {
+  const partes: string[] = [t('mc_pc_segs', { n: segments.length })];
+  const num = (k: 'speed_kmh' | 'incline_pct') => segments
+    .map((s) => s.values?.[k])
+    .filter((v): v is number => typeof v === 'number' && v > 0);
+
+  const inc = num('incline_pct');
+  if (inc.length) partes.push(t('mc_pc_incline_max', { n: Math.max(...inc) }));
+
+  const vel = num('speed_kmh');
+  if (vel.length) {
+    const lo = Math.min(...vel), hi = Math.max(...vel);
+    partes.push(lo === hi ? `${lo} km/h` : `${lo}-${hi} km/h`);
+  }
+  return partes.join(' · ');
+}
 function PlanCard({ plan, vigente }: { plan: WeekPlan; vigente: boolean }) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
@@ -675,6 +700,9 @@ function PlanCard({ plan, vigente }: { plan: WeekPlan; vigente: boolean }) {
     const comidas = plan.nutrition.filter((n) => n.weekday === d && weeksOf(total, n.week).includes(0));
     return { d, fuerza, cardio, comidas };
   }).filter((x) => x.fuerza.length || x.cardio.length || x.comidas.length);
+
+  // Los que se guardan sin fecha, para que no se los trague la tabla.
+  const sinDia = plan.protocols.filter((p) => (p.weekdays || []).length === 0);
 
   return (
     <div className="rounded-2xl border mt-2 overflow-hidden"
@@ -748,12 +776,25 @@ function PlanCard({ plan, vigente }: { plan: WeekPlan; vigente: boolean }) {
                   : (p.minutes || 0);
                 return (
                   <div key={`c${i}`} className="flex gap-2.5">
-                    <i className={`${cfg.icon} text-sm mt-0.5 flex-shrink-0`} style={{ color: cfg.hex }} />
+                    <i className={`${cfg.icon} text-sm mt-0.5 flex-shrink-0`} style={{ color: p.optional ? 'var(--t-3)' : cfg.hex }} />
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold text-white leading-snug">
+                      <p className={`text-xs font-semibold leading-snug flex items-center gap-1.5 flex-wrap ${p.optional ? 'text-zinc-400' : 'text-white'}`}>
                         {p.name || t(cfg.labelKey)}
-                        {min > 0 && <span className="text-zinc-500 font-normal"> · {min} min</span>}
+                        {min > 0 && <span className="text-zinc-500 font-normal">· {min} min</span>}
+                        {/* Opcional se dice AQUI tambien, no solo en la Agenda: si
+                            no, al revisar el plan parece que te ha metido cinco
+                            cardios obligatorios y lo primero que haces es borrarlos. */}
+                        {p.optional && (
+                          <span className="text-[9px] font-bold uppercase tracking-wider rounded px-1 py-0.5"
+                            style={{ color: 'var(--t-3)', background: 'var(--s-2)', border: '1px solid var(--s-3)' }}>
+                            {t('mc_ag_optional')}
+                          </span>
+                        )}
                       </p>
+                      {/* Si trae TU tabla, se resume aqui: es la unica forma de
+                          comprobar de un vistazo que ha copiado la del archivo y
+                          no se ha inventado otra. */}
+                      {p.segments.length > 0 && <p className="text-[11px] leading-snug mt-0.5" style={{ color: 'var(--t-3)' }}>{resumenTramos(p.segments, t)}</p>}
                       {p.note && <p className="text-[11px] text-zinc-500 leading-snug mt-0.5">{p.note}</p>}
                     </div>
                   </div>
@@ -772,6 +813,42 @@ function PlanCard({ plan, vigente }: { plan: WeekPlan; vigente: boolean }) {
           </div>
         ))}
       </div>
+
+      {/* ── LOS QUE NO TIENEN DÍA ──
+
+          Sin esto DESAPARECÍAN del plan: la lista de arriba recorre los siete
+          días, así que un cardio con `weekdays` vacío no salía por ningún
+          lado. Y las pastillas de arriba sí lo contaban, o sea que el plan
+          decía "3 cardios" y solo se veían dos. Perfecto para pensar que se ha
+          perdido algo. */}
+      {sinDia.length > 0 && (
+        <div className="px-3.5 py-3" style={{ borderTop: '1px solid var(--s-3)' }}>
+          <p className="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5" style={{ color: 'var(--t-3)' }}>
+            <i className="ri-bookmark-line" />{t('mc_pc_no_day')}
+          </p>
+          <p className="text-[10px] mt-0.5 leading-snug" style={{ color: 'var(--t-3)' }}>{t('mc_pc_no_day_sub')}</p>
+          <div className="mt-2 space-y-2 pl-3">
+            {sinDia.map((p, i) => {
+              const cfg = activityKindCfg(p.kind);
+              const min = p.segments.length > 0
+                ? Math.round(p.segments.reduce((a, s) => a + (s.seconds || 0), 0) / 60)
+                : (p.minutes || 0);
+              return (
+                <div key={`s${i}`} className="flex gap-2.5">
+                  <i className={`${cfg.icon} text-sm mt-0.5 flex-shrink-0`} style={{ color: 'var(--t-3)' }} />
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-zinc-400 leading-snug">
+                      {p.name || t(cfg.labelKey)}
+                      {min > 0 && <span className="text-zinc-500 font-normal"> · {min} min</span>}
+                    </p>
+                    {p.segments.length > 0 && <p className="text-[11px] leading-snug mt-0.5" style={{ color: 'var(--t-3)' }}>{resumenTramos(p.segments, t)}</p>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {plan.disclaimer && (
         <p className="px-3.5 py-2 text-[10px] text-zinc-600 leading-relaxed" style={{ borderTop: '1px solid var(--s-3)' }}>
