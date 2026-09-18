@@ -1798,6 +1798,8 @@ export default {
   mc_ag_wipe_day: 'Vaciar este día',
   mc_ag_wipe_from: 'Vaciar de aquí en adelante',
   mc_ag_wipe_title: 'Vaciar la agenda',
+  mc_ag_wipe_what: '¿Qué vacías?',
+  mc_ag_wipe_all: 'Todo',
   mc_ag_wipe_day_desc: 'Se quita todo lo que tengas PENDIENTE el {{date}}.',
   mc_ag_wipe_from_desc: 'Se quita todo lo que tengas PENDIENTE desde el {{date}} en adelante, hasta donde llegue.',
   mc_ag_wipe_safe: 'Lo que ya has hecho y lo que registraste no se toca: eso es tu historial, no un plan.',

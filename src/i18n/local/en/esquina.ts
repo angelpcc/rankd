@@ -1794,6 +1794,8 @@ export default {
   mc_ag_wipe_day: 'Clear this day',
   mc_ag_wipe_from: 'Clear from here on',
   mc_ag_wipe_title: 'Clear the agenda',
+  mc_ag_wipe_what: 'Clear what?',
+  mc_ag_wipe_all: 'Everything',
   mc_ag_wipe_day_desc: 'Removes everything still PENDING on {{date}}.',
   mc_ag_wipe_from_desc: 'Removes everything still PENDING from {{date}} onwards, as far as it goes.',
   mc_ag_wipe_safe: 'What you have already done and what you logged stays: that is your history, not a plan.',

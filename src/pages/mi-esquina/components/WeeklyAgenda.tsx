@@ -144,7 +144,7 @@ const TICK_KINDS: DayPlanKind[] = ['strength', 'activity'];
 export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoActivity, onGoStrength, onGoBoxing, onGoPlanificar, onLogged }: Props) {
   const { t, i18n } = useTranslation();
   /** Día que se va a vaciar y si es solo ese o de ahí en adelante. */
-  const [confirmarVaciar, setConfirmarVaciar] = useState<{ date: string; enAdelante: boolean } | null>(null);
+  const [confirmarVaciar, setConfirmarVaciar] = useState<{ date: string; enAdelante: boolean; tipo: DayPlanKind | null } | null>(null);
   // Kilos o libras: preferencia de ESTE dispositivo, no un dato guardado. En
   // la base solo hay kilos; esto solo decide como se leen. Baja como prop
   // igual que `locale` y `mode`, porque DayItemRow no conoce el perfil.
@@ -367,12 +367,33 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
    * dejaría bloques sueltos más allá, que es justo el estado que lleva a
    * pensar que la app no ha borrado nada.
    */
-  const vaciar = useCallback(async (desde: string, enAdelante: boolean) => {
+  /**
+   * ¿Hay algo PENDIENTE de ese tipo en lo que se va a vaciar?
+   *
+   * Se usa para no ofrecer "vaciar comidas" cuando no hay ninguna: un botón
+   * que no borra nada deja dudando de si ha funcionado.
+   */
+  const hayDeTipo = useCallback((v: { date: string; enAdelante: boolean }, k: DayPlanKind) => items.some((i) => (
+    i.kind === k && !i.completed && i.source !== 'logged'
+    && (v.enAdelante ? i.plan_date >= v.date : i.plan_date === v.date)
+  )), [items]);
+  /**
+   * Vaciar, acotando POR TIPO.
+   *
+   * Vaciarlo todo o nada no sirve: el caso real es "he metido los cardios
+   * nuevos y tengo que quitar los viejos", y ahí la fuerza no se toca. Sin
+   * esto había que ir bloque por bloque con la papelera.
+   *
+   * `null` = todo lo que haya. Lo ya hecho y lo registrado siguen sin tocarse
+   * en ningún caso: eso es historial, no plan.
+   */
+  const vaciar = useCallback(async (desde: string, enAdelante: boolean, tipo: DayPlanKind | null) => {
     let q = supabase.from('day_plan_items')
       .delete()
       .eq('fighter_profile_id', profile.id)
       .eq('completed', false)
       .neq('source', 'logged');
+    if (tipo) q = q.eq('kind', tipo);
     q = enAdelante ? q.gte('plan_date', desde) : q.eq('plan_date', desde);
     const { error } = await q;
     if (error) { showToast(t('error_save'), 'error'); return; }
@@ -507,6 +528,29 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
                 date: new Date(confirmarVaciar.date + 'T12:00:00').toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' }),
               })}
             </p>
+
+            {/* Qué se vacía. Solo salen los tipos que de verdad hay ahí: un
+                botón de "vaciar comidas" sin comidas puestas no borra nada y
+                hace dudar de si ha funcionado. */}
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5">{t('mc_ag_wipe_what')}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {([null, 'strength', 'activity', 'meal'] as (DayPlanKind | null)[])
+                  .filter((k) => k === null || hayDeTipo(confirmarVaciar, k))
+                  .map((k) => {
+                    const activo = confirmarVaciar.tipo === k;
+                    return (
+                      <button key={k ?? 'todo'} onClick={() => setConfirmarVaciar((s) => (s ? { ...s, tipo: k } : s))}
+                        style={{ minHeight: 40 }}
+                        className={`px-3 rounded-xl border text-xs font-bold transition-colors cursor-pointer ${activo
+                          ? 'bg-red-600/20 border-red-500/60 text-red-200'
+                          : 'bg-white/[0.03] border-white/12 text-zinc-400 hover:border-white/30'}`}>
+                        {k === null ? t('mc_ag_wipe_all') : t(KIND_META[k].labelKey)}
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
             <p className="text-xs text-zinc-500 leading-relaxed flex items-start gap-1.5">
               <i className="ri-shield-check-line mt-0.5 flex-shrink-0" style={{ color: '#4ade80' }} />
               {t('mc_ag_wipe_safe')}
@@ -515,7 +559,7 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
               <button onClick={() => setConfirmarVaciar(null)} className="rk-nav-btn rk-press flex-1" style={{ minHeight: 48 }}>
                 {t('mc_cancel')}
               </button>
-              <button onClick={() => vaciar(confirmarVaciar.date, confirmarVaciar.enAdelante)}
+              <button onClick={() => vaciar(confirmarVaciar.date, confirmarVaciar.enAdelante, confirmarVaciar.tipo)}
                 className="rk-btn rk-press flex-1 flex items-center justify-center gap-2"
                 style={{ minHeight: 48, background: '#E10600', color: '#fff' }}>
                 <i className="ri-delete-bin-line" />{t('mc_ag_wipe_confirm')}
@@ -601,7 +645,7 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
             logged={loggedByDate.get(dayISO) || EMPTY_LOG}
             mode={mode}
             unidad={unidad}
-            onWipe={(enAdelante) => setConfirmarVaciar({ date: dayISO, enAdelante })}
+            onWipe={(enAdelante) => setConfirmarVaciar({ date: dayISO, enAdelante, tipo: null })}
             hayPorDelante={items.some((i) => i.plan_date >= dayISO && !i.completed && i.source !== 'logged')}
             onPrev={() => setDayISO(iso(addDays(new Date(dayISO + 'T12:00:00'), -1)))}
             onNext={() => setDayISO(iso(addDays(new Date(dayISO + 'T12:00:00'), 1)))}
