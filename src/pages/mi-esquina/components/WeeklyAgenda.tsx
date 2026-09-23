@@ -141,6 +141,17 @@ function addDays(d: Date, n: number): Date { const x = new Date(d); x.setDate(x.
 
 const TICK_KINDS: DayPlanKind[] = ['strength', 'activity'];
 
+/** Puesto ese día, pero sin obligación: ver `opcional` en DayItemRow. */
+const esOpcional = (i: DayPlanItem) => !!(i.payload as { optional?: boolean })?.optional;
+
+/**
+ * ¿Cuenta en el "X de Y completados"? Lo que se marca, menos lo opcional que
+ * no se ha hecho. Las tres opciones de un sábado contaban como tres entrenos
+ * que debías, y la semana salía siempre a medias aunque hubieras hecho todo lo
+ * que tocaba. Un opcional HECHO sí suma: lo has entrenado.
+ */
+const cuentaComoPrevisto = (i: DayPlanItem) => TICK_KINDS.includes(i.kind) && (!esOpcional(i) || i.completed);
+
 export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoActivity, onGoStrength, onGoBoxing, onGoPlanificar, onLogged }: Props) {
   const { t, i18n } = useTranslation();
   /** Día que se va a vaciar y si es solo ese o de ahí en adelante. */
@@ -674,7 +685,7 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
     // lo completado y los minutos REALMENTE registrados en activity_sessions.
     const wsISO = iso(weekStart); const weISO = iso(weekEnd);
     const inWeek = items.filter((i) => i.plan_date >= wsISO && i.plan_date <= weISO);
-    const tickable = inWeek.filter((i) => TICK_KINDS.includes(i.kind));
+    const tickable = inWeek.filter(cuentaComoPrevisto);
     const doneWeek = tickable.filter((i) => i.completed).length;
     const minutesWeek = loggedActs
       .filter((a) => a.session_date >= wsISO && a.session_date <= weISO)
@@ -740,14 +751,16 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
               const isToday = dISO === todayISO();
               const preview = list.slice(0, 2);
               const dayLog = logSummary(loggedByDate.get(dISO) || EMPTY_LOG, t);
-              const marcables = list.filter((x) => TICK_KINDS.includes(x.kind));
+              const marcables = list.filter(cuentaComoPrevisto);
               const tickables = marcables.length;
               const doneCount = marcables.filter((x) => x.completed).length;
               const hasFight = evs.some((e) => e.kind === 'fight');
               const hasWeigh = evs.some((e) => e.kind === 'weigh_in');
               // Intensidad de fondo según la carga del día: un día con 4 cosas
               // se ve más "lleno" que uno con 1, sin tener que contar puntos.
-              const load = Math.min(4, list.length);
+              // Lo opcional no carga el día: un sábado solo con opciones no es
+              // un día "lleno" de obligaciones.
+              const load = Math.min(4, list.filter((x) => !esOpcional(x)).length);
               const loadBg = load === 0 ? undefined : `rgba(225,6,0,${0.04 + load * 0.035})`;
               return (
                 <button key={dISO} onClick={() => openDay(dISO)}
@@ -766,11 +779,12 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
                     {preview.map((e) => {
                       const g = itemGlyph(e);
                       const hecho = e.completed && TICK_KINDS.includes(e.kind);
+                      const opc = esOpcional(e) && !hecho;
                       return (
                         <div key={e.id} className="flex items-center gap-1.5 min-w-0">
                           <i className={`${g.icon} text-[12px] flex-shrink-0`}
-                            style={{ color: hecho ? '#3f3f46' : g.hex }} />
-                          <span className={`text-[11px] truncate ${hecho ? 'text-zinc-600 line-through' : 'text-zinc-300'}`}>
+                            style={{ color: hecho ? '#3f3f46' : g.hex, opacity: opc ? 0.5 : 1 }} />
+                          <span className={`text-[11px] truncate ${hecho ? 'text-zinc-600 line-through' : opc ? 'text-zinc-500' : 'text-zinc-300'}`}>
                             {summarizeItem(e, t)}
                           </span>
                         </div>
@@ -870,7 +884,7 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
             const evs = compByDate.get(date) || [];
             const isToday = date === todayISO();
             const dayNum = parseInt(date.slice(-2), 10);
-            const tickables = list.filter((x) => TICK_KINDS.includes(x.kind));
+            const tickables = list.filter(cuentaComoPrevisto);
             const allDone = tickables.length > 0 && tickables.every((x) => x.completed);
             const hasFight = evs.some((e) => e.kind === 'fight');
             const hasWeigh = evs.some((e) => e.kind === 'weigh_in');
