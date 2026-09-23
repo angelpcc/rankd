@@ -252,7 +252,7 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
 
   const daysToWeighIn = useMemo(() => {
     if (!weighInDate) return null;
-    return Math.round((new Date(weighInDate + 'T12:00:00').getTime() - new Date().setHours(0, 0, 0, 0)) / 86400000);
+    return Math.round((new Date(weighInDate + 'T12:00:00').getTime() - new Date().setHours(12, 0, 0, 0)) / 86400000); // mediodía contra mediodía: con la medianoche sobraba medio día y el redondeo sumaba uno
   }, [weighInDate]);
 
   /** Ritmo semanal necesario para llegar al peso el día del pesaje. */

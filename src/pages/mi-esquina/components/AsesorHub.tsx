@@ -7,6 +7,7 @@ import SectionHero from './SectionHero';
 import SectionCoach from './SectionCoach';
 import PlanChat from './PlanChat';
 import BoxingStudio from './BoxingStudio';
+import type { ImagenLista } from '@/lib/imageInput';
 
 // ASESOR en dos pestañas.
 //
@@ -76,6 +77,17 @@ export default function AsesorHub({ profile, showToast, onGoPlan, onGoAgenda, in
 
   const isAsk = tab === 'consulta';
 
+  /**
+   * Lo que Consulta manda a montar al Plan.
+   *
+   * Le pasas el PDF de tu semana en Consulta y le dices "pásamelo a la app":
+   * Consulta no monta planes (solo retoca el que hay), así que antes contestaba
+   * "vete a Plan", y allí había que volver a adjuntar el documento y volver a
+   * explicarlo todo. Ahora el botón lleva la petición y el documento, y el
+   * Plan la manda sola al abrirse.
+   */
+  const [semillaPlan, setSemillaPlan] = useState<{ texto: string; adjunto?: ImagenLista | null } | null>(null);
+
   // v4: lo que hace cada modo ya lo dice su tarjeta (ver "Los tres modos"
   // abajo); la cabecera dice qué es el Asesor en general.
 
@@ -132,6 +144,7 @@ export default function AsesorHub({ profile, showToast, onGoPlan, onGoAgenda, in
           ]}
           accent="red"
           showToast={showToast}
+          onSendToPlan={(s) => { setSemillaPlan(s); setTab('plan'); }}
         />
 
         <p className="text-[11px] leading-relaxed flex items-start gap-1.5" style={{ color: 'var(--t-3)' }}>
@@ -145,7 +158,8 @@ export default function AsesorHub({ profile, showToast, onGoPlan, onGoAgenda, in
           quiere, se pregunta lo que falte, el plan aparece en la conversación y
           se cambia hablando hasta que cuadra. */}
       {tab === 'plan' && (
-        <PlanChat profile={profile} showToast={showToast} onGoAgenda={onGoAgenda} />
+        <PlanChat profile={profile} showToast={showToast} onGoAgenda={onGoAgenda}
+          semilla={semillaPlan} onSemillaUsada={() => setSemillaPlan(null)} />
       )}
 
       {/* ── ENTRENO DE BOXEO POR ASALTOS (punto 28) ──

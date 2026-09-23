@@ -147,15 +147,23 @@ function normalizeSegments(raw: unknown, kind: string): ProtocolSegment[] {
 
     const minutes = Number(s.minutes);
     const meters = Number(s.meters);
+    const reps = Math.round(Number(s.reps));
+    // `detail` es como lo manda el plan; `note`, como lo guarda la app (y como
+    // lo mandaba el guion de cardio). Se acepta cualquiera de los dos.
+    const texto = [s.detail, s.note].find((x) => typeof x === 'string' && x.trim()) as string | undefined;
     return {
       id: protocolLocalId(),
-      label: typeof s.label === 'string' && s.label.trim() ? s.label.trim().slice(0, 40) : undefined,
+      label: typeof s.label === 'string' && s.label.trim() ? s.label.trim().slice(0, 60) : undefined,
       seconds: Number.isFinite(minutes) && minutes > 0 ? Math.round(minutes * 60) : 0,
       meters: Number.isFinite(meters) && meters > 0 ? Math.round(meters) : undefined,
+      // Una estación ("25 swings") va por repeticiones: se hace y se pulsa
+      // "Hecho". Sin esto el tramo no tenía ni tiempo ni distancia y se caía
+      // abajo, y un Hyrox copiado de una hoja se quedaba en las carreras.
+      ...(Number.isFinite(reps) && reps > 0 ? { reps: Math.min(reps, 5000) } : {}),
       values,
-      note: typeof s.note === 'string' && s.note.trim() ? s.note.trim().slice(0, 200) : undefined,
+      note: texto ? texto.trim().slice(0, 200) : undefined,
     } as ProtocolSegment;
-  }).filter((s) => s.seconds > 0 || (s.meters || 0) > 0);
+  }).filter((s) => s.seconds > 0 || (s.meters || 0) > 0 || (s.reps || 0) > 0);
 }
 
 const VALID_KINDS = new Set(ACTIVITY_KINDS.map((k) => k.value));
@@ -227,7 +235,10 @@ export function normalizeWeekPlan(raw: Record<string, unknown>, request: string,
         // de dónde derivarlos, y entonces mandan los que haya declarado.
         groups: groups.length > 0 ? groups : [...new Set(exercises.map((e) => e.group))],
         exercises,
-        note: typeof d.note === 'string' && d.note.trim() ? d.note.trim().slice(0, 200) : undefined,
+        note: typeof d.note === 'string' && d.note.trim() ? d.note.trim().slice(0, 400) : undefined,
+        // "Opción A · Pierna suave": una de las opciones del sábado. Se ve y se
+        // puede marcar, pero no cuenta como fuerza pendiente.
+        ...(d.optional === true ? { optional: true } : {}),
       } as WeekStrengthDay;
     })
     .filter((x): x is WeekStrengthDay => x !== null)
@@ -245,10 +256,15 @@ export function normalizeWeekPlan(raw: Record<string, unknown>, request: string,
       const minutos = Math.max(0, Math.min(300, Math.round(Number(p.minutes) || 0)));
       // Sin minutos NI tramos no hay cardio que valga la pena poner en el día.
       if (segments.length === 0 && minutos === 0) return null;
-      const weekdays = (Array.isArray(p.weekdays) ? p.weekdays : [])
+      const pedidos = (Array.isArray(p.weekdays) ? p.weekdays : [])
         .map(clampWeekday)
-        .filter((w): w is number => w !== null && usable(w));
-      if (weekdays.length === 0) return null;
+        .filter((w): w is number => w !== null);
+      const weekdays = pedidos.filter(usable);
+      // Sin días PEDIDOS es un cardio para guardar sin fecha ("Cardios
+      // guardados"), que es justo lo que dice el esquema. Antes se descartaba
+      // igual que uno cuyos días ya han pasado, y lo que se pedía guardar
+      // desaparecía. Solo se descarta si tenía días y ya no queda ninguno.
+      if (pedidos.length > 0 && weekdays.length === 0) return null;
       return {
         key: String(p.key || `cardio_${i}`).trim().slice(0, 40) || `cardio_${i}`,
         name: String(p.name || '').trim().slice(0, 120) || `Cardio ${i + 1}`,
@@ -263,7 +279,9 @@ export function normalizeWeekPlan(raw: Record<string, unknown>, request: string,
         ...(Array.isArray(p.weeks) && p.weeks.length > 0
           ? { weeks: [...new Set((p.weeks as unknown[]).map(Number).filter((w) => Number.isFinite(w) && w >= 0))] }
           : {}),
-        note: typeof p.note === 'string' && p.note.trim() ? p.note.trim().slice(0, 200) : undefined,
+        // 400 y no 200: las reglas de una hoja ("no te agarres a las asas; si
+        // pasas de 139 ppm, baja un punto") van aquí y se leen entrenando.
+        note: typeof p.note === 'string' && p.note.trim() ? p.note.trim().slice(0, 400) : undefined,
       } as WeekProtocol;
     })
     .filter((x): x is WeekProtocol => x !== null)
@@ -434,6 +452,7 @@ function stripIds(plan: WeekPlan) {
         label: s.label ?? null,
         minutes: +(s.seconds / 60).toFixed(2),
         meters: s.meters ?? null,
+        reps: s.reps ?? 0,
         note: s.note ?? null,
         values: s.values,
       })),

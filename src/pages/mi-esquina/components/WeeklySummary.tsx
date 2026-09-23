@@ -126,7 +126,7 @@ export default function WeeklySummary({ profile, refreshKey, onOpenGoals }: Prop
   const deadlineText = (deadline: string | null): string | null => {
     if (!deadline) return null;
     const d = new Date(deadline + 'T12:00:00');
-    const days = Math.round((d.getTime() - new Date().setHours(0, 0, 0, 0)) / 86400000);
+    const days = Math.round((d.getTime() - new Date().setHours(12, 0, 0, 0)) / 86400000); // mediodía contra mediodía: con la medianoche sobraba medio día y el redondeo sumaba uno
     if (days < 0) return t('mc_ws_deadline_over');
     if (days === 0) return t('mc_ws_deadline_today');
     return t('mc_ws_deadline_days', { n: days });

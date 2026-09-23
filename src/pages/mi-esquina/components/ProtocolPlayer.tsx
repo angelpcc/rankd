@@ -3,9 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useWakeLock } from '@/pages/timer/hooks/useWakeLock';
 import {
   changedVars, clock, formatVarValue, protocolColumnOrder, protocolTotals, protocolVarsFor, segmentStarts,
-  type Protocol, type ProtocolRun, type ProtocolSegment, type ProtocolVarDef,
+  type Protocol, type ProtocolRun, type ProtocolSegment, type ProtocolVarDef, type RunDone,
 } from '@/pages/mi-esquina/lib/protocols';
-import { activityKindCfg, todayISO } from '@/pages/mi-esquina/lib/dayPlan';
+import { activityKindCfg, paceLabel, paceToSec, todayISO } from '@/pages/mi-esquina/lib/dayPlan';
 import { tinte } from '@/pages/mi-esquina/lib/sectionTheme';
 
 // Reproductor en vivo de un protocolo (punto 16).
@@ -38,7 +38,7 @@ interface Props {
   /** Cerrar sin guardar nada. */
   onExit: () => void;
   /** Terminar: guarda la sesión en el historial y marca el protocolo. */
-  onFinish: (done: { secondsDone: number; segmentsDone: number; completed: boolean; distanceMeters: number }) => void;
+  onFinish: (done: RunDone) => void;
 }
 
 type Pitido = 'cambio' | 'fin' | 'cuenta';
@@ -95,8 +95,19 @@ export default function ProtocolPlayer({ protocol, saving, ultima, onExit, onFin
   const [doneMeters, setDoneMeters] = useState(0);
   /** Tramos terminados (no los saltados tocando la tabla). */
   const [hechos, setHechos] = useState<Set<number>>(() => new Set());
-  const [finished, setFinished] = useState(false);
+  /**
+   * La pantalla de cierre, cuando está abierta. `completed`: se llegó al final
+   * (o se registra entera). `vuelta`: se puede volver a la sesión — no si ya se
+   * acabó el último tramo.
+   */
+  const [cierre, setCierre] = useState<{ completed: boolean; vuelta: boolean } | null>(null);
+  const finished = cierre !== null;
+  /** Lo que se puede corregir o añadir al cerrar. Todo texto, como se teclea. */
+  const [form, setForm] = useState({ min: '', dist: '', ritmo: '', pulso: '', nota: '' });
   const [confirmExit, setConfirmExit] = useState(false);
+  const usaKm = cfg.fields.includes('distance_km');
+  const usaMetros = cfg.fields.includes('meters');
+  const usaRitmo = cfg.fields.includes('pace');
 
   // El cronómetro no cuenta ticks: ancla un instante y mide contra el reloj.
   // Sumar 1 por intervalo se desfasa en cuanto el móvil apaga la pantalla o el
@@ -111,8 +122,14 @@ export default function ProtocolPlayer({ protocol, saving, ultima, onExit, onFin
   const next: ProtocolSegment | undefined = protocol.segments[index + 1];
   const byDistance = !!segment?.meters && segment.meters > 0;
   const byReps = !!segment?.reps && segment.reps > 0;
-  /** Se termina a mano: distancia o repeticiones. */
-  const manual = byDistance || byReps;
+  /**
+   * Tramo LIBRE: sin tiempo, sin distancia y sin repeticiones. Es lo que sale
+   * de un bloque de la agenda que no trae guion ("Tirada larga 10-15 km" con
+   * su nota): cronómetro hacia arriba y "Hecho" cuando se acabe.
+   */
+  const abierto = !!segment && !byDistance && !byReps && !((segment.seconds || 0) > 0);
+  /** Se termina a mano: distancia, repeticiones o libre. */
+  const manual = byDistance || byReps || abierto;
   const segSeconds = segment?.seconds || 0;
   const remaining = Math.max(0, segSeconds - segElapsed);
 
@@ -121,9 +138,19 @@ export default function ProtocolPlayer({ protocol, saving, ultima, onExit, onFin
   /** Tiempo real pasado en el tramo actual, sin pasarse de su duración si va por tiempo. */
   const gastado = useCallback((seg: ProtocolSegment | undefined, elapsed: number) => {
     if (!seg) return 0;
-    const esManual = (!!seg.meters && seg.meters > 0) || (!!seg.reps && seg.reps > 0);
+    const esManual = (!!seg.meters && seg.meters > 0) || (!!seg.reps && seg.reps > 0) || !((seg.seconds || 0) > 0);
     return esManual ? elapsed : Math.min(elapsed, seg.seconds || elapsed);
   }, []);
+
+  /** Abre la pantalla de cierre con lo hecho ya escrito, para corregirlo si hace falta. */
+  const abrirCierre = useCallback((segundos: number, metros: number, completed: boolean, vuelta: boolean) => {
+    setForm({
+      min: segundos > 0 ? String(Math.max(1, Math.round(segundos / 60))) : '',
+      dist: metros > 0 ? (usaKm ? String(+(metros / 1000).toFixed(2)).replace('.', ',') : String(Math.round(metros))) : '',
+      ritmo: '', pulso: '', nota: '',
+    });
+    setCierre({ completed, vuelta });
+  }, [usaKm]);
 
   const reanclar = () => {
     baseRef.current = 0;
@@ -147,14 +174,17 @@ export default function ProtocolPlayer({ protocol, saving, ultima, onExit, onFin
       baseRef.current = 0;
       setSegElapsed(0);
       setRunning(false);
-      setFinished(true);
       beep('fin');
+      // Terminada sin cronómetro (saltando tramos mientras manda la máquina):
+      // cuenta lo que dura la sesión, no un minuto que no se corresponde con nada.
+      const total = doneSeconds + Math.max(0, Math.round(spent));
+      abrirCierre(total < 30 ? totals.seconds : total, doneMeters + (seg.meters || 0), true, false);
       return;
     }
     reanclar();
     setIndex((i) => i + 1);
     beep('cambio');
-  }, [protocol.segments, index, n, segElapsed, beep, gastado]);
+  }, [protocol.segments, index, n, segElapsed, beep, gastado, doneSeconds, doneMeters, totals.seconds, abrirCierre]);
 
   /** Ir a un tramo concreto (tabla, línea de tramos o "anterior"). */
   const irA = useCallback((i: number) => {
@@ -239,54 +269,127 @@ export default function ProtocolPlayer({ protocol, saving, ultima, onExit, onFin
   const totalDone = doneSeconds + spentHere;
 
   /**
-   * Cierra la sesión y la registra.
+   * A la pantalla de cierre desde "Registrar" o desde "Terminar antes".
    *
    * `aMano` es el caso de quien ha seguido la TABLA sin darle al play — que es
    * perfectamente normal: la máquina ya lleva su propio reloj y aquí solo se
-   * viene a mirar qué toca. Para ése el cronómetro marca cero; vale lo que
-   * DURA el protocolo, que es lo que ha hecho.
+   * viene a mirar qué toca. Para ése el cronómetro marca cero; se propone lo
+   * que DURA el protocolo, que es lo que ha hecho, y lo puede corregir.
    */
-  const finishNow = (completed: boolean, aMano = false) => {
+  const aCierre = (completed: boolean, aMano: boolean) => {
+    if (running) pause();
     const hechosSeg = Math.max(0, Math.round(doneSeconds + spentHere));
+    const segundos = aMano && hechosSeg < 30 ? totals.seconds : hechosSeg;
+    const metros = doneMeters || (aMano ? totals.meters : 0);
+    setConfirmExit(false);
+    abrirCierre(segundos, metros, completed || aMano, true);
+  };
+
+  /** Guarda con lo que diga la pantalla de cierre. */
+  const guardar = () => {
+    if (!cierre) return;
+    const num = (x: string) => parseFloat(x.replace(',', '.'));
+    const min = num(form.min);
+    const d = num(form.dist);
+    const hechosSeg = Math.max(0, Math.round(doneSeconds + spentHere));
+    const ritmo = paceToSec(form.ritmo);
+    const pulso = parseInt(form.pulso, 10);
     onFinish({
-      // Terminada sin cronómetro (saltando tramos mientras manda la máquina):
-      // cuenta lo que dura la sesión, no un minuto que no se corresponde con nada.
-      secondsDone: (aMano || completed) && hechosSeg < 30 ? totals.seconds : hechosSeg,
-      segmentsDone: completed || aMano ? n : hechos.size,
-      completed: completed || aMano,
-      distanceMeters: doneMeters || (aMano ? totals.meters : 0),
+      secondsDone: Number.isFinite(min) && min > 0 ? Math.round(min * 60) : (hechosSeg >= 30 ? hechosSeg : totals.seconds),
+      segmentsDone: cierre.completed ? n : hechos.size,
+      completed: cierre.completed,
+      distanceMeters: Number.isFinite(d) && d > 0 ? Math.round(usaKm ? d * 1000 : d) : 0,
+      ...(form.nota.trim() ? { note: form.nota.trim().slice(0, 300) } : {}),
+      ...(ritmo > 0 ? { paceSecPerKm: ritmo } : {}),
+      ...(Number.isFinite(pulso) && pulso > 30 && pulso < 240 ? { avgHr: pulso } : {}),
     });
   };
 
   // ── Pantalla de cierre ──
-  if (finished) {
+  //
+  // Antes era un "¡terminado!" y un botón. Lo que faltaba es lo que se pidió:
+  // "una vez terminada, guardar sesión, y si quieres meter especificaciones,
+  // las metes" — el ritmo de la tirada, el pulso, los kilómetros de verdad.
+  // Viene rellena con lo que ha medido el cronómetro: sin tocar nada, se
+  // guarda igual que antes.
+  if (cierre) {
+    const minN = parseFloat(form.min.replace(',', '.'));
+    const distN = parseFloat(form.dist.replace(',', '.'));
+    const ritmoAuto = usaRitmo && usaKm && minN > 0 && distN > 0 ? paceLabel(Math.round((minN * 60) / distN)) : '';
+    const hechosSeg = Math.max(0, Math.round(doneSeconds + spentHere));
+    // Sin minutos escritos, sin cronómetro y sin duración prevista (una tirada
+    // "de 10-15 km" registrada después) no se sabe qué guardar: se piden.
+    const puede = (Number.isFinite(minN) && minN > 0) || hechosSeg >= 30 || (cierre.completed && totals.seconds > 0);
+    // La fila de lo medido solo si se ha medido algo: "0:00 · —" no dice nada.
+    const medido = hechosSeg >= 30 || doneMeters > 0;
+    const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm((x) => ({ ...x, [k]: e.target.value }));
     return (
       <Shell onClose={onExit} title={protocol.name} icon={cfg.icon} color={color}>
-        <div className="flex-1 overflow-y-auto px-5 py-8 flex flex-col items-center justify-center text-center">
-          <div className="w-20 h-20 mb-5 flex items-center justify-center rounded-full anim-scale-in"
-            style={{ background: tinte('#22c55e', 0.12), border: `2px solid ${tinte('#22c55e', 0.45)}`, color: '#4ade80' }}>
-            <i className="ri-check-line text-4xl" />
-          </div>
-          <h3 className="text-2xl font-bold text-white tracking-tight">{t('mc_pt_done_title')}</h3>
-          <p className="text-sm mt-2 leading-relaxed max-w-xs" style={{ color: 'var(--t-2)' }}>{t('mc_pt_done_sub')}</p>
+        <div className="flex-1 overflow-y-auto px-5 py-7">
+          <div className="max-w-md mx-auto flex flex-col items-center text-center">
+            <div className="w-16 h-16 mb-4 flex items-center justify-center rounded-full anim-scale-in"
+              style={cierre.completed
+                ? { background: tinte('#22c55e', 0.12), border: `2px solid ${tinte('#22c55e', 0.45)}`, color: '#4ade80' }
+                : { background: tinte(color, 0.12), border: `2px solid ${tinte(color, 0.45)}`, color }}>
+              <i className={`${cierre.completed ? 'ri-check-line' : 'ri-flag-line'} text-3xl`} />
+            </div>
+            <h3 className="text-2xl font-bold text-white tracking-tight">{cierre.completed ? t('mc_pt_done_title') : t('mc_pt_exit_save')}</h3>
+            <p className="text-sm mt-2 leading-relaxed max-w-xs" style={{ color: 'var(--t-2)' }}>{t('mc_pt_done_sub')}</p>
 
-          <div className="grid grid-cols-3 gap-2 w-full max-w-sm mt-7">
-            <Stat value={clock(doneSeconds)} label={t('mc_pt_stat_time')} />
-            <Stat value={`${hechos.size}/${n}`} label={t('mc_pt_stat_segments')} />
-            <Stat value={doneMeters > 0 ? (doneMeters >= 1000 ? `${+(doneMeters / 1000).toFixed(2)} km` : `${doneMeters} m`) : '—'} label={t('mc_pt_stat_distance')} />
+            {medido && <div className="grid grid-cols-3 gap-2 w-full mt-6">
+              <Stat value={clock(hechosSeg)} label={t('mc_pt_stat_time')} />
+              <Stat value={`${cierre.completed && cierre.vuelta ? n : hechos.size}/${n}`} label={t('mc_pt_stat_segments')} />
+              <Stat value={doneMeters > 0 ? (doneMeters >= 1000 ? `${+(doneMeters / 1000).toFixed(2)} km` : `${doneMeters} m`) : '—'} label={t('mc_pt_stat_distance')} />
+            </div>}
           </div>
 
-          <button onClick={() => finishNow(true)} disabled={saving}
-            className="rk-cta rk-press w-full max-w-sm mt-8 flex items-center justify-center gap-2 disabled:opacity-60"
-            style={{ minHeight: 52 }}>
-            {saving
-              ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{t('mc_saving')}</>
-              : <><i className="ri-check-line text-lg" />{t('mc_pt_save_session')}</>}
-          </button>
-          <button onClick={onExit} disabled={saving}
-            className="text-xs hover:text-white cursor-pointer mt-3" style={{ minHeight: 44, color: 'var(--t-3)' }}>
-            {t('mc_pt_discard_run')}
-          </button>
+          {/* Detalles, todos opcionales */}
+          <div className="max-w-md mx-auto mt-6 rk-card" style={{ padding: 16 }}>
+            <p className="rk-label mb-3">{t('mc_pt_rv_details')}</p>
+            <div className="grid grid-cols-2 gap-3">
+              <Campo label={t('mc_pt_rv_minutes')} value={form.min} onChange={set('min')} inputMode="decimal" sufijo="min" />
+              {(usaKm || usaMetros) && (
+                <Campo label={usaKm ? t('mc_av_field_km') : t('mc_av_field_meters')} value={form.dist} onChange={set('dist')}
+                  inputMode="decimal" sufijo={usaKm ? 'km' : 'm'} />
+              )}
+              {usaRitmo && (
+                <Campo label={t('mc_av_field_pace')} value={form.ritmo} onChange={set('ritmo')} inputMode="text"
+                  placeholder={ritmoAuto || '5:30'} sufijo="/km" />
+              )}
+              <Campo label={t('mc_av_field_hr')} value={form.pulso} onChange={set('pulso')} inputMode="numeric" placeholder="135" sufijo="ppm" />
+            </div>
+            {usaRitmo && ritmoAuto && !form.ritmo && (
+              <p className="text-[11px] mt-2" style={{ color: 'var(--t-3)' }}>{t('mc_av_pace_auto', { pace: ritmoAuto })}</p>
+            )}
+            <label className="block mt-3">
+              <span className="block text-xs mb-1.5 text-left" style={{ color: 'var(--t-2)' }}>{t('mc_pt_rv_note')}</span>
+              <textarea value={form.nota} onChange={set('nota')} rows={2} maxLength={300}
+                placeholder={t('mc_pt_rv_note_ph')}
+                className="w-full rounded-xl px-3 py-2.5 text-white resize-none focus:outline-none"
+                style={{ fontSize: 16, background: 'rgba(255,255,255,0.04)', border: '1px solid var(--line-2)' }} />
+            </label>
+          </div>
+
+          <div className="max-w-md mx-auto mt-5 flex flex-col items-stretch">
+            <button onClick={guardar} disabled={saving || !puede}
+              className="rk-cta rk-press w-full flex items-center justify-center gap-2 disabled:opacity-50"
+              style={{ minHeight: 52 }}>
+              {saving
+                ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{t('mc_saving')}</>
+                : <><i className="ri-check-line text-lg" />{t('mc_pt_save_session')}</>}
+            </button>
+            {!puede && <p className="text-[11px] mt-1.5 text-center" style={{ color: 'var(--t-3)' }}>{t('mc_pt_rv_need_min')}</p>}
+            {cierre.vuelta && (
+              <button onClick={() => setCierre(null)} disabled={saving}
+                className="rk-nav-btn rk-press w-full mt-2 inline-flex items-center justify-center gap-1.5 text-sm" style={{ minHeight: 46 }}>
+                <i className="ri-arrow-left-line" />{t('mc_pt_rv_back')}
+              </button>
+            )}
+            <button onClick={onExit} disabled={saving}
+              className="text-xs hover:text-white cursor-pointer mt-2" style={{ minHeight: 44, color: 'var(--t-3)' }}>
+              {t('mc_pt_discard_run')}
+            </button>
+          </div>
         </div>
       </Shell>
     );
@@ -311,14 +414,16 @@ export default function ProtocolPlayer({ protocol, saving, ultima, onExit, onFin
 
   // Lo que dibuja el anillo: por tiempo, lo que queda; a mano, la estimación
   // (más apagada, porque es una guía y no una cuenta).
-  const frac = manual
+  const frac = abierto
+    ? (segElapsed % 60) / 60
+    : manual
     ? (segSeconds > 0 ? Math.min(1, segElapsed / segSeconds) : 0)
     : (segSeconds > 0 ? Math.max(0, 1 - segElapsed / segSeconds) : 0);
 
   const titulo = esDescanso ? t('mc_pt_rest_title') : (segment.label || t(cfg.labelKey));
   const antetitulo = esDescanso
     ? t('mc_pt_rest_eyebrow')
-    : (segment.stage || t('mc_pt_segment_of', { n: index + 1, total: n }));
+    : (segment.stage || (n > 1 ? t('mc_pt_segment_of', { n: index + 1, total: n }) : t(cfg.labelKey)));
 
   // "hace 3 d · lo dejaste en 28:14 de 40:00" / "ayer · lo terminaste entero".
   let ultimaTexto = '';
@@ -334,7 +439,7 @@ export default function ProtocolPlayer({ protocol, saving, ultima, onExit, onFin
   // Registrar, sin condiciones: quien sigue la tabla mirando la máquina, sin
   // darle al play, también ha hecho la sesión.
   const registrar = (
-    <button onClick={() => finishNow(false, true)} disabled={saving}
+    <button onClick={() => aCierre(false, true)} disabled={saving}
       className="rk-nav-btn rk-press inline-flex items-center gap-1.5 text-xs whitespace-nowrap disabled:opacity-60"
       style={{ minHeight: 40, padding: '0 0.9rem' }}>
       {saving
@@ -354,7 +459,7 @@ export default function ProtocolPlayer({ protocol, saving, ultima, onExit, onFin
     ? `${s.reps} ${t('mc_pt_reps')}`
     : s.meters
       ? (s.meters >= 1000 ? `${+(s.meters / 1000).toFixed(2)} km` : `${s.meters} m`)
-      : clock(s.seconds));
+      : (s.seconds || 0) > 0 ? clock(s.seconds) : t('mc_pt_free'));
 
   return (
     <Shell onClose={() => (empezado ? setConfirmExit(true) : onExit())} title={protocol.name} icon={cfg.icon} color={color}>
@@ -363,7 +468,8 @@ export default function ProtocolPlayer({ protocol, saving, ultima, onExit, onFin
         <div className="flex gap-[3px] h-2 max-w-6xl mx-auto">
           {protocol.segments.map((s, i) => {
             const hecho = hechos.has(i);
-            const relleno = i === index ? 1 - (manual ? 1 - frac : frac) : hecho ? 1 : 0;
+            // El tramo libre no tiene final: su barra no se llena (el anillo da vueltas).
+            const relleno = i === index ? (abierto ? 0 : 1 - (manual ? 1 - frac : frac)) : hecho ? 1 : 0;
             return (
               <button key={s.id} onClick={() => irA(i)} aria-label={`${i + 1}. ${s.label || ''}`}
                 className="relative h-full rounded-full overflow-hidden cursor-pointer"
@@ -381,7 +487,7 @@ export default function ProtocolPlayer({ protocol, saving, ultima, onExit, onFin
         </div>
         <div className="flex items-center justify-between mt-2 max-w-6xl mx-auto text-[11px] tabular-nums" style={{ color: 'var(--t-3)' }}>
           <span>{t('mc_pt_segment_of', { n: index + 1, total: n })}</span>
-          <span>{clock(totalDone)} / ≈ {clock(totals.seconds)}</span>
+          <span>{clock(totalDone)}{totals.seconds > 0 ? ` / ≈ ${clock(totals.seconds)}` : ''}</span>
         </div>
       </div>
 
@@ -413,7 +519,14 @@ export default function ProtocolPlayer({ protocol, saving, ultima, onExit, onFin
                   style={{ transition: 'stroke 0.3s', opacity: manual ? 0.45 : 1 }} />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                {manual ? (
+                {abierto ? (
+                  <>
+                    <p className="leading-none tabular-nums" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(56px, 17vw, 84px)', color: '#fff' }}>
+                      {clock(segElapsed)}
+                    </p>
+                    <p className="rk-label mt-1" style={{ fontSize: 11 }}>{t('mc_pt_free')}</p>
+                  </>
+                ) : manual ? (
                   <>
                     <p className="rk-num leading-none" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(48px, 15vw, 72px)', color: '#fff' }}>
                       {byReps ? segment.reps : (segment.meters! >= 1000 ? +(segment.meters! / 1000).toFixed(2) : segment.meters)}
@@ -467,7 +580,7 @@ export default function ProtocolPlayer({ protocol, saving, ultima, onExit, onFin
             )}
             {manual && (
               <p className="text-xs mt-3 max-w-xs leading-relaxed" style={{ color: 'var(--t-3)' }}>
-                {byReps ? t('mc_pt_reps_manual') : t('mc_pt_distance_manual')}
+                {abierto ? t('mc_pt_free_hint') : byReps ? t('mc_pt_reps_manual') : t('mc_pt_distance_manual')}
               </p>
             )}
 
@@ -645,13 +758,10 @@ export default function ProtocolPlayer({ protocol, saving, ultima, onExit, onFin
             <p className="text-xs mt-2 leading-relaxed" style={{ color: 'var(--t-2)' }}>
               {t('mc_pt_exit_desc', { time: clock(totalDone), n: hechos.size, total: n })}
             </p>
-            <button onClick={() => finishNow(false)} disabled={saving || totalDone < 30}
+            <button onClick={() => aCierre(false, false)} disabled={saving}
               className="rk-cta rk-press w-full mt-4 disabled:opacity-50" style={{ minHeight: 46 }}>
               {t('mc_pt_exit_save')}
             </button>
-            {totalDone < 30 && (
-              <p className="text-[10px] mt-1.5 leading-relaxed" style={{ color: 'var(--t-3)' }}>{t('mc_pt_exit_too_short')}</p>
-            )}
             <button onClick={onExit} className="w-full text-xs hover:text-red-400 cursor-pointer mt-3"
               style={{ minHeight: 42, color: 'var(--t-2)' }}>
               {t('mc_pt_exit_discard')}
@@ -685,6 +795,23 @@ function RoundBtn({ onClick, icon, label }: { onClick: () => void; icon: string;
       </span>
       <span className="text-[10px] font-semibold" style={{ color: 'var(--t-3)' }}>{label}</span>
     </button>
+  );
+}
+
+/** Un campo corto del cierre. A 16px para que el iPhone no amplíe la pantalla. */
+function Campo({ label, value, onChange, inputMode, placeholder, sufijo }: {
+  label: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  inputMode: 'decimal' | 'numeric' | 'text'; placeholder?: string; sufijo?: string;
+}) {
+  return (
+    <label className="block text-left min-w-0">
+      <span className="block text-xs mb-1.5 truncate" style={{ color: 'var(--t-2)' }}>{label}</span>
+      <span className="flex items-center rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--line-2)' }}>
+        <input value={value} onChange={onChange} inputMode={inputMode} placeholder={placeholder}
+          className="w-full min-w-0 bg-transparent text-white px-3 py-2.5 focus:outline-none tabular-nums" style={{ fontSize: 16 }} />
+        {sufijo && <span className="pr-3 text-xs flex-shrink-0" style={{ color: 'var(--t-3)' }}>{sufijo}</span>}
+      </span>
+    </label>
   );
 }
 

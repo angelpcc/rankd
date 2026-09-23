@@ -17,8 +17,15 @@
 //
 //   1. ¿Trae sesión de boxeo? → al TEMPORIZADOR, con los asaltos puestos.
 //   2. ¿Trae protocolo? → al REPRODUCTOR, tramo a tramo.
-//   3. ¿Es un cardio del plan sin guion? → se ofrece montarlo (ver abajo).
-//   4. Cualquier otra cosa → al formulario de registro.
+//   3. Sin guion → una hoja con lo que dice el bloque y tres salidas:
+//      EMPEZAR ya con cronómetro, MONTAR el guion con IA (si se puede) o
+//      REGISTRARLO a mano.
+//
+// El "empezar" es lo que faltaba. Una tirada larga del plan ("10-15 km, zona
+// 2, cinta al 1 %") llevaba directamente al formulario de registro: se veía
+// el nombre y poco más. Ahora se abre como cualquier sesión —la nota a la
+// vista, el cronómetro corriendo— y al acabar se guarda con el ritmo, la
+// distancia o lo que se quiera apuntar.
 //
 // Siempre hay una salida. Esa es la regla: un bloque que se ve tiene que poder
 // resolverse, y la del punto 3 es la que faltaba.
@@ -43,7 +50,7 @@ import { supabase, type Profile } from '@/lib/supabase';
 import BottomSheet from '@/components/base/BottomSheet';
 import ProtocolPlayer from './ProtocolPlayer';
 import { activityKindCfg, type ActivityPayload } from '../lib/dayPlan';
-import { finishRun, loadProtocolById, localId as protocolLocalId, saveProtocol, ultimaVezDe, type Protocol, type ProtocolRun } from '../lib/protocols';
+import { finishRun, loadProtocolById, localId as protocolLocalId, saveProtocol, ultimaVezDe, type Protocol, type ProtocolRun, type RunDone } from '../lib/protocols';
 import { BOXING_PLACES, saveBoxingSession, type BoxingPlace } from '../lib/boxing';
 import { designCardio } from '@/services/protocolImport';
 import { generateBoxingSession } from '@/services/boxingAdvisor';
@@ -118,15 +125,21 @@ export function useActivityLauncher({ profile, showToast, onGoBoxing, onLogManua
         showToast(t('mc_ag_run_missing'), 'error');
       }
 
-      // 3. Cardio del plan sin guion: se ofrece montarlo.
-      if (puedeMontarGuion(item.source, p)) { setPreguntar(item); return; }
-
-      // 4. Siempre queda el registro a mano.
-      onLogManual(item.planDate, p.kind);
+      // 3. Sin guion: la hoja, que siempre deja registrarlo a mano.
+      setPreguntar(item);
     } finally {
       setAbriendo(null);
     }
-  }, [profile.id, showToast, t, onGoBoxing, onLogManual]);
+  }, [profile.id, showToast, t, onGoBoxing]);
+
+  /** Empieza el bloque tal cual, con lo que dice su nota a la vista. */
+  const empezarSinGuion = () => {
+    const item = preguntar;
+    if (!item) return;
+    setPreguntar(null);
+    setPlace(null);
+    setPlayer({ item, protocol: sesionDeBloque(item.payload, t(activityKindCfg(item.payload.kind).labelKey)) });
+  };
 
   /** Genera el guion del bloque que está esperando y lo abre. */
   const montar = async () => {
@@ -193,7 +206,7 @@ export function useActivityLauncher({ profile, showToast, onGoBoxing, onLogManua
   };
 
   /** Cierre del reproductor: guarda la sesión y marca el bloque. */
-  const terminar = async (done: { secondsDone: number; segmentsDone: number; completed: boolean; distanceMeters: number }) => {
+  const terminar = async (done: RunDone) => {
     if (!player) return;
     setGuardando(true);
     const res = await finishRun(profile.id, player.protocol, done, player.item.planDate);
@@ -222,10 +235,11 @@ export function useActivityLauncher({ profile, showToast, onGoBoxing, onLogManua
           onExit={() => setPlayer(null)} onFinish={terminar} />
       )}
 
-      <BottomSheet open={!!preguntar} onClose={cerrarPregunta} title={t(esBoxeo ? 'mc_ag_boxing_title' : 'mc_ag_cardio_title')}>
+      <BottomSheet open={!!preguntar} onClose={cerrarPregunta} title={t('mc_ag_go_title')}>
         {preguntar && (() => {
           const p = preguntar.payload;
           const cfg = activityKindCfg(p.kind);
+          const conGuion = puedeMontarGuion(preguntar.source, p);
           return (
             <>
               <div className="rk-card mb-4" style={{ padding: 14 }}>
@@ -236,10 +250,20 @@ export function useActivityLauncher({ profile, showToast, onGoBoxing, onLogManua
                 <p className="text-[11px] text-zinc-400 mt-0.5">
                   {t(cfg.labelKey)}{p.duration_min ? ` · ${p.duration_min} min` : ''}
                 </p>
-                {p.note && <p className="text-xs text-zinc-400 mt-2 leading-relaxed">{p.note}</p>}
+                {p.note && <p className="text-xs text-zinc-300 mt-2 leading-relaxed">{p.note}</p>}
               </div>
 
-              <p className="text-sm mb-4 leading-relaxed" style={{ color: 'var(--t-2)' }}>
+              {/* 1. Empezar ya: cronómetro y la nota a la vista. */}
+              <button onClick={empezarSinGuion} disabled={montando}
+                className="rk-cta rk-press w-full flex items-center justify-center gap-2 disabled:opacity-50"
+                style={{ minHeight: 50 }}>
+                <i className="ri-play-fill text-lg" /> {t('mc_ag_go_start')}
+              </button>
+              <p className="text-[11px] mt-1.5 mb-4 leading-relaxed text-center" style={{ color: 'var(--t-3)' }}>{t('mc_ag_go_start_hint')}</p>
+
+              {conGuion && (
+              <div className="rounded-2xl p-3.5 mb-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--line)' }}>
+              <p className="text-xs mb-3 leading-relaxed" style={{ color: 'var(--t-2)' }}>
                 {t(esBoxeo ? 'mc_ag_boxing_desc' : 'mc_ag_cardio_desc')}
               </p>
 
@@ -261,12 +285,14 @@ export function useActivityLauncher({ profile, showToast, onGoBoxing, onLogManua
               )}
 
               <button onClick={montar} disabled={montando || !listoParaMontar}
-                className="rk-btn rk-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50"
-                style={{ minHeight: 48 }}>
+                className="rk-nav-btn rk-press w-full flex items-center justify-center gap-2 disabled:opacity-50"
+                style={{ minHeight: 46 }}>
                 {montando
                   ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t('mc_ag_cardio_building')}</>
-                  : <><i className="ri-sparkling-2-line" /> {t(esBoxeo ? 'mc_ag_boxing_build' : 'mc_ag_cardio_build')}</>}
+                  : <><i className="ri-sparkling-2-line" style={{ color: '#C4B5FD' }} /> {t(esBoxeo ? 'mc_ag_boxing_build' : 'mc_ag_cardio_build')}</>}
               </button>
+              </div>
+              )}
 
               <button onClick={() => { const x = preguntar; setPreguntar(null); setPlace(null); onLogManual(x.planDate, x.payload.kind); }}
                 disabled={montando}
@@ -282,4 +308,37 @@ export function useActivityLauncher({ profile, showToast, onGoBoxing, onLogManua
   );
 
   return { abrir, overlays, abriendo };
+}
+
+/**
+ * Un bloque sin guion, como sesión de un solo tramo.
+ *
+ * Con minutos, el tramo dura esos minutos. Si el nombre o la nota dicen una
+ * distancia ("Tirada larga 10-15 km"), va por distancia con el mínimo del
+ * rango. Si no dicen nada, es un tramo LIBRE: el cronómetro cuenta hacia
+ * arriba y se cierra con "Hecho". La nota del bloque va entera en el tramo,
+ * que es lo que se lee mientras se entrena (zona de pulso, inclinación…).
+ */
+export function sesionDeBloque(p: ActivityPayload, etiquetaTipo: string): Protocol {
+  const texto = `${p.protocol_name || ''} ${p.note || ''}`;
+  const km = texto.match(/(\d+(?:[.,]\d+)?)\s*(?:(?:-|–|a)\s*\d+(?:[.,]\d+)?\s*)?km\b(?!\s*\/\s*h)/i);
+  const cfg = activityKindCfg(p.kind);
+  const porDistancia = !!km && (cfg.fields.includes('distance_km') || cfg.fields.includes('meters'));
+  const nombre = p.protocol_name || etiquetaTipo;
+  return {
+    id: protocolLocalId('prot'),
+    name: nombre,
+    kind: p.kind,
+    segments: [{
+      id: protocolLocalId(),
+      label: nombre,
+      seconds: Math.max(0, (p.duration_min || 0) * 60),
+      ...(porDistancia ? { meters: Math.round(parseFloat(km![1].replace(',', '.')) * 1000) } : {}),
+      values: {},
+      ...(p.note ? { note: p.note } : {}),
+    }],
+    note: p.note,
+    source: 'manual',
+    createdAt: new Date().toISOString(),
+  };
 }

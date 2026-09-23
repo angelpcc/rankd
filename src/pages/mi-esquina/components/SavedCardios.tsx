@@ -28,7 +28,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase, type Profile } from '@/lib/supabase';
 import ProtocolPlayer from './ProtocolPlayer';
 import {
-  deleteProtocol, finishRun, loadProtocols, protocolTotals, ultimaVezDe,
+  deleteProtocol, finishRun, loadProtocols, protocolTotals, ultimaVezDe, type RunDone,
   type Protocol, type ProtocolRun,
 } from '../lib/protocols';
 import { activityKindCfg, todayISO } from '../lib/dayPlan';
@@ -69,7 +69,7 @@ export default function SavedCardios({ profile, showToast, onChanged }: Props) {
     setPlayer({ protocol: p, ultima });
   };
 
-  const terminar = async (done: { secondsDone: number; segmentsDone: number; completed: boolean; distanceMeters: number }) => {
+  const terminar = async (done: RunDone) => {
     if (!player) return;
     setGuardando(true);
     const res = await finishRun(profile.id, player.protocol, done);

@@ -976,7 +976,10 @@ function DayView({ supps, suppNames, date, locale, items, comp, logged, mode, un
   const { t } = useTranslation();
   const dObj = new Date(date + 'T12:00:00');
   const isToday = date === todayISO();
-  const relDays = Math.round((dObj.getTime() - new Date().setHours(0, 0, 0, 0)) / 86400000);
+  // Mediodía contra mediodía. Comparaba el mediodía del día con la medianoche
+  // de hoy: salía media jornada de más y el redondeo la subía, así que mañana
+  // era "en 2 días" y el sábado, "en 4".
+  const relDays = Math.round((dObj.getTime() - Date.parse(`${todayISO()}T12:00:00`)) / 86400000);
   const rel = relDays === 0 ? t('mc_today') : relDays === 1 ? t('mc_cal_tomorrow') : relDays === -1 ? t('mc_yesterday')
     : relDays > 0 ? t('mc_cal_in_days', { n: relDays }) : '';
 

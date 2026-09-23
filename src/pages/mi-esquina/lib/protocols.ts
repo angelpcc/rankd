@@ -654,6 +654,23 @@ export async function ultimaVezDe(profileId: string, protocolId: string, nombre?
   return runs.find((r) => (r.protocolName || '').trim().toLowerCase() === n && (!kind || r.kind === kind)) || null;
 }
 
+/**
+ * Lo que se ha hecho, tal como sale del reproductor.
+ *
+ * Los tres últimos los escribe el usuario al cerrar ("si quieres meter
+ * especificaciones, las metes"): el ritmo de la tirada, el pulso medio, cómo
+ * ha ido. Todos opcionales: cerrar sin tocar nada sigue guardando la sesión.
+ */
+export interface RunDone {
+  secondsDone: number;
+  segmentsDone: number;
+  completed: boolean;
+  distanceMeters: number;
+  note?: string;
+  paceSecPerKm?: number;
+  avgHr?: number;
+}
+
 export interface FinishResult {
   /** Sesión creada en el historial de Actividad. */
   sessionId: string | null;
@@ -680,7 +697,7 @@ export interface FinishResult {
 export async function finishRun(
   profileId: string,
   protocol: Protocol,
-  done: { secondsDone: number; segmentsDone: number; completed: boolean; distanceMeters: number; note?: string },
+  done: RunDone,
   /**
    * Día al que pertenece la sesión. Lo pasa la Agenda cuando el protocolo se
    * abre desde el bloque de un día concreto; sin él, hoy. Nunca se registra en
@@ -699,11 +716,22 @@ export async function finishRun(
     session_date: date,
     kind: protocol.kind,
     duration_min: minutes,
-    note: (done.note || protocol.name).slice(0, 400),
+    // El nombre de la sesión delante y lo que haya escrito detrás: sin el
+    // nombre, en el historial no se sabría qué sesión era.
+    note: (done.note?.trim() ? `${protocol.name} — ${done.note.trim()}` : protocol.name).slice(0, 400),
   };
   if (cfg.fields.includes('distance_km') && done.distanceMeters > 0) {
     session.distance_km = +(done.distanceMeters / 1000).toFixed(2);
   }
+  // Ritmo: el que haya escrito o, si hay distancia, el que sale de dividir.
+  if (cfg.fields.includes('pace')) {
+    const auto = done.distanceMeters > 0 && done.secondsDone > 0
+      ? Math.round(done.secondsDone / (done.distanceMeters / 1000))
+      : 0;
+    const pace = done.paceSecPerKm && done.paceSecPerKm > 0 ? done.paceSecPerKm : auto;
+    if (pace > 0) session.pace_sec_per_km = pace;
+  }
+  if (done.avgHr && done.avgHr > 0) session.avg_hr = Math.round(done.avgHr);
   if (cfg.fields.includes('meters') && done.distanceMeters > 0) {
     session.meters = Math.round(done.distanceMeters);
   }

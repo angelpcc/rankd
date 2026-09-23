@@ -171,6 +171,7 @@ function stripForModel(plan: WeekPlan): Record<string, unknown> {
     exclusions: plan.exclusions,
     strength: plan.strength.map((s) => ({
       weekday: s.weekday, week: s.week, name: s.name, groups: s.groups, note: s.note,
+      optional: s.optional === true,
       exercises: s.exercises.map((e) => ({
         name: e.name, sets: e.sets, reps_min: e.reps_min, reps_max: e.reps_max,
         value: e.value, weight_kg: e.weight_kg,
@@ -180,9 +181,22 @@ function stripForModel(plan: WeekPlan): Record<string, unknown> {
     // modelo veía las tres opciones de un sábado como tres cardios fijos y, al
     // reescribirlas, las devolvía fijas: lo opcional dejaba de serlo solo por
     // tocar el plan. Y un cardio sin tramos no decía cuánto duraba.
+    // Los tramos, en la MISMA forma en que el modelo los escribe (minutos,
+    // reps, detail…) y no en la de la app (segundos, ids). Con la de la app,
+    // al pedir un cambio el modelo recibía una forma y tenía que devolver otra,
+    // y en la traducción se perdían las reps de un Hyrox o el detalle de un
+    // tramo. Sin ids ni ceros, que solo gastan tokens.
     protocols: plan.protocols.map((p) => ({
       key: p.key, name: p.name, kind: p.kind, when: p.when,
-      weekdays: p.weekdays, weeks: p.weeks, segments: p.segments, note: p.note,
+      weekdays: p.weekdays, weeks: p.weeks, note: p.note,
+      segments: p.segments.map((s) => ({
+        label: s.label || '',
+        minutes: +(Math.max(0, s.seconds || 0) / 60).toFixed(2),
+        ...(s.meters ? { meters: s.meters } : {}),
+        ...(s.reps ? { reps: s.reps } : {}),
+        ...s.values,
+        ...(s.note ? { detail: s.note } : {}),
+      })),
       optional: p.optional === true, ...(p.minutes ? { minutes: p.minutes } : {}),
     })),
     nutrition: plan.nutrition.map((n) => ({

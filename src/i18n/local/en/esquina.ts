@@ -1664,6 +1664,8 @@ export default {
   mc_ai_limits_off_title: 'Spend control not configured',
   mc_ai_limits_off_desc: 'The assistant will not answer until usage control is active on the server. That is deliberate: it stops costs running away.',
   mc_ai_searching: 'Searching the web for current prices and stores…',
+  mc_ai_searching_general: 'Looking up references on the web…',
+  mc_ai_to_plan: 'Set it up in my calendar',
 
   // ── Documents (license, medical, insurance) ──
   mc_nav_docs: 'Documents',

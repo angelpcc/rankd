@@ -1668,6 +1668,8 @@ export default {
   mc_ai_limits_off_title: 'Control de gasto sin configurar',
   mc_ai_limits_off_desc: 'El asistente no responderá hasta que el control de consumo esté activo en el servidor. Es a propósito: evita que se dispare el gasto.',
   mc_ai_searching: 'Buscando precios y tiendas actuales en la web…',
+  mc_ai_searching_general: 'Buscando referencias en la web…',
+  mc_ai_to_plan: 'Montarlo en mi agenda',
 
   // ── Documentación (licencia, médico, seguro) ──
   mc_nav_docs: 'Documentos',

@@ -54,6 +54,12 @@ export interface WeekStrengthDay {
   groups: MuscleGroup[];
   exercises: PrescribedExercise[];
   note?: string;
+  /**
+   * Una de las opciones de ese día ("Opción A · Pierna suave") o algo que hará
+   * solo si puede. Como en los cardios: sale en la Agenda y se puede marcar,
+   * pero no cuenta como fuerza pendiente. Ver WeekProtocol.optional.
+   */
+  optional?: boolean;
 }
 
 export interface WeekProtocol {
@@ -690,6 +696,7 @@ export async function commitWeekPlan(
     for (const r of (hechos || []) as { plan_date: string; kind: string; payload: Record<string, unknown> | null }[]) {
       yaHecho.add(`${r.plan_date}|${r.kind}`);
       if (r.payload?.protocol_name) hechoPorNombre.add(`${r.plan_date}|${nombreClave(r.payload.protocol_name)}`);
+      if (r.payload?.routine_name) hechoPorNombre.add(`${r.plan_date}|${nombreClave(r.payload.routine_name)}`);
     }
   }
 
@@ -713,7 +720,11 @@ export async function commitWeekPlan(
     const fecha = dateOfWeekday(plan.weekStart, s.weekday, wk);
     if (pasado(fecha)) return;
     // Ese día ya se entrenó fuerza: se respeta y no se añade nada encima.
-    if (yaHecho.has(`${fecha}|strength`)) return;
+    // Una OPCIÓN de fuerza sigue la regla de los cardios opcionales: solo se
+    // salta si es esa misma, por nombre (ver hechoPorNombre).
+    if (s.optional
+      ? hechoPorNombre.has(`${fecha}|${nombreClave(s.name || routine?.name)}`)
+      : yaHecho.has(`${fecha}|strength`)) return;
     rows.push({
       fighter_profile_id: profileId,
       plan_date: fecha,
@@ -728,6 +739,7 @@ export async function commitWeekPlan(
         routine_id: routine?.id,
         routine_day_id: day?.id,
         routine_name: s.name || routine?.name,
+        ...(s.optional ? { optional: true } : {}),
       }),
       source: 'advisor',
       completed: false,

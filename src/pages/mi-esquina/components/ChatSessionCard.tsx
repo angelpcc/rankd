@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import ProtocolPlayer from './ProtocolPlayer';
-import { finishRun, protocolTotals, saveProtocol } from '../lib/protocols';
+import { finishRun, protocolTotals, saveProtocol, type RunDone } from '../lib/protocols';
 import { sesionDelTexto } from '../lib/sessionTable';
 import { activityKindCfg } from '../lib/dayPlan';
 import { tinte } from '../lib/sectionTheme';
@@ -55,7 +55,7 @@ export default function ChatSessionCard({ texto, profileId, showToast }: Props) 
     setGuardando(false);
   };
 
-  const terminar = async (done: { secondsDone: number; segmentsDone: number; completed: boolean; distanceMeters: number }) => {
+  const terminar = async (done: RunDone) => {
     setRegistrando(true);
     const res = await finishRun(profileId, p, done).catch(() => ({ sessionFailed: true }));
     setRegistrando(false);

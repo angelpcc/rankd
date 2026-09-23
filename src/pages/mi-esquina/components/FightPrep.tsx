@@ -75,7 +75,7 @@ export default function FightPrep({ profile, onOpenCalendar }: Props) {
   //    lo ganan las demás cards del resumen). ──
   if (!fight) return null;
 
-  const days = Math.round((new Date(fight.event_date + 'T12:00:00').getTime() - new Date().setHours(0, 0, 0, 0)) / 86400000);
+  const days = Math.round((new Date(fight.event_date + 'T12:00:00').getTime() - new Date().setHours(12, 0, 0, 0)) / 86400000); // mediodía contra mediodía: con la medianoche sobraba medio día y el redondeo sumaba uno
   const phase = phaseFor(days);
   // Progreso dentro de un campamento estándar de 12 semanas
   const campDays = 84;

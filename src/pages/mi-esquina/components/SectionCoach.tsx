@@ -30,6 +30,8 @@ interface Props {
   suggestions: string[];
   accent?: Accent;
   showToast?: (msg: string, type?: 'success' | 'error') => void;
+  /** Llevar una petición de plan (con su documento) al chat del Plan. */
+  onSendToPlan?: (s: { texto: string; adjunto?: ImagenLista | null }) => void;
 }
 
 interface ChatMsg {
@@ -84,10 +86,17 @@ function cambioPropuesto(texto) {
 
 /** El texto sin el marcador, que es como se enseña. */
 function sinMarcadorCambio(texto) {
-  return texto.replace(CAMBIO_RE, '').trimEnd();
+  return texto.replace(CAMBIO_RE, '').replace(PLAN_RE, '').trimEnd();
 }
 
-export default function SectionCoach({ section, profile, title, intro, suggestions, accent = 'red', showToast }: Props) {
+/**
+ * [PLAN: …] — hay que montar un plan NUEVO (casi siempre, desde un documento).
+ * Consulta no monta planes: el marcador enciende el botón que lo lleva al
+ * chat del Plan, con la petición y el documento.
+ */
+const PLAN_RE = /\[PLAN:\s*([^\]]+)\]/i;
+
+export default function SectionCoach({ section, profile, title, intro, suggestions, accent = 'red', showToast, onSendToPlan }: Props) {
   const { t, i18n } = useTranslation();
   const a = ACCENTS[accent];
   const canSavePlan = section === 'training' || section === 'nutrition';
@@ -473,6 +482,23 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
     ? cambioPropuesto(ultimo.content)
     : null;
 
+  // Montar un plan nuevo en el Plan, con el documento que se haya mandado.
+  const planNuevo = (onSendToPlan && section === 'general' && !streaming && !sending && ultimo?.role === 'assistant')
+    ? (ultimo.content.match(PLAN_RE)?.[1].trim() || null)
+    : null;
+  const llevarAlPlan = () => {
+    if (!planNuevo || !onSendToPlan) return;
+    // El documento es el último que se mandó en esta conversación. Si ya no
+    // está (se recargó la página: las fotos no se guardan), va solo el texto y
+    // el Plan lo pedirá.
+    const conAdjunto = [...messages].reverse().find((m) => m.role === 'user' && m.image);
+    const pedido = [...messages].reverse().find((m) => m.role === 'user')?.content || '';
+    const texto = pedido && !planNuevo.toLowerCase().includes(pedido.toLowerCase().slice(0, 40))
+      ? `${planNuevo}\n\n(Lo que pedí: "${pedido.slice(0, 600)}")`
+      : planNuevo;
+    onSendToPlan({ texto, adjunto: conAdjunto?.image ?? null });
+  };
+
   const lastIsAssistant = messages.length > 0 && messages[messages.length - 1].role === 'assistant';
   const showSaveBar = canSavePlan && lastIsAssistant && !streaming && !sending && !dismissedPlan && messages[messages.length - 1].content.length > 80;
 
@@ -654,7 +680,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
                   )}
                   {m.role === 'assistant'
                     ? (searching && m.content === '' && i === messages.length - 1
-                        ? <span className="flex items-center gap-2 text-zinc-400"><i className="ri-earth-line text-sky-400 animate-pulse"></i>{t('mc_ai_searching')}</span>
+                        ? <span className="flex items-center gap-2 text-zinc-400"><i className="ri-earth-line text-sky-400 animate-pulse"></i>{t(section === 'general' ? 'mc_ai_searching_general' : 'mc_ai_searching')}</span>
                         : <div className="space-y-1 rk-ai-burbuja">
                             <RichText text={sinMarcadorSesion(sinMarcadorCambio(m.content))} watchLabel={t('mc_ai_video_watch')} />
                             {streaming && i === messages.length - 1 && <span className="rk-caret" />}
@@ -734,6 +760,25 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
                 {t('mc_ai_plan_no')}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Montar un plan nuevo en el Plan ──
+          Consulta lee el documento y explica qué pondría; el Plan es quien lo
+          monta y lo manda a la agenda. El botón lleva las dos cosas. */}
+      {planNuevo && !cambio && !quotaBlocked && (
+        <div className="px-3 sm:px-4 pb-2 flex-shrink-0">
+          <div className="rounded-2xl px-3.5 py-3" style={{ background: 'rgba(167,139,250,0.07)', border: '1px solid rgba(167,139,250,0.28)' }}>
+            <p className="text-sm text-zinc-200 mb-2.5 flex items-start gap-2">
+              <i className="ri-calendar-schedule-line mt-0.5 flex-shrink-0" style={{ color: '#C4B5FD' }} />
+              <span className="min-w-0">{planNuevo.charAt(0).toUpperCase() + planNuevo.slice(1)}</span>
+            </p>
+            <button onClick={llevarAlPlan}
+              className="rk-cta rk-press w-full flex items-center justify-center gap-2 text-sm"
+              style={{ minHeight: 42, padding: '0 1rem' }}>
+              <i className="ri-arrow-right-line" /> {t('mc_ai_to_plan')}
+            </button>
           </div>
         </div>
       )}

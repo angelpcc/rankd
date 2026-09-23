@@ -46,6 +46,9 @@ interface Props {
   profile: Profile;
   showToast: (msg: string, type?: 'success' | 'error') => void;
   onGoAgenda?: () => void;
+  /** Petición que llega de Consulta, con su documento: se manda sola al abrir. */
+  semilla?: { texto: string; adjunto?: ImagenLista | null } | null;
+  onSemillaUsada?: () => void;
 }
 
 /** Un turno. `plan` solo en los del entrenador que traen plan nuevo. */
@@ -71,7 +74,7 @@ function etiquetaDia(plan: WeekPlan, weekday: number, locale: string): string {
   });
 }
 
-export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
+export default function PlanChat({ profile, showToast, onGoAgenda, semilla, onSemillaUsada }: Props) {
   const { t, i18n } = useTranslation();
   const lang: 'es' | 'en' = i18n.language === 'en' ? 'en' : 'es';
 
@@ -101,6 +104,7 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
   const [choque, setChoque] = useState<WeekPlan | null>(null);
   const [quitando, setQuitando] = useState(false);
   const [foto, setFoto] = useState<ImagenLista | null>(null);
+  const fotoCampo = foto;
   const [enviando, setEnviando] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [plan, setPlan] = useState<WeekPlan | null>(null);
@@ -111,6 +115,8 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
   const [weeks, setWeeks] = useState(1);
   const [aiOk, setAiOk] = useState<boolean | null>(null);
   const [fighter, setFighter] = useState<Record<string, unknown>>({});
+  /** Carga inicial terminada (conversación, plan activo y perfil). */
+  const [listo, setListo] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   // La caja de texto crece con lo que se escribe, hasta su tope (maxHeight).
   const areaRef = useRef<HTMLTextAreaElement>(null);
@@ -192,6 +198,7 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
         targetWeight: (g.data as { target_weight_kg?: number } | null)?.target_weight_kg,
         ...(cuerpo ? contextoCuerpoParaIA(cuerpo) : {}),
       });
+      setListo(true);
     })();
     return () => { alive = false; };
   }, [profile.id, profile.full_name, weekStart, t]);
@@ -208,15 +215,23 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
 
   // Se guarda en cada cambio, no al salir: de una pantalla se sale cerrando la
   // pestaña o pulsando atrás, y ahí no hay ocasión de despedirse.
+  //
+  // Solo con la carga hecha: antes de eso la lista está vacía porque aún no se
+  // ha leído, no porque se haya vaciado. Y vacía DESPUÉS de cargar sí se
+  // guarda (borrando): si el primer mensaje fallaba, se quitaba de la pantalla
+  // pero se quedaba guardado, y al volver aparecía repetido encima del nuevo.
   useEffect(() => {
-    if (turnos.length === 0) return;
+    if (!listo) return;
+    if (turnos.length === 0) { clearChat(profile.id, 'plan'); return; }
     saveChat(profile.id, 'plan', turnos.map((x) => ({
       role: x.role, content: x.content, ...(x.plan ? { data: x.plan } : {}),
     })));
-  }, [turnos, profile.id]);
+  }, [turnos, profile.id, listo]);
 
-  const enviar = useCallback(async (texto0?: string) => {
+  const enviar = useCallback(async (texto0?: string, adjunto?: ImagenLista | null) => {
     const msg = (texto0 ?? texto).trim();
+    // El adjunto que llega de Consulta manda sobre el del campo de escribir.
+    const foto = adjunto !== undefined ? adjunto : fotoCampo;
     // Con foto vale sin escribir: enseñarle la hoja del plan y esperar es una
     // forma normal de pedir que te lo mejore.
     if ((!msg && !foto) || enviando) return;
@@ -298,7 +313,19 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
     }
     setTurnos((p) => [...p, { role: 'assistant', content: res.reply, ...(res.plan ? { plan: res.plan } : {}) }]);
     if (res.plan) { setPlan(res.plan); setGuardado(null); }
-  }, [texto, foto, enviando, turnos, ctx, fighter, plan, agenda, historial, weekStart, profile.id, showToast, t]);
+  }, [texto, fotoCampo, enviando, turnos, ctx, fighter, plan, agenda, historial, weekStart, profile.id, showToast, t]);
+
+  // La petición que llega de Consulta se manda sola, una vez, en cuanto la
+  // conversación está cargada: si saliera antes, se mandaría sin el plan que ya
+  // hubiera y sin el perfil.
+  const semillaUsada = useRef(false);
+  useEffect(() => {
+    if (!semilla || !listo || enviando || aiOk === false || semillaUsada.current) return;
+    semillaUsada.current = true;
+    onSemillaUsada?.();
+    void enviar(semilla.texto, semilla.adjunto ?? null);
+  }, [semilla, listo, enviando, aiOk, enviar, onSemillaUsada]);
+  useEffect(() => { if (!semilla) semillaUsada.current = false; }, [semilla]);
 
   /**
    * Manda el plan a la Agenda.
@@ -711,6 +738,13 @@ function resumenTramos(segments: ProtocolSegment[], t: (k: string, o?: Record<st
     const lo = Math.min(...vel), hi = Math.max(...vel);
     partes.push(lo === hi ? `${lo} km/h` : `${lo}-${hi} km/h`);
   }
+  // Un circuito se reconoce por lo que suma, igual que en la hoja: "8 km +
+  // 188 reps". Es lo que permite ver de un vistazo que ha copiado el Hyrox
+  // entero y no la mitad.
+  const metros = segments.reduce((a, s) => a + (s.meters || 0), 0);
+  const reps = segments.reduce((a, s) => a + (s.reps || 0), 0);
+  if (metros > 0) partes.push(metros >= 1000 ? `${+(metros / 1000).toFixed(1)} km` : `${metros} m`);
+  if (reps > 0) partes.push(`${reps} reps`);
   return partes.join(' · ');
 }
 function PlanCard({ plan, vigente }: { plan: WeekPlan; vigente: boolean }) {
@@ -778,9 +812,18 @@ function PlanCard({ plan, vigente }: { plan: WeekPlan; vigente: boolean }) {
             <div className="mt-2 space-y-2 pl-3">
               {fuerza.map((s, i) => (
                 <div key={`f${i}`} className="flex gap-2.5">
-                  <i className="ri-hammer-line text-sm mt-0.5 flex-shrink-0" style={{ color: '#fb923c' }} />
+                  <i className="ri-hammer-line text-sm mt-0.5 flex-shrink-0" style={{ color: s.optional ? 'var(--t-3)' : '#fb923c' }} />
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold text-white leading-snug">{s.name || s.groups.join(' + ')}</p>
+                    <p className={`text-xs font-semibold leading-snug flex items-center gap-1.5 flex-wrap ${s.optional ? 'text-zinc-400' : 'text-white'}`}>
+                      {s.name || s.groups.join(' + ')}
+                      {s.optional && (
+                        <span className="text-[9px] font-bold uppercase tracking-wider rounded px-1 py-0.5"
+                          style={{ color: 'var(--t-3)', background: 'var(--s-2)', border: '1px solid var(--s-3)' }}>
+                          {t('mc_ag_optional')}
+                        </span>
+                      )}
+                    </p>
+                    {s.note && <p className="text-[11px] text-zinc-500 leading-snug mt-0.5">{s.note}</p>}
                     {s.exercises.length > 0 && (
                       <p className="text-[11px] text-zinc-500 leading-snug mt-0.5">
                         {s.exercises.slice(0, 6).map((e) => `${e.name} ${fmtSetCount(e.sets, e, t)}`).join(' · ')}

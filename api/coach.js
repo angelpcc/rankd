@@ -532,7 +532,8 @@ Cómo respondes:
 - TÉCNICA EN VÍDEO: cuando expliques un gesto técnico o un ejercicio concreto, añade justo después el marcador EXACTO [VIDEO: nombre del gesto] — por ejemplo "el gancho al hígado [VIDEO: gancho al higado boxeo tecnica]". NO inventes URLs. Máximo 2 por respuesta.
 - CAMBIAR SU PLAN. Arriba tienes lo que hay puesto en su agenda. Si te pide cambiar algo de ahí —"el jueves no puedo", "cámbiame el cardio a la tarde", "quítame el boxeo esta semana"— o si de la conversación sale claro que hay que cambiarlo, haz DOS cosas: explícale por qué y qué propones, como siempre; y termina con el marcador EXACTO [CAMBIO: la instrucción, en una frase] — por ejemplo [CAMBIO: mueve el entreno de fuerza del jueves al viernes]. El marcador NO se ve: enciende un botón para aplicarlo a la agenda. Escríbelo solo cuando de verdad haya un cambio concreto que aplicar, UNO por respuesta, y siempre el último. Si solo estás explicando algo, no lo pongas.
 - Cuando propongas un cambio, SÉ BREVE: qué cambias y por qué, en tres o cuatro líneas, y el marcador. Nada de desarrollar la teoría del entrenamiento antes. Quien pide un cambio quiere el cambio, no una clase.
-- Y si no tiene plan puesto (arriba no hay nada), no inventes el marcador: dile que lo monte en Plan y sigue respondiendo a lo que te ha preguntado.
+- Y si no tiene plan puesto (arriba no hay nada), no inventes el marcador [CAMBIO]: usa el de abajo.
+- PASARLO A SU AGENDA. Si te pasa un documento o una foto con su semana, o te pide "pásame esto a la app", "móntame la semana", "pónmelo en la agenda", y lo que hace falta es un plan NUEVO o casi entero (no un retoque), di en 2-3 líneas qué vas a montar —lo que has leído y cómo lo pondrías: qué fijo, qué opcional, qué dejas fuera— y termina con el marcador EXACTO [PLAN: lo que hay que montar, con TODAS sus condiciones, en una o dos frases] — por ejemplo [PLAN: pasa el documento a la agenda de la semana que viene, solo los cardios de 45 minutos tal cual, la fuerza solo con los grupos de cada día y las tres opciones del sábado como opcionales]. No se ve: enciende un botón que lo lleva, documento incluido, al montador de planes. Para un retoque de lo que ya tiene puesto, [CAMBIO]; nunca los dos en la misma respuesta.
 - Si lo que pregunta encaja mejor en una herramienta que ya tiene, dilo en una línea AL FINAL y sigue habiendo respondido: protocolos de cardio por tramos y rutinas preescritas en Actividad y Fuerza, plan de comidas en Nutrición, plan por objetivo en el propio Asesor, cronómetro de asaltos en el Temporizador.
 
 SESIONES EN TABLA. Cuando te pida una sesión, un entreno, un WOD, un Hyrox, un cardio de cinta, un circuito o "cómo se haría" algo que se entrena, NO lo cuentes en párrafos: dalo en UNA tabla markdown con EXACTAMENTE estas cuatro columnas, en este orden:
@@ -581,6 +582,21 @@ const GEAR_SEARCH_ADDENDUM = `Tienes acceso a BÚSQUEDA WEB para consultar preci
 - Prioriza tiendas que envíen a España.
 - Siempre que des precios, cierra con una nota breve avisando de que los precios y el stock cambian según la tienda y la fecha: son solo una referencia.
 - Sigues sin tener acuerdos comerciales con nadie: recomiendas por criterio técnico, no por comisión.`;
+
+// Lo mismo para Consulta, pero para ENTRENAR bien y no para comprar.
+//
+// Se pidió así: "que busque sitios y haga un buen cardio, que se base en
+// algo". Con lo que el modelo sabe de memoria vale para casi todo; la búsqueda
+// es para cuando la sesión depende de un dato que tiene que ser exacto
+// (estaciones y cargas oficiales de Hyrox, un WOD de referencia, un protocolo
+// con nombre) y para decir de dónde sale. Tope bajo por turno: cada búsqueda
+// cuesta y además retrasa la respuesta.
+const SESSION_SEARCH_ADDENDUM = `Tienes BÚSQUEDA WEB. Cuesta dinero y tiempo, así que:
+- Úsala SOLO al diseñar una sesión o un plan que dependa de un dato que tiene que ser exacto y no sabes seguro: formatos y cargas oficiales (Hyrox, CrossFit Open, un WOD "Hero" o de referencia), un protocolo con nombre (4x4 noruego, zona 2 de Maffetone, EMOM de tal autor), o algo reciente. Para dudas que ya sabes responder, NO busques.
+- Una búsqueda suele bastar; nunca más de dos.
+- Si la has usado, cierra con una línea "Basado en: [fuente](url)" con lo que hayas consultado. Solo URLs que vengan de la búsqueda; nunca las inventes.
+- La búsqueda es para que la sesión tenga sentido, no para copiarla: adáptala a él (su nivel, su material, su tiempo) y a las reglas de arriba, tabla incluida.`;
+const SESSION_SEARCHES_PER_TURN = 2;
 
 // ── PLAN IA POR OBJETIVO ──
 // Genera un plan semanal completo (entreno + cardio + nutrición + notas por
@@ -1110,6 +1126,24 @@ function cardioDesignSystem(profile, kind, minutes, intent, variables) {
     '- Si la sesión es de intervalos, los de trabajo son CORTOS y los de recuperación reales: nadie recupera de 1 min duro en 20 segundos.',
     '- Ajusta al nivel de la persona. Si no sabes su nivel, tira a conservador y dilo en la nota del tramo.',
     '',
+    'PRIMERO ELIGE EL TIPO, LUEGO ESCRIBE. Un guion "sin sentido" casi siempre es',
+    'uno que mezcla tres tipos de sesión en una. Escoge UNO de estos según lo que',
+    'se busca, constrúyelo con su estructura y di cuál es en "name":',
+    '- ZONA 2 / BASE: continuo, ritmo de poder hablar (60-70 % de la FC máx,',
+    '  esfuerzo 4-5). Para fondo y para quemar sin fatiga. Pocos tramos.',
+    '- CAMINATA EN INCLINACIÓN: subir la cuesta por bloques hasta un bloque',
+    '  principal largo (p. ej. 10-12 % a 4,5-5 km/h) y bajar. Para grasa con',
+    '  mucha fuerza en la semana.',
+    '- TEMPO / UMBRAL: 2-3 bloques de 8-12 min a esfuerzo 7 con 2-3 min suaves',
+    '  entre medias. Para aguantar ritmo alto.',
+    '- VO2 MÁX: 4 × 4 min a esfuerzo 9 con 3 min de trote (el 4x4 noruego), o',
+    '  30/30. Para la potencia aeróbica. Nunca el día antes de pierna.',
+    '- SPRINTS / HIIT: 6-10 × 20-30 s a tope con 90 s-2 min de recuperación.',
+    '- POR ASALTOS (deportes de combate): trabajo de 2-3 min y 1 min de descanso,',
+    '  que es lo que pide el combate.',
+    'Si lo que se busca no encaja en ninguno, dilo en la nota del primer tramo y',
+    'usa el más cercano.',
+    '',
     'SI LA SESIÓN NO ES DE CARDIO NORMAL:',
     '- HYROX: los tramos son la prueba. Alterna carrera con estaciones — skierg,',
     '  trineo de empuje, trineo de arrastre, burpees con salto, remo, farmers,',
@@ -1291,11 +1325,13 @@ const WEEK_SEGMENT_SCHEMA = {
 const PLAN_SEGMENT_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['label', 'minutes', 'meters', 'speed_kmh', 'incline_pct', 'resistance', 'effort'],
+  required: ['label', 'minutes', 'meters', 'reps', 'speed_kmh', 'incline_pct', 'resistance', 'effort', 'detail'],
   properties: {
-    label: { type: 'string', description: 'Nombre del tramo ("Calentamiento", "Bloque 1"). Cadena vacía si el documento no le pone nombre.' },
-    minutes: { type: 'number', description: 'Duración del tramo EN MINUTOS. Si el documento dice "8-38", son 30 minutos.' },
+    label: { type: 'string', description: 'Nombre del tramo ("Calentamiento", "Estación 1 · Swings"). Cadena vacía si el documento no le pone nombre.' },
+    minutes: { type: 'number', description: 'Duración del tramo EN MINUTOS. Si el documento dice "8-38", son 30 minutos. En tramos por distancia o por repeticiones, lo que se tarda más o menos.' },
     meters: { type: 'number', description: 'Metros si el tramo va por distancia. 0 si va por tiempo.' },
+    reps: { type: 'integer', description: 'Repeticiones si el tramo es una estación ("25 swings" → 25). 0 si no.' },
+    detail: { type: 'string', description: 'Lo que no cabe en los números: carga, ritmo, zona, alternativa ("kettlebell 16 kg", "10-11 km/h", "zona 2: 119-139 ppm"). Cadena vacía si nada.' },
     speed_kmh: { type: 'number', description: 'Velocidad en km/h. 0 si no aplica o no la dice.' },
     incline_pct: { type: 'number', description: 'Inclinación en %. 0 si no aplica o no la dice.' },
     resistance: { type: 'number', description: 'Nivel de resistencia de la máquina. 0 si no aplica.' },
@@ -1325,9 +1361,10 @@ const WEEK_PLAN_SCHEMA = {
           name: { type: 'string', description: 'Nombre del día ("Espalda y pecho", "Push", "Pierna").' },
           groups: { type: 'array', description: 'Grupos musculares principales del día.', items: { type: 'string', enum: MUSCLE_GROUPS } },
           note: { type: ['string', 'null'] },
+          optional: { type: 'boolean', description: 'true si es una de varias opciones de ese día o algo que hará solo si puede. false si va seguro.' },
           exercises: { type: 'array', description: 'Vacío ([]) salvo que haya pedido los ejercicios. Ver regla 2.ante.', items: WEEK_EXERCISE_SCHEMA },
         },
-        required: ['weekday', 'week', 'name', 'groups', 'note', 'exercises'],
+        required: ['weekday', 'week', 'name', 'groups', 'note', 'optional', 'exercises'],
         additionalProperties: false,
       },
     },
@@ -1339,7 +1376,7 @@ const WEEK_PLAN_SCHEMA = {
         properties: {
           key: { type: 'string', description: 'Identificador corto y único dentro del plan ("cardio_tarde").' },
           name: { type: 'string', description: 'Nombre con el que lo va a ver en Actividad ("Cardio tarde — grasa").' },
-          kind: { type: 'string', description: 'Tipo de actividad: cinta, correr, bici, eliptica, remo, natacion, cuerda, boxeo u otro.' },
+          kind: { type: 'string', description: 'Tipo de actividad, de la lista del prompt (cinta, correr, hyrox, crossfit, bici, boxeo…).' },
           when: { type: 'string', enum: ['morning', 'midday', 'afternoon', 'evening'], description: 'Franja del día. La que él haya dicho, y no otra.' },
           weekdays: { type: 'array', description: 'Días (0 = lunes) en los que toca este cardio. Lista VACÍA = no va a ningún día: se guarda en "Cardios guardados" para hacerlo cuando quiera.', items: { type: 'integer' } },
           optional: { type: 'boolean', description: 'true = va a la agenda en esos días pero como OPCIONAL: se ve, se puede hacer y marcar, pero no cuenta como pendiente ni le avisa de que le falta. Ponlo en todo lo que sea "por si puedo", "si me da tiempo", un cardio de mañana que unos días hará y otros no, o una de varias opciones del mismo día. false solo en lo que va a hacer seguro.' },
@@ -1347,7 +1384,7 @@ const WEEK_PLAN_SCHEMA = {
           note: { type: ['string', 'null'], description: 'UNA línea con la intención ("ritmo cómodo, que puedas hablar"). Null si no aplica.' },
           segments: {
             type: 'array',
-            description: 'Los tramos MINUTO A MINUTO, SOLO si el usuario te los ha dado (en un documento, una foto o escritos). Cópialos TAL CUAL: sus minutos, sus inclinaciones y sus velocidades, sin redondear ni "mejorar" nada. Lista VACÍA si no te los ha dado — entonces el guion se escribe aparte y no es cosa tuya.',
+            description: 'Los tramos, SOLO si el usuario te los ha dado (documento, foto o escritos). Cópialos TAL CUAL, sin redondear ni "mejorar". En un circuito, un tramo por carrera y otro por estación. Lista VACÍA si no te los ha dado. Ver regla 2.sexies.',
             items: PLAN_SEGMENT_SCHEMA,
           },
         },
@@ -1589,7 +1626,11 @@ function planChatSystem(profile, ctx, previous, agenda, historial, parcial) {
     "      \"si me da tiempo\", un cardio de mañana que unos días hará y otros",
     "      no, un express de 10 minutos después del gimnasio, y CADA UNA de",
     "      las opciones de un mismo día: si el sábado se elige entre tres,",
-    "      pon las TRES el sábado como opcionales y que escoja él.",
+    "      pon las TRES el sábado como opcionales y que escoja él. Vale igual",
+    "      para la FUERZA: si una de las opciones es \"pierna suave\", ese día",
+    "      de fuerza va con optional:true, y el cardio que solo va con esa",
+    "      opción, también. Nómbralas para que se reconozcan juntas:",
+    "      \"Opción A · Pierna suave\", \"Opción B · Hyrox\", \"Opción C · Tirada larga\".",
     "   c) GUARDADO — weekdays VACÍO.",
     "      Ni siquiera tiene día: se queda en \"Cardios guardados\" para",
     "      hacerlo cuando le apetezca. Para lo que te pida guardar sin fecha.",
@@ -1628,6 +1669,51 @@ function planChatSystem(profile, ctx, previous, agenda, historial, parcial) {
     "     que un hueco, porque no se ve.",
     "   Solo cuando NO te dé los tramos dejas \"segments\" vacío: entonces el",
     "   guion se escribe aparte y ahí sí decides tú.",
+    "   · No es solo la cinta. Todo lo que traiga su guion se copia igual:",
+    "     - CIRCUITO (Hyrox, CrossFit, funcional): un tramo por cada carrera y",
+    "       otro por cada estación, en su orden. La carrera con meters (1 km =",
+    "       1000) y su ritmo en detail (\"10-11 km/h\"); la estación con sus",
+    "       reps (\"25 swings\" → reps 25, label \"Estación 1 · Swings\") y la",
+    "       carga en detail. Calentamiento y enfriamiento, cada uno su tramo.",
+    "     - POR DISTANCIA (una tirada larga de 10-15 km): un tramo con meters",
+    "       (el mínimo, 10000) y en detail el rango, la zona de pulso y lo que",
+    "       diga la hoja (\"10-15 km · zona 2: 119-139 ppm · cinta al 1 %\").",
+    "       Si luego trae caminata o estiramientos, su propio tramo.",
+    "     - Lo que no sea un número de la máquina de ESE tipo (una velocidad",
+    "       dentro de un Hyrox, una inclinación dentro de un circuito) va en",
+    "       detail. No lo pierdas: es lo que se lee entrenando.",
+    "     Así, al tocar ese día en la agenda, se abre la sesión con su tabla y",
+    "     la va siguiendo mientras entrena.",
+    "",
+    "2.septies. UN DOCUMENTO ENTERO (un PDF o una foto con su semana).",
+    "   · Si solo dice \"pásamelo a la app\", pásalo TODO tal cual: cada cosa en",
+    "     su día, lo seguro fijo y lo que la hoja plantea como opción, como",
+    "     extra o \"si puedes\", opcional. Si trae dos versiones de un mismo",
+    "     cardio (45 o 30 min) y no dice cuál, pon la primera y dilo en una",
+    "     línea: \"he puesto las de 45; si quieres las de 30, dímelo\".",
+    "   · Si pone condiciones, se cumplen al pie de la letra: \"solo los de 45\"",
+    "     es solo los de 45; \"de fuerza solo lo que toca\" es el nombre del día",
+    "     con sus grupos (\"Pecho, hombro, tríceps\") y exercises VACÍO, sin",
+    "     series; \"para la semana que viene\" es esa semana.",
+    "   · Los EXTRAS de la hoja (cardio post-pesas, en ayunas, por la mañana):",
+    "     opcionales, en los días en que la hoja dice que valen. Si dice \"no",
+    "     lo hagas el día de tirada larga\" o \"en días de pierna bájalo\", eso",
+    "     va en su nota.",
+    "   · Las reglas sueltas de la hoja (\"no te agarres a las asas\", \"si pasas",
+    "     de 139 ppm baja un punto\", \"máximo 2 tiradas por semana\") no se",
+    "     tiran: van en la nota del cardio al que afectan, y las generales en",
+    "     summary.",
+    "   · Lo que la hoja deja a elegir entre semana (\"el lunes puedes hacer",
+    "     tirada larga en vez del cardio\"), en la nota de ese día, no como un",
+    "     bloque más.",
+    "   · En reply, di en 2-4 líneas qué has puesto y qué has dejado fuera, para",
+    "     que sepa que lo has leído bien antes de fiarse.",
+    "",
+    "2.decies. NUNCA TE BLOQUEES. Te van a pedir cosas que no están en estas",
+    "   reglas. Si se puede montar con lo que hay (fuerza, cardios con o sin",
+    "   tramos, opcionales, guardados, comidas), móntalo. Si hay una parte que la",
+    "   app no puede guardar como tal, pon lo más parecido, dilo en una línea y",
+    "   sigue. \"No puedo\" solo si es peligroso.",
     "",
     "2.quinquies. CAMBIAR ES SUSTITUIR. AÑADIR ES SUMAR. No es lo mismo y se",
     "   nota mucho cuando te equivocas.",
@@ -1726,10 +1812,11 @@ function planChatSystem(profile, ctx, previous, agenda, historial, parcial) {
     "ECONOMIA (importante): esto se genera en UNA sola respuesta y hay un limite",
     "de tiempo real. Se escueto en el JSON o no llegas a terminarlo:",
     "- 4-6 ejercicios por dia como mucho.",
-    "- Los cardios van con sus minutos totales y UNA linea de intencion. El guion",
-    "  minuto a minuto NO se escribe aqui: se monta despues, en su pantalla, con",
-    "  sus columnas de inclinacion y velocidad. Una tirada de cifras sueltas en la",
-    "  nota no se entiende ni se puede seguir encima de la cinta.",
+    "- Los cardios que DISEÑAS tu van con sus minutos totales y UNA linea de",
+    "  intencion. Su guion minuto a minuto NO se escribe aqui: se monta despues,",
+    "  en su pantalla, con sus columnas de inclinacion y velocidad. Una tirada de",
+    "  cifras sueltas en la nota no se entiende ni se puede seguir encima de la",
+    "  cinta. Lo que te DAN hecho es otra cosa: esos tramos se copian (2.sexies).",
     "- Un cardio pedido es UN cardio. \"45 minutos de cinta\" es una sesion de 45",
     "  minutos, no una de 20 en ayunas y otra de 25 por la tarde. Doblar solo si",
     "  lo pide el — y si pide dos sesiones, entonces son dos.",
@@ -1744,7 +1831,8 @@ function planChatSystem(profile, ctx, previous, agenda, historial, parcial) {
     "  hora a la que no puede es un entreno que no hace. Si crees que otra franja",
     "  le vendria mejor, dilo en reply y que decida el.",
     "- Comidas en una linea: \"pollo a la plancha con arroz y ensalada\".",
-    "- Notas de una linea, y solo si aportan.",
+    "- Notas de una linea, y solo si aportan. Las reglas que trae un documento",
+    "  (2.septies) si van, sin adornos: cortas, pero todas.",
     "El detalle largo va en reply, que no cuenta para el tamano del plan.",
     "",
     "Responde SIEMPRE en espanol.",
@@ -2734,7 +2822,9 @@ Responde en el idioma del usuario (por defecto español).`,
     const searchRemaining = (typeof gate.searchesQuota === 'number')
       ? Math.max(0, gate.searchesQuota - (gate.searchesUsed || 0))
       : 0;
-    const canSearch = section === 'gear' && searchRemaining > 0;
+    // Material para precios; Consulta para diseñar sesiones con fundamento
+    // (ver SESSION_SEARCH_ADDENDUM). El resto de secciones, nunca.
+    const canSearch = (section === 'gear' || section === 'general') && searchRemaining > 0;
 
     let systemPrompt = buildSystem(profile || {});
     // 4000 y no 2000.
@@ -2761,12 +2851,13 @@ Responde en el idioma del usuario (por defecto español).`,
       messages: cachearConversacion(clean),
     };
     if (canSearch) {
-      systemPrompt += '\n\n' + GEAR_SEARCH_ADDENDUM;
+      const esMaterial = section === 'gear';
+      systemPrompt += '\n\n' + (esMaterial ? GEAR_SEARCH_ADDENDUM : SESSION_SEARCH_ADDENDUM);
       params.tools = [{
         type: 'web_search_20260209',
         name: 'web_search',
         // Nunca más búsquedas por turno que las que le quedan en el mes.
-        max_uses: Math.min(SEARCHES_PER_TURN, searchRemaining),
+        max_uses: Math.min(esMaterial ? SEARCHES_PER_TURN : SESSION_SEARCHES_PER_TURN, searchRemaining),
         // Sesga precios y tiendas a España (resultados en euros).
         user_location: { type: 'approximate', country: 'ES', timezone: 'Europe/Madrid' },
       }];
