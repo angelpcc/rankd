@@ -412,7 +412,10 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
             <label className="block text-xs text-zinc-400 mb-1.5 font-semibold uppercase tracking-wide">{t('mc_w_today')}</label>
             <div className="relative">
               <input value={weightInput} onChange={(e) => setWeightInput(e.target.value)} inputMode="decimal"
-                onKeyDown={(e) => { if (e.key === 'Enter') addWeight(); }} placeholder="72.4"
+                onKeyDown={(e) => { if (e.key === 'Enter') addWeight(); }}
+                // De ejemplo, tu último peso: un 72.4 fijo en gris se leía como
+                // si fuera un dato tuyo, y no se parecía en nada al que tenías.
+                placeholder={currentWeight != null ? String(currentWeight) : '72.4'}
                 className="w-full bg-white/[0.04] border border-white/10 text-white text-sm rounded-xl pl-4 pr-10 py-3 focus:outline-none focus:border-[#E10600]" />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-500">kg</span>
             </div>
@@ -533,7 +536,9 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
       {weights.length > 0 && (
         <div>
           <h3 className="text-sm font-semibold text-white mb-3">{t('mc_w_history')}</h3>
-          <div className="space-y-2">
+          {/* En columnas desde tableta: doce filas a todo el ancho eran una
+              lista larguísima con un dato corto a la izquierda y el resto vacío. */}
+          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-2">
             {weights.slice(0, 12).map((w, i) => {
               const next = weights[i + 1];
               const diff = next ? +(w.weight_kg - next.weight_kg).toFixed(1) : null;
