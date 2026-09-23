@@ -548,7 +548,7 @@ Adapta cada deporte a su forma de entrenarse:
 - CROSSFIT: el formato va en una línea antes de la tabla (AMRAP 20, EMOM 16, For Time con tope 15) y en la tabla cada minuto o ronda con sus repeticiones.
 - CINTA, CORRER, BICI, REMO: minuto a minuto, con velocidad e inclinación (o ritmo, resistencia, vatios) en Detalle.
 - FUERZA: una fila por serie (| Serie 1 | Press banca | 8 reps (~1 min) | 60 kg · descanso 2 min |).
-- BOXEO y deportes de contacto: por asaltos, con su descanso en fila propia.
+- BOXEO y deportes de contacto: por asaltos, TODOS de la misma duración (el temporizador los cuenta así) y con su descanso en fila propia. En Qué hacer, el trabajo y la combinación del asalto ("Saco · jab-cross-gancho"); en Detalle, el foco ("salir por la izquierda después del gancho"). Adapta al sitio: sin saco es sombra y desplazamientos; con compañero, manoplas. Con esto la app lo abre en el temporizador con cada asalto cantado.
 Si no sabes qué material tiene, pon la opción principal y la alternativa sin material en Detalle. Debajo de la tabla, en 1-3 líneas: la clave de la sesión y el error típico. Aquí manda la tabla: ocupa lo que haga falta aunque pase de las 10 líneas.
 Si después te pide cambiarla ("hazla de 30 minutos", "sin kettlebell", "más dura"), vuelve a dar la tabla ENTERA ya corregida, no solo lo que cambia.
 Y termina con el marcador EXACTO [SESION: tipo], con el tipo de actividad entre: hyrox, crossfit, cinta, correr, bici, remo, eliptica, boxeo, funcional, calistenia, natacion, cuerda, caminar, otro. No se ve: enciende el botón para hacer la sesión con el cronómetro. Solo cuando hay tabla de sesión, y nunca junto a [CAMBIO:...] en la misma respuesta.
@@ -975,7 +975,8 @@ const PROTOCOL_SCHEMA = {
           label: { type: ['string', 'null'], description: 'Nombre del tramo si el documento lo da ("Calentamiento", "Serie 3"). Null si no.' },
           minutes: { type: 'number', description: 'Duración del tramo EN MINUTOS (admite decimales: 0.5 = 30 s). 0 solo si el tramo se mide por distancia.' },
           meters: { type: ['number', 'null'], description: 'Metros del tramo si se mide por distancia en vez de por tiempo. Null si va por tiempo.' },
-          note: { type: ['string', 'null'], description: 'Aclaración corta del tramo. Null si no la hay.' },
+          reps: { type: 'integer', description: 'Repeticiones si el tramo es una estación o un ejercicio por repeticiones ("25 wall balls" → 25). 0 si no.' },
+          note: { type: ['string', 'null'], description: 'Aclaración corta del tramo: carga, ritmo, alternativa. Null si no la hay.' },
           values: {
             type: 'object',
             description: 'Valores del tramo. Rellena SOLO las variables que apliquen a este tipo de actividad y que el documento indique; el resto van a null.',
@@ -993,7 +994,7 @@ const PROTOCOL_SCHEMA = {
             additionalProperties: false,
           },
         },
-        required: ['label', 'minutes', 'meters', 'note', 'values'],
+        required: ['label', 'minutes', 'meters', 'reps', 'note', 'values'],
         additionalProperties: false,
       },
     },
@@ -1148,11 +1149,22 @@ function cardioDesignSystem(profile, kind, minutes, intent, variables) {
     '- HYROX: los tramos son la prueba. Alterna carrera con estaciones — skierg,',
     '  trineo de empuje, trineo de arrastre, burpees con salto, remo, farmers,',
     '  zancadas con saco y wall balls— y lo que se entrena es correr CANSADO justo',
-    '  después de una estación, que es donde se pierde una carrera. Di los metros',
-    '  y los kilos de cada tramo.',
+    '  después de una estación, que es donde se pierde una carrera.',
+    '  UN TRAMO POR CARRERA Y OTRO POR ESTACIÓN: la carrera con "meters" (1 km =',
+    '  1000) y su ritmo en "note"; la estación con "reps" si va por repeticiones',
+    '  ("Estación 2 · Wall balls", reps 30, note "6 kg") o con "meters" si va por',
+    '  distancia (trineo 50 m, farmers 200 m), y la carga en "note". En los dos,',
+    '  "minutes" es lo que se tarda más o menos: sirve para el total.',
+    '  NO TODOS LOS HYROX SON UNA SIMULACIÓN. Haz la sesión que diga lo que se',
+    '  busca: carrera comprometida (1 km + 1 estación, x4-6), estaciones con',
+    '  técnica y fuerza (trineo, zancadas, wall balls con descanso), o simulación',
+    '  (media o entera) solo si se pide o toca. Si no dice nada, carrera',
+    '  comprometida: es la que más mejora y la que menos destroza.',
     '- CROSSFIT o FUNCIONAL: cada tramo es un bloque con su formato (AMRAP, EMOM,',
     '  For Time), sus movimientos, sus repeticiones y sus kilos. Un tramo que solo',
-    '  diga "circuito" no se puede hacer.',
+    '  diga "circuito" no se puede hacer. Un AMRAP o un EMOM va por TIEMPO (su',
+    '  "minutes", y los movimientos en "note"); un For Time o un chipper, un tramo',
+    '  por movimiento con sus "reps".',
     '- NATACIÓN: di el estilo y las series por distancia ( "4 × 100 crol" ), no',
     '  minutos sueltos.',
     '- REMO: ritmo por 500 m y paladas por minuto.',
@@ -1381,14 +1393,15 @@ const WEEK_PLAN_SCHEMA = {
           weekdays: { type: 'array', description: 'Días (0 = lunes) en los que toca este cardio. Lista VACÍA = no va a ningún día: se guarda en "Cardios guardados" para hacerlo cuando quiera.', items: { type: 'integer' } },
           optional: { type: 'boolean', description: 'true = va a la agenda en esos días pero como OPCIONAL: se ve, se puede hacer y marcar, pero no cuenta como pendiente ni le avisa de que le falta. Ponlo en todo lo que sea "por si puedo", "si me da tiempo", un cardio de mañana que unos días hará y otros no, o una de varias opciones del mismo día. false solo en lo que va a hacer seguro.' },
           minutes: { type: 'integer', description: 'Duración total del cardio en minutos.' },
-          note: { type: ['string', 'null'], description: 'UNA línea con la intención ("ritmo cómodo, que puedas hablar"). Null si no aplica.' },
+          place: { type: 'string', enum: ['', 'home', 'home_bag', 'gym'], description: 'Solo en boxeo: casa sin saco (home), casa con saco (home_bag) o gimnasio (gym). "" si no es boxeo o no lo sabes.' },
+          note: { type: ['string', 'null'], description: 'UNA línea con la intención y el foco ("carrera comprometida: 1 km + wall balls", "ritmo cómodo, que puedas hablar"). Null si no aplica.' },
           segments: {
             type: 'array',
             description: 'Los tramos, SOLO si el usuario te los ha dado (documento, foto o escritos). Cópialos TAL CUAL, sin redondear ni "mejorar". En un circuito, un tramo por carrera y otro por estación. Lista VACÍA si no te los ha dado. Ver regla 2.sexies.',
             items: PLAN_SEGMENT_SCHEMA,
           },
         },
-        required: ['key', 'name', 'kind', 'when', 'weekdays', 'minutes', 'note', 'segments', 'optional'],
+        required: ['key', 'name', 'kind', 'when', 'weekdays', 'minutes', 'place', 'note', 'segments', 'optional'],
         additionalProperties: false,
       },
     },
@@ -1798,6 +1811,41 @@ function planChatSystem(profile, ctx, previous, agenda, historial, parcial) {
     "  \"AMRAP 12: 10 thrusters 40 kg + 12 dominadas\". Sin formato no hay WOD.",
     "- Y no metas un metcon duro el día antes de la pierna ni el día después:",
     "  compiten por lo mismo y las dos salen a medias.",
+    "",
+    "PIDEN MEZCLAS. Casi nunca es \"solo fuerza\" o \"solo cardio\": es \"rutina de 4",
+    "días con los grupos que hago + un cardio que tú veas de media hora + un Hyrox",
+    "a la semana\", o \"lo mismo pero en bici en vez de cinta\". Todo cabe:",
+    "- Cada cosa en su sitio: la fuerza en strength, cada cardio o sesión (Hyrox,",
+    "  boxeo, bici, carrera…) en protocols con su kind. Un cardio \"que tú veas\" lo",
+    "  eliges tú con sentido; un cardio de un tipo concreto, ese tipo y no otro.",
+    "- \"En bici en vez de cinta\" cambia el kind y nada más: mismos días y minutos.",
+    "- Si pide varias semanas, la estructura una vez (se repite) y solo marca con",
+    "  \"week\" lo que progrese.",
+    "- Cada sesión que diseñes tú lleva en \"note\" su FOCO en una línea, que es lo",
+    "  que usa quien escribe luego la tabla: \"carrera comprometida: 5 x (1 km + 20",
+    "  wall balls)\", \"fartlek: 6 x 2 min fuerte / 2 suave\", \"zona 2 en bici,",
+    "  cadencia 85-90\". Sin foco, la tabla sale genérica.",
+    "",
+    "SEGÚN QUIÉN ES. El mismo \"ponme cardio\" no es lo mismo para todos:",
+    "- HYROX (entrena para competir): 2-3 sesiones específicas a la semana, CADA",
+    "  UNA CON UN FOCO DISTINTO y nombradas por él: \"Hyrox · carrera",
+    "  comprometida\", \"Hyrox · estaciones (fuerza y técnica)\", y la simulación",
+    "  (media o entera) como mucho cada 2-3 semanas, no cada semana. Más 1-2",
+    "  rodajes suaves en zona 2. No todas son para destrozarse.",
+    "- BOXEO, MMA, KICK, MUAY THAI: el acondicionamiento va por ASALTOS (2-3 min",
+    "  de trabajo, 1 de descanso) y por cambios de ritmo (fartlek, series cortas),",
+    "  más algún rodaje suave o tirada en zona 2 para el fondo. Hyrox solo si lo",
+    "  pide. Las sesiones de saco, sombra o manoplas van con kind \"boxeo\" y, si",
+    "  sabes dónde entrena, su \"place\" (casa sin saco, casa con saco, gimnasio):",
+    "  con eso la app le monta los asaltos con sus combinaciones y se los abre en",
+    "  el temporizador. Si no lo sabes, \"\" y ya lo elegirá él al abrirla; NO",
+    "  gastes una pregunta en eso.",
+    "- CORREDOR: rodajes suaves casi todo, una sesión de calidad (series o tempo)",
+    "  y una tirada larga a la semana. La tirada larga va por distancia.",
+    "- GIMNASIO Y BAJAR GRASA: caminata en inclinación o bici en zona 2; algún",
+    "  intervalo si lo pide o si lleva tiempo estancado.",
+    "- CROSSFIT: los WOD por formato (ver arriba), sin dos metcon duros seguidos.",
+    "- Y si no sabes qué es, por su disciplina de arriba y por lo que pide.",
     "",
     "LÍMITES (no negociables):",
     "- No eres médico. Lesión seria, dolor que no baja o golpe en la cabeza: al",
@@ -2483,7 +2531,9 @@ export default async function handler(req, res) {
   if (cardioDesign) {
     const kind = String(cardioDesign.kind || 'otro').slice(0, 40);
     const minutes = Math.max(5, Math.min(180, parseInt(cardioDesign.minutes, 10) || 30));
-    const intent = String(cardioDesign.intent || '').slice(0, 400);
+    // 900: delante va lo que pidió el usuario y detrás el nombre y la nota del
+    // cardio; con 400, en un plan pedido con detalle se cortaba justo lo segundo.
+    const intent = String(cardioDesign.intent || '').slice(0, 900);
     try {
       const response = await anthropic.messages.create({
         model: MODEL,

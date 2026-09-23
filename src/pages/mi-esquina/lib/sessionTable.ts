@@ -19,6 +19,7 @@
 
 import { ACTIVITY_KINDS } from './dayPlan';
 import { localId, protocolVarsFor, type Protocol, type ProtocolSegment, type ProtocolVarId } from './protocols';
+import { emptyBoxingSession, type BoxingPlace, type BoxingSession } from './boxing';
 
 // ── Tablas markdown ────────────────────────────────────────────
 
@@ -374,5 +375,64 @@ export function sesionDelTexto(
       createdAt: new Date().toISOString(),
     },
     filas: mejor.filas,
+  };
+}
+
+// ── Una sesión de boxeo, al temporizador ───────────────────────
+
+/**
+ * La misma sesión, en asaltos, para el temporizador del Ring.
+ *
+ * El reproductor de tramos sirve para seguir una tabla, pero para boxear lo
+ * que se quiere es el temporizador de siempre: campana, aviso de fin de asalto
+ * y, en cada uno, lo que toca ("jab-cross-gancho, salir por la izquierda").
+ * El temporizador pide asaltos IGUALES, así que se toma la duración más
+ * repetida; lo de antes de los asaltos es calentamiento y lo de después, vuelta
+ * a la calma.
+ *
+ * `null` si no hay al menos dos asaltos: entonces no es una sesión por asaltos
+ * y se queda en el reproductor.
+ */
+export function boxeoDesdeSesion(p: Protocol, texto: string): BoxingSession | null {
+  const segs = p.segments;
+  const nombre = (s: ProtocolSegment) => plano(`${s.stage || ''} ${s.label || ''}`);
+  const calienta = (s: ProtocolSegment) => /calenta|movilidad|activacion|comba|warm/.test(nombre(s));
+  const calma = (s: ProtocolSegment) => /calma|estira|enfria|cool|vuelta/.test(nombre(s));
+  let a = 0;
+  while (a < segs.length && calienta(segs[a])) a++;
+  let b = segs.length;
+  while (b > a && calma(segs[b - 1])) b--;
+  const centro = segs.slice(a, b);
+  const asaltos = centro.filter((s) => !s.rest && (s.seconds || 0) > 0);
+  const descansos = centro.filter((s) => s.rest && (s.seconds || 0) > 0);
+  if (asaltos.length < 2) return null;
+
+  const moda = (xs: number[]) => {
+    const n = new Map<number, number>();
+    xs.forEach((x) => n.set(x, (n.get(x) || 0) + 1));
+    return [...n.entries()].sort((x, y) => y[1] - x[1])[0][0];
+  };
+  const entre = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.round(v)));
+  const minutos = (xs: ProtocolSegment[]) => Math.round(xs.reduce((s, x) => s + (x.seconds || 0), 0) / 60);
+
+  const t = plano(texto);
+  const place: BoxingPlace = /manoplas|sparring|gimnasio|\bgym\b/.test(t) ? 'gym'
+    : /\bsaco\b/.test(t) && !/sin saco/.test(t) ? 'home_bag' : 'home';
+
+  const rondas = asaltos.slice(0, 20);
+  return {
+    ...emptyBoxingSession(p.name),
+    place,
+    rounds: rondas.length,
+    roundSec: entre(moda(rondas.map((s) => s.seconds)), 30, 600),
+    restSec: descansos.length ? entre(moda(descansos.map((s) => s.seconds)), 0, 300) : 60,
+    warmupMin: minutos(segs.slice(0, a)),
+    cooldownMin: minutos(segs.slice(b)),
+    script: rondas.map((s, i) => ({
+      round: i + 1,
+      title: (s.label || `${i + 1}`).slice(0, 60),
+      work: (s.note || '').slice(0, 300),
+    })),
+    source: 'advisor',
   };
 }

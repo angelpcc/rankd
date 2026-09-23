@@ -122,5 +122,5 @@ Y hazme comida y cena para los 5 días, con alimentos básicos y rápidos de coc
   mc_ag_cardio_failed: 'No he podido montar el guion. Vuelve a intentarlo.',
   mc_ag_boxing_title: 'Este boxeo no tiene sesión montada',
   mc_ag_boxing_desc: 'El plan dice los minutos. Te la monto por asaltos, con el guion de cada uno, y arranca sola en el temporizador. Se monta una vez y queda guardada.',
-  mc_ag_boxing_build: 'Montar la sesión',
+  mc_ag_boxing_build: 'Montar los asaltos e ir al temporizador',
 };

@@ -198,6 +198,7 @@ function stripForModel(plan: WeekPlan): Record<string, unknown> {
         ...(s.note ? { detail: s.note } : {}),
       })),
       optional: p.optional === true, ...(p.minutes ? { minutes: p.minutes } : {}),
+      ...(p.place ? { place: p.place } : {}),
     })),
     nutrition: plan.nutrition.map((n) => ({
       weekday: n.weekday, week: n.week, meals: n.meals,

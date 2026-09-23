@@ -168,6 +168,20 @@ function normalizeSegments(raw: unknown, kind: string): ProtocolSegment[] {
 
 const VALID_KINDS = new Set(ACTIVITY_KINDS.map((k) => k.value));
 
+/**
+ * La semana que el modelo ha declarado, o null si no declara ninguna.
+ *
+ * `null` en el esquema significa "se repite todas las semanas", y era
+ * justo lo que se perdía: `Number(null)` es 0, así que un día de fuerza
+ * "de todas las semanas" pasaba a ser "solo de la primera". En un plan de
+ * dos semanas, la segunda se quedaba sin fuerza y sin que nadie avisara.
+ */
+function semanaDeclarada(v: unknown): number | null {
+  if (v === null || v === undefined || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 ? Math.round(n) : null;
+}
+
 /** Topes de lo que se acepta de un plan. Ver "Los topes" en normalizeWeekPlan. */
 const MAX_DIAS_FUERZA = 28;
 const MAX_CARDIOS = 24;
@@ -227,7 +241,7 @@ export function normalizeWeekPlan(raw: Record<string, unknown>, request: string,
 
       return {
         weekday,
-        ...(Number.isFinite(Number(d.week)) && Number(d.week) >= 0 ? { week: Number(d.week) } : {}),
+        ...(semanaDeclarada(d.week) !== null ? { week: semanaDeclarada(d.week) as number } : {}),
         date: dateOfWeekday(weekStart, weekday),
         name: nombre,
         // Si el modelo no declara grupos, se derivan de los ejercicios: el
@@ -275,6 +289,8 @@ export function normalizeWeekPlan(raw: Record<string, unknown>, request: string,
         // la fuerza de siempre dejara de avisar, que es peor que lo contrario.
         optional: p.optional === true,
         minutes: minutos > 0 ? minutos : undefined,
+        // Dónde se boxea: con él se monta la sesión por asaltos al guardar.
+        ...(kind === 'boxeo' && ['home', 'home_bag', 'gym'].includes(String(p.place)) ? { place: p.place as WeekProtocol['place'] } : {}),
         weekdays: [...new Set(weekdays)].sort((a, b) => a - b),
         ...(Array.isArray(p.weeks) && p.weeks.length > 0
           ? { weeks: [...new Set((p.weeks as unknown[]).map(Number).filter((w) => Number.isFinite(w) && w >= 0))] }
@@ -310,10 +326,10 @@ export function normalizeWeekPlan(raw: Record<string, unknown>, request: string,
         })
         .filter((x): x is { slot: MealSlot; text: string; minutes: number } => x !== null);
       if (meals.length === 0) return null;
-      const wk = Number(d.week);
+      const wk = semanaDeclarada(d.week);
       return {
         weekday,
-        ...(Number.isFinite(wk) && wk >= 0 ? { week: wk } : {}),
+        ...(wk !== null ? { week: wk } : {}),
         date: dateOfWeekday(weekStart, weekday), meals,
       } as WeekMealDay;
     })

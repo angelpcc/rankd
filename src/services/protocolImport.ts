@@ -67,15 +67,19 @@ function normalizeSegments(raw: unknown, kind: string): ProtocolSegment[] {
 
     const minutes = Number(s.minutes);
     const meters = Number(s.meters);
+    const reps = Math.round(Number(s.reps));
     return {
       id: localId(),
-      label: typeof s.label === 'string' && s.label.trim() ? s.label.trim().slice(0, 40) : undefined,
+      label: typeof s.label === 'string' && s.label.trim() ? s.label.trim().slice(0, 60) : undefined,
       seconds: Number.isFinite(minutes) && minutes > 0 ? Math.round(minutes * 60) : 0,
       meters: Number.isFinite(meters) && meters > 0 ? Math.round(meters) : undefined,
+      // Una estación ("30 wall balls") se hace y se pulsa "Hecho": sin las reps
+      // el reproductor la contaba como un minuto y medio y saltaba sola.
+      ...(Number.isFinite(reps) && reps > 0 ? { reps: Math.min(reps, 5000) } : {}),
       values,
       note: typeof s.note === 'string' && s.note.trim() ? s.note.trim().slice(0, 200) : undefined,
     } as ProtocolSegment;
-  }).filter((s) => s.seconds > 0 || (s.meters || 0) > 0);
+  }).filter((s) => s.seconds > 0 || (s.meters || 0) > 0 || (s.reps || 0) > 0);
 }
 
 interface Payload {

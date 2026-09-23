@@ -32,6 +32,8 @@ import { isoOf, todayISO, type MealSlot, type MuscleGroup } from './dayPlan';
 import { localId as protocolLocalId, saveProtocol, type Protocol, type ProtocolSegment } from './protocols';
 import { designCardio } from '@/services/protocolImport';
 import { localId as routineLocalId, saveRoutine, type PrescribedExercise, type Routine, type RoutineDay } from './routines';
+import { saveBoxingSession, type BoxingPlace } from './boxing';
+import { generateBoxingSession } from '@/services/boxingAdvisor';
 
 // ── El plan generado ───────────────────────────────────────────
 
@@ -90,6 +92,12 @@ export interface WeekProtocol {
    * monta aparte, en Actividad, que es donde se reproduce.
    */
   minutes?: number;
+  /**
+   * Solo boxeo: dónde se entrena. Con él, al guardar el plan se monta la
+   * sesión por asaltos (con sus combinaciones) y el bloque del día la abre en
+   * el temporizador. Sin él, se pregunta al tocar el bloque.
+   */
+  place?: BoxingPlace;
   /** Días de la semana (0..6) en los que va este cardio. */
   weekdays: number[];
   /** Semanas (0..N-1) en las que va. Ausente = todas. Ver WeekStrengthDay.week. */
@@ -511,10 +519,43 @@ export async function commitWeekPlan(
   //
   // En paralelo porque son peticiones independientes: tres seguidas son treinta
   // segundos mirando una rueda, y a la vez son diez.
-  const sinGuion = plan.protocols.filter((p) => p.segments.length === 0 && (p.minutes || 0) >= 5);
+  //
+  // El BOXEO va aparte. Un guion de cardio para una sesión de saco es "esfuerzo
+  // 7" durante 40 minutos: no dice nada. Lo suyo son asaltos con sus
+  // combinaciones, y eso lo monta el generador de boxeo y lo abre el
+  // temporizador. Antes caía aquí con el resto y el bloque del día abría el
+  // reproductor de cardio en vez del temporizador. Si no se sabe dónde entrena,
+  // no se monta nada: el bloque lo pregunta al tocarlo, que es la única forma
+  // de no darle una sesión de saco a quien entrena en el salón.
+  const esBoxeoSinGuion = (p: WeekProtocol) => p.kind === 'boxeo' && p.segments.length === 0;
+  const sinGuion = plan.protocols.filter((p) => p.segments.length === 0 && (p.minutes || 0) >= 5 && !esBoxeoSinGuion(p));
+  const boxeos = plan.protocols.filter((p) => esBoxeoSinGuion(p) && !!p.place && (p.minutes || 0) >= 10);
+  /** Sesión de boxeo montada para cada cardio de boxeo del plan. */
+  const boxeoMontado = new Map<WeekProtocol, { id: string; name: string }>();
+  const totalGuiones = sinGuion.length + boxeos.length;
+  let guionesHechos = 0;
+  if (boxeos.length > 0) {
+    opts.onProgress?.('cardios', 0, totalGuiones);
+    await Promise.all(boxeos.map(async (p) => {
+      try {
+        const { session } = await generateBoxingSession({
+          minutes: p.minutes || 30,
+          place: p.place as BoxingPlace,
+          notes: [p.name, p.note, plan.request].filter(Boolean).join('. ').slice(0, 600),
+          profile: opts.profile,
+        });
+        if (session) {
+          const { session: guardada } = await saveBoxingSession(profileId, { ...session, name: p.name || session.name });
+          boxeoMontado.set(p, { id: guardada.id, name: guardada.name });
+        }
+      } catch { /* sin sesión, el bloque la ofrece montar al tocarlo */ }
+      guionesHechos += 1;
+      opts.onProgress?.('cardios', guionesHechos, totalGuiones);
+    }));
+  }
   if (sinGuion.length > 0) {
-    opts.onProgress?.('cardios', 0, sinGuion.length);
-    let hechos = 0;
+    opts.onProgress?.('cardios', guionesHechos, totalGuiones);
+    let hechos = guionesHechos;
     await Promise.all(sinGuion.map(async (p) => {
       try {
         const { protocol } = await designCardio({
@@ -537,7 +578,7 @@ export async function commitWeekPlan(
         if (protocol && protocol.segments.length > 0) p.segments = protocol.segments;
       } catch { /* ver arriba: el plan se guarda igual */ }
       hechos += 1;
-      opts.onProgress?.('cardios', hechos, sinGuion.length);
+      opts.onProgress?.('cardios', hechos, totalGuiones);
     }));
   }
 
@@ -769,6 +810,8 @@ export async function commitWeekPlan(
           note: p.note,
           protocol_id: saved?.id,
           protocol_name: p.name,
+          // Boxeo montado por asaltos: el bloque abre el temporizador.
+          ...(boxeoMontado.get(p) ? { boxing_id: boxeoMontado.get(p)!.id } : {}),
           // Se ve en la Agenda pero no reclama nada. Ver `optional` arriba.
           ...(p.optional ? { optional: true } : {}),
         }),

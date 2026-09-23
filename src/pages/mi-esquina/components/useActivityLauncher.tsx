@@ -253,46 +253,57 @@ export function useActivityLauncher({ profile, showToast, onGoBoxing, onLogManua
                 {p.note && <p className="text-xs text-zinc-300 mt-2 leading-relaxed">{p.note}</p>}
               </div>
 
-              {/* 1. Empezar ya: cronómetro y la nota a la vista. */}
-              <button onClick={empezarSinGuion} disabled={montando}
-                className="rk-cta rk-press w-full flex items-center justify-center gap-2 disabled:opacity-50"
-                style={{ minHeight: 50 }}>
-                <i className="ri-play-fill text-lg" /> {t('mc_ag_go_start')}
-              </button>
-              <p className="text-[11px] mt-1.5 mb-4 leading-relaxed text-center" style={{ color: 'var(--t-3)' }}>{t('mc_ag_go_start_hint')}</p>
-
-              {conGuion && (
-              <div className="rounded-2xl p-3.5 mb-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--line)' }}>
-              <p className="text-xs mb-3 leading-relaxed" style={{ color: 'var(--t-2)' }}>
-                {t(esBoxeo ? 'mc_ag_boxing_desc' : 'mc_ag_cardio_desc')}
-              </p>
-
-              {esBoxeo && (
-                <div className="space-y-1.5 mb-4">
-                  <p className="rk-label">{t('mc_bx_q_place')}</p>
-                  {BOXING_PLACES.map((o) => (
-                    <button key={o.v} type="button" onClick={() => setPlace(o.v)} disabled={montando}
-                      className={`w-full rounded-xl border px-3 py-2.5 flex items-center gap-2.5 text-left cursor-pointer transition-colors disabled:opacity-60 ${place === o.v ? 'border-white/30 bg-white/[0.07]' : 'border-white/10 hover:border-white/25'}`}
-                      style={{ minHeight: 52 }}>
-                      <i className={`${o.icon} text-lg flex-shrink-0`} style={{ color: place === o.v ? 'var(--accent)' : '#71717a' }} />
-                      <span className="min-w-0">
-                        <span className="block text-xs font-bold text-white">{t(o.label)}</span>
-                        <span className="block text-[10px] text-zinc-500 mt-0.5 leading-tight">{t(o.hint)}</span>
-                      </span>
+              {/* El orden depende de lo que sea. En un cardio, lo primero es
+                  empezar: el cronómetro con la nota a la vista ya sirve. En el
+                  BOXEO, lo primero es montar los asaltos, porque lo que se quiere
+                  es el temporizador con cada asalto y sus combinaciones; un
+                  cronómetro corrido de 40 minutos no sirve para boxear. */}
+              {(() => {
+                const boxeoPrimero = esBoxeo && conGuion;
+                const empezar = (
+                  <div key="empezar">
+                    <button onClick={empezarSinGuion} disabled={montando}
+                      className={`${boxeoPrimero ? 'rk-nav-btn' : 'rk-cta'} rk-press w-full flex items-center justify-center gap-2 disabled:opacity-50`}
+                      style={{ minHeight: boxeoPrimero ? 46 : 50 }}>
+                      <i className="ri-play-fill text-lg" /> {t(boxeoPrimero ? 'mc_ag_go_start_plain' : 'mc_ag_go_start')}
                     </button>
-                  ))}
-                </div>
-              )}
+                    <p className="text-[11px] mt-1.5 mb-4 leading-relaxed text-center" style={{ color: 'var(--t-3)' }}>{t('mc_ag_go_start_hint')}</p>
+                  </div>
+                );
+                const montarBloque = conGuion ? (
+                  <div key="montar" className="rounded-2xl p-3.5 mb-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--line)' }}>
+                    <p className="text-xs mb-3 leading-relaxed" style={{ color: 'var(--t-2)' }}>
+                      {t(esBoxeo ? 'mc_ag_boxing_desc' : 'mc_ag_cardio_desc')}
+                    </p>
 
-              <button onClick={montar} disabled={montando || !listoParaMontar}
-                className="rk-nav-btn rk-press w-full flex items-center justify-center gap-2 disabled:opacity-50"
-                style={{ minHeight: 46 }}>
-                {montando
-                  ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t('mc_ag_cardio_building')}</>
-                  : <><i className="ri-sparkling-2-line" style={{ color: '#C4B5FD' }} /> {t(esBoxeo ? 'mc_ag_boxing_build' : 'mc_ag_cardio_build')}</>}
-              </button>
-              </div>
-              )}
+                    {esBoxeo && (
+                      <div className="space-y-1.5 mb-4">
+                        <p className="rk-label">{t('mc_bx_q_place')}</p>
+                        {BOXING_PLACES.map((o) => (
+                          <button key={o.v} type="button" onClick={() => setPlace(o.v)} disabled={montando}
+                            className={`w-full rounded-xl border px-3 py-2.5 flex items-center gap-2.5 text-left cursor-pointer transition-colors disabled:opacity-60 ${place === o.v ? 'border-white/30 bg-white/[0.07]' : 'border-white/10 hover:border-white/25'}`}
+                            style={{ minHeight: 52 }}>
+                            <i className={`${o.icon} text-lg flex-shrink-0`} style={{ color: place === o.v ? 'var(--accent)' : '#71717a' }} />
+                            <span className="min-w-0">
+                              <span className="block text-xs font-bold text-white">{t(o.label)}</span>
+                              <span className="block text-[10px] text-zinc-500 mt-0.5 leading-tight">{t(o.hint)}</span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    <button onClick={montar} disabled={montando || !listoParaMontar}
+                      className={`${boxeoPrimero ? 'rk-cta' : 'rk-nav-btn'} rk-press w-full flex items-center justify-center gap-2 disabled:opacity-50`}
+                      style={{ minHeight: boxeoPrimero ? 50 : 46 }}>
+                      {montando
+                        ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t('mc_ag_cardio_building')}</>
+                        : <><i className={esBoxeo ? 'ri-timer-flash-line' : 'ri-sparkling-2-line'} style={{ color: boxeoPrimero ? undefined : '#C4B5FD' }} /> {t(esBoxeo ? 'mc_ag_boxing_build' : 'mc_ag_cardio_build')}</>}
+                    </button>
+                  </div>
+                ) : null;
+                return boxeoPrimero ? <>{montarBloque}{empezar}</> : <>{empezar}{montarBloque}</>;
+              })()}
 
               <button onClick={() => { const x = preguntar; setPreguntar(null); setPlace(null); onLogManual(x.planDate, x.payload.kind); }}
                 disabled={montando}
