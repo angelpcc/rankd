@@ -385,12 +385,24 @@ export default function MiEsquinaPage() {
               return (
                 <div key={s.id} className="flex items-stretch">
                   {newGroup && <span aria-hidden className="self-center mx-1.5" style={{ width: 1, height: 22, background: 'var(--s-3)' }} />}
+                  {/* La activa lleva PASTILLA, no una raya abajo.
+
+                      La raya de 2 px iba en el borde inferior de la barra, que
+                      en un iPhone es justo donde está la barra de inicio: casi
+                      no se veía, y para saber en qué sección estabas había que
+                      leer las etiquetas. Con el fondo y el icono en rojo se sabe
+                      de un vistazo, con el pulgar encima. */}
                   <button onClick={() => (s.id === 'timer' ? navigate('/mi-esquina/timer') : go(s.id))}
                     aria-current={on ? 'page' : undefined}
-                    className="flex flex-col items-center justify-center gap-0.5 px-2.5 rounded-lg cursor-pointer transition-colors rk-press"
-                    style={{ minHeight: 44, minWidth: 58, color: on ? '#fff' : 'var(--t-3)', borderBottom: `2px solid ${on ? 'var(--accent)' : 'transparent'}` }}>
-                    <i className={`${s.icon} text-base`}></i>
-                    <span className="text-[11px] font-semibold whitespace-nowrap">{t(s.labelKey)}</span>
+                    className="relative flex flex-col items-center justify-center gap-0.5 px-2.5 rounded-xl cursor-pointer rk-press rk-nav-tab"
+                    style={{
+                      minHeight: 48, minWidth: 60,
+                      color: on ? '#fff' : 'var(--t-3)',
+                      background: on ? 'rgba(225,6,0,0.14)' : 'transparent',
+                    }}>
+                    {on && <span aria-hidden className="rk-nav-tab-dot" />}
+                    <i className={`${s.icon} text-base`} style={{ color: on ? 'var(--accent)' : undefined }}></i>
+                    <span className={`text-[11px] whitespace-nowrap ${on ? 'font-bold' : 'font-semibold'}`}>{t(s.labelKey)}</span>
                   </button>
                 </div>
               );
