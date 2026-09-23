@@ -278,17 +278,32 @@ export function exerciseLines(exercises: string | ExerciseSpec[] | undefined, t:
   return exercises.map((e) => fmtExerciseSpec(e, t, unidad));
 }
 
+/**
+ * Cómo se LLAMA un bloque de fuerza, en todas partes igual.
+ *
+ * Primero su nombre ("Pecho, hombro y tríceps", "Empuje A"), luego los grupos,
+ * y solo si no hay nada, "Fuerza". El plan guarda el nombre en `routine_name`,
+ * pero la Agenda, el programa de Fuerza y el "hoy toca" solo miraban los
+ * grupos: un día puesto SOLO por el nombre, sin ejercicios, salía como
+ * "Fuerza" a secas. Se llamaba distinto según la pantalla.
+ */
+export function strengthTitle(p: StrengthPayload, t: TFn): string {
+  return p.routine_name?.trim()
+    || (p.groups || []).map((g) => t(`mc_str_mg_${g}`, { defaultValue: g })).join(' + ')
+    || t('mc_dp_kind_strength');
+}
+
 /** Resumen de una línea para el preview de la vista Semana / la vista Día. */
 export function summarizeItem(item: DayPlanItem, t: TFn): string {
   switch (item.kind) {
     case 'strength': {
-      const p = item.payload as StrengthPayload;
-      const groups = (p.groups || []).map((g) => t(`mc_str_mg_${g}`, { defaultValue: g })).join(' + ');
-      return groups || t('mc_dp_kind_strength');
+      return strengthTitle(item.payload as StrengthPayload, t);
     }
     case 'activity': {
       const p = item.payload as ActivityPayload;
-      const name = t(activityKindCfg(p.kind).labelKey);
+      // Con protocolo, SU nombre: tres opciones de un sábado salían las tres
+      // como "Cinta · 45 min" y no había forma de distinguirlas en la semana.
+      const name = p.protocol_name || t(activityKindCfg(p.kind).labelKey);
       const bits: string[] = [];
       if (p.distance_km) bits.push(`${p.distance_km} km`);
       else if (p.meters) bits.push(`${p.meters} m`);

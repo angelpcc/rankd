@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase, type Profile } from '@/lib/supabase';
 import { isMissingTable, isMissingColumn } from '@/lib/dbState';
 import { MUSCLE_GROUPS, muscleGroupOf, type MuscleGroup } from '../lib/exercises';
-import { exerciseLines, type StrengthPayload } from '../lib/dayPlan';
+import { exerciseLines, strengthTitle, type StrengthPayload } from '../lib/dayPlan';
 import { leerUnidad } from '@/lib/units';
 import { loadTodayTraining, type TodayTraining } from '../lib/todayTraining';
 import MuscleMap, { type MapGroup, type TrainState } from './MuscleMap';
@@ -186,11 +186,10 @@ export default function StrengthSummary({ profile, onEnter, onGoAsesor, refreshK
             </p>
             {todayItems.map((x, i) => {
               const p = x.payload as StrengthPayload;
-              const groups = (p.groups || []).map((g) => t(`mc_str_mg_${g}`, { defaultValue: g })).join(' + ');
               const lines = exerciseLines(p.exercises, t, unidad);
               return (
                 <div key={i} className={i > 0 ? 'mt-3 pt-3 border-t border-white/[0.08]' : ''}>
-                  <p className="text-base font-bold text-white">{groups || t('mc_dp_kind_strength')}</p>
+                  <p className="text-base font-bold text-white">{strengthTitle(p, t)}</p>
                   {lines.length > 0 && <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{lines.slice(0, 5).join(' · ')}</p>}
                 </div>
               );

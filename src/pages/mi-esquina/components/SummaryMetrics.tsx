@@ -4,7 +4,7 @@ import { supabase, Profile } from '@/lib/supabase';
 import { isMissingTable } from '@/lib/dbState';
 import { LineChart, Line, ResponsiveContainer, YAxis } from 'recharts';
 import CountUp from '@/components/base/CountUp';
-import { activityKindCfg, isoOf, KIND_META, type ActivityPayload, type StrengthPayload } from '../lib/dayPlan';
+import { activityKindCfg, isoOf, KIND_META, strengthTitle, type ActivityPayload, type StrengthPayload } from '../lib/dayPlan';
 
 // Grid 2×2 de métricas compactas: PESO · OBJETIVO / COMIDA DE HOY · PRÓXIMO.
 // Cada una card --s-2: label arriba, dato grande (Bebas) en blanco. El delta de
@@ -105,9 +105,7 @@ export default function SummaryMetrics({ profile, onOpenWeight, onOpenNutrition,
           setProximo({
             date: primera.plan_date,
             icon: KIND_META.strength.icon,
-            title: p.routine_name
-              || (p.groups || []).map((g) => t(`mc_str_mg_${g}`, { defaultValue: g })).join(' + ')
-              || t('mc_dp_kind_strength'),
+            title: strengthTitle(p, t),
             extra: mismoDia.length - 1,
           });
         } else {

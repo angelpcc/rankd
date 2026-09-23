@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import PhotoCard from '@/components/base/PhotoCard';
 import { SkeletonBox } from '@/components/base/Skeleton';
-import { type StrengthPayload, type ActivityPayload, activityKindCfg, exerciseLines, KIND_META } from '../lib/dayPlan';
+import { type StrengthPayload, type ActivityPayload, activityKindCfg, exerciseLines, KIND_META, strengthTitle } from '../lib/dayPlan';
 import { leerUnidad } from '@/lib/units';
 import { loadTodayTraining, type PlannedEntry } from '../lib/todayTraining';
 
@@ -121,9 +121,7 @@ export default function TodayCard({ profile, mode, onStart, onCreatePlan, onLogW
           const exLine = exerciseLines(p.exercises, t, unidad).join(' · ');
           return {
             icon: KIND_META.strength.icon,
-            title: p.routine_name
-              || (p.groups || []).map((g) => t(`mc_str_mg_${g}`, { defaultValue: g })).join(' + ')
-              || t('mc_dp_kind_strength'),
+            title: strengthTitle(p, t),
             note: exLine || p.note || null,
           };
         }

@@ -16,7 +16,7 @@ import { leerUnidad, type WeightUnit } from '@/lib/units';
 import {
   type DayPlanItem, type DayPlanKind, type StrengthPayload, type ActivityPayload,
   type MealPayload, type SupplementPayload, type NotePayload, type MealSlot, type ExerciseSpec,
-  KIND_ORDER, KIND_META, ACTIVITY_KINDS, MEAL_SLOTS, activityKindCfg, summarizeItem, exerciseLines,
+  KIND_ORDER, KIND_META, ACTIVITY_KINDS, MEAL_SLOTS, activityKindCfg, summarizeItem, exerciseLines, strengthTitle,
   computePace, paceLabel, paceToSec, isoOf,
 } from '../lib/dayPlan';
 
@@ -1264,7 +1264,7 @@ function DayItemRow({ item, unidad, onRemove, onMove, onRun, opening, onToggleDo
   let exLines: string[] = [];
   if (item.kind === 'strength') {
     const p = strengthPayload as StrengthPayload;
-    main = (p.groups || []).map((g) => t(`mc_str_mg_${g}`, { defaultValue: g })).join(' + ') || t('mc_dp_kind_strength');
+    main = strengthTitle(p, t);
     exLines = exerciseLines(p.exercises, t, unidad);
     if (p.note) sub = p.note;
   } else if (item.kind === 'activity') {

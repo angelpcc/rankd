@@ -5,7 +5,7 @@ import { supabase, type Profile } from '@/lib/supabase';
 import { isMissingTable } from '@/lib/dbState';
 import Reveal from '@/components/base/Reveal';
 import StrengthPlanBuilder from './StrengthPlanBuilder';
-import { exerciseLines, type StrengthPayload, type ExerciseSpec } from '../lib/dayPlan';
+import { exerciseLines, strengthTitle, type StrengthPayload, type ExerciseSpec } from '../lib/dayPlan';
 import { leerUnidad } from '@/lib/units';
 
 // Fuerza · nivel 2 · Programar.
@@ -119,7 +119,7 @@ export default function StrengthProgram({ profile, showToast }: Props) {
       ) : (
         <div className="rk-stack">
           {rows.map((r, i) => {
-            const groups = (r.payload.groups || []).map((g) => t(`mc_str_mg_${g}`, { defaultValue: g })).join(' + ');
+            const titulo = strengthTitle(r.payload, t);
             const lines = exerciseLines(r.payload.exercises, t, unidad);
             return (
               <Reveal key={r.id} delay={Math.min(i, 6) * 40}>
@@ -127,7 +127,7 @@ export default function StrengthProgram({ profile, showToast }: Props) {
                   <div className="flex items-start gap-3">
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-zinc-500 first-letter:uppercase">{fmtDate(r.plan_date)}</p>
-                      <p className="text-sm font-bold text-white mt-0.5">{groups || t('mc_dp_kind_strength')}</p>
+                      <p className="text-sm font-bold text-white mt-0.5">{titulo}</p>
                       {lines.length > 0 && (
                         <p className="text-xs text-zinc-400 mt-1 leading-relaxed">{lines.slice(0, 4).join(' · ')}</p>
                       )}
