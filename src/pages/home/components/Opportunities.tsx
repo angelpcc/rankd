@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase, Opportunity } from '@/lib/supabase';
 import { isPastEvent } from '@/lib/opportunityDate';
 import { MOCK_OPPORTUNITIES } from '@/mocks/data';
+import SectionHead from '@/components/base/SectionHead';
 
 const typeConfig: Record<string, { accent: string; bg: string; border: string; bar: string; icon: string }> = {
   combate:      { accent: '#E10600', bg: 'rgba(225,6,0,0.08)',     border: 'rgba(225,6,0,0.2)',       bar: '#E10600',    icon: 'ri-boxing-line' },
@@ -93,19 +94,8 @@ export default function Opportunities() {
 
       <div className="max-w-7xl mx-auto px-6 md:px-10 relative z-10">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-8">
-          <div>
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-6 h-px bg-[#E10600]" />
-              <span className="text-[#E10600] text-xs font-semibold tracking-[0.2em] uppercase font-inter">{t('opp_home_eyebrow')}</span>
-            </div>
-            <h2 className="font-unbounded font-black text-white leading-tight" style={{ fontSize: 'clamp(2rem, 4vw, 3.5rem)' }}>
-              {t('opp_headline_1')}<br />
-              <span className="font-light text-white/50">{t('opp_headline_2')}</span>
-            </h2>
-          </div>
-          <p className="text-white/62 text-base leading-relaxed max-w-md lg:text-right font-inter">{t('opp_subtext')}</p>
-        </div>
+        <SectionHead eyebrow={t('opp_home_eyebrow')} title={t('opp_headline_1')} highlight={t('opp_headline_2')}
+          sub={t('opp_subtext')} action={{ label: t('btn_view_all_opportunities'), onClick: () => navigate('/opportunities') }} />
 
         {/* Abanico de conexiones — deja claro que no es solo una bolsa de combates */}
         <div className="flex flex-wrap items-center gap-2.5 mb-6">

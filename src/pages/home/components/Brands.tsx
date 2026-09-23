@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useBrands } from '@/hooks/useBrands';
+import SectionHead from '@/components/base/SectionHead';
 
 export default function BrandsSection() {
   const navigate = useNavigate();
@@ -23,26 +24,8 @@ export default function BrandsSection() {
 
       <div className="max-w-7xl mx-auto px-6 md:px-10 relative z-10">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-14">
-          <div>
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-6 h-px bg-[#E10600]" />
-              <span className="text-[#E10600] text-xs font-semibold tracking-[0.2em] uppercase font-inter">{t('brands_eyebrow')}</span>
-            </div>
-            <h2 className="font-unbounded font-black text-white leading-tight" style={{ fontSize: 'clamp(2rem, 4vw, 3.5rem)' }}>
-              {t('brands_headline_1')}<br />
-              <span className="text-white/50 font-light">{t('brands_headline_2')}</span>
-            </h2>
-          </div>
-          <div className="flex-shrink-0">
-            <button
-              onClick={() => navigate('/brands')}
-              className="flex items-center gap-2 border border-white/15 text-white/50 text-sm font-semibold px-6 py-3 rounded-full hover:border-[#E10600] hover:text-[#E10600] transition-colors cursor-pointer whitespace-nowrap font-inter"
-            >
-              {t('btn_view_directory')} <i className="ri-arrow-right-line" />
-            </button>
-          </div>
-        </div>
+        <SectionHead eyebrow={t('brands_eyebrow')} title={t('brands_headline_1')} highlight={t('brands_headline_2')}
+          action={{ label: t('btn_view_directory'), onClick: () => navigate('/brands') }} />
 
         {loading ? (
           <div className="flex items-center justify-center py-20">

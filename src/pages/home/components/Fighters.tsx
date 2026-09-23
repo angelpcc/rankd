@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase, Fighter, Profile } from '@/lib/supabase';
 import { MOCK_FIGHTERS, MOCK_PROFILES } from '@/mocks/data';
 import Reveal from '@/components/base/Reveal';
+import SectionHead from '@/components/base/SectionHead';
 
 interface FighterWithProfile { fighter: Fighter; profile: Profile; }
 
@@ -44,7 +45,9 @@ export default function Fighters() {
     { key: 'mma', label: 'MMA' },
     { key: 'kickboxing', label: 'Kickboxing' },
   ];
-  const filtered = active === 'Todos' ? data.slice(0, 6) : data.filter((d) => d.fighter.discipline === active).slice(0, 6);
+  // v4: cuatro, en una fila. Seis en dos filas de tres eran 1.300 px de fichas
+  // en la portada; el directorio completo está a un clic.
+  const filtered = active === 'Todos' ? data.slice(0, 4) : data.filter((d) => d.fighter.discipline === active).slice(0, 4);
 
   if (loading) {
     return (
@@ -64,25 +67,10 @@ export default function Fighters() {
       <div style={{ position: 'relative', zIndex: 2, maxWidth: 1320, margin: '0 auto', padding: '0 24px' }}>
 
         {/* ── CABECERA ── */}
-        <div className="ftr-head" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 36, alignItems: 'end', marginBottom: 34 }}>
-          <Reveal>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
-              <span className="rk-index">DIRECTORIO</span>
-              <span style={{ flex: '0 0 42px', height: 1, background: 'rgba(255,255,255,0.16)' }} />
-              <span className="rk-eyebrow">{t('fighters_eyebrow')}</span>
-            </div>
-            <h2 className="rk-h1" style={{ margin: 0, color: '#fff' }}>
-              {t('fighters_headline_1')}<br />
-              <span className="rk-red-glow">{t('fighters_headline_2')}</span>
-            </h2>
-          </Reveal>
-
-          <Reveal delay={130}>
-            <button className="rk-btn rk-btn-ghost" style={{ fontSize: '1rem', padding: '0.85rem 1.7rem' }} onClick={() => navigate('/fighters')}>
-              {t('btn_view_full_directory')} →
-            </button>
-          </Reveal>
-        </div>
+        <Reveal>
+          <SectionHead eyebrow={t('fighters_eyebrow')} title={t('fighters_headline_1')} highlight={t('fighters_headline_2')}
+            action={{ label: t('btn_view_full_directory'), onClick: () => navigate('/fighters') }} />
+        </Reveal>
 
         {/* ── FILTROS ── */}
         <Reveal delay={70}>
@@ -121,7 +109,7 @@ export default function Fighters() {
             </div>
           </Reveal>
         ) : (
-          <div className="ftr-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 18 }}>
+          <div className="ftr-grid rk-carrusel-m" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
             {filtered.map(({ fighter, profile }, i) => {
               const color = disciplineColors[fighter.discipline || 'other'] || '#6b7280';
               const initials = (profile.full_name || 'F').split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();

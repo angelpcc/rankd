@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import SectionHead from '@/components/base/SectionHead';
 
 // R12-T10/T15: qué te da RANKD, por función. Va pronto en la narrativa de la
 // home (justo tras "Cómo funciona") como resumen de las piezas del ecosistema.
@@ -31,21 +32,12 @@ export default function Benefits() {
       <div style={{ width: '100%' }}>
         <div style={{ maxWidth: 1300, margin: '0 auto', padding: '0 24px' }}>
           {/* Header */}
-          <div className="reveal" style={{ marginBottom: 44 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
-              <div style={{ width: 40, height: 3, background: '#E10600', borderRadius: 2 }} />
-              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: 6, textTransform: 'uppercase', color: '#E10600' }}>{t('ben_eyebrow')}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 24 }}>
-              <h2 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(52px, 7vw, 96px)', lineHeight: 0.9, color: 'white', margin: 0 }}>
-                {t('ben_headline_1')} <span style={{ color: '#C9A84C', textShadow: '0 0 40px rgba(201,168,76,0.25)' }}>{t('ben_headline_2')}</span>
-              </h2>
-              <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, color: 'rgba(255,255,255,0.78)', maxWidth: 400, lineHeight: 1.55 }}>{t('ben_subtext')}</p>
-            </div>
+          <div className="reveal">
+            <SectionHead eyebrow={t('ben_eyebrow')} title={t('ben_headline_1')} highlight={t('ben_headline_2')} sub={t('ben_subtext')} />
           </div>
 
           {/* Tarjetas de beneficio — escaneables */}
-          <div className="ben-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+          <div className="ben-grid rk-carrusel-m" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
             {BENEFITS.map((b, i) => (
               <a key={b.t} href={b.href} onClick={(e) => { e.preventDefault(); navigate(b.href); }}
                 className={`reveal reveal-delay-${Math.min(i + 1, 4)} rk-card group ben-card ${i === 0 ? 'ben-feature' : ''}`}

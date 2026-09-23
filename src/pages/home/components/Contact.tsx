@@ -1,5 +1,6 @@
 import { useState, FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import SectionHead from '@/components/base/SectionHead';
 
 export default function Contact() {
   const { t } = useTranslation();
@@ -46,16 +47,9 @@ export default function Contact() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'start' }} className="contact-grid">
           {/* Left */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-              <div style={{ width: 32, height: 2, background: '#C9A84C' }} />
-              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: 5, textTransform: 'uppercase', color: '#C9A84C' }}>{t('contact_eyebrow')}</span>
-            </div>
-            <h2 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(40px, 4.6vw, 68px)', lineHeight: 0.94, color: 'white', margin: '0 0 20px' }}>
-              {t('contact_headline_1')}<br />
-              <span style={{ color: '#E10600' }}>{t('contact_headline_2')}</span><br />
-              <span style={{ color: 'rgba(255,255,255,0.12)' }}>{t('contact_headline_3')}</span>
-            </h2>
-            <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5, maxWidth: 420, marginBottom: 28 }}>{t('contact_subtext')}</p>
+            {/* v4: la cabecera común de las páginas públicas */}
+            <SectionHead eyebrow={t('contact_eyebrow')} title={t('contact_headline_1')}
+              highlight={`${t('contact_headline_2')} ${t('contact_headline_3')}`} sub={t('contact_subtext')} />
 
             {/* Contacto info */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>

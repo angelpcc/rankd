@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Reveal from '@/components/base/Reveal';
+import SectionHead from '@/components/base/SectionHead';
 
 // Un camino por cada tipo de usuario: la plataforma completa, no solo el
 // peleador buscando visibilidad. Cada tarjeta enlaza a su recorrido detallado
@@ -56,33 +57,14 @@ export default function HowItWorks() {
 
       <div style={{ position: 'relative', zIndex: 2, maxWidth: 1320, margin: '0 auto', padding: '0 24px' }}>
 
-        {/* ── CABECERA ── */}
-        <div className="hiw-head" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 32, alignItems: 'end', marginBottom: 32 }}>
-          <Reveal>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
-              <span className="rk-index">RANKD</span>
-              <span style={{ flex: '0 0 42px', height: 1, background: 'rgba(255,255,255,0.16)' }} />
-              <span className="rk-eyebrow">{t('how_eyebrow')}</span>
-            </div>
-            <h2 className="rk-h1" style={{ margin: 0, color: '#fff' }}>
-              {t('how_headline_1')}<br />
-              <span className="rk-red-glow">{t('how_headline_2')}</span>
-            </h2>
-          </Reveal>
-
-          <Reveal delay={140}>
-            <p className="rk-body" style={{ maxWidth: 400, margin: 0, paddingBottom: 6 }}>
-              {t('how_subtext')}
-            </p>
-          </Reveal>
-        </div>
-
-        <Reveal delay={80}>
-          <div className="rk-rule" style={{ marginBottom: 28 }} />
+        {/* ── CABECERA ── (v4: la común de las páginas públicas) */}
+        <Reveal>
+          <SectionHead eyebrow={t('how_eyebrow')} title={t('how_headline_1')} highlight={t('how_headline_2')}
+            sub={t('how_subtext')} action={{ label: t('how_role_see_path'), onClick: () => navigate('/como-funciona') }} />
         </Reveal>
 
         {/* ── CAMINOS POR AUDIENCIA ── */}
-        <div className="hiw-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
+        <div className="hiw-grid rk-carrusel-m" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
           {PATHS.map((p, i) => (
             <Reveal key={p.role} delay={i * 110} variant="up">
               <button
@@ -117,22 +99,6 @@ export default function HowItWorks() {
           ))}
         </div>
 
-        {/* ── CTA ── */}
-        <Reveal delay={120}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-              <button className="rk-btn rk-btn-primary" style={{ padding: '1.05rem 2.6rem' }} onClick={() => navigate('/auth')}>
-                {t('btn_start_free')} →
-              </button>
-              <button className="rk-btn rk-btn-ghost" style={{ padding: '1.05rem 2.2rem' }} onClick={() => navigate('/como-funciona')}>
-                {t('how_role_see_path').toUpperCase()}
-              </button>
-            </div>
-            <span className="rk-body" style={{ fontSize: '0.8rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--rk-text-3)' }}>
-              {t('how_role_fighter_title')} · {t('how_role_org_title')} · {t('how_role_brand_title')} · {t('how_role_public_title')}
-            </span>
-          </div>
-        </Reveal>
       </div>
 
       <style>{`

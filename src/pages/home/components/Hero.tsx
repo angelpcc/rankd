@@ -82,8 +82,6 @@ export default function Hero() {
       >
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 22, opacity: loaded ? 1 : 0, transform: loaded ? 'none' : 'translateY(14px)', transition: 'all 0.9s var(--ease-out) 0.15s' }}>
-            <span className="rk-index">ES · 2026</span>
-            <span style={{ flex: '0 0 42px', height: 1, background: 'rgba(255,255,255,0.16)' }} />
             <span className="rk-eyebrow">{t('hero_eyebrow')}</span>
           </div>
 
@@ -99,12 +97,12 @@ export default function Hero() {
             <span className="rk-display rk-red-glow" style={{ display: 'block', fontSize: 'clamp(2rem, 6.5vw, 4.6rem)', lineHeight: 0.92, opacity: loaded ? 1 : 0, transform: loaded ? 'none' : 'translateY(30px)', transition: 'all 1s var(--ease-out) 0.31s' }}>
               {t('hero_headline_2')}
             </span>
-            <span className="rk-display rk-outline" style={{ display: 'block', fontSize: 'clamp(1.7rem, 5vw, 3.4rem)', lineHeight: 0.95, fontStyle: 'italic', opacity: loaded ? 1 : 0, transform: loaded ? 'none' : 'translateY(30px)', transition: 'all 1s var(--ease-out) 0.42s' }}>
+            {/* v4: la tercera línea, sin contorno ni cursiva (era lo que más fechaba
+                el titular): en blanco apagado, como remate de la frase. */}
+            <span className="rk-display" style={{ display: 'block', color: 'rgba(255,255,255,0.38)', fontSize: 'clamp(2rem, 6.5vw, 4.6rem)', lineHeight: 0.92, opacity: loaded ? 1 : 0, transform: loaded ? 'none' : 'translateY(30px)', transition: 'all 1s var(--ease-out) 0.42s' }}>
               {t('hero_headline_3')}
             </span>
           </h1>
-
-          <div className="rk-rule" style={{ width: 92, marginBottom: 20, opacity: loaded ? 1 : 0, transition: 'opacity 1s var(--ease-out) 0.6s' }} />
 
           <p className="rk-body" style={{ fontSize: 'clamp(0.98rem, 1.4vw, 1.18rem)', maxWidth: 540, marginBottom: 28, opacity: loaded ? 1 : 0, transform: loaded ? 'none' : 'translateY(18px)', transition: 'all 1s var(--ease-out) 0.62s' }}>
             {t('hero_subtext')}

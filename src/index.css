@@ -245,14 +245,16 @@ body::before {
 .rk-eyebrow {
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 0.72rem; font-weight: 700;
-  letter-spacing: 0.42em; text-transform: uppercase;
+  letter-spacing: 0.22em; text-transform: uppercase;
   color: var(--rk-gold);
 }
 .rk-outline {
   color: transparent;
   -webkit-text-stroke: 1px rgba(255, 255, 255, 0.25);
 }
-.rk-red-glow { color: var(--rk-red); text-shadow: 0 0 60px rgba(225, 6, 0, 0.5), 0 0 140px rgba(225, 6, 0, 0.18); }
+/* v4: sin resplandor. El halo rojo detrás del texto era el efecto más repetido
+   de la web y el que más la fechaba. */
+.rk-red-glow { color: var(--rk-red); }
 
 /* ── ETIQUETA / PÍLDORA ── */
 .rk-pill {
@@ -1369,3 +1371,76 @@ input[type="datetime-local"]::-webkit-inner-spin-button {
 }
 .rk-mode:hover { background: rgba(255,255,255,0.04); }
 .rk-mode[aria-selected="true"] { background: rgba(167,139,250,0.08); border-color: rgba(167,139,250,0.3); }
+
+/* ════════════════════════════════════════════════════════════════
+   v4 · Páginas públicas
+   ════════════════════════════════════════════════════════════════ */
+
+/* Cabecera de bloque (components/base/SectionHead.tsx) */
+.rk-head {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 24px;
+  margin-bottom: clamp(24px, 3vw, 36px);
+}
+.rk-head--center { flex-direction: column; align-items: center; text-align: center; }
+.rk-head--center .rk-head-sub { margin-left: auto; margin-right: auto; }
+.rk-head-eyebrow {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--rk-gold);
+  margin-bottom: 12px;
+}
+.rk-head-dash { width: 22px; height: 1px; background: currentColor; opacity: 0.7; }
+.rk-head-title {
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: clamp(28px, 3.6vw, 46px);
+  line-height: 1.06;
+  letter-spacing: -0.035em;
+  color: #fff;
+  margin: 0;
+  max-width: 22ch;
+}
+.rk-head--center .rk-head-title { max-width: 24ch; }
+.rk-head-sub {
+  margin-top: 12px;
+  font-size: clamp(15px, 1.2vw, 17px);
+  line-height: 1.6;
+  color: var(--t-2);
+  max-width: 58ch;
+}
+.rk-head-action {
+  display: inline-flex; align-items: center; gap: 8px;
+  flex-shrink: 0;
+  font-size: 14px; font-weight: 600;
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--line-2);
+  background: rgba(255,255,255,0.04);
+  cursor: pointer;
+  transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+.rk-head-action:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.24); }
+@media (max-width: 640px) {
+  .rk-head { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .rk-head--center { align-items: center; }
+}
+
+/* Carrusel en el móvil: una fila que se desliza en lugar de una columna de
+   tarjetas apiladas. En la portada, Peleadores, Beneficios y Cómo funciona
+   eran 1.500-2.000 px cada uno de tarjetas una debajo de otra. */
+@media (max-width: 640px) {
+  .rk-carrusel-m {
+    display: flex !important;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 12px !important;
+    margin-left: -24px; margin-right: -24px;
+    padding: 2px 24px 10px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .rk-carrusel-m::-webkit-scrollbar { display: none; }
+  .rk-carrusel-m > * { flex: 0 0 84%; min-width: 0; scroll-snap-align: start; }
+}
