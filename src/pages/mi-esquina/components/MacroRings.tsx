@@ -5,9 +5,12 @@ import CountUp from '@/components/base/CountUp';
 // Estructura inspirada en apps de nutrición (referencia visual), colores RANKD:
 // proteína = acento rojo, carbohidratos = oro, grasas = neutro.
 //
-// Sin objetivo por macro (aún no hay esquema) → se muestra lo CONSUMIDO en el
-// centro y el aro se llena contra una referencia suave. Con objetivo → se
-// muestra lo que RESTA y el aro se llena contra el objetivo.
+// En el centro, siempre lo CONSUMIDO. Sin objetivo, el aro se llena contra
+// una referencia suave; con objetivo (ver lib/objetivoDiario.ts), contra el
+// objetivo, y debajo del número se lee "de 152 g".
+//
+// Antes, con objetivo, el centro pasaba a enseñar lo que RESTABA con la misma
+// "g" debajo: un 45 se leía como "llevo 45 g" cuando era "me faltan 45 g".
 
 interface Ring {
   key: 'protein' | 'carbs' | 'fat';
@@ -21,6 +24,8 @@ interface Props {
   protein: number;
   carbs: number;
   fat: number;
+  /** Objetivo del día por macro, en gramos. */
+  goals?: { protein: number; carbs: number; fat: number } | null;
 }
 
 function RingSvg({ ring, label, unit, delay }: { ring: Ring; label: string; unit: string; delay: number }) {
@@ -28,7 +33,7 @@ function RingSvg({ ring, label, unit, delay }: { ring: Ring; label: string; unit
   const C = 2 * Math.PI * R;
   const denom = ring.goal && ring.goal > 0 ? ring.goal : ring.ref;
   const frac = Math.max(0, Math.min(1, ring.value / denom));
-  const center = ring.goal && ring.goal > 0 ? Math.max(0, Math.round(ring.goal - ring.value)) : Math.round(ring.value);
+  const center = Math.round(ring.value);
   const target = C - frac * C;
 
   // `key` con el valor: al registrar una comida el anillo se re-monta y la
@@ -61,18 +66,18 @@ function RingSvg({ ring, label, unit, delay }: { ring: Ring; label: string; unit
   );
 }
 
-export default function MacroRings({ protein, carbs, fat }: Props) {
+export default function MacroRings({ protein, carbs, fat, goals }: Props) {
   const { t } = useTranslation();
   const rings: Ring[] = [
-    { key: 'protein', value: protein, color: 'var(--accent)', ref: 150 },
-    { key: 'carbs', value: carbs, color: 'var(--gold)', ref: 250 },
-    { key: 'fat', value: fat, color: 'var(--t-3)', ref: 70 },
+    { key: 'protein', value: protein, goal: goals?.protein, color: 'var(--accent)', ref: 150 },
+    { key: 'carbs', value: carbs, goal: goals?.carbs, color: 'var(--gold)', ref: 250 },
+    { key: 'fat', value: fat, goal: goals?.fat, color: 'var(--t-3)', ref: 70 },
   ];
   return (
     <div className="flex items-center justify-around gap-2">
-      <RingSvg ring={rings[0]} label={t('mc_food_photo_protein')} unit="g" delay={0} />
-      <RingSvg ring={rings[1]} label={t('mc_food_photo_carbs')} unit="g" delay={90} />
-      <RingSvg ring={rings[2]} label={t('mc_food_photo_fat')} unit="g" delay={180} />
+      <RingSvg ring={rings[0]} label={t('mc_food_photo_protein')} unit={goals ? t('mc_obj_of_g', { n: goals.protein }) : 'g'} delay={0} />
+      <RingSvg ring={rings[1]} label={t('mc_food_photo_carbs')} unit={goals ? t('mc_obj_of_g', { n: goals.carbs }) : 'g'} delay={90} />
+      <RingSvg ring={rings[2]} label={t('mc_food_photo_fat')} unit={goals ? t('mc_obj_of_g', { n: goals.fat }) : 'g'} delay={180} />
     </div>
   );
 }

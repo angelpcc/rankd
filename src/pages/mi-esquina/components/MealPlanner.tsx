@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, type Profile } from '@/lib/supabase';
 import { isMissingColumn } from '@/lib/dbState';
-import { loadPhysical, type FighterPhysical } from '@/lib/physicalProfile';
+import { cargarDatosObjetivo, objetivoDe, type DatosObjetivo } from '@/pages/mi-esquina/lib/objetivoDiario';
+import ObjetivoDiarioCard from './ObjetivoDiarioCard';
 import { activityKindCfg, todayISO } from '@/pages/mi-esquina/lib/dayPlan';
 import {
   PANTRY_GROUPS, RECIPE_BY_ID, recipeHow, recipeName,
@@ -13,7 +14,7 @@ import {
   setPantryAvailable, tagsFromItems, type PantryItem,
 } from '@/pages/mi-esquina/lib/pantryItems';
 import {
-  clearPlan, countRelaxed, dailyTarget, defaultParams, generatePlan, loadPlan,
+  clearPlan, countRelaxed, defaultParams, generatePlan, loadPlan,
   loadTrainingContext, mealKey, mealWarnings, missingAnswers, rescaleDay,
   restrictionsTooTight, savePlan, shoppingTags, updateActivePlan,
   type DailyTarget, type GoalDirection, type MealPlan, type PlannedDay, type PlannedMeal,
@@ -23,8 +24,6 @@ import {
 interface Props {
   profile: Profile;
   showToast: (msg: string, type?: 'success' | 'error') => void;
-  /** Puente al perfil físico cuando faltan datos para afinar el objetivo. */
-  onGoProfile?: () => void;
   /** Avisa a Nutrición de que hay una comida nueva en el diario de hoy. */
   onMealLogged?: () => void;
 }
@@ -59,6 +58,11 @@ const GOAL_CHOICES: { id: GoalDirection; labelKey: string }[] = [
 // casos que se repiten, para no obligar a teclear lo de siempre.
 const RESTRICTION_CHIPS = ['mc_mp_restr_lactose', 'mc_mp_restr_gluten', 'mc_mp_restr_pork', 'mc_mp_restr_fish', 'mc_mp_restr_nuts'];
 
+/** Mientras cargan los datos del objetivo. */
+const SIN_DATOS: DatosObjetivo = {
+  physical: null, currentWeight: null, targetWeight: null, weighIn: null, realDays: null, manualKcal: null,
+};
+
 /**
  * Asesor de comida (punto 20).
  *
@@ -73,15 +77,22 @@ const RESTRICTION_CHIPS = ['mc_mp_restr_lactose', 'mc_mp_restr_gluten', 'mc_mp_r
  *    qué hora entrena) en vez de suponerlo.
  *  · Se USA: cada comida se marca al hacerla y se puede apuntar en el diario.
  */
-export default function MealPlanner({ profile, showToast, onGoProfile, onMealLogged }: Props) {
+export default function MealPlanner({ profile, showToast, onMealLogged }: Props) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const locale = lang.startsWith('en') ? 'en-GB' : 'es-ES';
 
-  const [physical, setPhysical] = useState<FighterPhysical | null>(null);
-  const [currentWeight, setCurrentWeight] = useState<number | null>(null);
-  const [targetWeight, setTargetWeight] = useState<number | null>(null);
-  const [weighIn, setWeighIn] = useState<string | null>(null);
+  // Peso, perfil, objetivo y días de entreno: lo que pide el objetivo diario.
+  // Lo lee el mismo cargador que el Resumen y Nutrición (lib/objetivoDiario):
+  // antes esta pantalla tenía su propia copia y podían dar cifras distintas.
+  const [datos, setDatos] = useState<DatosObjetivo | null>(null);
+  const [recargaObj, setRecargaObj] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    cargarDatosObjetivo(profile.id).then((d) => { if (alive) setDatos(d); }).catch(() => {});
+    return () => { alive = false; };
+  }, [profile.id, recargaObj]);
   const [loading, setLoading] = useState(true);
 
   const [params, setParams] = useState<PlannerParams>(defaultParams);
@@ -99,22 +110,11 @@ export default function MealPlanner({ profile, showToast, onGoProfile, onMealLog
   useEffect(() => {
     let alive = true;
     (async () => {
-      const [phys, weightRow, goals, saved, pantry] = await Promise.all([
-        loadPhysical(profile.id),
-        supabase.from('weight_entries').select('weight_kg')
-          .eq('fighter_profile_id', profile.id)
-          .order('entry_date', { ascending: false }).limit(1).maybeSingle(),
-        supabase.from('nutrition_goals').select('target_weight_kg, weigh_in_date')
-          .eq('fighter_profile_id', profile.id).maybeSingle(),
+      const [saved, pantry] = await Promise.all([
         loadPlan(profile.id),
         loadPantryItems(profile.id),
       ]);
       if (!alive) return;
-      setPhysical(phys.data);
-      setCurrentWeight(weightRow.data?.weight_kg ?? null);
-      setTargetWeight(goals.data?.target_weight_kg ?? null);
-      // weigh_in_date llega de la 0010; si no está aplicada, no viene.
-      setWeighIn((goals.data as { weigh_in_date?: string } | null)?.weigh_in_date ?? null);
       setItems(pantry.items);
       setItemsLocal(pantry.storedLocally);
       if (saved) {
@@ -127,11 +127,11 @@ export default function MealPlanner({ profile, showToast, onGoProfile, onMealLog
     return () => { alive = false; };
   }, [profile.id]);
 
-  const hasGoal = targetWeight !== null;
+  const hasGoal = datos?.targetWeight != null;
 
   const target: DailyTarget = useMemo(
-    () => dailyTarget(physical, currentWeight, targetWeight, weighIn, todayISO(), params.goalDirection),
-    [physical, currentWeight, targetWeight, weighIn, params.goalDirection],
+    () => objetivoDe(datos ?? SIN_DATOS, params.goalDirection),
+    [datos, params.goalDirection],
   );
 
   /**
@@ -235,7 +235,7 @@ export default function MealPlanner({ profile, showToast, onGoProfile, onMealLog
     await deletePantryItem(profile.id, item);
   };
 
-  if (loading) {
+  if (loading || !datos) {
     return <div className="rk-card animate-pulse" style={{ padding: 20, height: 220 }} />;
   }
 
@@ -249,7 +249,8 @@ export default function MealPlanner({ profile, showToast, onGoProfile, onMealLog
         <p className="rk-body-14 mt-1">{t('mc_mp_sub')}</p>
       </header>
 
-      <TargetCard target={target} onGoProfile={onGoProfile} />
+      <ObjetivoDiarioCard profileId={profile.id} target={target} showToast={showToast}
+        onChanged={() => setRecargaObj((k) => k + 1)} />
 
       {!plan || editing ? (
         <PreferencesForm
@@ -322,67 +323,6 @@ export default function MealPlanner({ profile, showToast, onGoProfile, onMealLog
         <i className="ri-information-line mt-0.5 flex-shrink-0" />
         {t('mc_mp_disclaimer')}
       </p>
-    </div>
-  );
-}
-
-// ── Objetivo diario ────────────────────────────────────────────
-
-function TargetCard({ target, onGoProfile }: { target: DailyTarget; onGoProfile?: () => void }) {
-  const { t } = useTranslation();
-  const dirKey = target.direction === 'bajar' ? 'mc_mp_dir_down'
-    : target.direction === 'subir' ? 'mc_mp_dir_up' : 'mc_mp_dir_keep';
-
-  return (
-    <div className="rk-card" style={{ padding: 18 }}>
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-500">{t('mc_mp_target_title')}</span>
-        <span className="text-[10px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5"
-          style={{ background: 'rgba(201,168,76,0.14)', border: '1px solid rgba(201,168,76,0.3)', color: '#C9A84C' }}>
-          {t(dirKey)}
-        </span>
-      </div>
-
-      <div className="grid grid-cols-4 gap-2">
-        {/* Etiquetas cortas: "Carbohidratos" no cabe en una columna de cuatro
-            y salía cortado a "CARBOHIDRA…". */}
-        <Metric value={String(target.kcal)} unit="kcal" accent />
-        <Metric value={`${target.protein}g`} unit={t('mc_mp_short_protein')} />
-        <Metric value={`${target.carbs}g`} unit={t('mc_mp_short_carbs')} />
-        <Metric value={`${target.fat}g`} unit={t('mc_mp_short_fat')} />
-      </div>
-
-      {/* Honestidad sobre de dónde sale la cifra: sin peso, altura, edad y
-          sexo NO es un cálculo personalizado, es una referencia. */}
-      {!target.personalised && (
-        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl px-3 py-2.5"
-          style={{ background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.22)' }}>
-          <i className="ri-error-warning-line text-[#C9A84C] flex-shrink-0" />
-          <p className="text-[11px] text-zinc-300 flex-1 min-w-[160px] leading-relaxed">{t('mc_mp_not_personal')}</p>
-          {onGoProfile && (
-            <button onClick={onGoProfile} className="rk-nav-btn text-[11px]" style={{ padding: '0.4rem 0.8rem', minHeight: 40 }}>
-              {t('mc_mp_complete_profile')}
-            </button>
-          )}
-        </div>
-      )}
-
-      {target.aggressive && (
-        <p className="mt-3 text-[11px] text-orange-300/90 flex items-start gap-1.5 leading-relaxed">
-          <i className="ri-alert-line mt-0.5 flex-shrink-0" />{t('mc_mp_aggressive')}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function Metric({ value, unit, accent }: { value: string; unit: string; accent?: boolean }) {
-  return (
-    <div className="rounded-xl px-2 py-2.5 text-center" style={{ background: 'var(--s-2)' }}>
-      <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(20px,5.5vw,26px)', lineHeight: 1, color: accent ? '#fff' : 'var(--t-1)' }}>
-        {value}
-      </p>
-      <p className="text-[10px] text-zinc-500 uppercase tracking-wider mt-1 truncate">{unit}</p>
     </div>
   );
 }

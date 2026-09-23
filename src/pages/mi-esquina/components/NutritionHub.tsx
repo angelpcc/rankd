@@ -12,6 +12,7 @@ import SectionHero from '@/pages/mi-esquina/components/SectionHero';
 import NutritionSummary from '@/pages/mi-esquina/components/NutritionSummary';
 import MealPlanner from '@/pages/mi-esquina/components/MealPlanner';
 import PhotoCard from '@/components/base/PhotoCard';
+import { cargarObjetivoDiario } from '@/pages/mi-esquina/lib/objetivoDiario';
 
 function todayISO(): string {
   const d = new Date();
@@ -70,7 +71,7 @@ export default function NutritionHub({ profile, showToast, isHobby, onGoWeight }
   ];
 
   if (view === 'summary') {
-    return <NutritionSummary profile={profile} onEnter={() => setView('work')} />;
+    return <NutritionSummary profile={profile} showToast={showToast} onEnter={() => setView('work')} />;
   }
 
   // La guía informativa se calcula igual que en la implementación anterior:
@@ -225,6 +226,14 @@ interface DayMacros { calories: number; protein: number; carbs: number; fat: num
 function TodayMacrosSummary({ profile, refreshKey = 0 }: { profile: Profile; refreshKey?: number }) {
   const { t } = useTranslation();
   const [data, setData] = useState<DayMacros | null>(null);
+  // Contra qué se mide lo de hoy: el mismo objetivo que el resumen.
+  const [objetivoKcal, setObjetivoKcal] = useState<number | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    cargarObjetivoDiario(profile.id).then((o) => { if (alive) setObjetivoKcal(o.kcal); }).catch(() => {});
+    return () => { alive = false; };
+  }, [profile.id]);
 
   useEffect(() => {
     let alive = true;
@@ -250,7 +259,7 @@ function TodayMacrosSummary({ profile, refreshKey = 0 }: { profile: Profile; ref
     <div className="rk-card flex items-center gap-2 sm:gap-4 mb-5 overflow-x-auto" style={{ padding: '12px 16px' }}>
       <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 flex-shrink-0">{t('mc_ng_today_summary')}</span>
       <span className="text-sm text-white flex-shrink-0">
-        {Math.round(data.calories)} <span className="text-zinc-500 text-xs">kcal</span>
+        {Math.round(data.calories)} <span className="text-zinc-500 text-xs">{objetivoKcal ? `/ ${objetivoKcal} kcal` : 'kcal'}</span>
       </span>
       <span className="text-zinc-700 flex-shrink-0">·</span>
       <span className="text-sm text-white flex-shrink-0">

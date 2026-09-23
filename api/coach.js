@@ -284,6 +284,15 @@ function fighterContext(p = {}) {
   if (p.equipmentAccess) lines.push(`- Material disponible: ${p.equipmentAccess}`);
   if (p.injuries) lines.push(`- Lesiones o notas: ${String(p.injuries).slice(0, 300)}`);
   if (p.weeklyMinutes) lines.push(`- Volumen de entreno esta semana: ${p.weeklyMinutes} min`);
+  // El objetivo diario que la app le enseña en Nutrición y en el Resumen. Si le
+  // propones comidas que no suman esto, la app y tú le decís dos cosas
+  // distintas. Si lo ha fijado él (su nutricionista), manda sobre tu criterio.
+  if (p.dailyKcal) {
+    const origen = p.dailyKcalManual ? 'fijado por él: respétalo'
+      : p.dailyKcalGeneric ? 'referencia genérica, faltan datos de su perfil'
+        : 'calculado por la app con sus datos';
+    lines.push(`- Objetivo diario (${origen}): ${p.dailyKcal} kcal · ${p.proteinG} g proteína · ${p.carbsG} g hidratos · ${p.fatG} g grasa. Las comidas que propongas tienen que cuadrar con esto.`);
+  }
   if (Array.isArray(p.goals) && p.goals.length) lines.push(`- Metas con fecha límite: ${p.goals.join('; ')}`);
   if (p.recovery) lines.push(`- Cómo llega esta semana: ${p.recovery}`);
   if (p.snapshot) lines.push(`- Lo que ya tiene en la app (planificado y registrado):\n${String(p.snapshot).slice(0, 1400)}`);

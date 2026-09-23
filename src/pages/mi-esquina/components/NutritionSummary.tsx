@@ -6,6 +6,8 @@ import SegmentedProgress from '@/components/base/SegmentedProgress';
 import MacroRings from './MacroRings';
 import WeekBars from '@/components/base/WeekBars';
 import { last7Days } from '@/components/base/weekBarsData';
+import ObjetivoDiarioCard from './ObjetivoDiarioCard';
+import { cargarObjetivoDiario, type DailyTarget } from '../lib/objetivoDiario';
 
 // Nutrición · NIVEL 1 (resumen). Solo consulta: anillos de macros, barra de
 // calorías segmentada y diario del día compacto (4 franjas). Un botón lleva al
@@ -14,6 +16,7 @@ import { last7Days } from '@/components/base/weekBarsData';
 interface Props {
   profile: Profile;
   onEnter: () => void;
+  showToast: (msg: string, type?: 'success' | 'error') => void;
 }
 
 interface MealRow { meal_type: string; description: string; calories: number | null; protein_g: number | null; carbs_g: number | null; fat_g: number | null }
@@ -30,14 +33,22 @@ function todayISO(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export default function NutritionSummary({ profile, onEnter }: Props) {
+export default function NutritionSummary({ profile, onEnter, showToast }: Props) {
   const { t } = useTranslation();
   const [rows, setRows] = useState<MealRow[]>([]);
   const [loading, setLoading] = useState(true);
-  // Aún no hay objetivo de calorías/macros en el esquema (llega con el Asesor,
-  // PROMPT 2). Hasta entonces el resumen solo muestra lo consumido; el estado
-  // queda listo para cuando exista el objetivo.
-  const [kcalGoal] = useState<number | null>(null);
+  // El objetivo del día (lib/objetivoDiario.ts), el mismo que ven el Resumen,
+  // el plan de comidas y las IAs. Estaba preparado aquí con un null fijo
+  // "hasta que existiera", y existía: solo que en otra pestaña.
+  const [objetivo, setObjetivo] = useState<DailyTarget | null>(null);
+  const [recarga, setRecarga] = useState(0);
+  const kcalGoal = objetivo?.kcal ?? null;
+
+  useEffect(() => {
+    let alive = true;
+    cargarObjetivoDiario(profile.id).then((o) => { if (alive) setObjetivo(o); }).catch(() => {});
+    return () => { alive = false; };
+  }, [profile.id, recarga]);
 
   // Últimos 7 días para la tira semanal. Una cifra suelta de hoy no dice si
   // estás siendo constante; siete barras sí.
@@ -105,27 +116,42 @@ export default function NutritionSummary({ profile, onEnter }: Props) {
 
   const slotsLogged = SLOTS.filter((s) => bySlot.has(s.value)).length;
   const calSeg = kcalGoal && kcalGoal > 0
-    ? { done: Math.round((totals.kcal / kcalGoal) * 12), total: 12 }
+    ? { done: Math.min(12, Math.round((totals.kcal / kcalGoal) * 12)), total: 12 }
     : { done: slotsLogged, total: SLOTS.length };
 
   return (
     <div className="rk-blocks max-w-3xl xl:max-w-[1120px]">
-      {/* ── CABECERA: macros ── */}
+      {/* ── CABECERA: lo de hoy y el objetivo ──
+          En el ordenador, lado a lado: lo que llevas a la izquierda y contra
+          qué se mide a la derecha. En el móvil, uno debajo del otro. */}
+      <div className={`grid gap-4 items-start ${objetivo ? 'lg:grid-cols-[minmax(0,1fr)_340px]' : ''}`}>
       <Reveal>
         <div className="card-primary" style={{ padding: 22 }}>
           <div className="flex items-baseline justify-between gap-3 mb-3">
             <p className="text-[11px] font-bold tracking-[0.22em] uppercase text-red-400">{t('mc_ns_today')}</p>
             <p style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 26, color: 'var(--t-1)', lineHeight: 1 }}>
-              {Math.round(totals.kcal)} <span className="text-zinc-500 text-sm">kcal{kcalGoal ? ` / ${kcalGoal}` : ''}</span>
+              {Math.round(totals.kcal)} <span className="text-zinc-500 text-sm">{kcalGoal ? `/ ${kcalGoal} kcal` : 'kcal'}</span>
             </p>
           </div>
           <SegmentedProgress done={calSeg.done} total={calSeg.total} className="mb-1" />
           <p className="text-[10px] text-zinc-500 mb-5">
-            {kcalGoal ? t('mc_ns_cal_goal_hint') : t('mc_ns_cal_no_goal_hint', { n: slotsLogged, total: SLOTS.length })}
+            {kcalGoal
+              ? (totals.kcal <= kcalGoal
+                ? t('mc_ns_cal_left', { n: Math.round(kcalGoal - totals.kcal) })
+                : t('mc_ns_cal_over', { n: Math.round(totals.kcal - kcalGoal) }))
+              : t('mc_ns_cal_no_goal_hint', { n: slotsLogged, total: SLOTS.length })}
           </p>
-          <MacroRings protein={totals.protein} carbs={totals.carbs} fat={totals.fat} />
+          <MacroRings protein={totals.protein} carbs={totals.carbs} fat={totals.fat}
+            goals={objetivo ? { protein: objetivo.protein, carbs: objetivo.carbs, fat: objetivo.fat } : null} />
         </div>
       </Reveal>
+      {objetivo && (
+        <Reveal delay={40}>
+          <ObjetivoDiarioCard profileId={profile.id} target={objetivo} showToast={showToast}
+            onChanged={() => setRecarga((k) => k + 1)} />
+        </Reveal>
+      )}
+      </div>
 
       {/* ── LA SEMANA DE UN VISTAZO ── */}
       <Reveal delay={60}>

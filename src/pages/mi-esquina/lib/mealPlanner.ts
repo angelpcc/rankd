@@ -26,7 +26,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { isMissingTable } from '@/lib/dbState';
-import { ageFromBirth, type FighterPhysical } from '@/lib/physicalProfile';
+import type { DailyTarget, GoalDirection } from './objetivoDiario';
 import { RECIPES, RECIPE_BY_ID, type Complexity, type MealSlot, type Pantry, type Recipe } from './recipes';
 import { isoOf, type ActivityPayload, type StrengthPayload } from './dayPlan';
 
@@ -106,115 +106,11 @@ export function missingAnswers(p: PlannerParams, hasGoal: boolean): QuestionId[]
 }
 
 // ── Objetivo diario de calorías y macros ───────────────────────
-
-export type GoalDirection = 'bajar' | 'mantener' | 'subir';
-
-export interface DailyTarget {
-  kcal: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  direction: GoalDirection;
-  /** false = faltan datos y se ha usado una referencia genérica. */
-  personalised: boolean;
-  /** Campos del perfil físico que faltan para afinar. */
-  missing: string[];
-  /** Aviso cuando el ritmo de bajada hasta el pesaje es demasiado agresivo. */
-  aggressive?: boolean;
-}
-
-const DEFAULT_KCAL = 2400;
-
-/** Factor de actividad por días de entreno. Deportes de combate: alto. */
-function activityFactor(days: number | null): number {
-  if (days === null) return 1.55;
-  if (days <= 1) return 1.35;
-  if (days <= 3) return 1.5;
-  if (days <= 5) return 1.65;
-  return 1.8;
-}
-
-/**
- * Calcula el objetivo diario.
- *
- * `currentWeight` es el último peso registrado (más fiable que el del perfil
- * físico, que se rellena una vez y se queda viejo). `targetWeight` y
- * `weighInDate` vienen de nutrition_goals. `fallbackDirection` es lo que el
- * usuario ha contestado cuando no hay peso objetivo.
- */
-export function dailyTarget(
-  physical: FighterPhysical | null,
-  currentWeight: number | null,
-  targetWeight: number | null,
-  weighInDate: string | null,
-  todayIso: string,
-  fallbackDirection?: GoalDirection,
-): DailyTarget {
-  const weight = currentWeight ?? physical?.weight_kg ?? null;
-  const height = physical?.height_cm ?? null;
-  const age = ageFromBirth(physical?.birth_date);
-  const sex = physical?.sex ?? null;
-
-  const missing: string[] = [];
-  if (weight === null) missing.push('weight_kg');
-  if (height === null) missing.push('height_cm');
-  if (age === null) missing.push('birth_date');
-  if (sex === null) missing.push('sex');
-
-  // ¿Bajar, mantener o subir? Medio kilo de margen para no llamar "déficit" a
-  // una diferencia que es ruido de báscula. Sin peso objetivo manda lo que haya
-  // contestado el usuario; si tampoco hay respuesta, mantenerse.
-  let direction: GoalDirection = fallbackDirection ?? 'mantener';
-  if (weight !== null && targetWeight !== null) {
-    direction = 'mantener';
-    if (targetWeight < weight - 0.5) direction = 'bajar';
-    else if (targetWeight > weight + 0.5) direction = 'subir';
-  }
-
-  // Sin los cuatro datos no se puede aplicar la fórmula: se usa una
-  // referencia genérica y se dice claramente que no está personalizada.
-  const personalised = weight !== null && height !== null && age !== null && sex !== null;
-
-  let maintenance: number;
-  if (personalised) {
-    // Mifflin-St Jeor. Para 'other' o sexo sin declarar, el punto medio entre
-    // las dos constantes (+5 y −161).
-    const base = 10 * weight! + 6.25 * height! - 5 * age!;
-    const bmr = sex === 'male' ? base + 5 : sex === 'female' ? base - 161 : base - 78;
-    maintenance = bmr * activityFactor(physical?.training_days_per_week ?? null);
-  } else {
-    maintenance = DEFAULT_KCAL;
-  }
-
-  let kcal = maintenance;
-  let aggressive = false;
-  if (direction === 'bajar') {
-    // Déficit del 15 % por defecto. Si hay fecha de pesaje se comprueba que el
-    // ritmo sea razonable (hasta 1 % del peso por semana); si hace falta más,
-    // NO se aprieta más el plan: se avisa.
-    kcal = maintenance * 0.85;
-    if (weighInDate && weight !== null && targetWeight !== null) {
-      const days = Math.max(1, Math.round(
-        (new Date(weighInDate + 'T12:00:00').getTime() - new Date(todayIso + 'T12:00:00').getTime())
-        / 86400000,
-      ));
-      const weeks = days / 7;
-      const perWeek = (weight - targetWeight) / weeks;
-      if (perWeek > weight * 0.01) aggressive = true;
-    }
-  } else if (direction === 'subir') {
-    kcal = maintenance * 1.1;
-  }
-  kcal = Math.round(kcal / 10) * 10;
-
-  // Proteína por kilo de peso corporal; grasa al 25 % de las calorías; el
-  // resto, hidratos.
-  const proteinG = Math.round((weight ?? 75) * 2);
-  const fatG = Math.round((kcal * 0.25) / 9);
-  const carbsG = Math.max(0, Math.round((kcal - proteinG * 4 - fatG * 9) / 4));
-
-  return { kcal, protein: proteinG, carbs: carbsG, fat: fatG, direction, personalised, missing, aggressive };
-}
+//
+// Vive en `objetivoDiario.ts`: lo leen también el Resumen, Nutrición y las
+// IAs, y no puede haber dos cálculos que digan cifras distintas. Se
+// reexporta para quien lo importaba de aquí.
+export { dailyTarget, type DailyTarget, type GoalDirection } from './objetivoDiario';
 
 // ── Lo que hay en la Agenda ────────────────────────────────────
 

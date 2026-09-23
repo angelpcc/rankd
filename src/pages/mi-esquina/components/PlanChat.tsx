@@ -16,6 +16,7 @@ import { clearChat, loadChat, saveChat } from '../lib/chatHistory';
 import { compactarAgenda, loadAgendaSnapshot, loadTrainedRecent, type AgendaDia, type DiaEntrenado } from '../lib/agendaSnapshot';
 import PhotoAttach, { FotoPendiente } from './PhotoAttach';
 import { limitarAdjuntos, type ImagenLista } from '@/lib/imageInput';
+import { cargarDatosObjetivo, contextoCuerpoParaIA } from '../lib/objetivoDiario';
 
 // ════════════════════════════════════════════════════════════════
 // EL PLAN, HABLANDO
@@ -120,7 +121,7 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
     let alive = true;
     checkWeekPlanAvailable().then((ok) => { if (alive) setAiOk(ok); });
     (async () => {
-      const [activo, f, w, g] = await Promise.all([
+      const [activo, f, w, g, cuerpo] = await Promise.all([
         // El plan que ya esté vivo se carga de entrada: pedir un cambio sobre él
         // debe modificarlo, no crear otro encima (punto 27).
         loadActivePlan(profile.id),
@@ -130,6 +131,9 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
           .eq('fighter_profile_id', profile.id).order('entry_date', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('nutrition_goals').select('target_weight_kg')
           .eq('fighter_profile_id', profile.id).maybeSingle(),
+        // Altura, sexo, edad y el objetivo diario de calorías: sin esto, las
+        // comidas que proponía no cuadraban con el número que enseña la app.
+        cargarDatosObjetivo(profile.id).catch(() => null),
       ]);
       if (!alive) return;
       // Primero la conversación que quedó a medias: es lo que el usuario dejó
@@ -175,6 +179,7 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
         weightClass: fr?.weight_class, age: fr?.age,
         currentWeight: (w.data as { weight_kg?: number } | null)?.weight_kg,
         targetWeight: (g.data as { target_weight_kg?: number } | null)?.target_weight_kg,
+        ...(cuerpo ? contextoCuerpoParaIA(cuerpo) : {}),
       });
     })();
     return () => { alive = false; };

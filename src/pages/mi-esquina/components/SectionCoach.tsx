@@ -13,6 +13,7 @@ import { limitarAdjuntos, type ImagenLista } from '@/lib/imageInput';
 import { compactarAgenda, loadAgendaSnapshot, loadTrainedRecent, type AgendaDia, type DiaEntrenado } from '@/pages/mi-esquina/lib/agendaSnapshot';
 import { libraryLabels } from '@/pages/mi-esquina/lib/exercises';
 import { currentWeekStart } from '@/pages/mi-esquina/lib/weekPlan';
+import { cargarDatosObjetivo, contextoCuerpoParaIA } from '../lib/objetivoDiario';
 
 // 'general' es la CONSULTA ABIERTA (punto 18): cualquier duda, sin flujo. Los
 // otros tres están acotados a su ámbito y se derivan entre ellos; este no.
@@ -269,18 +270,24 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
             .eq('fighter_profile_id', profile.id).order('entry_date', { ascending: false }).limit(7)
         : Promise.resolve({ data: null });
 
-      const [{ data: f }, { data: w }, { data: g }, { data: sess }, goalRes, checkRes] = await Promise.all([
+      const [{ data: f }, { data: w }, { data: g }, { data: sess }, goalRes, checkRes, { data: acts }, cuerpo] = await Promise.all([
         supabase.from('fighters').select('discipline, weight_class, experience_level, age, wins, losses, draws, kos, looking_for').eq('profile_id', profile.id).maybeSingle(),
         supabase.from('weight_entries').select('weight_kg').eq('fighter_profile_id', profile.id).order('entry_date', { ascending: false }).limit(1).maybeSingle(),
         supabase.from('nutrition_goals').select('target_weight_kg').eq('fighter_profile_id', profile.id).maybeSingle(),
         supabase.from('training_sessions').select('duration_min, session_date').eq('fighter_profile_id', profile.id).order('session_date', { ascending: false }).limit(30),
         goalsQ,
         checkinQ,
+        // El cardio va a activity_sessions, no a training_sessions (ahí solo
+        // escriben la fuerza y el temporizador): sin esto, lo que corrías no
+        // contaba en "volumen de esta semana" y el asesor te veía parado.
+        supabase.from('activity_sessions').select('duration_min, session_date').eq('fighter_profile_id', profile.id).order('session_date', { ascending: false }).limit(30),
+        // Altura, sexo, edad y el objetivo diario de calorías.
+        cargarDatosObjetivo(profile.id).catch(() => null),
       ]);
       const weekStart = new Date();
       weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() === 0 ? 6 : weekStart.getDay() - 1)));
       weekStart.setHours(0, 0, 0, 0);
-      const weeklyMinutes = (sess || [])
+      const weeklyMinutes = [...(sess || []), ...((acts || []) as { duration_min: number | null; session_date: string }[])]
         .filter((s) => new Date(s.session_date + 'T12:00:00') >= weekStart)
         .reduce((acc, s) => acc + (s.duration_min || 0), 0);
       const goals = (f?.looking_for || []) as string[];
@@ -321,6 +328,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
         weeklyMinutes: weeklyMinutes || undefined,
         goals: dated.length ? dated : undefined,
         recovery,
+        ...(cuerpo ? contextoCuerpoParaIA(cuerpo) : {}),
       });
     };
     load();

@@ -5,6 +5,7 @@ import { isMissingTable } from '@/lib/dbState';
 import { LineChart, Line, ResponsiveContainer, YAxis } from 'recharts';
 import CountUp from '@/components/base/CountUp';
 import { activityKindCfg, isoOf, KIND_META, strengthTitle, type ActivityPayload, type StrengthPayload } from '../lib/dayPlan';
+import { cargarObjetivoDiario, type DailyTarget } from '../lib/objetivoDiario';
 
 // Grid 2×2 de métricas compactas: PESO · OBJETIVO / COMIDA DE HOY · PRÓXIMO.
 // Cada una card --s-2: label arriba, dato grande (Bebas) en blanco. El delta de
@@ -50,6 +51,14 @@ export default function SummaryMetrics({ profile, onOpenWeight, onOpenNutrition,
   const [targetWeight, setTargetWeight] = useState<number | null>(null);
   const [comido, setComido] = useState<Comido | null>(null);
   const [proximo, setProximo] = useState<Proximo | null>(null);
+  // El objetivo diario (lib/objetivoDiario.ts): lo comido se lee contra él.
+  const [objetivo, setObjetivo] = useState<DailyTarget | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    cargarObjetivoDiario(profile.id).then((o) => { if (alive) setObjetivo(o); }).catch(() => {});
+    return () => { alive = false; };
+  }, [profile.id]);
 
   useEffect(() => {
     let alive = true;
@@ -137,15 +146,18 @@ export default function SummaryMetrics({ profile, onOpenWeight, onOpenNutrition,
   const toGo = targetWeight != null && weightCurrent != null ? +(weightCurrent - targetWeight).toFixed(1) : null;
 
   // Reparto de lo comido en calorías de cada macro (4 · 4 · 9). Es la única
-  // forma de que tres barras de cosas distintas se puedan poner en fila.
+  // forma de que tres barras de cosas distintas se puedan poner en fila. Con
+  // objetivo, la barra entera ES el objetivo: lo que queda vacío es lo que te
+  // falta por comer hoy.
   const reparto = comido && comido.kcal > 0
     ? (() => {
       const p = comido.prot * 4, c = comido.carbs * 4, g = comido.fat * 9;
-      const tot = p + c + g;
+      const tot = Math.max(p + c + g, objetivo?.kcal ?? 0);
       return tot > 0 ? [
         { w: p / tot, color: 'var(--accent)' },
         { w: c / tot, color: 'var(--gold)' },
         { w: g / tot, color: 'var(--t-3)' },
+        { w: 1 - (p + c + g) / tot, color: 'transparent' },
       ] : null;
     })()
     : null;
@@ -213,10 +225,14 @@ export default function SummaryMetrics({ profile, onOpenWeight, onOpenNutrition,
           <>
             <p className="rk-num mt-1.5">
               <CountUp value={Math.round(comido.kcal)} delay={160} />
-              <span style={{ fontSize: 14, color: 'var(--t-3)', marginLeft: 4 }}>kcal</span>
+              <span style={{ fontSize: 14, color: 'var(--t-3)', marginLeft: 4 }}>
+                {objetivo ? t('mc_metric_food_of', { n: objetivo.kcal }) : 'kcal'}
+              </span>
             </p>
             <p className="mt-0.5 text-xs" style={{ color: 'var(--t-2)' }}>
-              {t('mc_metric_food_prot', { n: Math.round(comido.prot) })}
+              {objetivo
+                ? t('mc_metric_food_prot_of', { n: Math.round(comido.prot), g: objetivo.protein })
+                : t('mc_metric_food_prot', { n: Math.round(comido.prot) })}
             </p>
             {reparto && (
               <div className="flex overflow-hidden" style={{ height: 6, borderRadius: 999, marginTop: 'auto', gap: 2, background: 'var(--s-3)' }}
@@ -228,7 +244,12 @@ export default function SummaryMetrics({ profile, onOpenWeight, onOpenNutrition,
             )}
           </>
         ) : (
-          <p className="mt-2 text-xs" style={{ color: 'var(--t-3)' }}>{t('mc_metric_food_empty')}</p>
+          <>
+            {objetivo && (
+              <p className="mt-2 text-sm font-semibold" style={{ color: 'var(--t-1)' }}>{t('mc_metric_food_goal', { n: objetivo.kcal })}</p>
+            )}
+            <p className="mt-1 text-xs" style={{ color: 'var(--t-3)' }}>{t('mc_metric_food_empty')}</p>
+          </>
         )}
       </Card>
 
