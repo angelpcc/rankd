@@ -1309,7 +1309,7 @@ function DayItemRow({ item, unidad, onRemove, onMove, onRun, opening, onToggleDo
         )}
         {runnable && (
           <i className={runsInPlace ? 'ri-play-circle-line flex-shrink-0' : 'ri-edit-box-line flex-shrink-0'}
-            style={{ color: 'var(--accent)' }} />
+            style={{ color: opcional ? 'var(--t-3)' : 'var(--accent)' }} />
         )}
       </p>
       {sub && <p className="text-[11px] text-zinc-500 truncate">{sub}</p>}
@@ -1333,7 +1333,9 @@ function DayItemRow({ item, unidad, onRemove, onMove, onRun, opening, onToggleDo
         </p>
       )}
       {runnable && (
-        <p className="text-[10px] font-bold uppercase tracking-wider mt-0.5" style={{ color: 'var(--accent)' }}>
+        // En lo opcional, el atajo sigue ahí pero en gris: se puede hacer, no
+        // te lo está pidiendo. En rojo era un pendiente más con otra etiqueta.
+        <p className="text-[10px] font-bold uppercase tracking-wider mt-0.5" style={{ color: opcional ? 'var(--t-3)' : 'var(--accent)' }}>
           {opening
             ? t('mc_ag_run_opening')
             : runsInPlace
@@ -1364,7 +1366,9 @@ function DayItemRow({ item, unidad, onRemove, onMove, onRun, opening, onToggleDo
         ) : (
           <div className="flex-1 min-w-0">{body}</div>
         )}
-        {tickable && (
+        {/* Lo opcional sin hacer no dice PENDIENTE: ya lleva su etiqueta de
+            OPCIONAL, y las dos juntas se contradicen. */}
+        {tickable && (done || !opcional) && (
           <span className={`text-[10px] font-bold uppercase tracking-wider flex-shrink-0 inline-flex items-center gap-1 ${done ? 'text-green-500' : 'text-zinc-600'}`}>
             {done && (
               // El check se dibuja en el momento en que el bloque pasa a hecho
