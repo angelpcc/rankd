@@ -36,7 +36,7 @@ export default function RingHub({ profile, showToast, initialTab }: Props) {
   useEffect(() => { if (initialTab) setTab(initialTab); }, [initialTab]);
 
   return (
-    <div className="max-w-4xl space-y-5">
+    <div className="max-w-4xl xl:max-w-[1120px] space-y-5">
       <Reveal>
         <SectionHero kind="ring" eyebrow={t('mc_rg_eyebrow')}
           title={t('mc_rg_hero_title')} subtitle={t('mc_rg_header_desc')} />

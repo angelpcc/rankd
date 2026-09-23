@@ -309,7 +309,7 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
   }
 
   return (
-    <div className="space-y-5 max-w-4xl">
+    <div className="space-y-5 max-w-4xl xl:max-w-[1120px]">
       {/* Cabecera con la ilustración de báscula: la sección era la única de Mi
           Esquina que entraba con un título a pelo, sin nada visual. */}
       <div className="relative overflow-hidden"

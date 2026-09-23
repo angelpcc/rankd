@@ -43,7 +43,7 @@ export default function AgendaHub({ profile, showToast, mode, onLogged, initialT
   useEffect(() => { if (initialTab) setTab(normalizeTab(initialTab)); }, [initialTab]);
 
   return (
-    <div className="max-w-4xl space-y-5 relative">
+    <div className="max-w-4xl xl:max-w-[1120px] space-y-5 relative">
       {tab === 'plan' && (
         <>
           {mode === 'pro' && (

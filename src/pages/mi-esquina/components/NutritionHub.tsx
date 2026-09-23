@@ -108,7 +108,7 @@ export default function NutritionHub({ profile, showToast, isHobby, onGoWeight }
   };
 
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-4xl xl:max-w-[1120px]">
       <button onClick={() => setView('summary')}
         className="text-xs text-zinc-400 hover:text-white cursor-pointer inline-flex items-center gap-1.5 mb-4">
         <i className="ri-arrow-left-line" />{t('mc_ns_back_summary')}

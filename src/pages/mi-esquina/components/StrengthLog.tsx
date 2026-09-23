@@ -660,7 +660,7 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
   // cuando llegan los datos.
   if (loading) {
     return (
-      <div className="rk-blocks max-w-3xl">
+      <div className="rk-blocks max-w-3xl xl:max-w-[1120px]">
         <SkeletonBox height={96} radius={20} />
         {!hideSummaryBlocks && <SkeletonBox height={260} radius={20} />}
         <SkeletonList rows={4} />
@@ -683,7 +683,7 @@ export default function StrengthLog({ profile, showToast, hideSummaryBlocks, hid
   const groupLabels = (keys: GroupKey[]) => keys.map((g) => t(`mc_str_mg_${g}`)).join(' + ');
 
   return (
-    <div className="rk-blocks max-w-3xl">
+    <div className="rk-blocks max-w-3xl xl:max-w-[1120px]">
       {/* Cabecera hero */}
       <SectionHero kind="strength" eyebrow={t('mc_str_eyebrow')}
         title={`${t('mc_str_title')} ${t('mc_str_title_2')}`}

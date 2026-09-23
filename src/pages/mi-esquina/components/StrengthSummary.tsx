@@ -137,7 +137,7 @@ export default function StrengthSummary({ profile, onEnter, onGoAsesor, refreshK
   // y el salto al contenido no mueve el layout.
   if (loading) {
     return (
-      <div className="rk-blocks max-w-3xl">
+      <div className="rk-blocks max-w-3xl xl:max-w-[1120px]">
         <SkeletonBox height={260} radius={20} />
         <SkeletonBox height={132} radius={20} />
         <SkeletonBox height={52} radius={14} />
@@ -173,7 +173,7 @@ export default function StrengthSummary({ profile, onEnter, onGoAsesor, refreshK
     .join(' + ');
 
   return (
-    <div className="rk-blocks max-w-3xl">
+    <div className="rk-blocks max-w-3xl xl:max-w-[1120px]">
       {/* ── MAPA MUSCULAR ── */}
       <MuscleMap status={mapStatus} onSelect={() => onEnter('registrar')} />
 

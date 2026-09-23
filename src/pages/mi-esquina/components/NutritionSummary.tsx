@@ -109,7 +109,7 @@ export default function NutritionSummary({ profile, onEnter }: Props) {
     : { done: slotsLogged, total: SLOTS.length };
 
   return (
-    <div className="rk-blocks max-w-3xl">
+    <div className="rk-blocks max-w-3xl xl:max-w-[1120px]">
       {/* ── CABECERA: macros ── */}
       <Reveal>
         <div className="card-primary" style={{ padding: 22 }}>

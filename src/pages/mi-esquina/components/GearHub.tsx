@@ -33,7 +33,7 @@ export default function GearHub({ profile, showToast, mode }: Props) {
   ];
 
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-4xl xl:max-w-[1120px]">
       <HubTabs tabs={TABS} active={tab} onChange={(id) => setTab(id as typeof tab)} />
 
       {tab === 'equipo' && (
