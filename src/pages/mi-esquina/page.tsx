@@ -15,7 +15,6 @@ import FightPrep from '@/pages/mi-esquina/components/FightPrep';
 import ActivationSteps from '@/pages/mi-esquina/components/ActivationSteps';
 import AlertStack from '@/pages/mi-esquina/components/AlertStack';
 import GreetingLine from '@/pages/mi-esquina/components/GreetingLine';
-import DailyCheckin from '@/pages/mi-esquina/components/DailyCheckin';
 import CountUp from '@/components/base/CountUp';
 import AgendaHub from '@/pages/mi-esquina/components/AgendaHub';
 import WeightTracker from '@/pages/mi-esquina/components/WeightTracker';
@@ -550,11 +549,8 @@ export default function MiEsquinaPage() {
                 <SummaryAiLine profile={profile} onOpen={() => go('asesor', 'plan')} />
               </Reveal>
 
-              {/* ¿Cómo llegas hoy? Energía, agujetas y sueño. El asesor lo lee para
-                  ajustar la carga, y hasta ahora no había dónde escribirlo. */}
-              <Reveal delay={220}>
-                <DailyCheckin profile={profile} showToast={showToast} />
-              </Reveal>
+              {/* "¿Cómo estás hoy?" ya no va aquí: el usuario lo quitó del
+                  Resumen. Sigue en el botón Registrar, para quien lo quiera. */}
 
               {/* Próxima pelea (PRO; el componente devuelve null si no hay combate) */}
               {!isHobby && (
