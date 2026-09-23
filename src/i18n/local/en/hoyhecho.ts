@@ -31,18 +31,18 @@ export default {
   mc_hoy_p_cta_act: 'Go to Activity',
 
   // ── Strength · StrengthSummary ──
-  mc_strs_done_today: 'YOU TRAINED TODAY',
+  mc_strs_done_today: 'You trained today',
   mc_strs_done_today_desc: "It's in your history and in the day's Agenda.",
   mc_strs_done_today_more: 'Log another session',
 
   // ── Activity · ActivityTodayCard ──
   // The twin of the Strength card. Activity had none before: the only place a
   // planned cardio showed up was the Summary.
-  mc_hoy_act_title: 'TODAY',
+  mc_hoy_act_title: 'Today',
   mc_hoy_act_cta: 'Log it now',
   mc_hoy_act_min: '{{n}} min',
   mc_hoy_act_rounds: '{{n}} rounds',
-  mc_hoy_act_done: 'YOU DID ACTIVITY TODAY',
+  mc_hoy_act_done: 'You did activity today',
   mc_hoy_act_done_desc: "It's in your history and in the day's Agenda.",
   mc_hoy_act_see_day: 'See the day',
 

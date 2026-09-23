@@ -1,7 +1,7 @@
 // Modo "Ver como" del panel de administración.
 export default {
   // ── Barra fija ──
-  va_bar_mode: 'MODO VISTA',
+  va_bar_mode: 'Modo vista',
   va_bar_viewing: 'Viendo como',
   va_bar_readonly: 'Solo lectura',
   va_bar_exit: 'Salir del modo vista',
@@ -11,16 +11,16 @@ export default {
   va_not_available: 'No disponible en modo vista',
 
   // ── Panel del admin ──
-  va_title: 'VER COMO',
-  va_title_2: 'OTRO PERFIL',
-  va_eyebrow: 'REVISIÓN',
+  va_title: 'Ver como',
+  va_title_2: 'otro perfil',
+  va_eyebrow: 'Revisión',
   va_sub: 'Recorre la plataforma con la piel de otro tipo de usuario para comprobar que todo se ve y funciona bien. No sales de tu cuenta de administrador.',
   va_tab_presets: 'Por tipo de perfil',
   va_tab_users: 'Usuario real',
   va_start: 'Entrar',
   va_current_title: 'Estás en modo vista',
   va_current_desc: 'Ahora mismo estás viendo la plataforma como {{name}}.',
-  va_exit_now: 'SALIR DEL MODO VISTA',
+  va_exit_now: 'Salir del modo vista',
   va_search_user: 'Buscar por nombre o ubicación...',
   va_no_users: 'Ningún usuario coincide con la búsqueda.',
   va_loading_users: 'Cargando usuarios...',

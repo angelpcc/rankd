@@ -4,6 +4,7 @@ import { supabase, type Profile } from '@/lib/supabase';
 import Reveal from '@/components/base/Reveal';
 import SegmentedProgress from '@/components/base/SegmentedProgress';
 import MacroRings from './MacroRings';
+import SectionHero from './SectionHero';
 import WeekBars from '@/components/base/WeekBars';
 import { last7Days } from '@/components/base/weekBarsData';
 import ObjetivoDiarioCard from './ObjetivoDiarioCard';
@@ -121,6 +122,9 @@ export default function NutritionSummary({ profile, onEnter, showToast }: Props)
 
   return (
     <div className="rk-blocks max-w-3xl xl:max-w-[1120px]">
+      {/* v4: la cabecera común; la portada de Nutrición entraba sin ella. */}
+      <SectionHero kind="nutrition" title={t('mc_ng_hero_title')} subtitle={t('mc_ng_hero_sub')}
+        action={{ label: t('mc_ns_enter'), icon: 'ri-restaurant-line', onClick: onEnter }} />
       {/* ── CABECERA: lo de hoy y el objetivo ──
           En el ordenador, lado a lado: lo que llevas a la izquierda y contra
           qué se mide a la derecha. En el móvil, uno debajo del otro. */}

@@ -3,9 +3,9 @@ export default {
   // ── Header / navigation ──
   tm_back: 'Back',
   tm_exit: 'Exit',
-  tm_setup_kicker: 'YOUR SESSION',
-  tm_setup_title: 'BUILD YOUR',
-  tm_setup_title_accent: 'SESSION',
+  tm_setup_kicker: 'Your session',
+  tm_setup_title: 'Build your',
+  tm_setup_title_accent: 'session',
   tm_setup_sub: 'Set it up your way and train to the real rhythm of a fight. Phone on the bench, you on the bag.',
 
   // ── Presets ──
@@ -187,7 +187,7 @@ export default {
   tm_unmute: 'Sound',
 
   // ── Session end / saving ──
-  tm_done_title: 'SESSION COMPLETE',
+  tm_done_title: 'Session complete',
   tm_done_sub: 'Good work. Log the session to your diary in one tap.',
   tm_done_rounds: 'Rounds',
   tm_done_worked: 'Worked',
@@ -210,9 +210,9 @@ export default {
   // ══════ THE CORNER (El Rincón) ══════
   tm_rc_mode_classic: 'Classic',
   tm_rc_mode_rincon: 'The Corner',
-  tm_rc_kicker: 'YOUR CORNER',
-  tm_rc_title: 'THE',
-  tm_rc_title_accent: 'CORNER',
+  tm_rc_kicker: 'Your corner',
+  tm_rc_title: 'The',
+  tm_rc_title_accent: 'corner',
   tm_rc_sub: 'Your coach calls the combos while you work the bag. Just listen and throw them.',
 
   tm_rc_style_title: 'Style',
@@ -300,7 +300,7 @@ export default {
   tm_rc_voice_off: 'No voice',
   tm_rc_no_es_voice: 'No Spanish voice on this device: combos are shown on screen.',
 
-  tm_rc_done_title: 'ROUNDS COMPLETE',
+  tm_rc_done_title: 'Rounds complete',
   tm_rc_done_sub: 'Good work in the corner. Save it to your activity log.',
   tm_rc_done_calls: 'Combos called',
   tm_rc_done_combos: 'Combos worked',

@@ -8,6 +8,7 @@ import { leerUnidad } from '@/lib/units';
 import { loadTodayTraining, type TodayTraining } from '../lib/todayTraining';
 import MuscleMap, { type MapGroup, type TrainState } from './MuscleMap';
 import Reveal from '@/components/base/Reveal';
+import SectionHero from './SectionHero';
 import { SkeletonBox, SkeletonList } from '@/components/base/Skeleton';
 
 // Fuerza · NIVEL 1 (resumen). Solo consulta: mapa muscular, card de "hoy"
@@ -174,8 +175,21 @@ export default function StrengthSummary({ profile, onEnter, onGoAsesor, refreshK
 
   return (
     <div className="rk-blocks max-w-3xl xl:max-w-[1120px]">
-      {/* ── MAPA MUSCULAR ── */}
-      <MuscleMap status={mapStatus} onSelect={() => onEnter('registrar')} />
+      {/* v4: Fuerza no tenía cabecera: entraba directa en el muñeco. Ahora la
+          común, con "registrar sesión" como acción. */}
+      <SectionHero kind="strength" eyebrow={t('mc_str_eyebrow')}
+        title={`${t('mc_str_title')} ${t('mc_str_title_2')}`}
+        action={{ label: t('mc_str_new'), icon: 'ri-add-line', onClick: () => onEnter('registrar') }} />
+
+      {/* v4: en el ordenador, el mapa a la izquierda y lo de hoy, el volumen y
+          las últimas sesiones a la derecha. Antes el muñeco ocupaba una
+          tarjeta de 1.100 px de ancho con él solo en el centro. En el móvil,
+          el orden de siempre. */}
+      <div className="grid xl:grid-cols-2 gap-5 xl:gap-6 items-start">
+      <div className="xl:sticky xl:top-20">
+        <MuscleMap status={mapStatus} onSelect={() => onEnter('registrar')} />
+      </div>
+      <div className="rk-blocks min-w-0">
 
       {/* ── CARD "HOY" ── */}
       <Reveal>
@@ -297,6 +311,8 @@ export default function StrengthSummary({ profile, onEnter, onGoAsesor, refreshK
           </div>
         </div>
       )}
+      </div>
+      </div>
     </div>
   );
 }

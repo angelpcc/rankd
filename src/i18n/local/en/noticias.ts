@@ -1,8 +1,8 @@
 // Public news page (R13-T5 block 10). Prefix news_.
 export default {
   news_live: 'Live',
-  news_title_pre: 'FIGHT',
-  news_title_hl: 'NEWS',
+  news_title_pre: 'Fight',
+  news_title_hl: 'news',
   news_sub: 'Boxing, MMA and combat sports. Headlines from the best outlets, gathered in one place.',
 
   news_headlines: 'headlines',

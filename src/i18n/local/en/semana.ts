@@ -13,7 +13,7 @@ export default {
   // ══════════════════════════════════════════════════════════════
   // WEEKLY PLAN · header
   // ══════════════════════════════════════════════════════════════
-  mc_sem_eyebrow: 'WEEKLY PLAN',
+  mc_sem_eyebrow: 'Weekly plan',
   mc_sem_title: 'Ask for the week',
   mc_sem_title_2: 'in one go',
   mc_sem_sub: 'Strength, as many cardio sessions as you want and your meals, all in a single request. You review it, ask for any changes, and it gets spread across the days in your Agenda.',
@@ -29,7 +29,7 @@ Add a short morning cardio for the days I have time, and an easy one for after t
 
 And give me lunch and dinner for the 5 days, with basic ingredients that are quick to cook. Breakfast I already have sorted.`,
 
-  mc_sem_checklist_title: 'WHAT HELPS TO SAY',
+  mc_sem_checklist_title: 'What helps to say',
   mc_sem_checklist_days: 'How many days you have THIS week (it can change week to week).',
   mc_sem_checklist_goal: 'What the strength is aimed at: hypertrophy, strength, endurance…',
   mc_sem_checklist_exclusions: 'What you do NOT want in it. It is respected to the letter.',
@@ -43,14 +43,14 @@ And give me lunch and dinner for the 5 days, with basic ingredients that are qui
   mc_sem_err_generate: 'I could not build the plan. Try saying how many days you have and what you want on each one.',
 
   // ── Summary ──
-  mc_sem_state_draft: 'DRAFT · NOT SAVED',
-  mc_sem_state_committed: 'SAVED',
+  mc_sem_state_draft: 'Draft · not saved',
+  mc_sem_state_committed: 'Saved',
   mc_sem_week_of: 'Week of {{date}}',
   mc_sem_stat_days: 'Days',
   mc_sem_stat_strength: 'Strength',
   mc_sem_stat_cardio: 'Cardio',
   mc_sem_stat_meals: 'Meals',
-  mc_sem_exclusions: 'DOES NOT INCLUDE',
+  mc_sem_exclusions: 'Does not include',
   mc_sem_segments_n: '{{n}} segments',
   mc_sem_local_only: 'Saved on this device: it will move to your account once the database is enabled.',
 

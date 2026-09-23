@@ -5,7 +5,7 @@ import { isMissingTable, isMissingColumn } from '@/lib/dbState';
 import Reveal from '@/components/base/Reveal';
 import SegmentedProgress from '@/components/base/SegmentedProgress';
 import StateBlock from '@/components/base/StateBlock';
-import SectionArt from '@/components/base/SectionArt';
+import SectionHero from './SectionHero';
 import CountUp from '@/components/base/CountUp';
 import GoalGauge from '@/components/base/GoalGauge';
 import EmptyArt from '@/components/base/EmptyArt';
@@ -310,29 +310,18 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
 
   return (
     <div className="space-y-5 max-w-4xl xl:max-w-[1120px]">
-      {/* Cabecera con la ilustración de báscula: la sección era la única de Mi
-          Esquina que entraba con un título a pelo, sin nada visual. */}
-      <div className="relative overflow-hidden"
-        style={{ borderRadius: 'var(--r-card)', background: 'linear-gradient(150deg, var(--s-1) 0%, #0d0d0d 100%)', border: '1px solid var(--s-3)' }}>
-        <SectionArt kind="weight" className="absolute inset-0 w-full h-full" />
-        <div className="absolute inset-0 pointer-events-none"
-          style={{ background: 'linear-gradient(100deg, rgba(10,10,11,0.97) 0%, rgba(10,10,11,0.84) 48%, rgba(10,10,11,0.3) 100%)' }} />
-        <div className="relative p-5 flex items-end justify-between gap-3 flex-wrap">
-          <div>
-            <p className="rk-eyebrow">{isPro ? t('mc_w_pro_eyebrow') : t('mc_w_hobby_eyebrow')}</p>
-            <h2 className="rk-h2" style={{ fontSize: 'clamp(1.8rem,4vw,2.4rem)', color: '#fff', margin: '4px 0 0' }}>
-              {isPro ? t('mc_w_title_pro') : t('mc_w_title_hobby')}{' '}
-              <span className="rk-red-glow">{isPro ? t('mc_w_title_pro_2') : t('mc_w_title_hobby_2')}</span>
-            </h2>
-            <p className="text-zinc-400 text-sm mt-1.5" style={{ maxWidth: '32ch' }}>{isPro ? t('mc_w_sub_pro') : t('mc_w_sub_hobby')}</p>
-          </div>
-          <button onClick={openGoal} style={{ minHeight: 44 }}
-            className="rk-nav-btn rk-press inline-flex items-center gap-2">
-            <i className="ri-flag-line"></i> {isPro ? t('mc_w_goal_btn_pro') : t('mc_w_goal_btn_hobby')}
-          </button>
-        </div>
-      </div>
+      {/* v4: la cabecera común de Mi Esquina, con el objetivo como acción. La
+          de antes era una tarjeta con ilustración propia que ocupaba lo mismo
+          que el dato que se viene a ver. */}
+      <SectionHero kind="weight"
+        title={isPro ? `${t('mc_w_title_pro')} ${t('mc_w_title_pro_2')}` : `${t('mc_w_title_hobby')} ${t('mc_w_title_hobby_2')}`}
+        subtitle={isPro ? t('mc_w_sub_pro') : t('mc_w_sub_hobby')}
+        action={{ label: isPro ? t('mc_w_goal_btn_pro') : t('mc_w_goal_btn_hobby'), icon: 'ri-flag-line', onClick: openGoal }} />
 
+      {/* v4: lo que pesas y apuntar lo de hoy, lado a lado en el ordenador.
+          Antes el campo para registrar quedaba debajo del ritmo del corte y
+          había que bajar a buscarlo. */}
+      <div className="grid lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] gap-5 items-stretch">
       {/* ── CARD PRINCIPAL: peso actual + progreso hacia el objetivo ── */}
       {/* `justSaved` dispara el destello del borde al registrar (principio 8). */}
       <div className={`card-primary ${justSaved ? 'rk-saved' : ''}`} style={{ padding: 22 }}>
@@ -384,30 +373,9 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
           </div>
         )}
       </div>
-
-      {/* PRO: ritmo necesario para llegar al peso */}
-      {pace && (
-        <div className="rk-card flex items-start gap-3.5" style={{ padding: '16px 20px', transform: 'none', borderColor: pace.state === 'fast' ? 'rgba(225,6,0,0.3)' : 'rgba(34,197,94,0.25)' }}>
-          <div className={`w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl border ${pace.state === 'fast' ? 'bg-red-600/12 border-red-500/30 text-red-400' : 'bg-green-500/12 border-green-500/30 text-green-400'}`}>
-            <i className="ri-speed-up-line text-lg"></i>
-          </div>
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t('mc_w_pace_title')}</p>
-            <p className="text-sm font-bold text-white">
-              {pace.state === 'done' ? t('mc_w_pace_done') : t('mc_w_pace_week', { n: pace.kg })}
-            </p>
-            {pace.state !== 'done' && (
-              <p className={`text-xs mt-0.5 ${pace.state === 'fast' ? 'text-red-400' : 'text-green-400'}`}>
-                {pace.state === 'fast' ? t('mc_w_pace_fast') : t('mc_w_pace_ok')}
-              </p>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Registrar peso */}
-      <div className="rk-card" style={{ padding: '18px 20px' }}>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
+      <div className="rk-card flex flex-col justify-center" style={{ padding: '18px 20px' }}>
+        <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row items-stretch sm:items-end lg:items-stretch xl:items-end gap-3">
           <div className="flex-1">
             <label className="block text-xs text-zinc-400 mb-1.5 font-semibold uppercase tracking-wide">{t('mc_w_today')}</label>
             <div className="relative">
@@ -429,6 +397,27 @@ export default function WeightTracker({ profile, showToast, mode = 'pro' }: Prop
           <p className="text-[11px] text-green-400 mt-2 flex items-center gap-1.5"><i className="ri-check-line"></i>{t('mc_w_registered_today')}</p>
         )}
       </div>
+      </div>
+
+      {/* PRO: ritmo necesario para llegar al peso */}
+      {pace && (
+        <div className="rk-card flex items-start gap-3.5" style={{ padding: '16px 20px', transform: 'none', borderColor: pace.state === 'fast' ? 'rgba(225,6,0,0.3)' : 'rgba(34,197,94,0.25)' }}>
+          <div className={`w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl border ${pace.state === 'fast' ? 'bg-red-600/12 border-red-500/30 text-red-400' : 'bg-green-500/12 border-green-500/30 text-green-400'}`}>
+            <i className="ri-speed-up-line text-lg"></i>
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t('mc_w_pace_title')}</p>
+            <p className="text-sm font-bold text-white">
+              {pace.state === 'done' ? t('mc_w_pace_done') : t('mc_w_pace_week', { n: pace.kg })}
+            </p>
+            {pace.state !== 'done' && (
+              <p className={`text-xs mt-0.5 ${pace.state === 'fast' ? 'text-red-400' : 'text-green-400'}`}>
+                {pace.state === 'fast' ? t('mc_w_pace_fast') : t('mc_w_pace_ok')}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Gráfico */}
       {chartData.length >= 2 ? (

@@ -1,7 +1,7 @@
 // Admin panel "View as" mode.
 export default {
   // ── Fixed bar ──
-  va_bar_mode: 'VIEW MODE',
+  va_bar_mode: 'View mode',
   va_bar_viewing: 'Viewing as',
   va_bar_readonly: 'Read only',
   va_bar_exit: 'Exit view mode',
@@ -11,16 +11,16 @@ export default {
   va_not_available: 'Not available in view mode',
 
   // ── Admin panel ──
-  va_title: 'VIEW AS',
-  va_title_2: 'ANOTHER PROFILE',
-  va_eyebrow: 'REVIEW',
+  va_title: 'View as',
+  va_title_2: 'another profile',
+  va_eyebrow: 'Review',
   va_sub: 'Walk through the platform in another user type\'s shoes to check everything looks and works right. You never leave your admin account.',
   va_tab_presets: 'By profile type',
   va_tab_users: 'Real user',
   va_start: 'Enter',
   va_current_title: 'You are in view mode',
   va_current_desc: 'Right now you are seeing the platform as {{name}}.',
-  va_exit_now: 'EXIT VIEW MODE',
+  va_exit_now: 'Exit view mode',
   va_search_user: 'Search by name or location...',
   va_no_users: 'No user matches your search.',
   va_loading_users: 'Loading users...',

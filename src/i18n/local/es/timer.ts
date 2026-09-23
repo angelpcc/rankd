@@ -4,9 +4,9 @@ export default {
   // ── Cabecera / navegación ──
   tm_back: 'Volver',
   tm_exit: 'Salir',
-  tm_setup_kicker: 'TU SESIÓN',
-  tm_setup_title: 'PREPARA TU',
-  tm_setup_title_accent: 'SESIÓN',
+  tm_setup_kicker: 'Tu sesión',
+  tm_setup_title: 'Prepara tu',
+  tm_setup_title_accent: 'sesión',
   tm_setup_sub: 'Móntala a tu gusto y entrena con el ritmo real del combate. El móvil apoyado, tú al saco.',
 
   // ── Preajustes ──
@@ -188,7 +188,7 @@ export default {
   tm_unmute: 'Sonido',
 
   // ── Fin de sesión / guardado ──
-  tm_done_title: 'SESIÓN COMPLETADA',
+  tm_done_title: 'Sesión completada',
   tm_done_sub: 'Buen trabajo. Registra la sesión en tu diario de un toque.',
   tm_done_rounds: 'Asaltos',
   tm_done_worked: 'Trabajados',
@@ -212,9 +212,9 @@ export default {
   // Modo del temporizador que canta combinaciones por voz durante el asalto.
   tm_rc_mode_classic: 'Clásico',
   tm_rc_mode_rincon: 'El Rincón',
-  tm_rc_kicker: 'TU ESQUINA',
-  tm_rc_title: 'EL',
-  tm_rc_title_accent: 'RINCÓN',
+  tm_rc_kicker: 'Tu esquina',
+  tm_rc_title: 'El',
+  tm_rc_title_accent: 'rincón',
   tm_rc_sub: 'Tu entrenador te canta las combinaciones mientras pegas al saco. Tú solo escucha y suéltalas.',
 
   // Configuración
@@ -308,7 +308,7 @@ export default {
   tm_rc_no_es_voice: 'No hay voz en español en este dispositivo: los combos se ven en pantalla.',
 
   // Resumen
-  tm_rc_done_title: 'ASALTOS COMPLETADOS',
+  tm_rc_done_title: 'Asaltos completados',
   tm_rc_done_sub: 'Buen trabajo en la esquina. Guárdalo en tu registro de actividad.',
   tm_rc_done_calls: 'Combos cantados',
   tm_rc_done_combos: 'Combinaciones trabajadas',

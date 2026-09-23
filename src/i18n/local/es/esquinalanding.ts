@@ -1,8 +1,8 @@
 // Landing pública de "Mi Esquina" (R13-T5 bloque 10). Prefijo esl_.
 export default {
   esl_members: 'Exclusivo para miembros',
-  esl_title_1: 'MI',
-  esl_title_2: 'ESQUINA',
+  esl_title_1: 'Mi',
+  esl_title_2: 'esquina',
   esl_sub: 'Tu rincón de entrenamiento en RANKD: registra tus sesiones, mantén tu racha, controla tu progreso y muy pronto entrena con tu Coach IA personal. Compitas o entrenes por afición.',
   esl_cta_go: 'Ir a Mi Esquina →',
   esl_cta_join: 'Crear cuenta gratis →',

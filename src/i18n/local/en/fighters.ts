@@ -1,15 +1,15 @@
 // Fighters directory: header, shortcuts and filters (R13-T5 block 11). Prefix fd_.
 export default {
   // Directory header
-  fd_roster: 'THE ROSTER',
+  fd_roster: 'The roster',
   fd_directory: 'Directory',
-  fd_explore_by: 'EXPLORE BY',
+  fd_explore_by: 'Explore by',
   fd_discipline: 'Discipline',
   fd_fighter_one: 'fighter',
   fd_fighter_other: 'fighters',
 
   // "Featured" zone
-  fd_featured: 'FEATURED',
+  fd_featured: 'Featured',
   fd_featured_sub: 'Profiles to watch',
   fd_reason_verified: 'Verified',
   fd_reason_record: 'Best record',

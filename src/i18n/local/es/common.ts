@@ -58,8 +58,8 @@ export default {
   // Banner de instalación (PWA)
   pwa_title: 'Lleva RANKD en tu móvil',
   pwa_sub: 'Añádela a tu pantalla de inicio. Se abre como una app, sin ocupar casi nada.',
-  pwa_install: 'INSTALAR',
-  pwa_how: 'CÓMO SE HACE',
+  pwa_install: 'Instalar',
+  pwa_how: 'Cómo se hace',
   pwa_close: 'Cerrar',
   pwa_ios_title: 'En tu iPhone o iPad',
   pwa_ios_1: 'Toca el botón Compartir en la barra de abajo',
@@ -69,11 +69,11 @@ export default {
   pwa_android_1: 'Abre el menú del navegador (los tres puntos)',
   pwa_android_2: 'Elige "Instalar aplicación" o "Añadir a pantalla de inicio"',
   pwa_android_3: 'Confirma y la tendrás con el resto de tus apps',
-  pwa_got_it: 'ENTENDIDO',
+  pwa_got_it: 'Entendido',
 
   // Entradas de evento (venta en la web de la promotora)
   ev_tickets_title: 'Entradas',
-  ev_tickets_cta: 'COMPRAR ENTRADAS',
+  ev_tickets_cta: 'Comprar entradas',
   ev_tickets_external_note: 'La venta la gestiona la promotora en su propia web. Se abre en una pestaña nueva.',
   ev_tickets_soon: 'Entradas próximamente',
   ev_tickets_soon_desc: 'La promotora aún no ha publicado dónde comprarlas. Vuelve en unos días.',
@@ -91,7 +91,7 @@ export default {
   ev_no_desc: 'La promotora aún no ha añadido una descripción para este evento.',
   ev_nf_title: 'Evento no encontrado',
   ev_nf_desc: 'Puede que se haya retirado o que el enlace no sea correcto.',
-  ev_nf_cta: 'VER TODOS LOS EVENTOS',
+  ev_nf_cta: 'Ver todos los eventos',
 
   // 404
   nf_title: 'Este combate no existe',

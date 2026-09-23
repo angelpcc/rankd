@@ -3,8 +3,8 @@ export default {
   // ── Shell / navegación ──
   cl_back_dashboard: 'Panel del gimnasio',
   cl_back_home: 'Inicio',
-  cl_brand_space: 'ESPACIO',
-  cl_brand_club: 'ENTRENADOR',
+  cl_brand_space: 'Espacio',
+  cl_brand_club: 'Entrenador',
   cl_here_root: 'Club',
   cl_nav_summary: 'Resumen',
   cl_nav_plan: 'Plan del club',
@@ -31,7 +31,7 @@ export default {
   cl_setup_switch_note: 'Si empiezas por tu cuenta y luego te invita un gimnasio, pasas a su espacio sin perder nada.',
 
   // Mensajes (la bandeja de siempre, vista desde el club)
-  cl_msg_eyebrow: 'HABLA CON TU GENTE',
+  cl_msg_eyebrow: 'Habla con tu gente',
   cl_msg_desc: 'La misma bandeja que en el resto de RANKD. Escribe a tus alumnos, a otros entrenadores o a quien te haya escrito.',
   cl_loading: 'Cargando tu espacio…',
 

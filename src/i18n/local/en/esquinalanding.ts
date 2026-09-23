@@ -1,8 +1,8 @@
 // Public "My Corner" landing (R13-T5 block 10). Prefix esl_.
 export default {
   esl_members: 'Members only',
-  esl_title_1: 'MY',
-  esl_title_2: 'CORNER',
+  esl_title_1: 'My',
+  esl_title_2: 'corner',
   esl_sub: 'Your training corner in RANKD: log your sessions, keep your streak, track your progress and, very soon, train with your personal AI Coach. Whether you compete or train for fun.',
   esl_cta_go: 'Go to My Corner →',
   esl_cta_join: 'Create a free account →',

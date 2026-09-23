@@ -1,8 +1,8 @@
 // Página pública de noticias (R13-T5 bloque 10). Prefijo news_.
 export default {
   news_live: 'En directo',
-  news_title_pre: 'NOTICIAS DEL',
-  news_title_hl: 'COMBATE',
+  news_title_pre: 'Noticias del',
+  news_title_hl: 'combate',
   news_sub: 'Boxeo, MMA y deportes de contacto. Los titulares de los mejores medios, reunidos en un solo sitio.',
 
   news_headlines: 'titulares',

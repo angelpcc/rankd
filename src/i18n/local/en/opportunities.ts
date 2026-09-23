@@ -42,7 +42,7 @@ export default {
   // Opportunities page leftovers
   opp_eyebrow: 'Live across the scene',
   // Featured + urgency grouping
-  opp_featured: 'MOST URGENT',
+  opp_featured: 'Most urgent',
   opp_no_date: 'Date TBC',
   opp_grp_week: 'This week',
   opp_grp_month: 'This month',
@@ -53,7 +53,7 @@ export default {
   opp_see_all: 'See all opportunities',
   opp_none_title: 'No open opportunities yet',
   opp_none_desc: 'Promoters, gyms and brands post fights, sparring, camps and sponsorships here.',
-  opp_publish_first: 'PUBLISH THE FIRST ONE',
+  opp_publish_first: 'Publish the first one',
   opp_explore_dir: 'Explore the fighters directory',
 
   // Apply modal

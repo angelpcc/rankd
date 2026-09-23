@@ -30,18 +30,18 @@ export default {
   mc_hoy_p_cta_act: 'Ir a Actividad',
 
   // ── Fuerza · StrengthSummary ──
-  mc_strs_done_today: 'HOY YA ENTRENASTE',
+  mc_strs_done_today: 'Hoy ya entrenaste',
   mc_strs_done_today_desc: 'Queda registrado en tu historial y en la Agenda del día.',
   mc_strs_done_today_more: 'Registrar otra sesión',
 
   // ── Actividad · ActivityTodayCard ──
   // El gemelo de la card de Fuerza. Antes Actividad no tenía ninguno: el único
   // sitio donde salía un cardio planificado era el Resumen.
-  mc_hoy_act_title: 'HOY TOCA',
+  mc_hoy_act_title: 'Hoy toca',
   mc_hoy_act_cta: 'Registrar ahora',
   mc_hoy_act_min: '{{n}} min',
   mc_hoy_act_rounds: '{{n}} asaltos',
-  mc_hoy_act_done: 'HOY YA HICISTE ACTIVIDAD',
+  mc_hoy_act_done: 'Hoy ya hiciste actividad',
   mc_hoy_act_done_desc: 'Queda registrada en tu historial y en la Agenda del día.',
   mc_hoy_act_see_day: 'Ver el día',
 

@@ -31,7 +31,7 @@ export default {
   mc_pt_var_effort: 'Effort',
 
   // ── Library ──
-  mc_pt_eyebrow: 'PROTOCOLS',
+  mc_pt_eyebrow: 'Protocols',
   mc_pt_title: 'Your session,',
   mc_pt_title_2: 'segment by segment',
   mc_pt_sub: 'Write the session with its segments once and play it live every time you do it. Works for treadmill, bike, swimming, rowing or whatever you train.',
@@ -51,7 +51,7 @@ export default {
   mc_pt_run_saved_partial: 'Saved what you did to your history',
 
   // ── Editor ──
-  mc_pt_editor_eyebrow: 'PROTOCOL',
+  mc_pt_editor_eyebrow: 'Protocol',
   mc_pt_editor_title: 'Session segments',
   mc_pt_field_name: 'Name',
   mc_pt_field_name_ph: 'e.g. Treadmill intervals 40 min',
@@ -71,7 +71,7 @@ export default {
   mc_pt_save: 'Save protocol',
 
   // ── Player ──
-  mc_pt_player_eyebrow: 'IN PROGRESS',
+  mc_pt_player_eyebrow: 'In progress',
   mc_pt_segment_of: 'Segment {{n}} of {{total}}',
   mc_pt_last_full: 'you finished it',
   mc_pt_last_cut: 'you stopped at {{done}} of {{total}}',
@@ -128,7 +128,7 @@ export default {
   mc_str_tab_routines: 'Routines',
 
   // ── Library ──
-  mc_rp_eyebrow: 'ROUTINES',
+  mc_rp_eyebrow: 'Routines',
   mc_rp_title: 'Your routine,',
   mc_rp_title_2: 'set by set',
   mc_rp_sub: 'Save your routine by day and open it when you train: tick each set as you go and adjust the real weight for the day.',
@@ -148,7 +148,7 @@ export default {
   mc_rp_day_summary: '{{n}} exercises',
 
   // ── Editor ──
-  mc_rp_editor_eyebrow: 'ROUTINE',
+  mc_rp_editor_eyebrow: 'Routine',
   mc_rp_editor_title: 'Days and exercises',
   mc_rp_field_name: 'Routine name',
   mc_rp_field_name_ph: 'e.g. 5-day split',
@@ -224,7 +224,7 @@ Barbell row 4x10`,
   // ══════════════════════════════════════════════════════════════
   // MEAL ADVISOR · what point 20 adds
   // ══════════════════════════════════════════════════════════════
-  mc_mp_required_title: 'BEFORE PLANNING',
+  mc_mp_required_title: 'Before planning',
 
   mc_mp_q_meals: 'How many meals a day do you eat?',
   mc_mp_q_meals_hint: 'This decides how the day is split. No answer is better than another.',
@@ -272,7 +272,7 @@ Barbell row 4x10`,
   mc_mp_missing_training_when: 'training time',
   mc_mp_missing_goal: 'goal',
 
-  mc_mp_progress_title: 'HOW FAR YOU ARE',
+  mc_mp_progress_title: 'How far you are',
   mc_mp_progress_n: '{{done}} of {{total}} meals',
   mc_mp_day_done: '{{n}}/{{total}} done',
   mc_mp_training_badge: 'Training',
@@ -281,7 +281,7 @@ Barbell row 4x10`,
   mc_mp_uses_yours: 'Using what you already have: {{list}}',
   mc_mp_mark_done: 'Mark as done',
   mc_mp_done: 'Done',
-  mc_mp_extras_title: 'YOU ALSO HAVE',
+  mc_mp_extras_title: 'You also have',
   mc_mp_extras_hint: 'Your products that do not fit any dish in the catalogue. Use them as a side or between meals.',
   mc_pt_col_min: 'Min',
   mc_pt_col_what: 'What',

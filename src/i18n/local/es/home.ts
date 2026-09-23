@@ -263,7 +263,7 @@ export default {
   // Brands page — extra hardcoded
   brands_results_singular: 'marca encontrada',
   brands_results_plural: 'marcas encontradas',
-  brands_sponsor_now: 'BUSCAN PATROCINAR AHORA',
+  brands_sponsor_now: 'Buscan patrocinar ahora',
   brands_sponsor_now_desc: '{{n}} marcas con oferta de patrocinio activa para peleadores',
   brands_all_brands: 'Todas las marcas',
   brands_no_results_title: 'Sin resultados',

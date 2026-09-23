@@ -3,8 +3,8 @@ export default {
   // ── Shell / navigation ──
   cl_back_dashboard: 'Gym dashboard',
   cl_back_home: 'Home',
-  cl_brand_space: 'COACH',
-  cl_brand_club: 'SPACE',
+  cl_brand_space: 'Coach',
+  cl_brand_club: 'Space',
   cl_here_root: 'Club',
   cl_nav_summary: 'Overview',
   cl_nav_plan: 'Club plan',
@@ -31,7 +31,7 @@ export default {
   cl_setup_switch_note: 'If you start on your own and a gym invites you later, you move into their space without losing anything.',
 
   // Messages (the same inbox, seen from the club)
-  cl_msg_eyebrow: 'TALK TO YOUR PEOPLE',
+  cl_msg_eyebrow: 'Talk to your people',
   cl_msg_desc: 'The same inbox as everywhere else in RANKD. Write to your students, to other coaches, or to whoever wrote to you.',
   cl_loading: 'Loading your space…',
 

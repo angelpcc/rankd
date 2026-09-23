@@ -58,8 +58,8 @@ export default {
   // Install banner (PWA)
   pwa_title: 'Take RANKD with you',
   pwa_sub: 'Add it to your home screen. It opens like an app and takes barely any space.',
-  pwa_install: 'INSTALL',
-  pwa_how: 'HOW TO',
+  pwa_install: 'Install',
+  pwa_how: 'How to',
   pwa_close: 'Close',
   pwa_ios_title: 'On your iPhone or iPad',
   pwa_ios_1: 'Tap the Share button in the bottom bar',
@@ -69,11 +69,11 @@ export default {
   pwa_android_1: 'Open the browser menu (the three dots)',
   pwa_android_2: 'Choose "Install app" or "Add to Home screen"',
   pwa_android_3: 'Confirm and it will sit with the rest of your apps',
-  pwa_got_it: 'GOT IT',
+  pwa_got_it: 'Got it',
 
   // Event tickets (sold on the promoter's own site)
   ev_tickets_title: 'Tickets',
-  ev_tickets_cta: 'BUY TICKETS',
+  ev_tickets_cta: 'Buy tickets',
   ev_tickets_external_note: 'Sales are handled by the promoter on their own site. Opens in a new tab.',
   ev_tickets_soon: 'Tickets coming soon',
   ev_tickets_soon_desc: 'The promoter has not published where to buy them yet. Check back in a few days.',
@@ -91,7 +91,7 @@ export default {
   ev_no_desc: "The promoter hasn't added a description for this event yet.",
   ev_nf_title: 'Event not found',
   ev_nf_desc: 'It may have been taken down or the link may be wrong.',
-  ev_nf_cta: 'SEE ALL EVENTS',
+  ev_nf_cta: 'See all events',
 
   // 404
   nf_title: "This fight doesn't exist",

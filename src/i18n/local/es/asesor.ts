@@ -14,7 +14,7 @@ export default {
   mc_as_tab_plan: 'Plan por objetivo',
 
   // ── Consulta abierta ──
-  mc_as_ask_eyebrow: 'CONSULTA',
+  mc_as_ask_eyebrow: 'Consulta',
   mc_as_ask_sub: 'Dudas sueltas, y cambiar tu plan hablando',
   mc_as_ask_coach_title: 'Asesor',
   mc_as_ask_coach_intro: 'Pregúntame lo que sea: qué cenar con lo que tienes en casa, una duda de técnica, cómo repartir la semana o qué hacer si llegas justo de peso.',

@@ -13,7 +13,7 @@ export default {
   mc_as_tab_plan: 'Goal plan',
 
   // ── Open chat ──
-  mc_as_ask_eyebrow: 'ASK',
+  mc_as_ask_eyebrow: 'Ask',
   mc_as_ask_sub: 'Quick questions, and changing your plan by talking',
   mc_as_ask_coach_title: 'Advisor',
   mc_as_ask_coach_intro: 'Ask me anything: what to cook with what you have in, a technique question, how to spread the week out, or what to do if you are coming in heavy.',

@@ -14,7 +14,7 @@ export default {
   // ══════════════════════════════════════════════════════════════
   // PLAN SEMANAL · cabecera
   // ══════════════════════════════════════════════════════════════
-  mc_sem_eyebrow: 'PLAN SEMANAL',
+  mc_sem_eyebrow: 'Plan semanal',
   mc_sem_title: 'Pide la semana',
   mc_sem_title_2: 'de una vez',
   mc_sem_sub: 'Fuerza, los cardios que quieras y las comidas, todo en una sola petición. Lo revisas, pides los cambios que haga falta y se reparte por días en tu Agenda.',
@@ -30,7 +30,7 @@ Añádeme también un cardio corto por la mañana para los días que tenga tiemp
 
 Y hazme comida y cena para los 5 días, con alimentos básicos y rápidos de cocinar. El desayuno ya lo tengo resuelto.`,
 
-  mc_sem_checklist_title: 'LO QUE CONVIENE DECIR',
+  mc_sem_checklist_title: 'Lo que conviene decir',
   mc_sem_checklist_days: 'Cuántos días tienes ESTA semana (puede cambiar cada semana).',
   mc_sem_checklist_goal: 'A qué orientas la fuerza: hipertrofia, fuerza, resistencia…',
   mc_sem_checklist_exclusions: 'Qué NO quieres que aparezca. Se respeta al pie de la letra.',
@@ -44,14 +44,14 @@ Y hazme comida y cena para los 5 días, con alimentos básicos y rápidos de coc
   mc_sem_err_generate: 'No he podido montar el plan. Prueba a decir cuántos días tienes y qué quieres en cada uno.',
 
   // ── Resumen ──
-  mc_sem_state_draft: 'BORRADOR · SIN GUARDAR',
-  mc_sem_state_committed: 'GUARDADO',
+  mc_sem_state_draft: 'Borrador · sin guardar',
+  mc_sem_state_committed: 'Guardado',
   mc_sem_week_of: 'Semana del {{date}}',
   mc_sem_stat_days: 'Días',
   mc_sem_stat_strength: 'Fuerza',
   mc_sem_stat_cardio: 'Cardios',
   mc_sem_stat_meals: 'Comidas',
-  mc_sem_exclusions: 'NO INCLUYE',
+  mc_sem_exclusions: 'No incluye',
   mc_sem_segments_n: '{{n}} tramos',
   mc_sem_local_only: 'Guardado en este dispositivo: cuando se active la base de datos pasará a tu cuenta.',
 

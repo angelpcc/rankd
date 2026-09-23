@@ -6,7 +6,6 @@ import BottomSheet from '@/components/base/BottomSheet';
 import StateBlock from '@/components/base/StateBlock';
 import SegmentedProgress from '@/components/base/SegmentedProgress';
 import StrengthPlanBuilder from './StrengthPlanBuilder';
-import SectionHero from './SectionHero';
 import RoutineRunner from './RoutineRunner';
 import { activeSupplementsOn } from '../lib/supplements';
 import { loadRoutineById, saveRoutineSession, touchRoutine, type LoggedSet, type Routine, type RoutineDay } from '../lib/routines';
@@ -624,19 +623,25 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
     const ws = iso(weekStart); const we = iso(addDays(weekStart, 6));
     return items.filter((i) => i.plan_date >= ws && i.plan_date <= we).length;
   })();
+  // v4: la cabecera de la sección la pone AgendaHub, arriba del todo; aquí
+  // solo el selector de vista, como control segmentado, y cuánto hay esta
+  // semana al lado. Antes la cabecera salía a media página, debajo de las
+  // pestañas y de "Plan de mi entrenador".
   const header = (
-    <div className="space-y-3">
-      <SectionHero kind="agenda" eyebrow={t('mc_ag_eyebrow')}
-        title={`${t('mc_ag_title')} ${t('mc_ag_title_2')}`}
-        subtitle={weekPlanned ? t('mc_ag_hero_sub', { n: weekPlanned }) : t('mc_ag_sub')} />
-      <div className="flex gap-1.5">
+    <div className="flex items-center justify-between gap-3 flex-wrap">
+      <div role="tablist" className="inline-flex gap-1 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.035)', border: '1px solid var(--line)' }}>
         {(['day', 'week', 'month'] as const).map((v) => (
-          <button key={v} onClick={() => { if (v === 'day') setDayISO((d) => d || todayISO()); setView(v); }}
-            className={`rk-nav-btn text-xs font-bold ${view === v ? 'is-active' : ''}`} style={{ padding: '8px 14px' }}>
+          <button key={v} role="tab" aria-selected={view === v}
+            onClick={() => { if (v === 'day') setDayISO((d) => d || todayISO()); setView(v); }}
+            className={`rk-press px-3.5 py-1.5 rounded-lg text-sm transition-colors cursor-pointer ${view === v ? 'text-white font-semibold' : 'text-zinc-400 font-medium hover:text-white'}`}
+            style={{ minHeight: 36, background: view === v ? 'rgba(255,255,255,0.1)' : 'transparent' }}>
             {v === 'day' ? t('mc_ag_view_day') : v === 'week' ? t('mc_ag_view_week') : t('mc_ag_view_month')}
           </button>
         ))}
       </div>
+      {weekPlanned > 0 && (
+        <p className="text-xs" style={{ color: 'var(--t-3)' }}>{t('mc_ag_hero_sub', { n: weekPlanned })}</p>
+      )}
     </div>
   );
 
@@ -644,7 +649,7 @@ export default function WeeklyAgenda({ profile, showToast, mode = 'pro', onGoAct
   if (view === 'day') {
     return (
       <>
-        <div className="space-y-6 max-w-3xl">
+        <div className="space-y-6">
           {header}
           <DayView
             supps={supps}
@@ -1053,8 +1058,11 @@ function DayView({ supps, suppNames, date, locale, items, comp, logged, mode, un
           que habías registrado, ni los suplementos. La Agenda tiene que servir
           para mirar atrás y ver lo que de verdad hiciste. Todo solo lectura:
           cada cosa se edita en su sección. */}
+      {/* v4: en el ordenador, lo planificado a la izquierda y lo que hiciste a
+          la derecha. En el móvil, el orden de siempre (primero lo hecho). */}
+      <div className={`grid gap-5 items-start ${hasLog ? 'xl:grid-cols-[minmax(0,1fr)_340px]' : ''}`}>
       {hasLog && (
-        <div className="rk-card" style={{ padding: '16px 18px' }}>
+        <div className="rk-card xl:order-2 xl:sticky xl:top-20" style={{ padding: '16px 18px' }}>
           <p className="text-[11px] font-bold tracking-[0.18em] uppercase text-green-400 mb-3 flex items-center gap-2">
             <i className="ri-check-double-line"></i>{t('mc_ag_day_summary_logged')}
           </p>
@@ -1144,6 +1152,7 @@ function DayView({ supps, suppNames, date, locale, items, comp, logged, mode, un
       {/* El cartel de "día sin planificar" SOLO cuando el día está de verdad
           vacío. Si entrenaste y lo registraste, el día tiene contenido: decir
           que está sin planificar sería mentir y tapaba lo que sí hiciste. */}
+      <div className="xl:order-1 min-w-0">
       {empty && !hasLog ? (
         <div className="rk-card text-center" style={{ padding: '44px 24px' }}>
           <div className="w-14 h-14 mx-auto mb-4 flex items-center justify-center rounded-2xl bg-white/[0.04] border border-white/10">
@@ -1202,6 +1211,8 @@ function DayView({ supps, suppNames, date, locale, items, comp, logged, mode, un
           </div>
         </div>
       )}
+      </div>
+      </div>
 
       {/* Registrar lo que se hizo vive en Progreso › Actividad */}
       <button onClick={onGoActivity}

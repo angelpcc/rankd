@@ -44,7 +44,7 @@ export default {
   // la misma palabra dos veces, una encima de otra.
   opp_eyebrow: 'Del sector, ahora mismo',
   // Destacada + agrupación por urgencia
-  opp_featured: 'MÁS URGENTE',
+  opp_featured: 'Más urgente',
   opp_no_date: 'Fecha por confirmar',
   opp_grp_week: 'Esta semana',
   opp_grp_month: 'Este mes',
@@ -55,7 +55,7 @@ export default {
   opp_see_all: 'Ver todas las oportunidades',
   opp_none_title: 'Todavía no hay oportunidades abiertas',
   opp_none_desc: 'Promotoras, gimnasios y marcas publican aquí combates, sparrings, campamentos y patrocinios.',
-  opp_publish_first: 'PUBLICAR LA PRIMERA',
+  opp_publish_first: 'Publicar la primera',
   opp_explore_dir: 'Explorar el directorio de peleadores',
 
   // Modal de postulación

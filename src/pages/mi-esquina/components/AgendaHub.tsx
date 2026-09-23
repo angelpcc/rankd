@@ -9,6 +9,7 @@ import AgendaWeekStrip from '@/pages/mi-esquina/components/AgendaWeekStrip';
 import FightPrep from '@/pages/mi-esquina/components/FightPrep';
 import TrainerPlanUpload from '@/pages/mi-esquina/components/TrainerPlanUpload';
 import Reveal from '@/components/base/Reveal';
+import SectionHero from '@/pages/mi-esquina/components/SectionHero';
 
 interface Props {
   profile: Profile;
@@ -45,6 +46,11 @@ export default function AgendaHub({ profile, showToast, mode, onLogged, initialT
 
   return (
     <div className="max-w-4xl xl:max-w-[1120px] space-y-5 relative">
+      {/* v4: la cabecera, arriba del todo. Vivía dentro del calendario y salía a
+          media página, debajo de las pestañas y del plan del entrenador. */}
+      <SectionHero kind="agenda" eyebrow={t('mc_ag_eyebrow')}
+        title={`${t('mc_ag_title')} ${t('mc_ag_title_2')}`} subtitle={t('mc_ag_sub')} />
+      <HubTabs tabs={TABS} active={tab} onChange={setTab} color={SECTION_COLOR.agenda} />
       {tab === 'plan' && (
         <>
           {mode === 'pro' && (
@@ -55,8 +61,6 @@ export default function AgendaHub({ profile, showToast, mode, onLogged, initialT
           <Reveal delay={30}><AgendaWeekStrip profile={profile} /></Reveal>
         </>
       )}
-      <HubTabs tabs={TABS} active={tab} onChange={setTab} color={SECTION_COLOR.agenda} />
-      {tab === 'plan' && <TrainerPlanUpload profile={profile} showToast={showToast} />}
       {tab === 'plan' && (
         // `onLogged` también aquí, no solo en Planificar: marcar un bloque como
         // hecho desde el calendario cambia lo que el Resumen debe enseñar, y
@@ -65,6 +69,9 @@ export default function AgendaHub({ profile, showToast, mode, onLogged, initialT
           onGoActivity={onGoActivity} onGoStrength={onGoStrength} onGoBoxing={onGoBoxing} onLogged={onLogged}
           onGoPlanificar={() => setTab('planificar')} />
       )}
+      {/* El plan del entrenador (su foto o su mensaje), al final: es para
+          consultarlo, no lo primero que se hace al entrar. */}
+      {tab === 'plan' && <TrainerPlanUpload profile={profile} showToast={showToast} />}
       {tab === 'planificar' && <PlanificarPanel profile={profile} showToast={showToast} onLogged={onLogged} />}
 
       {/* Sin botón flotante: tapaba contenido y repetía lo que ya hay dentro

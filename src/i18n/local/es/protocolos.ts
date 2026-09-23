@@ -31,7 +31,7 @@ export default {
   mc_pt_var_effort: 'Esfuerzo',
 
   // ── Biblioteca ──
-  mc_pt_eyebrow: 'PROTOCOLOS',
+  mc_pt_eyebrow: 'Protocolos',
   mc_pt_title: 'Tu sesión,',
   mc_pt_title_2: 'tramo a tramo',
   mc_pt_sub: 'Escribe una vez la sesión con sus tramos y reprodúcela en vivo cada vez que la hagas. Vale para cinta, bici, natación, remo o lo que entrenes.',
@@ -51,7 +51,7 @@ export default {
   mc_pt_run_saved_partial: 'Guardado lo que has hecho en tu historial',
 
   // ── Editor ──
-  mc_pt_editor_eyebrow: 'PROTOCOLO',
+  mc_pt_editor_eyebrow: 'Protocolo',
   mc_pt_editor_title: 'Tramos de la sesión',
   mc_pt_field_name: 'Nombre',
   mc_pt_field_name_ph: 'Ej. Intervalos cinta 40 min',
@@ -71,7 +71,7 @@ export default {
   mc_pt_save: 'Guardar protocolo',
 
   // ── Reproductor ──
-  mc_pt_player_eyebrow: 'EN CURSO',
+  mc_pt_player_eyebrow: 'En curso',
   mc_pt_segment_of: 'Tramo {{n}} de {{total}}',
   mc_pt_last_full: 'lo terminaste entero',
   mc_pt_last_cut: 'lo dejaste en {{done}} de {{total}}',
@@ -128,7 +128,7 @@ export default {
   mc_str_tab_routines: 'Rutinas',
 
   // ── Biblioteca ──
-  mc_rp_eyebrow: 'RUTINAS',
+  mc_rp_eyebrow: 'Rutinas',
   mc_rp_title: 'Tu rutina,',
   mc_rp_title_2: 'serie a serie',
   mc_rp_sub: 'Guarda tu rutina por días y ábrela al entrenar: marcas cada serie según la haces y ajustas el peso real de ese día.',
@@ -148,7 +148,7 @@ export default {
   mc_rp_day_summary: '{{n}} ejercicios',
 
   // ── Editor ──
-  mc_rp_editor_eyebrow: 'RUTINA',
+  mc_rp_editor_eyebrow: 'Rutina',
   mc_rp_editor_title: 'Días y ejercicios',
   mc_rp_field_name: 'Nombre de la rutina',
   mc_rp_field_name_ph: 'Ej. Rutina 5 días',
@@ -224,7 +224,7 @@ Remo con barra 4x10`,
   // ══════════════════════════════════════════════════════════════
   // ASESOR DE COMIDA · lo nuevo del punto 20
   // ══════════════════════════════════════════════════════════════
-  mc_mp_required_title: 'ANTES DE PLANIFICAR',
+  mc_mp_required_title: 'Antes de planificar',
 
   mc_mp_q_meals: '¿Cuántas comidas haces al día?',
   mc_mp_q_meals_hint: 'Es lo que decide cómo se reparte el día. No hay una respuesta mejor que otra.',
@@ -272,7 +272,7 @@ Remo con barra 4x10`,
   mc_mp_missing_training_when: 'hora de entreno',
   mc_mp_missing_goal: 'objetivo',
 
-  mc_mp_progress_title: 'LO QUE LLEVAS',
+  mc_mp_progress_title: 'Lo que llevas',
   mc_mp_progress_n: '{{done}} de {{total}} comidas',
   mc_mp_day_done: '{{n}}/{{total}} hechas',
   mc_mp_training_badge: 'Entreno',
@@ -281,7 +281,7 @@ Remo con barra 4x10`,
   mc_mp_uses_yours: 'Con lo que ya tienes: {{list}}',
   mc_mp_mark_done: 'Marcar hecha',
   mc_mp_done: 'Hecha',
-  mc_mp_extras_title: 'TAMBIÉN TIENES',
+  mc_mp_extras_title: 'También tienes',
   mc_mp_extras_hint: 'Productos tuyos que no encajan en ningún plato del catálogo. Úsalos de acompañamiento o entre horas.',
   mc_pt_col_min: 'Min',
   mc_pt_col_what: 'Qué',

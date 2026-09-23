@@ -1,15 +1,15 @@
 // Directorio de peleadores: cabecera, atajos y filtros (R13-T5 bloque 11). Prefijo fd_.
 export default {
   // Cabecera del directorio
-  fd_roster: 'EL RÓSTER',
+  fd_roster: 'El róster',
   fd_directory: 'Directorio',
-  fd_explore_by: 'EXPLORA POR',
+  fd_explore_by: 'Explora por',
   fd_discipline: 'Disciplina',
   fd_fighter_one: 'peleador',
   fd_fighter_other: 'peleadores',
 
   // Zona "Destacados"
-  fd_featured: 'DESTACADOS',
+  fd_featured: 'Destacados',
   fd_featured_sub: 'Perfiles a seguir',
   fd_reason_verified: 'Verificado',
   fd_reason_record: 'Mejor récord',
