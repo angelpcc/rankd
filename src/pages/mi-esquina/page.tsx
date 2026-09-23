@@ -430,10 +430,25 @@ export default function MiEsquinaPage() {
 
           {/* ══════════ RESUMEN ══════════ */}
           {activeSection === 'resumen' && (
-            <div className="rk-blocks rk-stagger max-w-3xl">
+            // ── EL RESUMEN COMO PANEL ──
+            //
+            // En el ordenador era UNA columna de 768 px dentro de un hueco de
+            // ~1.160: media pantalla vacía, y todo lo importante apilado hacia
+            // abajo. Ahora a partir de 1280 px se parte en dos: lo de HOY a la
+            // izquierda (lo que se mira primero) y los números y el plan a la
+            // derecha, pegados arriba mientras bajas.
+            //
+            // En el móvil NO cambia nada, y a propósito: los bloques van en el
+            // MISMO orden de siempre dentro del HTML y solo la rejilla del
+            // escritorio los recoloca. Se tocó el orden del móvil una vez y el
+            // usuario lo rechazó.
+            <div className="rk-resumen rk-blocks rk-stagger">
               {/* Saludo contextual: cambia con la hora y con la racha */}
-              <GreetingLine name={firstName} streak={stats.streak} totalSessions={stats.total} isHobby={isHobby} />
+              <div className="rk-res-saludo">
+                <GreetingLine name={firstName} streak={stats.streak} totalSessions={stats.total} isHobby={isHobby} />
+              </div>
 
+              <div className="rk-res-main rk-blocks">
               {/* Alertas condicionales (se ocultan solas si no aplican) */}
               <div className="rk-stack">
                 {!isHobby && <DocumentExpiryAlert profile={profile} onOpen={() => go('ring', 'documentos')} />}
@@ -483,6 +498,10 @@ export default function MiEsquinaPage() {
                   onLogToday={(kind) => go('actividad', undefined, todayISO(), kind)} />
               </Reveal>
 
+              </div>
+
+              {/* ── LATERAL: los números y el plan ── */}
+              <div className="rk-res-lado rk-blocks">
               {/* Métricas 2×2 — a la vista, no detrás de un desplegable */}
               <Reveal delay={160}>
                 <SummaryMetrics profile={profile} weekSessions={stats.week} streak={stats.streak}
@@ -501,6 +520,10 @@ export default function MiEsquinaPage() {
                 </Reveal>
               )}
 
+              </div>
+
+              {/* ── FINAL: primeros pasos, gimnasio e informe ── */}
+              <div className="rk-res-final rk-blocks">
               {/* Ruta de activación (solo primer uso) + gimnasio */}
               <div className="rk-stack">
                 <ActivationSteps profile={profile} totalSessions={stats.total} showToast={showToast}
@@ -519,6 +542,7 @@ export default function MiEsquinaPage() {
               >
                 <i className="ri-file-chart-line"></i> {t('mc_export_report')}
               </button>
+              </div>
             </div>
           )}
 
