@@ -17,6 +17,9 @@ import { compactarAgenda, loadAgendaSnapshot, loadTrainedRecent, type AgendaDia,
 import PhotoAttach, { FotoPendiente } from './PhotoAttach';
 import { limitarAdjuntos, type ImagenLista } from '@/lib/imageInput';
 import { cargarDatosObjetivo, contextoCuerpoParaIA } from '../lib/objetivoDiario';
+import RichText from './RichText';
+import ChatSessionCard from './ChatSessionCard';
+import { sinMarcadorSesion } from '../lib/sessionTable';
 
 // ════════════════════════════════════════════════════════════════
 // EL PLAN, HABLANDO
@@ -444,14 +447,14 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
             <div key={i}>
               <div className={`flex items-start gap-3 ${mio ? 'justify-end' : 'justify-start'} ${mio ? 'rk-msg-mine' : 'rk-msg-yours'}`}>
                 {!mio && (
-                  <div className={`w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center ${abre ? 'rk-ai-avatar' : 'opacity-0'}`}>
+                  <div className={`w-8 h-8 flex-shrink-0 rounded-lg hidden sm:flex items-center justify-center ${abre ? 'rk-ai-avatar' : 'opacity-0'}`}>
                     <i className="ri-sparkling-2-fill text-sm" />
                   </div>
                 )}
                 {/* v4: la respuesta, sin globo y a todo lo ancho (ver .rk-bubble-theirs). */}
-                <div className={`text-[15px] leading-relaxed whitespace-pre-wrap ${mio
-                  ? 'max-w-[82%] rk-bubble-mine rounded-2xl rounded-tr-md px-4 py-2.5'
-                  : 'flex-1 min-w-0 rk-ai-burbuja rk-bubble-theirs pt-1'}`}>
+                <div className={`text-[15px] leading-relaxed ${mio
+                  ? 'max-w-[82%] whitespace-pre-wrap rk-bubble-mine rounded-2xl rounded-tr-md px-4 py-2.5'
+                  : 'flex-1 min-w-0 space-y-1 rk-ai-burbuja rk-bubble-theirs pt-1'}`}>
                   {x.image && (
                     x.image.esPdf
                       ? <span className="flex items-center gap-2 mb-1.5 rounded-xl px-3 py-2" style={{ background: 'rgba(0,0,0,0.22)' }}>
@@ -461,7 +464,14 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
                       : <img src={x.image.previewUrl} alt=""
                           className="rounded-xl mb-1.5 max-h-52 w-auto" style={{ maxWidth: '100%' }} />
                   )}
-                  {x.content}
+                  {/* Las respuestas, con el mismo formateador que el Asesor:
+                      negritas, listas y tablas en vez de asteriscos y barras. */}
+                  {mio ? x.content : (
+                    <>
+                      <RichText text={sinMarcadorSesion(x.content)} watchLabel={t('mc_ai_video_watch')} />
+                      <ChatSessionCard texto={x.content} profileId={profile.id} showToast={showToast} />
+                    </>
+                  )}
                 </div>
               </div>
               {/* El plan, como un mensaje más y en su sitio de la conversación. */}

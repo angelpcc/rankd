@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { sendPlanChat } from '@/services/planChat';
 import { commitWeekPlan, loadActivePlan } from '@/pages/mi-esquina/lib/weekPlan';
 import { ACTIVITY_KINDS, todayISO } from '@/pages/mi-esquina/lib/dayPlan';
-import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase, Profile } from '@/lib/supabase';
 import { isMissingColumn } from '@/lib/dbState';
@@ -14,6 +13,9 @@ import { compactarAgenda, loadAgendaSnapshot, loadTrainedRecent, type AgendaDia,
 import { libraryLabels } from '@/pages/mi-esquina/lib/exercises';
 import { currentWeekStart } from '@/pages/mi-esquina/lib/weekPlan';
 import { cargarDatosObjetivo, contextoCuerpoParaIA } from '../lib/objetivoDiario';
+import RichText from './RichText';
+import ChatSessionCard from './ChatSessionCard';
+import { sinMarcadorSesion } from '../lib/sessionTable';
 
 // 'general' es la CONSULTA ABIERTA (punto 18): cualquier duda, sin flujo. Los
 // otros tres están acotados a su ámbito y se derivan entre ellos; este no.
@@ -64,13 +66,6 @@ function isoFromOffset(offset: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-// Dos marcadores conviven en el texto de la IA:
-//  - [VIDEO: nombre]        → Coach de Entrenamiento: botón a búsqueda de YouTube.
-//    Usamos búsqueda (no una URL concreta) para que el enlace SIEMPRE sea válido.
-//  - [texto](https://...)   → Asesor de Material: enlace real de compra que sale
-//    de la búsqueda web. Se limita a http/https para no colar esquemas raros.
-const INLINE_RE = /\[VIDEO:\s*([^\]]+)\]|\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/gi;
-
 /**
  * El marcador de cambio de plan que puede dejar el asesor.
  *
@@ -90,95 +85,6 @@ function cambioPropuesto(texto) {
 /** El texto sin el marcador, que es como se enseña. */
 function sinMarcadorCambio(texto) {
   return texto.replace(CAMBIO_RE, '').trimEnd();
-}
-
-function youtubeSearch(query: string): string {
-  return `https://www.youtube.com/results?search_query=${encodeURIComponent(query.trim() + ' técnica tutorial')}`;
-}
-
-// Renderiza negritas (**texto**) dentro de un fragmento de texto.
-function renderBold(text: string, keyBase: string) {
-  return text.split(/(\*\*[^*]+\*\*)/g).map((seg, j) =>
-    seg.startsWith('**') && seg.endsWith('**')
-      ? <strong key={`${keyBase}-b${j}`} className="text-white font-semibold">{seg.slice(2, -2)}</strong>
-      : <span key={`${keyBase}-s${j}`}>{seg}</span>
-  );
-}
-
-// Renderiza una línea: negritas + los marcadores [VIDEO: ...] y los enlaces
-// markdown [texto](url) como botones/enlaces pinchables.
-function renderInline(text: string, keyBase: string, watchLabel: string) {
-  const nodes: ReactNode[] = [];
-  let last = 0;
-  let idx = 0;
-  let m: RegExpExecArray | null;
-  INLINE_RE.lastIndex = 0;
-  while ((m = INLINE_RE.exec(text)) !== null) {
-    if (m.index > last) nodes.push(...renderBold(text.slice(last, m.index), `${keyBase}-t${idx}`));
-    if (m[1] !== undefined) {
-      // Vídeo de apoyo → búsqueda de YouTube
-      const q = m[1].trim();
-      nodes.push(
-        <a key={`${keyBase}-v${idx}`} href={youtubeSearch(q)} target="_blank" rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 align-middle mx-0.5 my-0.5 rounded-lg bg-red-600/12 border border-red-500/35 text-red-300 hover:bg-red-600/20 hover:text-red-200 transition-colors px-2 py-0.5 text-xs font-semibold no-underline">
-          <i className="ri-play-circle-fill"></i>{watchLabel} {q}
-        </a>
-      );
-    } else {
-      // Enlace real de compra (asesor de Material)
-      const label = m[2].trim();
-      const url = m[3].trim();
-      nodes.push(
-        <a key={`${keyBase}-lnk${idx}`} href={url} target="_blank" rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 align-middle mx-0.5 my-0.5 rounded-lg bg-white/[0.06] border border-white/15 text-sky-300 hover:text-sky-200 hover:border-white/30 transition-colors px-2 py-0.5 text-xs font-semibold no-underline">
-          <i className="ri-external-link-line"></i>{label}
-        </a>
-      );
-    }
-    last = m.index + m[0].length;
-    idx++;
-  }
-  if (last < text.length) nodes.push(...renderBold(text.slice(last), `${keyBase}-t${idx}`));
-  return nodes;
-}
-
-// Formateo ligero del markdown que devuelve la IA (negritas, listas, saltos, vídeos).
-function renderRich(text: string, watchLabel: string) {
-  return text.split('\n').map((line, i) => {
-    const trimmed = line.trim();
-
-    // ── Lista numerada ("1. …", "2) …") ──
-    //
-    // Salía como texto plano, con el número pegado a la frase. Y desde que el
-    // prompt pide respuestas densas y con pasos, es lo que más devuelve: una
-    // receta de cinco pasos se leía como un párrafo corrido. El número en su
-    // chapa se cuenta de un vistazo, que es para lo que está numerado.
-    const num = trimmed.match(/^(\d{1,2})[.)]\s+(.*)$/);
-    if (num) {
-      return (
-        <div key={i} className="flex gap-2.5 items-start mt-1.5">
-          <span className="w-5 h-5 flex-shrink-0 flex items-center justify-center rounded-md text-[10px] font-bold text-white mt-0.5"
-            style={{ background: 'rgba(225,6,0,0.22)' }}>{num[1]}</span>
-          <span className="min-w-0">{renderInline(num[2], `l${i}`, watchLabel)}</span>
-        </div>
-      );
-    }
-
-    const bullet = /^[-*•]\s+/.test(trimmed);
-    const clean = bullet ? trimmed.replace(/^[-*•]\s+/, '') : line;
-    const parts = renderInline(clean, `l${i}`, watchLabel);
-    if (bullet) {
-      return (
-        <div key={i} className="flex gap-2 pl-1">
-          <span className="flex-shrink-0 mt-[7px] rounded-full"
-            style={{ width: 4, height: 4, background: 'var(--accent)', opacity: 0.7 }} />
-          <span className="min-w-0">{parts}</span>
-        </div>
-      );
-    }
-    if (trimmed === '') return <div key={i} style={{ height: 6 }} />;
-    return <div key={i}>{parts}</div>;
-  });
 }
 
 export default function SectionCoach({ section, profile, title, intro, suggestions, accent = 'red', showToast }: Props) {
@@ -724,12 +630,13 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
             const mio = m.role === 'user';
             // El avatar solo en el PRIMER mensaje de una tanda suya. Repetirlo en
             // cada trozo de una respuesta larga llena la columna de iconos y
-            // hace que parezca que habla mucha gente.
+            // hace que parezca que habla mucha gente. En el móvil no sale: esos
+            // 44 px son los que necesita una tabla de sesión para caber entera.
             const abre = !mio && (i === 0 || messages[i - 1].role === 'user');
             return (
               <div key={i} className={`flex items-start gap-3 ${mio ? 'justify-end' : 'justify-start'} ${mio ? 'rk-msg-mine' : 'rk-msg-yours'}`}>
                 {!mio && (
-                  <div className={`w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center ${abre ? 'rk-ai-avatar' : 'opacity-0'}`}>
+                  <div className={`w-8 h-8 flex-shrink-0 rounded-lg hidden sm:flex items-center justify-center ${abre ? 'rk-ai-avatar' : 'opacity-0'}`}>
                     <i className="ri-sparkling-2-fill text-sm" />
                   </div>
                 )}
@@ -748,7 +655,16 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
                   {m.role === 'assistant'
                     ? (searching && m.content === '' && i === messages.length - 1
                         ? <span className="flex items-center gap-2 text-zinc-400"><i className="ri-earth-line text-sky-400 animate-pulse"></i>{t('mc_ai_searching')}</span>
-                        : <div className="space-y-1 rk-ai-burbuja">{renderRich(sinMarcadorCambio(m.content), t('mc_ai_video_watch'))}{streaming && i === messages.length - 1 && <span className="rk-caret" />}</div>)
+                        : <div className="space-y-1 rk-ai-burbuja">
+                            <RichText text={sinMarcadorSesion(sinMarcadorCambio(m.content))} watchLabel={t('mc_ai_video_watch')} />
+                            {streaming && i === messages.length - 1 && <span className="rk-caret" />}
+                            {/* Una sesión en tabla se puede hacer desde aquí con el
+                                cronómetro. No mientras se escribe: la tabla aún
+                                está a medias. */}
+                            {!(streaming && i === messages.length - 1) && (
+                              <ChatSessionCard texto={m.content} profileId={profile.id} showToast={showToast} />
+                            )}
+                          </div>)
                     : m.content}
                 </div>
               </div>

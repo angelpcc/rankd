@@ -1023,6 +1023,47 @@ input[type="datetime-local"]::-webkit-inner-spin-button {
   color: rgba(255,255,255,0.88);
 }
 
+/* Tablas de la IA (sesiones, comparativas). Scroll lateral propio para no
+   aplastar las celdas en el móvil; la primera columna en blanco porque es la
+   que se busca ("Estación 4"), el resto en gris de lectura. */
+.rk-md-table {
+  overflow-x: auto;
+  border: 1px solid var(--line-2);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.02);
+  -webkit-overflow-scrolling: touch;
+}
+.rk-md-table table { width: 100%; border-collapse: collapse; font-size: 13.5px; line-height: 1.4; }
+.rk-md-table th {
+  text-align: left;
+  font-family: var(--font-label, 'Barlow Condensed', sans-serif);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--t-3);
+  background: rgba(255,255,255,0.04);
+  padding: 9px 12px;
+  white-space: nowrap;
+}
+.rk-md-table td {
+  padding: 9px 12px;
+  vertical-align: top;
+  border-top: 1px solid var(--line);
+  color: var(--t-2);
+  min-width: 70px;
+}
+.rk-md-table td:first-child { color: #fff; font-weight: 600; white-space: nowrap; }
+.rk-md-table tbody tr:nth-child(even) td { background: rgba(255,255,255,0.015); }
+@media (min-width: 640px) { .rk-md-table td:nth-child(2) { min-width: 130px; } }
+/* En el móvil, celdas más justas: una sesión de cuatro columnas cabe sin
+   tener que deslizar la tabla. */
+@media (max-width: 639px) {
+  .rk-md-table table { font-size: 13px; }
+  .rk-md-table th, .rk-md-table td { padding: 8px 9px; }
+  .rk-md-table td { min-width: 0; }
+}
+
 /* El cursor mientras escribe. Late en vez de encenderse y apagarse a saltos. */
 @keyframes rk-caret { 0%, 45% { opacity: 1; } 55%, 100% { opacity: 0.15; } }
 .rk-caret {

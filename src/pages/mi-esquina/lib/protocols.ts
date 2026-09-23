@@ -129,6 +129,19 @@ export interface ProtocolSegment {
   /** Valores que tocan en ESE tramo. Solo las variables de su tipo. */
   values: Partial<Record<ProtocolVarId, number>>;
   note?: string;
+  /**
+   * Bloque al que pertenece ("Estación 4", "Ronda 2"), cuando la sesión viene
+   * de una tabla que distingue el bloque de lo que se hace en él.
+   */
+  stage?: string;
+  /**
+   * Repeticiones a completar ("100 wall balls"). Como la distancia, no se
+   * pueden cronometrar: el tramo espera a que se pulse "Hecho", y `seconds`
+   * queda como estimación para el total.
+   */
+  reps?: number;
+  /** Tramo de descanso: se pinta aparte para que se vea que es para respirar. */
+  rest?: boolean;
 }
 
 export interface Protocol {
