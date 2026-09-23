@@ -559,7 +559,10 @@ export async function commitWeekPlan(
   }
 
   // ── 2. Un protocolo por cardio ──
-  const savedProtocols = new Map<string, Protocol>();
+  // Por el propio cardio y no por su `key`: la clave la pone el modelo y, si
+  // repetía la misma en dos opciones de un día, la segunda pisaba a la primera
+  // y las dos acababan reproduciendo el mismo cardio.
+  const savedProtocols = new Map<WeekProtocol, Protocol>();
   for (const p of plan.protocols) {
     // Sin tramos no se guarda protocolo.
     //
@@ -579,7 +582,7 @@ export async function commitWeekPlan(
       createdAt: new Date().toISOString(),
     };
     const saved = await saveProtocol(profileId, draft);
-    savedProtocols.set(p.key, saved.protocol);
+    savedProtocols.set(p, saved.protocol);
     out.protocolIds.push(saved.protocol.id);
     if (saved.storedLocally) out.storedLocally = true;
   }
@@ -670,15 +673,23 @@ export async function commitWeekPlan(
    * bloque de fuerza ese día: quedarían dos, uno hecho y otro pendiente, y la
    * Agenda diría que te falta un entreno que ya hiciste.
    */
+  //
+  // Lo OPCIONAL va aparte: si el sábado ya hiciste un cardio, las opciones
+  // del sábado se siguen poniendo (no reclaman nada). Solo se salta la opción
+  // que sea ESA misma, por nombre. Con la regla general, un cardio corto de
+  // por la mañana ya hecho hacía desaparecer las tres opciones de la tarde.
   const yaHecho = new Set<string>();
+  const hechoPorNombre = new Set<string>();
+  const nombreClave = (n: unknown) => String(n || '').trim().toLowerCase();
   if (dates.size > 0) {
     const { data: hechos } = await supabase.from('day_plan_items')
-      .select('plan_date, kind')
+      .select('plan_date, kind, payload')
       .eq('fighter_profile_id', profileId)
       .eq('completed', true)
       .in('plan_date', [...dates]);
-    for (const r of (hechos || []) as { plan_date: string; kind: string }[]) {
+    for (const r of (hechos || []) as { plan_date: string; kind: string; payload: Record<string, unknown> | null }[]) {
       yaHecho.add(`${r.plan_date}|${r.kind}`);
+      if (r.payload?.protocol_name) hechoPorNombre.add(`${r.plan_date}|${nombreClave(r.payload.protocol_name)}`);
     }
   }
 
@@ -725,7 +736,7 @@ export async function commitWeekPlan(
   });
 
   plan.protocols.forEach((p) => {
-    const saved = savedProtocols.get(p.key);
+    const saved = savedProtocols.get(p);
     // Con tramos manda su suma; sin ellos, los minutos que dijo el plan.
     const seconds = p.segments.length > 0
       ? p.segments.reduce((a, s) => a + Math.max(0, s.seconds || 0), 0)
@@ -733,7 +744,9 @@ export async function commitWeekPlan(
     weeksOf(total, p.weeks).forEach((wk) => p.weekdays.forEach((w) => {
       const fecha = dateOfWeekday(plan.weekStart, w, wk);
       if (pasado(fecha)) return;
-      if (yaHecho.has(`${fecha}|activity`)) return;
+      if (p.optional
+        ? hechoPorNombre.has(`${fecha}|${nombreClave(p.name)}`)
+        : yaHecho.has(`${fecha}|activity`)) return;
       rows.push({
         fighter_profile_id: profileId,
         plan_date: fecha,

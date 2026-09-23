@@ -160,6 +160,11 @@ function normalizeSegments(raw: unknown, kind: string): ProtocolSegment[] {
 
 const VALID_KINDS = new Set(ACTIVITY_KINDS.map((k) => k.value));
 
+/** Topes de lo que se acepta de un plan. Ver "Los topes" en normalizeWeekPlan. */
+const MAX_DIAS_FUERZA = 28;
+const MAX_CARDIOS = 24;
+const MAX_DIAS_COMIDA = 28;
+
 export function normalizeWeekPlan(raw: Record<string, unknown>, request: string, ctx: WeekContext, id: string): WeekPlan | null {
   const weekStart = ctx.weekStart;
   const today = ctx.today;
@@ -178,8 +183,19 @@ export function normalizeWeekPlan(raw: Record<string, unknown>, request: string,
   const multi = Math.max(1, Number(raw.weeks) || ctx.weeks || 1) > 1;
   const usable = (weekday: number) => multi || dateOfWeekday(weekStart, weekday) >= today;
 
+  // ── Los topes ──
+  //
+  // Eran 7 días de fuerza, 6 cardios y 7 días de comidas, y se cortaba SIN
+  // AVISAR. Con un plan real no daba: cinco cardios de lunes a viernes, tres
+  // opciones el sábado y un cardio de mañana son nueve, y las opciones del
+  // sábado, que van al final, se perdían. Ese era el "el sábado no lo ha
+  // metido bien": faltaban la B y la C. Y en planes de varias semanas, un día
+  // que cambia de una semana a otra cuenta dos veces.
+  //
+  // Los topes siguen, pero como red contra una respuesta desbocada, no como
+  // límite de lo que alguien puede pedir.
   const strength: WeekStrengthDay[] = (Array.isArray(raw.strength) ? raw.strength : [])
-    .slice(0, 7)
+    .slice(0, MAX_DIAS_FUERZA)
     .map((item) => {
       const d = (item || {}) as Record<string, unknown>;
       const weekday = clampWeekday(d.weekday);
@@ -218,7 +234,7 @@ export function normalizeWeekPlan(raw: Record<string, unknown>, request: string,
     .sort((a, b) => a.weekday - b.weekday);
 
   const protocols: WeekProtocol[] = (Array.isArray(raw.protocols) ? raw.protocols : [])
-    .slice(0, 6)
+    .slice(0, MAX_CARDIOS)
     .map((item, i) => {
       const p = (item || {}) as Record<string, unknown>;
       const kindRaw = String(p.kind || '').trim();
@@ -250,10 +266,13 @@ export function normalizeWeekPlan(raw: Record<string, unknown>, request: string,
         note: typeof p.note === 'string' && p.note.trim() ? p.note.trim().slice(0, 200) : undefined,
       } as WeekProtocol;
     })
-    .filter((x): x is WeekProtocol => x !== null);
+    .filter((x): x is WeekProtocol => x !== null)
+    // Claves únicas: con dos cardios con la misma clave, la Agenda y la
+    // tarjeta del plan los confundían (ver savedProtocols en commitWeekPlan).
+    .map((p, i, todos) => (todos.findIndex((q) => q.key === p.key) === i ? p : { ...p, key: `${p.key}_${i}` }));
 
   const nutrition: WeekMealDay[] = (Array.isArray(raw.nutrition) ? raw.nutrition : [])
-    .slice(0, 7)
+    .slice(0, MAX_DIAS_COMIDA)
     .map((item) => {
       const d = (item || {}) as Record<string, unknown>;
       const weekday = clampWeekday(d.weekday);

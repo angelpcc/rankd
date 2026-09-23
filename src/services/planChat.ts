@@ -176,9 +176,14 @@ function stripForModel(plan: WeekPlan): Record<string, unknown> {
         value: e.value, weight_kg: e.weight_kg,
       })),
     })),
+    // `optional` y `minutes` viajan también. Sin ellos, al pedirle un cambio el
+    // modelo veía las tres opciones de un sábado como tres cardios fijos y, al
+    // reescribirlas, las devolvía fijas: lo opcional dejaba de serlo solo por
+    // tocar el plan. Y un cardio sin tramos no decía cuánto duraba.
     protocols: plan.protocols.map((p) => ({
       key: p.key, name: p.name, kind: p.kind, when: p.when,
       weekdays: p.weekdays, weeks: p.weeks, segments: p.segments, note: p.note,
+      optional: p.optional === true, ...(p.minutes ? { minutes: p.minutes } : {}),
     })),
     nutrition: plan.nutrition.map((n) => ({
       weekday: n.weekday, week: n.week, meals: n.meals,
