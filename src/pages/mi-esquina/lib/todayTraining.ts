@@ -57,6 +57,11 @@ export interface TodayTraining {
   pendingStrength: PlannedEntry[];
   /** Solo lo pendiente de ACTIVIDAD. */
   pendingActivity: PlannedEntry[];
+  /**
+   * Lo OPCIONAL de hoy que aún no se ha hecho. NO es un pendiente y nadie lo
+   * reclama: está para enseñarlo en segundo plano, "si te apetece".
+   */
+  optional: PlannedEntry[];
   /** ¿Se ha registrado hoy alguna sesión, del tipo que sea? */
   trainedToday: boolean;
   /** ¿Se ha registrado hoy alguna sesión de fuerza? */
@@ -169,7 +174,7 @@ export async function loadTodayTraining(
     // "pendiente" a partir de lo registrado.
     return {
       ...base,
-      pending: [], pendingStrength: [], pendingActivity: [],
+      pending: [], pendingStrength: [], pendingActivity: [], optional: [],
       unavailable: isMissingTable(planRes.error),
     };
   }
@@ -179,8 +184,20 @@ export async function loadTodayTraining(
     completed: boolean; source: string | null;
   }[];
 
-  const pending = rows
+  const planificadas = rows
     .filter((r) => isPlanned(r.source))
+    .map((r): PlannedEntry => ({
+      id: r.id,
+      kind: r.kind === 'activity' ? 'activity' : 'strength',
+      payload: r.payload,
+      source: r.source || 'manual',
+    }))
+    // Red de seguridad por si el tick no se llegó a escribir. Solo oculta.
+    .filter((e) => !coversPlanItem(e.kind, e.payload, facts));
+
+  const esOpcional = (e: PlannedEntry) => !!(e.payload as { optional?: boolean })?.optional;
+
+  const pending = planificadas
     // Lo OPCIONAL se ve en la Agenda pero no es un pendiente.
     //
     // Un cardio de por la mañana "por si tengo 30 minutos" o las tres
@@ -191,15 +208,8 @@ export async function loadTodayTraining(
     //
     // Siguen en la Agenda, en su día, y se pueden hacer y marcar. Lo que no
     // hacen es reclamarte.
-    .filter((r) => !(r.payload as { optional?: boolean })?.optional)
-    .map((r): PlannedEntry => ({
-      id: r.id,
-      kind: r.kind === 'activity' ? 'activity' : 'strength',
-      payload: r.payload,
-      source: r.source || 'manual',
-    }))
-    // Red de seguridad por si el tick no se llegó a escribir. Solo oculta.
-    .filter((e) => !coversPlanItem(e.kind, e.payload, facts));
+    .filter((e) => !esOpcional(e));
+  const optional = planificadas.filter(esOpcional);
 
   const pendingStrength = pending.filter((e) => e.kind === 'strength');
   const pendingActivity = pending.filter((e) => e.kind === 'activity');
@@ -211,6 +221,7 @@ export async function loadTodayTraining(
     pending: [...pendingStrength, ...pendingActivity],
     pendingStrength,
     pendingActivity,
+    optional,
     unavailable: false,
   };
 }

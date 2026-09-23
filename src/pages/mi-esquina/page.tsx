@@ -516,8 +516,10 @@ export default function MiEsquinaPage() {
               <div className="rk-res-lado rk-blocks">
               {/* Métricas 2×2 — a la vista, no detrás de un desplegable */}
               <Reveal delay={160}>
-                <SummaryMetrics profile={profile} weekSessions={stats.week} streak={stats.streak}
-                  onOpenActivity={() => go('actividad')} onOpenWeight={() => go('peso')} />
+                <SummaryMetrics profile={profile}
+                  onOpenWeight={() => go('peso')}
+                  onOpenNutrition={() => go('nutricion')}
+                  onOpenAgenda={() => go('agenda', 'plan')} />
               </Reveal>
 
               {/* Plan activo */}

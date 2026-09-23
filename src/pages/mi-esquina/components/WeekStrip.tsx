@@ -70,12 +70,14 @@ export default function WeekStrip({ activeDates, done, total, onDayClick }: Prop
                   height: 30,
                   borderRadius: '50%',
                   color: numColor,
-                  border: isToday ? '2px dashed var(--accent)' : '2px solid transparent',
+                  // Hoy entrenado pasa de discontinuo a continuo: el día ya
+                  // está hecho, y antes se quedaba igual que si no.
+                  border: isToday ? `2px ${active ? 'solid' : 'dashed'} var(--accent)` : '2px solid transparent',
                 }}
               >
                 {d.getDate()}
               </span>
-              <span style={{ width: 4, height: 4, borderRadius: '50%', background: isPast && active ? 'var(--accent)' : 'transparent' }} />
+              <span style={{ width: 4, height: 4, borderRadius: '50%', background: (isPast || isToday) && active ? 'var(--accent)' : 'transparent' }} />
             </button>
           );
         })}

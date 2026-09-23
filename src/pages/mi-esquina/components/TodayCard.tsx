@@ -70,7 +70,7 @@ function dayDelta(iso: string): number {
   return Math.round((a.getTime() - b.getTime()) / 86400000);
 }
 
-interface TrainToday { icon: string; title: string; note: string | null; actKind?: string }
+interface TrainToday { icon: string; title: string; note: string | null; actKind?: string; strength?: boolean }
 interface FightRow { event_date: string; title: string; kind: string }
 
 export default function TodayCard({ profile, mode, onStart, onCreatePlan, onLogWeight, onLogToday, onGoStrength, refreshKey = 0 }: Props) {
@@ -84,6 +84,9 @@ export default function TodayCard({ profile, mode, onStart, onCreatePlan, onLogW
   // hacer que ascienda un bloque de fuerza al mismo hueco.
   const [pendStr, setPendStr] = useState<TrainToday[]>([]);
   const [pendAct, setPendAct] = useState<TrainToday[]>([]);
+  // Lo opcional de hoy. Va DEBAJO de la tarjeta, en discreto: no cambia el
+  // estado, no lleva botón rojo y no cuenta como "te falta".
+  const [opc, setOpc] = useState<TrainToday[]>([]);
   // Lo que se ha entrenado hoy DE VERDAD (de las tablas de sesiones, no de la
   // Agenda). Nunca pinta "pendiente": solo el estado de confirmación.
   const [doneLabel, setDoneLabel] = useState<string | null>(null);
@@ -135,6 +138,11 @@ export default function TodayCard({ profile, mode, onStart, onCreatePlan, onLogW
       };
       setPendStr(today.pendingStrength.map(describe));
       setPendAct(today.pendingActivity.map(describe));
+      setOpc(today.optional.map((b) => {
+        const d = describe(b);
+        const min = b.kind === 'activity' ? (b.payload as ActivityPayload).duration_min : null;
+        return { ...d, strength: b.kind === 'strength', note: min ? `${min} min` : null };
+      }));
       // "Pierna", "Pierna + Correr": lo entrenado hoy, para confirmarlo.
       const doneBits = [
         ...today.trainedGroups.map((g) => t(`mc_str_mg_${g}`, { defaultValue: g })),
@@ -186,6 +194,40 @@ export default function TodayCard({ profile, mode, onStart, onCreatePlan, onLogW
     </button>
   );
 
+  // ── Lo opcional, en segundo plano ──
+  //
+  // Un cardio de por la mañana "si tengo tiempo" o las opciones de un sábado
+  // estaban en la Agenda y en ningún otro sitio: desde el Resumen no se sabía
+  // que existían. Aquí se enseñan DEBAJO de la tarjeta, con borde discontinuo
+  // y sin rojo, y en cualquier estado: también el día de descanso, que es
+  // justo cuando más apetece un opcional. Tocar uno abre su registro.
+  const opcionales = opc.length > 0 && (
+    <div className="rounded-2xl" style={{ border: '1px dashed rgba(255,255,255,0.16)', padding: '12px 14px' }}>
+      <p className="rk-label mb-1.5">{t('mc_hoy_opt_label')}</p>
+      <div className="flex flex-col">
+        {opc.slice(0, 3).map((o, i) => (
+          <button key={i}
+            onClick={() => (o.strength ? onGoStrength() : onLogToday(o.actKind))}
+            className="rk-press flex items-center gap-2.5 text-left cursor-pointer rounded-lg -mx-1.5 px-1.5 hover:bg-white/[0.04] transition-colors"
+            style={{ minHeight: 44 }}>
+            <i className={`${o.icon} flex-shrink-0 text-base`} style={{ color: 'var(--t-2)' }} />
+            <span className="flex-1 min-w-0 text-sm font-semibold truncate" style={{ color: 'var(--t-1)' }}>{o.title}</span>
+            {o.note && <span className="text-xs flex-shrink-0" style={{ color: 'var(--t-3)' }}>{o.note}</span>}
+            <i className="ri-arrow-right-s-line flex-shrink-0" style={{ color: 'var(--t-3)' }} />
+          </button>
+        ))}
+        {opc.length > 3 && (
+          <button onClick={onStart} className="text-xs text-left cursor-pointer mt-1 hover:text-white transition-colors" style={{ color: 'var(--t-3)' }}>
+            {t('mc_hoy_opt_more', { n: opc.length - 3 })}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+  const con = (principal: React.ReactNode) => (opcionales
+    ? <div className="space-y-3">{principal}{opcionales}</div>
+    : principal);
+
   const fightDays = nextFight ? dayDelta(nextFight.event_date) : null;
 
   // ── Estado 1: combate próximo (PRO, ≤7 días) ──
@@ -193,7 +235,7 @@ export default function TodayCard({ profile, mode, onStart, onCreatePlan, onLogW
     const sub = nextWeighIn
       ? t('mc_hoy_fight_weighin', { date: new Date(nextWeighIn.event_date + 'T12:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'long' }) })
       : t('mc_hoy_fight_desc');
-    return (
+    return con(
       <PhotoCard
         primary
         image="/images/sparring.webp"
@@ -235,7 +277,7 @@ export default function TodayCard({ profile, mode, onStart, onCreatePlan, onLogW
       />
     );
 
-    return (
+    return con(
       <div className="space-y-4">
         {pendStr.length > 0 && card(
           pendStr[0], pendStr.length - 1, '/images/fuerza.webp',
@@ -251,7 +293,7 @@ export default function TodayCard({ profile, mode, onStart, onCreatePlan, onLogW
 
   // ── Estado 3: peso sin registrar (≥4 días) ──
   if (daysSinceWeight != null && daysSinceWeight >= 4) {
-    return (
+    return con(
       <PhotoCard
         primary
         art="weight"
@@ -270,7 +312,7 @@ export default function TodayCard({ profile, mode, onStart, onCreatePlan, onLogW
   // y pesarse es una acción; lo accionable manda en esta tarjeta. Sin botón
   // rojo: no hay nada que empezar.
   if (doneLabel) {
-    return (
+    return con(
       <PhotoCard
         primary
         image="/images/fuerza.webp"
@@ -296,7 +338,7 @@ export default function TodayCard({ profile, mode, onStart, onCreatePlan, onLogW
   // actividad. Aquí no hay tipo —no hay nada planificado—, así que se llama sin
   // argumentos.
   if (hasPlan) {
-    return (
+    return con(
       <PhotoCard
         primary
         art="agenda"
@@ -310,7 +352,7 @@ export default function TodayCard({ profile, mode, onStart, onCreatePlan, onLogW
   }
 
   // ── Estado 6: sin plan ──
-  return (
+  return con(
     <PhotoCard
       primary
       art="agenda"
