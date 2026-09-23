@@ -104,6 +104,10 @@ function resumir(kind: string, payload: Record<string, unknown> | null): string 
     if (a.distance_km) bits.push(`${a.distance_km} km`);
     if (a.rounds) bits.push(`${a.rounds} asaltos`);
     if (a.note) bits.push(String(a.note).slice(0, 120));
+    // Sin esta marca, las tres opciones de un sábado le llegaban al modelo
+    // como tres cardios fijos, y al pedirle "cámbiame el sábado" no tenía forma
+    // de saber que eran opciones y no obligaciones.
+    if ((p as { optional?: boolean }).optional) bits.push('OPCIONAL');
     return bits.join(' · ');
   }
   if (kind === 'meal') {

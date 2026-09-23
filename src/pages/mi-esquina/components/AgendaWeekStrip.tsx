@@ -50,8 +50,12 @@ export default function AgendaWeekStrip({ profile }: Props) {
   // misma tabla el plan y lo registrado (un entreno sin planificar entra ya
   // marcado como hecho): sin este filtro, acabar de entrenar hacía que la
   // sesión apareciera en "próximo".
+  //
+  // Tampoco lo opcional: son solo tres huecos, y tres cardios "por si acaso"
+  // de por la mañana los llenaban y tapaban lo que sí toca. Siguen viéndose al
+  // abrir su día, arriba.
   const upcoming = items
-    .filter((e) => !e.completed)
+    .filter((e) => !e.completed && !(e.payload as { optional?: boolean })?.optional)
     .sort((a, b) => a.plan_date.localeCompare(b.plan_date))
     .slice(0, 3);
   const dayLabel = (d: Date) => d.toLocaleDateString(locale, { weekday: 'narrow' }).toUpperCase();
