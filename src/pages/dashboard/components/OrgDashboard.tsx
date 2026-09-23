@@ -369,7 +369,7 @@ export default function OrgDashboard({ profile }: Props) {
 
           {/* ── OVERVIEW TAB ── */}
           {activeTab === 'overview' && (
-            <div className="space-y-6 max-w-4xl">
+            <div className="space-y-6 max-w-4xl xl:max-w-[1120px]">
               {/* Hero cinematográfico: identidad de la organización de un vistazo */}
               <div className="rk-card relative overflow-hidden anim-fade-up" style={{ padding: 0, transform: 'none' }}>
                 {/* Foto de fondo (Unsplash, licencia libre, uso comercial) + oscurecido para legibilidad */}
@@ -648,14 +648,14 @@ export default function OrgDashboard({ profile }: Props) {
 
           {/* ── OPPORTUNITIES TAB ── */}
           {activeTab === 'opportunities' && (
-            <div className="max-w-4xl">
+            <div className="max-w-4xl xl:max-w-[1120px]">
               <OrgOpportunities profile={profile} showToast={showToast} onDataChange={loadData} />
             </div>
           )}
 
           {/* ── APPLICANTS TAB ── */}
           {activeTab === 'applicants' && (
-            <div className="max-w-5xl">
+            <div className="max-w-5xl xl:max-w-[1120px]">
               <div className="mb-5">
                 <h2 className="rk-h3 text-white">{t('dash_org_applicants_title')}</h2>
                 <p className="text-zinc-400 text-sm mt-1">{t('dash_org_applicants_desc')}</p>
@@ -666,28 +666,28 @@ export default function OrgDashboard({ profile }: Props) {
 
           {/* ── FIGHTERS TAB ── */}
           {activeTab === 'fighters' && (
-            <div className="max-w-5xl">
+            <div className="max-w-5xl xl:max-w-[1120px]">
               <OrgFighterSearch showToast={showToast} onOpenMessages={() => setActiveTab('messages')} />
             </div>
           )}
 
           {/* ── GALLERY TAB (gym only) ── */}
           {activeTab === 'gallery' && isGym && (
-            <div className="max-w-5xl">
+            <div className="max-w-5xl xl:max-w-[1120px]">
               <GymGallery profile={profile} showToast={showToast} />
             </div>
           )}
 
           {/* ── EVENTS TAB (promoter only) ── */}
           {activeTab === 'events' && isPromoter && (
-            <div className="max-w-5xl">
+            <div className="max-w-5xl xl:max-w-[1120px]">
               <PromoterEvents profile={profile} showToast={showToast} />
             </div>
           )}
 
           {/* ── COACHES TAB (gym only) ── */}
           {activeTab === 'coaches' && isGym && (
-            <div className="max-w-5xl">
+            <div className="max-w-5xl xl:max-w-[1120px]">
               <GymCoaches profile={profile} showToast={showToast} />
             </div>
           )}
@@ -719,7 +719,7 @@ export default function OrgDashboard({ profile }: Props) {
 
           {/* ── PROFILE TAB ── */}
           {activeTab === 'profile' && (
-            <div className="max-w-4xl">
+            <div className="max-w-4xl xl:max-w-[1120px]">
               <div className="mb-6">
                 <h2 className="rk-h3 text-white">{t('dash_org_profile_title')}</h2>
                 <p className="text-zinc-400 text-sm mt-1">{t('dash_org_profile_desc')}</p>

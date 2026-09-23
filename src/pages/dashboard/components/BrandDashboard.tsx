@@ -331,7 +331,7 @@ export default function BrandDashboard({ profile }: Props) {
 
           {/* ── OVERVIEW ── */}
           {activeTab === 'overview' && (
-            <div className="space-y-6 max-w-5xl">
+            <div className="space-y-6 max-w-5xl xl:max-w-[1120px]">
               {/* Hero cinematográfico con acento oro (identidad de marca) */}
               <div className="rk-card relative overflow-hidden anim-fade-up" style={{ padding: 0, transform: 'none' }}>
                 {/* Foto de fondo (Unsplash, licencia libre, uso comercial) + oscurecido para legibilidad */}
@@ -561,21 +561,21 @@ export default function BrandDashboard({ profile }: Props) {
 
           {/* ── PRODUCTS ── */}
           {activeTab === 'products' && (
-            <div className="max-w-5xl">
+            <div className="max-w-5xl xl:max-w-[1120px]">
               <BrandProducts profile={profile} showToast={showToast} />
             </div>
           )}
 
           {/* ── SERVICES ── */}
           {activeTab === 'services' && (
-            <div className="max-w-5xl">
+            <div className="max-w-5xl xl:max-w-[1120px]">
               <BrandServices profile={profile} showToast={showToast} />
             </div>
           )}
 
           {/* ── METRICS ── */}
           {activeTab === 'metrics' && (
-            <div className="max-w-5xl">
+            <div className="max-w-5xl xl:max-w-[1120px]">
               <BrandMetrics profile={profile} />
             </div>
           )}
@@ -589,14 +589,14 @@ export default function BrandDashboard({ profile }: Props) {
 
           {/* ── EVENTS ── */}
           {activeTab === 'events' && (
-            <div className="max-w-5xl">
+            <div className="max-w-5xl xl:max-w-[1120px]">
               <BrandEventSearch showToast={showToast} />
             </div>
           )}
 
           {/* ── SPONSORSHIPS ── */}
           {activeTab === 'sponsorships' && (
-            <div className="max-w-4xl">
+            <div className="max-w-4xl xl:max-w-[1120px]">
               <div className="mb-5">
                 <h2 className="rk-h3 text-white">{t('dash_brand_sponsorships_title')}</h2>
                 <p className="text-zinc-400 text-sm mt-1">{t('dash_brand_sponsorships_desc')}</p>
@@ -632,7 +632,7 @@ export default function BrandDashboard({ profile }: Props) {
 
           {/* ── PROFILE ── */}
           {activeTab === 'profile' && (
-            <div className="max-w-4xl">
+            <div className="max-w-4xl xl:max-w-[1120px]">
               <div className="mb-6">
                 <h2 className="rk-h3 text-white">{t('dash_brand_profile_title')}</h2>
                 <p className="text-zinc-400 text-sm mt-1">{t('dash_brand_profile_desc')}</p>

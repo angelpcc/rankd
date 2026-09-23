@@ -364,7 +364,7 @@ export default function FighterDashboard({ profile }: Props) {
 
           {/* ══ OVERVIEW ══ */}
           {activeTab === 'overview' && (
-            <div className="space-y-6 max-w-4xl">
+            <div className="space-y-6 max-w-4xl xl:max-w-[1120px]">
               {/* Hero: lo primero que se ve al entrar. Foto grande, nombre y los
                   datos de un vistazo (disciplina, categoría, récord) sobre un
                   fondo cinematográfico con brillo rojo. Card primaria: 1 por
@@ -521,7 +521,7 @@ export default function FighterDashboard({ profile }: Props) {
 
           {/* ══ PROFILE ══ */}
           {activeTab === 'profile' && (
-            <div className="max-w-4xl">
+            <div className="max-w-4xl xl:max-w-[1120px]">
               {/* Header con avatar */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6 sm:mb-8">
                 <div className="flex items-center gap-4 w-full sm:w-auto">
@@ -729,7 +729,7 @@ export default function FighterDashboard({ profile }: Props) {
           )}
 
           {activeTab === 'videos' && (
-            <div className="space-y-6 max-w-5xl">
+            <div className="space-y-6 max-w-5xl xl:max-w-[1120px]">
               {!fighter && <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 text-sm text-yellow-400 flex items-center gap-2"><i className="ri-information-line"></i>{t('dash_video_save_first')}</div>}
               <div className="rk-card p-6">
                 <h2 className="text-base font-semibold text-white mb-4">{t('dash_video_add')}</h2>
@@ -771,7 +771,7 @@ export default function FighterDashboard({ profile }: Props) {
           )}
 
           {activeTab === 'achievements' && (
-            <div className="space-y-6 max-w-5xl">
+            <div className="space-y-6 max-w-5xl xl:max-w-[1120px]">
               {!fighter && <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 text-sm text-yellow-400 flex items-center gap-2"><i className="ri-information-line"></i>{t('dash_ach_save_first')}</div>}
               <div className="rk-card p-6">
                 <h2 className="text-base font-semibold text-white mb-4">{t('dash_ach_add')}</h2>
