@@ -6,6 +6,10 @@ import CountUp from '@/components/base/CountUp';
 //
 // No inventa datos: la racha viene ya calculada del Resumen y la franja horaria
 // sale del reloj del dispositivo.
+//
+// v4: encima, la fecha de hoy (el Resumen es "lo de hoy" y no decía qué día
+// era); la racha va en una pastilla, que se lee de un vistazo, en vez de en una
+// frase en letra estrecha.
 
 interface Props {
   name: string;
@@ -25,30 +29,37 @@ function slotOfDay(hour: number): 'night' | 'morning' | 'afternoon' | 'evening' 
 }
 
 export default function GreetingLine({ name, streak, totalSessions, isHobby }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
   const slot = slotOfDay(new Date().getHours());
+  const fecha = new Date().toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
-    <div className="rk-enter">
-      <h1 className="rk-screen-title" style={{ fontSize: 'clamp(24px,6vw,32px)' }}>
-        {t(`mc_greet_${slot}`, { name })}
-      </h1>
+    <div className="rk-enter flex items-end justify-between gap-4 flex-wrap">
+      <div className="min-w-0">
+        <p className="rk-label first-letter:uppercase" style={{ letterSpacing: '0.06em' }}>{fecha}</p>
+        <h1 className="rk-screen-title mt-1" style={{ fontSize: 'clamp(26px,5vw,34px)' }}>
+          {t(`mc_greet_${slot}`, { name })}
+        </h1>
+        {streak === 0 && (
+          <p className="mt-1.5 text-sm" style={{ color: 'var(--t-2)' }}>
+            {totalSessions === 0
+              ? t('mc_greet_first')
+              : isHobby ? t('mc_hb_consistency_desc') : t('mc_sum_sub_pro')}
+          </p>
+        )}
+      </div>
 
-      {streak > 0 ? (
-        <p className="mt-1.5 flex items-center gap-1.5 flex-wrap" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, color: 'var(--t-2)' }}>
+      {streak > 0 && (
+        <p className="inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm flex-shrink-0"
+          style={{ background: 'rgba(225,6,0,0.1)', border: '1px solid rgba(225,6,0,0.28)', color: 'var(--t-2)' }}>
           <i className="ri-fire-fill" style={{ color: 'var(--accent)' }} />
           <CountUp
             value={streak}
             duration={700}
-            style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, color: 'var(--t-1)', lineHeight: 1 }}
+            style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, color: '#fff', lineHeight: 1 }}
           />
-          {t(streak === 1 ? 'mc_greet_streak_one' : 'mc_greet_streak', { n: streak })}
-        </p>
-      ) : (
-        <p className="mt-1" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, color: 'var(--t-3)' }}>
-          {totalSessions === 0
-            ? t('mc_greet_first')
-            : isHobby ? t('mc_hb_consistency_desc') : t('mc_sum_sub_pro')}
+          <span className="font-medium">{t('mc_greet_pill', { count: streak })}</span>
         </p>
       )}
     </div>

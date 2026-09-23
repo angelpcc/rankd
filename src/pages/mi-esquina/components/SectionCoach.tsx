@@ -632,6 +632,17 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
     showToast?.(t('mc_ai_change_done', { n: commit.agendaItems }));
   }, [cambio, aplicando, profile.id, physical, historial, showToast, t, i18n.language]);
 
+  // La caja de texto crece con lo que se escribe, hasta su tope (maxHeight):
+  // una pregunta de tres líneas se ve entera sin hacer scroll dentro del campo.
+  // Aquí arriba y no más abajo: un hook detrás de un return rompe React.
+  const areaRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = areaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
+  }, [input]);
+
   if (checking) {
     return (
       <div className="rk-card flex items-center justify-center rk-ai-h">
@@ -666,50 +677,44 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
 
   return (
     <div className="rk-card overflow-hidden flex flex-col rk-ai-h">
-      {/* Cabecera */}
-      <div className="px-5 py-3.5 border-b border-white/[0.07] flex items-center gap-3 flex-shrink-0">
-        <div className={`w-10 h-10 flex items-center justify-center rounded-xl ${a.bg} border ${a.border} ${a.text}`}>
-          <i className="ri-sparkling-2-line text-lg"></i>
+      {/* Cabecera: quién habla, qué sabe de ti y empezar de cero. */}
+      <div className="px-4 sm:px-5 py-3 flex items-center gap-3 flex-shrink-0" style={{ borderBottom: '1px solid var(--line)' }}>
+        <div className="w-10 h-10 flex items-center justify-center rounded-xl rk-ai-avatar flex-shrink-0">
+          <i className="ri-sparkling-2-fill text-lg"></i>
         </div>
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-bold text-white truncate">{title}</h3>
-            <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${a.bg} ${a.text}`}>AUTO</span>
-          </div>
-          <p className="text-[11px] text-zinc-500 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full rk-alive" style={{ background: a.dot, color: a.dot }} /> {t('mc_ai_context')}
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm font-semibold text-white truncate">{title}</h3>
+          <p className="text-xs flex items-center gap-1.5 truncate" style={{ color: 'var(--t-3)' }}>
+            <span className="w-1.5 h-1.5 rounded-full rk-alive flex-shrink-0" style={{ background: '#4ade80', color: '#4ade80' }} /> {t('mc_ai_context')}
           </p>
         </div>
-      </div>
-
-      {messages.length > 0 && (
-        <div className="flex justify-end px-4 pt-2">
+        {messages.length > 0 && (
           <button onClick={() => { setMessages([]); clearChat(profile.id, section); }}
-            className="text-[11px] text-zinc-500 hover:text-zinc-300 cursor-pointer inline-flex items-center gap-1">
-            <i className="ri-refresh-line" />{t('mc_ai_new_chat')}
+            className="rk-nav-btn rk-press inline-flex items-center gap-1.5 text-xs flex-shrink-0" style={{ minHeight: 36, padding: '0 0.75rem' }}>
+            <i className="ri-add-line" /><span className="hidden sm:inline">{t('mc_ai_new_chat')}</span>
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Conversación */}
       <div className="rk-chat-wrap flex-1 min-h-0">
-      <div ref={scrollRef} className={`h-full overflow-y-auto px-4 py-4 space-y-3 ${messages.length > 0 ? 'rk-chat-abajo' : ''}`}>
+      <div ref={scrollRef} className={`h-full overflow-y-auto px-4 sm:px-6 py-5 space-y-5 ${messages.length > 0 ? 'rk-chat-abajo' : ''}`}>
         {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center px-2 anim-scale-in">
-            <div className={`w-14 h-14 flex items-center justify-center rounded-2xl ${a.bg} border ${a.border} ${a.text} mb-3 anim-float`}>
-              <i className="ri-chat-smile-3-line text-2xl"></i>
+          // Bienvenida: quién es, qué sabe y cuatro preguntas para empezar.
+          // En tarjetas y no en pastillas: son preguntas enteras, y en pastilla
+          // se partían en dos líneas y quedaban rotas.
+          <div className="h-full flex flex-col items-center justify-center text-center px-1 anim-scale-in">
+            <div className="w-14 h-14 flex items-center justify-center rounded-2xl rk-ai-avatar mb-4">
+              <i className="ri-sparkling-2-fill text-2xl"></i>
             </div>
-            <p className="text-sm text-zinc-300 font-medium max-w-xs">{intro}</p>
-            {/* Tarjetas, no pastillas. Son preguntas enteras: en pastilla se
-                parten en dos líneas y quedan rotas, y además el chat del plan
-                ya las enseña así — dos chats hermanos con la misma pantalla
-                vacía hecha de dos formas distintas se notan. */}
-            <div className="grid gap-1.5 mt-4 w-full max-w-sm mx-auto">
-              {suggestions.map((s) => (
+            <p className="text-xl sm:text-2xl font-bold text-white tracking-tight">{t('mc_ai_welcome')}</p>
+            <p className="text-sm mt-2 max-w-md leading-relaxed" style={{ color: 'var(--t-2)' }}>{intro}</p>
+            <div className="grid sm:grid-cols-2 gap-2 mt-6 w-full max-w-xl">
+              {suggestions.map((s, i) => (
                 <button key={s} onClick={() => send(s)} disabled={sending}
-                  className="rk-chip flex items-center gap-2.5 text-left text-xs text-zinc-300 bg-white/[0.04] border border-white/10 hover:border-white/25 hover:text-white hover:bg-white/[0.07] rounded-xl px-3 py-2.5 cursor-pointer disabled:opacity-50">
-                  <i className="ri-chat-1-line text-base flex-shrink-0" style={{ color: 'var(--accent)' }} />
-                  <span className="min-w-0">{s}</span>
+                  className="rk-chip rk-quick-tile !flex-row !items-center !gap-3 !p-3 disabled:opacity-50">
+                  <i className={`${['ri-restaurant-line', 'ri-boxing-line', 'ri-moon-line', 'ri-scales-2-line'][i % 4]} text-lg flex-shrink-0`} style={{ color: '#C4B5FD' }} />
+                  <span className="min-w-0 text-sm leading-snug" style={{ color: 'var(--t-1)' }}>{s}</span>
                 </button>
               ))}
             </div>
@@ -718,19 +723,19 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
           messages.map((m, i) => {
             const mio = m.role === 'user';
             // El avatar solo en el PRIMER mensaje de una tanda suya. Repetirlo en
-            // cada burbuja de una respuesta larga partida en trozos llena la
-            // columna de iconos y hace que parezca que habla mucha gente.
+            // cada trozo de una respuesta larga llena la columna de iconos y
+            // hace que parezca que habla mucha gente.
             const abre = !mio && (i === 0 || messages[i - 1].role === 'user');
             return (
-              <div key={i} className={`flex items-end gap-2 ${mio ? 'justify-end' : 'justify-start'} ${mio ? 'rk-msg-mine' : 'rk-msg-yours'}`}>
+              <div key={i} className={`flex items-start gap-3 ${mio ? 'justify-end' : 'justify-start'} ${mio ? 'rk-msg-mine' : 'rk-msg-yours'}`}>
                 {!mio && (
-                  <div className={`w-7 h-7 flex-shrink-0 rounded-lg flex items-center justify-center ${abre ? 'rk-ai-avatar' : 'opacity-0'}`}>
-                    <i className="ri-sparkling-2-line text-sm" />
+                  <div className={`w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center ${abre ? 'rk-ai-avatar' : 'opacity-0'}`}>
+                    <i className="ri-sparkling-2-fill text-sm" />
                   </div>
                 )}
-                <div className={`max-w-[85%] rk-ai-burbuja px-3.5 py-2.5 text-sm leading-relaxed ${mio
-                  ? 'rk-bubble-mine rounded-2xl rounded-br-md'
-                  : `rk-bubble-theirs text-zinc-200 rounded-2xl ${abre ? 'rounded-bl-md' : ''}`}`}>
+                <div className={`text-[15px] leading-relaxed ${mio
+                  ? 'max-w-[82%] rk-bubble-mine rounded-2xl rounded-tr-md px-4 py-2.5'
+                  : 'flex-1 min-w-0 rk-bubble-theirs pt-1'}`}>
                   {m.image && (
                     m.image.esPdf
                       ? <span className="flex items-center gap-2 mb-1.5 rounded-xl px-3 py-2" style={{ background: 'rgba(0,0,0,0.22)' }}>
@@ -743,7 +748,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
                   {m.role === 'assistant'
                     ? (searching && m.content === '' && i === messages.length - 1
                         ? <span className="flex items-center gap-2 text-zinc-400"><i className="ri-earth-line text-sky-400 animate-pulse"></i>{t('mc_ai_searching')}</span>
-                        : <div className="space-y-0.5">{renderRich(sinMarcadorCambio(m.content), t('mc_ai_video_watch'))}{streaming && i === messages.length - 1 && <span className="rk-caret" />}</div>)
+                        : <div className="space-y-1 rk-ai-burbuja">{renderRich(sinMarcadorCambio(m.content), t('mc_ai_video_watch'))}{streaming && i === messages.length - 1 && <span className="rk-caret" />}</div>)
                     : m.content}
                 </div>
               </div>
@@ -751,11 +756,11 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
           })
         )}
         {sending && !streaming && (
-          <div className="flex items-end gap-2 justify-start rk-msg-yours mt-3">
-            <div className="w-7 h-7 flex-shrink-0 rounded-lg flex items-center justify-center rk-ai-avatar">
-              <i className="ri-sparkling-2-line text-sm" />
+          <div className="flex items-start gap-3 justify-start rk-msg-yours">
+            <div className="w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center rk-ai-avatar">
+              <i className="ri-sparkling-2-fill text-sm" />
             </div>
-            <div className="rk-bubble-theirs rounded-2xl rounded-bl-md px-4 py-3 flex items-center gap-1.5">
+            <div className="pt-3 flex items-center gap-1.5">
               {[0, 1, 2].map((n) => <span key={n} className="w-1.5 h-1.5 rounded-full bg-zinc-400 animate-bounce" style={{ animationDelay: `${n * 0.15}s` }} />)}
             </div>
           </div>
@@ -765,7 +770,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
 
       {/* Cuota agotada o control de gasto sin configurar */}
       {quotaBlocked && (
-        <div className="px-3 pb-2 flex-shrink-0">
+        <div className="px-3 sm:px-4 pb-2 flex-shrink-0">
           <div className="flex items-start gap-2.5 rounded-xl bg-[#C9A84C]/10 border border-[#C9A84C]/35 px-3.5 py-3">
             <i className="ri-time-line text-[#C9A84C] mt-0.5 flex-shrink-0"></i>
             <div className="min-w-0">
@@ -779,7 +784,7 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
       {/* Aviso al acercarse al tope del mes */}
       {!quotaBlocked && quota && quota.quota > 0 &&
         (quota.used / quota.quota) * 100 >= quota.warnAtPct && quota.used < quota.quota && (
-        <div className="px-3 pb-2 flex-shrink-0">
+        <div className="px-3 sm:px-4 pb-2 flex-shrink-0">
           <div className="flex items-center gap-2 rounded-xl bg-white/[0.04] border border-white/12 px-3.5 py-2">
             <i className="ri-battery-low-line text-orange-400 flex-shrink-0"></i>
             <p className="text-[11px] text-zinc-300">{t('mc_ai_quota_warn', { n: Math.max(0, quota.quota - quota.used) })}</p>
@@ -794,22 +799,22 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
           Se apoya en el mismo motor del plan, así que el cambio entra con las
           mismas reglas: lo ya entrenado no se toca. */}
       {cambio && !quotaBlocked && (
-        <div className="px-3 pb-2 flex-shrink-0">
-          <div className="rounded-xl bg-white/[0.04] border border-white/12 px-3.5 py-2.5">
-            <p className="text-xs text-zinc-300 mb-2 flex items-start gap-1.5">
-              <i className="ri-calendar-check-line text-zinc-500 mt-0.5 flex-shrink-0" />
+        <div className="px-3 sm:px-4 pb-2 flex-shrink-0">
+          <div className="rounded-2xl px-3.5 py-3" style={{ background: 'rgba(167,139,250,0.07)', border: '1px solid rgba(167,139,250,0.28)' }}>
+            <p className="text-sm text-zinc-200 mb-2.5 flex items-start gap-2">
+              <i className="ri-calendar-check-line mt-0.5 flex-shrink-0" style={{ color: '#C4B5FD' }} />
               <span className="min-w-0">{cambio}</span>
             </p>
             <div className="flex gap-2">
               <button onClick={aplicarCambio} disabled={aplicando}
-                className="rk-btn rk-btn-primary flex-1 flex items-center justify-center gap-2 text-sm disabled:opacity-60"
-                style={{ minHeight: 42 }}>
+                className="rk-cta rk-press flex-1 flex items-center justify-center gap-2 text-sm disabled:opacity-60"
+                style={{ minHeight: 42, padding: '0 1rem' }}>
                 {aplicando
                   ? <><div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t('mc_ai_change_applying')}</>
                   : <><i className="ri-check-line" /> {t('mc_ai_change_apply')}</>}
               </button>
               <button onClick={() => setCambioDescartado(true)} disabled={aplicando}
-                className="px-3.5 rounded-lg border border-white/12 text-sm text-zinc-400 hover:text-white hover:border-white/30 cursor-pointer disabled:opacity-60">
+                className="rk-nav-btn rk-press text-sm disabled:opacity-60" style={{ minHeight: 42 }}>
                 {t('mc_ai_plan_no')}
               </button>
             </div>
@@ -820,27 +825,27 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
       {/* ¿Añadir el plan propuesto? Es opcional: la IA lo propone y el peleador
           decide. Nunca se añade sin que pulse "Sí". */}
       {showSaveBar && !quotaBlocked && (
-        <div className="px-3 pb-2 flex-shrink-0">
+        <div className="px-3 sm:px-4 pb-2 flex-shrink-0">
           {savedNote ? (
             <div className="flex items-center gap-2 rounded-xl bg-green-500/10 border border-green-500/30 px-3.5 py-2.5">
               <i className="ri-check-double-line text-green-400"></i>
               <span className="text-xs text-green-300 flex-1">{savedNote}</span>
             </div>
           ) : (
-            <div className="rounded-xl bg-white/[0.04] border border-white/12 px-3.5 py-2.5">
-              <p className="text-xs text-zinc-300 mb-2 flex items-center gap-1.5">
+            <div className="rounded-2xl px-3.5 py-3" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--line-2)' }}>
+              <p className="text-sm text-zinc-200 mb-2.5 flex items-center gap-2">
                 <i className={`ri-sparkling-line ${a.text}`}></i>
                 {section === 'training' ? t('mc_ai_plan_q_agenda') : t('mc_ai_plan_q_diary')}
               </p>
               <div className="flex gap-2">
                 <button onClick={savePlan} disabled={savingPlan}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-red-600 hover:bg-red-500 text-sm font-semibold text-white py-2 transition-colors cursor-pointer disabled:opacity-60">
+                  className="rk-cta rk-press flex-1 flex items-center justify-center gap-2 text-sm disabled:opacity-60" style={{ minHeight: 42, padding: '0 1rem' }}>
                   {savingPlan
                     ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {t('mc_ai_plan_adding')}</>
                     : <><i className={section === 'training' ? 'ri-calendar-todo-line' : 'ri-restaurant-line'}></i> {t('mc_ai_plan_yes')}</>}
                 </button>
                 <button onClick={() => setDismissedPlan(true)} disabled={savingPlan}
-                  className="px-3.5 rounded-lg border border-white/12 text-sm text-zinc-400 hover:text-white hover:border-white/30 transition-colors cursor-pointer disabled:opacity-60">
+                  className="rk-nav-btn rk-press text-sm disabled:opacity-60" style={{ minHeight: 42 }}>
                   {t('mc_ai_plan_no')}
                 </button>
               </div>
@@ -849,38 +854,38 @@ export default function SectionCoach({ section, profile, title, intro, suggestio
         </div>
       )}
 
-      {/* Entrada */}
-      <div className="p-3 border-t border-white/[0.07] flex-shrink-0">
-        {foto && <FotoPendiente foto={foto} onQuitar={() => setFoto(null)} />}
-        {/* Mismo criterio que en el chat de plan: el campo ocupa la fila entera
-            y las acciones van debajo. Aquí, además, faltaba poder dictar —
-            preguntar en voz alta es justo lo que se hace en un gimnasio— y el
-            campo estaba a 14px, que es lo que hace que el iPhone amplíe la app
-            al tocarlo. */}
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input); } }}
-          disabled={sending}
-          rows={2}
-          maxLength={2000}
-          className={`w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-4 py-2.5 focus:outline-none resize-none ${a.ring} disabled:opacity-60`}
-          style={{ fontSize: 16 }}
-          placeholder={t('mc_ai_input_ph')}
-        />
-        <div className="flex items-center justify-between gap-2 mt-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <PhotoAttach foto={foto} onFoto={setFoto} disabled={sending}
-              onError={(m) => showToast?.(m, 'error')} />
-            <VoiceButton onResult={(s) => setInput((p) => (p ? `${p} ${s}` : s))} />
+      {/* Entrada: una sola caja. El texto crece al escribir (hasta un tope) y
+          adjuntar, dictar y enviar van dentro. A 16px para que el iPhone no
+          amplíe la app al tocarla. Dictar sigue: preguntar en voz alta es
+          justo lo que se hace en un gimnasio. */}
+      <div className="px-3 sm:px-4 pt-2 pb-3 flex-shrink-0">
+        <div className="rk-composer">
+          {foto && <div className="px-3 pt-3"><FotoPendiente foto={foto} onQuitar={() => setFoto(null)} /></div>}
+          <textarea
+            ref={areaRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input); } }}
+            disabled={sending}
+            rows={1}
+            maxLength={2000}
+            className="w-full text-white px-4 pt-3 pb-1 disabled:opacity-60 block"
+            style={{ fontSize: 16, lineHeight: 1.5, maxHeight: 180 }}
+            placeholder={t('mc_ai_input_ph')}
+          />
+          <div className="flex items-center justify-between gap-2 px-2 pb-2">
+            <div className="flex items-center gap-1 min-w-0">
+              <PhotoAttach foto={foto} onFoto={setFoto} disabled={sending}
+                onError={(m) => showToast?.(m, 'error')} />
+              <VoiceButton onResult={(s) => setInput((p) => (p ? `${p} ${s}` : s))} />
+            </div>
+            <button onClick={() => send(input)} disabled={sending || (!input.trim() && !foto)}
+              aria-label={t('mc_ai_send_btn')} className="rk-send">
+              <i className="ri-arrow-up-line"></i>
+            </button>
           </div>
-          <button onClick={() => send(input)} disabled={sending || (!input.trim() && !foto)}
-            className="rk-btn rk-btn-primary flex items-center gap-2 justify-center flex-shrink-0 disabled:opacity-50"
-            style={{ minHeight: 46, padding: '0 1.1rem' }}>
-            <i className="ri-send-plane-2-fill"></i>{t('mc_ai_send_btn')}
-          </button>
         </div>
-        <p className="text-[10px] text-zinc-600 mt-2 text-center">{t('mc_ai_disclaimer')}</p>
+        <p className="text-[10px] mt-2 text-center" style={{ color: 'var(--t-3)' }}>{t('mc_ai_disclaimer')}</p>
       </div>
     </div>
   );

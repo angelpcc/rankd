@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;600;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;600;700;900&family=Inter:wght@400;500;600;700;800&family=Unbounded:wght@700;900&display=swap');
 @import url('https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css');
 
 /* RANKD Design System · única fuente de verdad de tokens.
@@ -14,7 +14,11 @@
 
 @layer base {
   html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-  body { background-color: #050505; color: white; font-family: 'Barlow Condensed', sans-serif; }
+  /* v4: el cuerpo en Inter. Barlow Condensed es una letra de titular: en
+     párrafos, listas y formularios apretaba todo y cansaba al leer. Queda
+     para etiquetas en mayúsculas (.rk-label, .rk-eyebrow) y Bebas para las
+     cifras y los titulares grandes. */
+  body { background-color: #09090B; color: white; font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; letter-spacing: -0.006em; text-rendering: optimizeLegibility; }
   select option { background-color: #111111; color: white; }
   ::-webkit-scrollbar { width: 5px; }
   ::-webkit-scrollbar-track { background: #050505; }
@@ -198,13 +202,17 @@ body::before {
 
   /* ── Sistema visual 2026-08 · superficies por capas, acento disciplinado ──
      El rojo se usa POCO y siempre en algo accionable; el oro solo en dato/logro. */
-  --s-0: #0A0A0B;   /* fondo de página */
-  --s-1: #141416;   /* card estándar */
-  --s-2: #1C1C1F;   /* card elevada / input */
-  --s-3: #26262A;   /* borde de elemento interactivo */
+  --s-0: #09090B;   /* fondo de página */
+  --s-1: #121215;   /* card estándar */
+  --s-2: #1A1A1E;   /* card elevada / input */
+  --s-3: #27272C;   /* borde de elemento interactivo */
+  /* v4 · líneas finas: separan sin pesar. */
+  --line: rgba(255,255,255,0.07);
+  --line-2: rgba(255,255,255,0.13);
+  --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 
   --t-1: rgba(255,255,255,0.95);  /* títulos y datos */
-  --t-2: rgba(255,255,255,0.62);  /* cuerpo */
+  --t-2: rgba(255,255,255,0.66);  /* cuerpo */
   --t-3: rgba(255,255,255,0.38);  /* metadata */
 
   --accent: #E10600;
@@ -212,8 +220,8 @@ body::before {
   --accent-glow: 0 0 24px rgba(225,6,0,0.28);
   --gold: #C9A84C;
 
-  --r-card: 20px;
-  --r-cta: 14px;
+  --r-card: 18px;
+  --r-cta: 12px;
   --r-pill: 999px;
 
   --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
@@ -230,8 +238,10 @@ body::before {
 }
 .rk-h1 { font-family: 'Bebas Neue', sans-serif; font-size: var(--fs-h1); line-height: 0.88; letter-spacing: -0.01em; text-transform: uppercase; }
 .rk-h2 { font-family: 'Bebas Neue', sans-serif; font-size: var(--fs-h2); line-height: 0.92; letter-spacing: 0.01em; text-transform: uppercase; }
-.rk-h3 { font-family: 'Bebas Neue', sans-serif; font-size: var(--fs-h3); line-height: 1; letter-spacing: 0.02em; text-transform: uppercase; }
-.rk-body { font-family: 'Barlow Condensed', sans-serif; font-size: var(--fs-body); line-height: 1.65; color: var(--rk-text-2); font-weight: 400; }
+/* v4: el título de bloque deja de gritar. En Bebas y mayúsculas, cada tarjeta
+   competía con el titular de la página; en Inter se lee como lo que es. */
+.rk-h3 { font-family: var(--font-ui); font-size: clamp(1.15rem, 1.9vw, 1.45rem); line-height: 1.2; letter-spacing: -0.02em; font-weight: 700; }
+.rk-body { font-family: var(--font-ui); font-size: clamp(0.95rem, 1.05vw, 1.05rem); line-height: 1.65; color: var(--rk-text-2); font-weight: 400; }
 .rk-eyebrow {
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 0.72rem; font-weight: 700;
@@ -258,19 +268,22 @@ body::before {
    Card plana sobre --s-1 con borde --s-3. Sin degradado de vidrio ni
    backdrop-filter (era lo que hacía que todas las cards se vieran iguales).
    Hover discreto: solo el borde. La sombra queda reservada a .card-primary. */
+/* v4: un velo de luz arriba y un filo interior. Separa la tarjeta del fondo
+   sin bordes gruesos: antes todas eran una caja gris con marco gris. */
 .rk-card {
-  background: var(--s-1);
-  border: 1px solid var(--s-3);
+  background: linear-gradient(180deg, rgba(255,255,255,0.028) 0%, rgba(255,255,255,0) 42%), var(--s-1);
+  border: 1px solid var(--line);
   border-radius: var(--r-card);
-  transition: border-color 0.3s ease;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.035), 0 1px 2px rgba(0,0,0,0.35);
+  transition: border-color 0.25s ease, background-color 0.25s ease;
 }
 .rk-card:hover {
-  border-color: rgba(255, 255, 255, 0.22);
+  border-color: var(--line-2);
 }
 /* --s-2 para inputs y cards anidadas dentro de otra card */
 .rk-surface-2 {
   background: var(--s-2);
-  border: 1px solid var(--s-3);
+  border: 1px solid var(--line);
   border-radius: var(--r-cta);
 }
 /* Utilidades de ritmo: 12px entre cards, 32px entre bloques distintos */
@@ -279,9 +292,10 @@ body::before {
 
 /* ── BOTONES ── */
 .rk-btn {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 1.15rem; letter-spacing: 0.16em;
-  padding: 1rem 2.3rem; border-radius: var(--r-cta);
+  font-family: var(--font-ui); font-weight: 600;
+  font-size: 0.95rem; letter-spacing: -0.01em;
+  padding: 0.9rem 1.6rem; border-radius: var(--r-cta);
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
   border: none; cursor: pointer;
   transition: transform 0.3s var(--ease-out), box-shadow 0.3s ease, background 0.3s ease;
   position: relative; overflow: hidden;
@@ -289,10 +303,10 @@ body::before {
 }
 .rk-btn-primary {
   color: #fff;
-  background: linear-gradient(135deg, var(--rk-red) 0%, var(--rk-red-deep) 100%);
-  box-shadow: 0 10px 40px rgba(225, 6, 0, 0.42);
+  background: linear-gradient(180deg, #F2160F 0%, #D10500 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 10px 28px -10px rgba(225, 6, 0, 0.75);
 }
-.rk-btn-primary:hover { transform: translateY(-4px); box-shadow: 0 20px 60px rgba(225, 6, 0, 0.6); }
+.rk-btn-primary:hover { transform: translateY(-2px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 16px 36px -12px rgba(225, 6, 0, 0.85); }
 .rk-btn-ghost {
   color: var(--rk-text-2);
   background: rgba(255, 255, 255, 0.045);
@@ -570,11 +584,11 @@ html, body {
   color: #ffffff;
 }
 .rk-title-card {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 1.125rem;     /* 18px */
-  line-height: 1.15;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 1.05rem;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
   color: #ffffff;
 }
 /* Número destacado en dato clave (peso, volumen, contador de días). Oro Rankd. */
@@ -587,14 +601,14 @@ html, body {
 }
 /* Body Barlow · 14px con contraste 75% */
 .rk-body-14 {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: var(--font-ui);
   font-size: 0.875rem;
   line-height: 1.55;
   color: rgba(255, 255, 255, 0.75);
 }
 /* Metadata (fechas, "hace 2 h"). Barlow · 12px al 45% */
 .rk-meta {
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: var(--font-ui);
   font-size: 0.75rem;
   line-height: 1.4;
   color: rgba(255, 255, 255, 0.45);
@@ -605,40 +619,47 @@ html, body {
    Navegación/tabs/cancelar (20px, pill, sin glow). No sustituye a
    .rk-btn-primary/ghost (v2, decorativos con letter-spacing amplio); están
    pensados para acciones dentro de formularios y controles funcionales. */
+/* v4: Inter semibold, sin mayúsculas forzadas y con relieve. En Bebas cada
+   botón gritaba lo mismo que un titular. */
 .rk-cta {
   border-radius: var(--r-cta);
-  background: var(--accent);
-  box-shadow: var(--accent-glow);
+  background: linear-gradient(180deg, #F2160F 0%, #D10500 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 8px 22px -10px rgba(225,6,0,0.8);
   color: #fff;
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 17px;
-  letter-spacing: 0.04em;
-  padding: 16px 24px;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  padding: 14px 22px;
   border: none;
   cursor: pointer;
   transition: transform 0.2s var(--ease-out), box-shadow 0.2s ease;
 }
 .rk-cta:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 0 30px rgba(225, 6, 0, 0.45);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), 0 12px 28px -10px rgba(225,6,0,0.9);
 }
 .rk-cta:disabled { opacity: 0.55; cursor: not-allowed; }
 
 /* Navegación / tabs / cancelar: pill, sin glow. Es lo que distingue
    "navegación" de "acción" (que va con radio --r-cta + glow). */
 .rk-nav-btn {
-  border-radius: var(--r-pill);
-  background: var(--s-2);
-  border: 1px solid var(--s-3);
-  color: var(--t-2);
-  font-family: 'Barlow Condensed', sans-serif;
-  padding: 10px 18px;
+  border-radius: var(--r-cta);
+  background: rgba(255,255,255,0.045);
+  border: 1px solid var(--line-2);
+  color: var(--t-1);
+  font-family: var(--font-ui);
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  padding: 10px 16px;
   cursor: pointer;
   transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
 }
 .rk-nav-btn:hover {
-  color: var(--t-1);
-  border-color: rgba(255, 255, 255, 0.28);
+  color: #fff;
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255, 255, 255, 0.22);
 }
 .rk-nav-btn.is-active {
   color: #fff;
@@ -648,11 +669,11 @@ html, body {
 
 /* ── Escala tipográfica — jerarquía explícita ── */
 .rk-screen-title {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(28px, 7vw, 40px);
-  line-height: 1;
-  letter-spacing: 0;
-  text-transform: uppercase;
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: clamp(24px, 5vw, 32px);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
   color: var(--t-1);
 }
 .rk-num { font-family: 'Bebas Neue', sans-serif; font-size: 32px; line-height: 1; color: var(--t-1); }
@@ -982,17 +1003,22 @@ input[type="datetime-local"]::-webkit-inner-spin-button {
 /* La burbuja propia: el rojo plano se veía apagado en una pantalla de móvil al
    sol. Un degradado corto y una sombra del mismo rojo le dan volumen sin
    convertirlo en un botón. */
+/* v4: la burbuja propia en un rojo apagado y con filo. En rojo saturado cada
+   mensaje tuyo pesaba más que la respuesta, que es lo que se viene a leer. */
 .rk-bubble-mine {
-  background: linear-gradient(145deg, #F01A14 0%, #C60500 100%);
-  box-shadow: 0 6px 18px -8px rgba(225, 6, 0, 0.75);
+  background: linear-gradient(180deg, rgba(225,6,0,0.24) 0%, rgba(225,6,0,0.16) 100%);
+  border: 1px solid rgba(255, 80, 70, 0.28);
   color: #fff;
 }
 /* La del asesor: un pelín más clara que la tarjeta y con el borde marcado, para
    que se despegue del fondo en vez de fundirse con él. */
+/* v4: la respuesta del asesor va SIN globo, a todo lo ancho, como en los
+   asistentes que se leen bien: una respuesta larga dentro de una caja al 85 %
+   era un bloque apretado que obligaba a hacer scroll para leer una lista. */
 .rk-bubble-theirs {
-  background: rgba(255, 255, 255, 0.055);
-  border: 1px solid rgba(255, 255, 255, 0.11);
-  box-shadow: 0 4px 14px -10px rgba(0, 0, 0, 0.9);
+  background: transparent;
+  border: 0;
+  color: rgba(255,255,255,0.88);
 }
 
 /* El cursor mientras escribe. Late en vez de encenderse y apagarse a saltos. */
@@ -1034,10 +1060,11 @@ input[type="datetime-local"]::-webkit-inner-spin-button {
    un fondo casi negro: a 28px no se veía: parecía un icono suelto flotando al
    margen del mensaje en vez de quien lo dice. Con más cuerpo y un aro marcado
    se lee, y al estar aquí los dos chats no pueden volver a separarse. */
+/* v4: violeta, el color del Asesor en el menú (lib/sectionTheme.ts). */
 .rk-ai-avatar {
-  background: rgba(225, 6, 0, 0.2);
-  border: 1px solid rgba(225, 6, 0, 0.5);
-  color: #ff5a55;
+  background: linear-gradient(135deg, rgba(167,139,250,0.3), rgba(124,58,237,0.22));
+  border: 1px solid rgba(167, 139, 250, 0.45);
+  color: #C4B5FD;
 }
 
 /* Borde superior de una conversación.
@@ -1184,3 +1211,161 @@ input[type="datetime-local"]::-webkit-inner-spin-button {
   z-index: 1;
   background: linear-gradient(to bottom, var(--s-1) 0%, transparent 100%);
 }
+
+/* ════════════════════════════════════════════════════════════════
+   v4 · Mi Esquina
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── Cabecera de sección (SectionHero) ──
+   Franja compacta: icono en el color de la sección, título y una línea, y la
+   foto como textura a la derecha. Sustituye al banner 21:7 de antes. */
+.rk-sec-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--r-card);
+  border: 1px solid var(--line);
+  background: var(--s-1);
+  padding: 16px 16px;
+}
+@media (min-width: 640px) { .rk-sec-hero { padding: 22px 24px; } }
+.rk-sec-hero-bg {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 38%;
+  background-size: cover;
+  background-position: center 35%;
+  opacity: 0.5;
+  -webkit-mask-image: linear-gradient(to left, #000 0%, rgba(0,0,0,0.55) 45%, transparent 100%);
+          mask-image: linear-gradient(to left, #000 0%, rgba(0,0,0,0.55) 45%, transparent 100%);
+  pointer-events: none;
+}
+.rk-sec-hero-bg[data-sin-foto] {
+  opacity: 1;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+.rk-sec-hero-glow { position: absolute; inset: 0; pointer-events: none; }
+.rk-sec-hero-icon {
+  width: 46px; height: 46px;
+  border-radius: 14px;
+  border: 1px solid;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+@media (min-width: 640px) { .rk-sec-hero-icon { width: 54px; height: 54px; font-size: 26px; border-radius: 16px; } }
+.rk-sec-hero-title {
+  font-family: var(--font-ui);
+  font-weight: 800;
+  font-size: clamp(21px, 2.8vw, 30px);
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  color: #fff;
+  margin-top: 1px;
+}
+.rk-sec-hero-sub { font-size: 14px; color: var(--t-2); margin-top: 3px; line-height: 1.45; max-width: 62ch; }
+
+/* ── Menú de Mi Esquina ──
+   Cada sección con su color (lib/sectionTheme.ts). La activa se marca con el
+   icono relleno de su color y una barra a la izquierda, no con un bloque rojo:
+   el rojo queda para el botón de registrar. */
+.rk-side-item {
+  position: relative;
+  display: flex; align-items: center; gap: 12px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 12px;
+  color: var(--t-2);
+  font-size: 14px; font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+.rk-side-item:hover { background: rgba(255,255,255,0.045); color: #fff; }
+.rk-side-item[aria-current="page"] { background: rgba(255,255,255,0.07); color: #fff; font-weight: 600; }
+.rk-side-item[aria-current="page"]::before {
+  content: '';
+  position: absolute; left: -12px; top: 10px; bottom: 10px;
+  width: 3px; border-radius: 0 3px 3px 0;
+  background: var(--sec);
+}
+.rk-side-icon {
+  width: 32px; height: 32px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px;
+  flex-shrink: 0;
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+/* Botón flotante de registrar (móvil). Encima de la barra de secciones. */
+.rk-fab {
+  position: fixed;
+  right: 16px;
+  z-index: 35;
+  width: 56px; height: 56px;
+  border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 26px;
+  background: linear-gradient(180deg, #F2160F 0%, #D10500 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 14px 30px -10px rgba(225,6,0,0.85), 0 4px 12px rgba(0,0,0,0.5);
+  cursor: pointer;
+  transition: transform 0.2s var(--ease-out);
+}
+.rk-fab:active { transform: scale(0.94); }
+
+/* Tarjeta del registro rápido */
+.rk-quick-tile {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.03);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.18s var(--ease-out);
+}
+.rk-quick-tile:hover { border-color: var(--line-2); background: rgba(255,255,255,0.055); }
+.rk-quick-tile:active { transform: scale(0.98); }
+
+/* ── Caja de escritura del chat (v4) ──
+   Una sola pieza: el texto crece al escribir y los botones van dentro. Antes
+   eran un campo de dos líneas y una fila de botones sueltos debajo. */
+.rk-composer {
+  border-radius: 18px;
+  background: var(--s-2);
+  border: 1px solid var(--line-2);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.rk-composer:focus-within {
+  border-color: rgba(167,139,250,0.55);
+  box-shadow: 0 0 0 3px rgba(167,139,250,0.12);
+}
+.rk-composer textarea { background: transparent; border: 0; outline: none; resize: none; }
+.rk-send {
+  width: 40px; height: 40px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 18px;
+  background: linear-gradient(180deg, #F2160F 0%, #D10500 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.22);
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.rk-send:disabled { opacity: 0.35; cursor: default; }
+.rk-send:not(:disabled):active { transform: scale(0.94); }
+
+/* Tarjetas de modo del Asesor (panel lateral en el ordenador) */
+.rk-mode {
+  display: flex; align-items: flex-start; gap: 12px;
+  width: 100%;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+.rk-mode:hover { background: rgba(255,255,255,0.04); }
+.rk-mode[aria-selected="true"] { background: rgba(167,139,250,0.08); border-color: rgba(167,139,250,0.3); }

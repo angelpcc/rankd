@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Profile } from '@/lib/supabase';
 import HubTabs, { HubTab } from '@/pages/mi-esquina/components/HubTabs';
+import { SECTION_COLOR } from '../lib/sectionTheme';
 import LastWorkedOn from '@/pages/mi-esquina/components/LastWorkedOn';
 import SparringLog from '@/pages/mi-esquina/components/SparringLog';
 import FightAnalysis from '@/pages/mi-esquina/components/FightAnalysis';
@@ -44,7 +45,7 @@ export default function RingHub({ profile, showToast, initialTab }: Props) {
       {/* Lo último que escribiste, antes de entrar a entrenar. Se oculta solo
           si todavía no hay sparrings ni notas. */}
       <LastWorkedOn profile={profile} onOpenNotes={() => setTab('notas')} />
-      <HubTabs tabs={TABS} active={tab} onChange={setTab} />
+      <HubTabs tabs={TABS} active={tab} onChange={setTab} color={SECTION_COLOR.ring} />
       {tab === 'sparring' && <SparringLog profile={profile} showToast={showToast} />}
       {tab === 'combates' && <FightAnalysis profile={profile} showToast={showToast} />}
       {tab === 'notas' && <TechniqueNotes profile={profile} showToast={showToast} />}

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Profile } from '@/lib/supabase';
 import HubTabs, { HubTab } from '@/pages/mi-esquina/components/HubTabs';
+import { SECTION_COLOR } from '../lib/sectionTheme';
 import WeeklyAgenda from '@/pages/mi-esquina/components/WeeklyAgenda';
 import PlanificarPanel from '@/pages/mi-esquina/components/PlanificarPanel';
 import AgendaWeekStrip from '@/pages/mi-esquina/components/AgendaWeekStrip';
@@ -54,7 +55,7 @@ export default function AgendaHub({ profile, showToast, mode, onLogged, initialT
           <Reveal delay={30}><AgendaWeekStrip profile={profile} /></Reveal>
         </>
       )}
-      <HubTabs tabs={TABS} active={tab} onChange={setTab} />
+      <HubTabs tabs={TABS} active={tab} onChange={setTab} color={SECTION_COLOR.agenda} />
       {tab === 'plan' && <TrainerPlanUpload profile={profile} showToast={showToast} />}
       {tab === 'plan' && (
         // `onLogged` también aquí, no solo en Planificar: marcar un bloque como

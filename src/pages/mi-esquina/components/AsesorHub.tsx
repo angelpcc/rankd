@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type Profile } from '@/lib/supabase';
 import HubTabs, { type HubTab } from './HubTabs';
+import { SECTION_COLOR, tinte } from '../lib/sectionTheme';
 import SectionHero from './SectionHero';
 import SectionCoach from './SectionCoach';
 import PlanChat from './PlanChat';
@@ -75,16 +76,8 @@ export default function AsesorHub({ profile, showToast, onGoPlan, onGoAgenda, in
 
   const isAsk = tab === 'consulta';
 
-  /**
-   * El subtítulo de la cabecera cambia con la pestaña.
-   *
-   * Una cabecera fija diciendo "Asesor" encima de tres herramientas distintas
-   * no dice nada; diciendo qué hace LA QUE TIENES ABIERTA, la cabecera deja de
-   * ser decoración y sustituye a los tres párrafos de texto que había debajo.
-   */
-  const subtitulo = tab === 'plan' ? t('mc_as_sub_plan')
-    : tab === 'boxeo' ? t('mc_as_sub_boxing')
-      : t('mc_as_ask_sub');
+  // v4: lo que hace cada modo ya lo dice su tarjeta (ver "Los tres modos"
+  // abajo); la cabecera dice qué es el Asesor en general.
 
   return (
     // 896 px en un monitor de 1500 dejan media pantalla vacia. Se ensancha
@@ -94,10 +87,34 @@ export default function AsesorHub({ profile, showToast, onGoPlan, onGoAgenda, in
       {/* Era la única sección de Mi Esquina sin cabecera con imagen: empezaba
           directamente en un cuadro de texto y, al lado de Fuerza o Actividad,
           parecía media pantalla sin terminar. */}
-      <SectionHero kind="advisor" eyebrow={t('mc_as_ask_eyebrow')}
-        title={t('mc_as_hero_title')} subtitle={subtitulo} />
+      <SectionHero kind="advisor"
+        title={t('mc_as_hero_title')} subtitle={t('mc_as_hero_general')} />
 
-      <HubTabs tabs={TABS} active={tab} onChange={setTab} />
+      {/* ── Los tres modos ──
+          v4: en el móvil, pestañas. Desde tableta, tres tarjetas en fila con
+          lo que hace cada uno: "Consulta", "Plan" y "Sesión" a secas no
+          decían en qué se diferenciaban, y había que abrirlas para saberlo. */}
+      <div className="sm:hidden">
+        <HubTabs tabs={TABS} active={tab} onChange={setTab} color={SECTION_COLOR.asesor} />
+      </div>
+      <div role="tablist" className="hidden sm:grid grid-cols-3 gap-2.5">
+        {TABS.map((m) => {
+          const on = tab === m.id;
+          const desc = m.id === 'plan' ? t('mc_as_sub_plan') : m.id === 'boxeo' ? t('mc_as_sub_boxing') : t('mc_as_ask_sub');
+          return (
+            <button key={m.id} role="tab" aria-selected={on} onClick={() => setTab(m.id)} className="rk-mode rk-press">
+              <span className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
+                style={{ background: on ? SECTION_COLOR.asesor : tinte(SECTION_COLOR.asesor, 0.12), color: on ? '#0A0A0B' : SECTION_COLOR.asesor }}>
+                <i className={m.icon} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-white">{t(m.labelKey)}</span>
+                <span className="block text-xs mt-0.5 leading-snug line-clamp-2" style={{ color: 'var(--t-3)' }}>{desc}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
       {/* ── CONSULTA ABIERTA ── */}
       <div className={isAsk ? 'space-y-4' : 'hidden'}>

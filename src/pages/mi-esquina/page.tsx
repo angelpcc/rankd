@@ -15,6 +15,7 @@ import FightPrep from '@/pages/mi-esquina/components/FightPrep';
 import ActivationSteps from '@/pages/mi-esquina/components/ActivationSteps';
 import AlertStack from '@/pages/mi-esquina/components/AlertStack';
 import GreetingLine from '@/pages/mi-esquina/components/GreetingLine';
+import DailyCheckin from '@/pages/mi-esquina/components/DailyCheckin';
 import CountUp from '@/components/base/CountUp';
 import AgendaHub from '@/pages/mi-esquina/components/AgendaHub';
 import WeightTracker from '@/pages/mi-esquina/components/WeightTracker';
@@ -26,10 +27,11 @@ import { GearReplacementAlert } from '@/pages/mi-esquina/components/GearChecklis
 import GymLink from '@/pages/mi-esquina/components/GymLink';
 import NutritionHub from '@/pages/mi-esquina/components/NutritionHub';
 import Reveal from '@/components/base/Reveal';
-import PageBreadcrumb from '@/components/base/PageBreadcrumb';
 import AdminJump from '@/components/feature/AdminJump';
 import NotificationBell from '@/components/feature/NotificationBell';
 import SettingsModal from '@/pages/mi-esquina/components/SettingsModal';
+import QuickLogSheet, { type QuickDestino } from '@/pages/mi-esquina/components/QuickLogSheet';
+import { SECTION_COLOR, tinte, type SectionId } from '@/pages/mi-esquina/lib/sectionTheme';
 
 // R12-T0: la barra lateral se reorganizó de 17/13 a 11/9 secciones fusionando
 // grupos que se solapaban. 'agenda' = calendario+diario+rutinas,
@@ -120,6 +122,8 @@ export default function MiEsquinaPage() {
   const [pendingKind, setPendingKind] = useState<string | undefined>(undefined);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  // Registro rápido (peso, agua, comida, fuerza, cardio…) sin buscar la sección.
+  const [registrarAbierto, setRegistrarAbierto] = useState(false);
   const [stats, setStats] = useState({
     total: 0, week: 0, weekMin: 0, todayLogged: false, streak: 0, lastWeekMin: 0,
     last7: [] as { key: string; min: number; today: boolean }[],
@@ -273,38 +277,53 @@ export default function MiEsquinaPage() {
     setSection(SECTION_ALIAS[s] ?? s);
   };
 
+  // Ir a una sección con el color que le toca (lib/sectionTheme.ts).
+  const colorDe = (id: Section) => SECTION_COLOR[id as SectionId] || SECTION_COLOR.resumen;
+  const irA = (s: SectionDef) => (s.id === 'timer' ? navigate('/mi-esquina/timer') : go(s.id));
+  // Desde el registro rápido, directo a la pantalla de registro de cada cosa.
+  const irDesdeRegistro = (d: QuickDestino) => {
+    if (d.s === 'timer') { navigate('/mi-esquina/timer'); return; }
+    if (d.s === 'nutricion') { go('nutricion', d.tab); return; }
+    if (d.s === 'fuerza') { go('fuerza', 'registrar', todayISO()); return; }
+    go('actividad', undefined, todayISO());
+  };
+  const inicial = (firstName || '?').trim().charAt(0).toUpperCase();
+
   return (
     <div className="min-h-screen text-white rk-screen-bg">
-      {/* Top bar propia */}
-      <div className="fixed top-0 left-0 w-full z-40 bg-zinc-950/95 backdrop-blur-sm border-b border-zinc-800 rk-safe-top">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          <button onClick={() => navigate(isHobby ? '/beta' : '/dashboard')} className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors cursor-pointer">
-            <i className="ri-arrow-left-line"></i>
-            <span className="hidden sm:inline">{isHobby ? t('mc_back_home') : t('mc_back_dashboard')}</span>
+      {/* ── Barra superior ──
+          v4: el logo y "Mi Esquina" a la izquierda, las acciones a la derecha.
+          Antes "Mi Esquina" iba centrado en mayúsculas y competía con el logo de
+          RANKD del otro lado: dos marcas en la misma barra. */}
+      <div className="fixed top-0 left-0 w-full z-40 rk-safe-top"
+        style={{ background: 'rgba(9,9,11,0.82)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderBottom: '1px solid var(--line)' }}>
+        <div className="max-w-[1400px] mx-auto px-3 sm:px-6 h-14 flex items-center gap-2.5">
+          <button onClick={() => navigate(isHobby ? '/beta' : '/dashboard')}
+            aria-label={isHobby ? t('mc_back_home') : t('mc_back_dashboard')}
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer">
+            <i className="ri-arrow-left-line text-lg"></i>
           </button>
-          <div className="flex items-center gap-2">
-            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 3 }} className="text-white">{t('mc_brand_my')}</span>
-            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 3 }} className="text-[#E10600]">{t('mc_brand_corner')}</span>
-            <span className={`hidden sm:inline text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${isHobby ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-[#C9A84C] bg-[#C9A84C]/10 border-[#C9A84C]/30'}`}>
-              {isHobby ? t('mc_mode_hobby') : t('mc_mode_pro')}
-            </span>
-          </div>
-          <div className="flex items-center gap-2.5">
+          <a href="/beta" className="flex items-center cursor-pointer" aria-label="RANKD">
+            <span className="font-unbounded font-black leading-none text-[15px] text-white" style={{ letterSpacing: '-0.04em' }}>RAN</span>
+            <span className="font-unbounded font-black leading-none text-[15px] text-[#E10600]" style={{ letterSpacing: '-0.04em' }}>KD</span>
+          </a>
+          <span aria-hidden className="w-px h-5" style={{ background: 'var(--line-2)' }} />
+          <span className="text-[15px] font-semibold text-white tracking-tight">{t('mc_here_root')}</span>
+          <span className={`hidden sm:inline text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${isHobby ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-[#C9A84C] bg-[#C9A84C]/10 border-[#C9A84C]/30'}`}>
+            {isHobby ? t('mc_mode_hobby') : t('mc_mode_pro')}
+          </span>
+          <div className="ml-auto flex items-center gap-2">
             {/* Solo lo ve el administrador: sin esto, entrar aquí le dejaba
                 sin ninguna forma de volver al panel. */}
             <AdminJump className="!w-9 !h-9" />
+            <NotificationBell userId={profile.id} reminders />
             <button
               onClick={() => setShowSettings(true)}
               aria-label={t('mc_set_title')}
-              className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/[0.05] border border-white/10 text-zinc-300 hover:text-white hover:border-white/25 transition-colors cursor-pointer"
+              className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/[0.04] border border-white/10 text-zinc-300 hover:text-white hover:border-white/25 transition-colors cursor-pointer"
             >
               <i className="ri-settings-3-line"></i>
             </button>
-            <NotificationBell userId={profile.id} reminders />
-            <a href="/beta" className="hidden sm:flex items-center gap-0 cursor-pointer">
-              <span className="font-unbounded font-black tracking-tighter leading-none text-[15px] text-white" style={{ letterSpacing: '-0.04em' }}>RAN</span>
-              <span className="font-unbounded font-black tracking-tighter leading-none text-[15px] text-[#E10600]" style={{ letterSpacing: '-0.04em' }}>KD</span>
-            </a>
           </div>
         </div>
       </div>
@@ -329,116 +348,129 @@ export default function MiEsquinaPage() {
         <SettingsModal profile={profile} showToast={showToast} onClose={() => setShowSettings(false)} />
       )}
 
+      <QuickLogSheet open={registrarAbierto} onClose={() => setRegistrarAbierto(false)}
+        profile={profile} showToast={showToast} onGo={irDesdeRegistro}
+        onLogged={() => setRefreshKey((k) => k + 1)} />
+
       <div className="flex min-h-screen max-w-[1400px] mx-auto" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
-        {/* Sidebar (escritorio) */}
-        <aside className="hidden lg:flex flex-col w-60 flex-shrink-0 border-r border-zinc-800/70 py-6 px-3 sticky h-[calc(100vh-3.5rem)] overflow-y-auto" style={{ top: 'calc(3.5rem + env(safe-area-inset-top, 0px))' }}>
-          {/* En escritorio hay sitio para poner el nombre del grupo encima de
-              cada bloque: se lee de un vistazo qué hay en cada sitio y no hace
-              falta esconder nada. */}
-          <nav className="flex-1">
+        {/* ── Menú lateral (escritorio) ──
+            v4: arriba quién eres y el botón de registrar, que es lo que más se
+            hace; debajo las secciones, cada una con su color. La activa se
+            marca con su color, no con un bloque rojo: el rojo queda para el
+            botón. */}
+        <aside className="hidden lg:flex flex-col w-[248px] flex-shrink-0 py-5 px-3 sticky h-[calc(100vh-3.5rem)] overflow-y-auto"
+          style={{ top: 'calc(3.5rem + env(safe-area-inset-top, 0px))', borderRight: '1px solid var(--line)' }}>
+          <div className="flex items-center gap-3 px-2 mb-4">
+            <span className="w-10 h-10 rounded-full flex items-center justify-center text-base font-bold text-white flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg, #E10600, #7a0300)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2)' }}>
+              {inicial}
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-white truncate">{profile.full_name || firstName}</p>
+              <p className="text-xs flex items-center gap-1" style={{ color: 'var(--t-3)' }}>
+                {stats.streak > 0
+                  ? <><i className="ri-fire-fill" style={{ color: 'var(--accent)' }} />{t('mc_side_streak', { count: stats.streak })}</>
+                  : (isHobby ? t('mc_mode_hobby') : t('mc_mode_pro'))}
+              </p>
+            </div>
+          </div>
+
+          <button onClick={() => setRegistrarAbierto(true)}
+            className="rk-cta rk-press w-full flex items-center justify-center gap-2 mb-5" style={{ minHeight: 44, padding: '0 1rem' }}>
+            <i className="ri-add-line text-lg" />{t('mc_ql_cta')}
+          </button>
+
+          <nav className="flex-1 space-y-5">
             {NAV_GROUPS.map((grp) => {
               const items = SECTIONS.filter((s) => s.group === grp.id);
               if (items.length === 0) return null;
               return (
-                <div key={grp.id} className="mb-4">
-                  <p className="rk-label px-3.5 mb-1.5">{t(grp.labelKey)}</p>
-                  <div className="space-y-1">
-                    {items.map((s) => (
-                      <button key={s.id} onClick={() => (s.id === 'timer' ? navigate('/mi-esquina/timer') : go(s.id))}
-                        aria-current={activeSection === s.id ? 'page' : undefined}
-                        className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium cursor-pointer text-left rk-press ${activeSection === s.id ? 'bg-red-600 text-white shadow-lg shadow-red-600/25' : 'text-zinc-400 hover:text-white hover:bg-zinc-800/70'}`}>
-                        <i className={`${s.icon} text-base flex-shrink-0`}></i>
-                        <span className="flex-1">{t(s.labelKey)}</span>
-                      </button>
-                    ))}
+                <div key={grp.id}>
+                  <p className="rk-label px-2.5 mb-1.5">{t(grp.labelKey)}</p>
+                  <div className="space-y-0.5">
+                    {items.map((s) => {
+                      const on = activeSection === s.id;
+                      const c = colorDe(s.id);
+                      return (
+                        <button key={s.id} onClick={() => irA(s)}
+                          aria-current={on ? 'page' : undefined}
+                          className="rk-side-item rk-press" style={{ ['--sec' as string]: c }}>
+                          <span className="rk-side-icon" style={{ background: on ? c : tinte(c, 0.12), color: on ? '#0A0A0B' : c }}>
+                            <i className={s.icon} />
+                          </span>
+                          <span className="flex-1">{t(s.labelKey)}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               );
             })}
           </nav>
-          <div className="mt-4 p-4 rounded-2xl bg-gradient-to-br from-zinc-900 to-zinc-950 border border-zinc-800">
-            <p className="text-xs font-bold text-white flex items-center gap-1.5"><i className="ri-fire-line text-orange-400"></i>{firstName}</p>
-            <p className="text-[11px] text-zinc-500 mt-1 leading-relaxed">{isHobby ? t('mc_hb_consistency_desc') : t('mc_sum_sub_pro')}</p>
-          </div>
         </aside>
 
-        {/* Tabs móvil — TODAS las secciones a la vista, en una tira que se
-            desliza. Se probó a dejar solo cuatro y meter el resto en una hoja
-            "Más" y el usuario lo rechazó: obligaba a un paso extra para llegar
-            a Peso, Fuerza o Nutrición. Los separadores agrupan (hoy · lo que
-            registras · herramientas) sin esconder nada. */}
+        {/* ── Secciones en el móvil ──
+            TODAS a la vista, en una tira que se desliza. Se probó a dejar solo
+            cuatro y meter el resto en una hoja "Más" y el usuario lo rechazó:
+            obligaba a un paso extra para llegar a Peso, Fuerza o Nutrición. Los
+            separadores agrupan (hoy · lo que registras · herramientas) sin
+            esconder nada. v4: cada una con el icono en su color. */}
         <div
           ref={mobileNavRef}
-          className="lg:hidden fixed left-0 right-0 z-30 bg-zinc-950/95 backdrop-blur border-t border-zinc-800 overflow-x-auto rk-noscroll-x"
+          className="lg:hidden fixed left-0 right-0 z-30 overflow-x-auto rk-noscroll-x"
           style={{
             bottom: 0, paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+            background: 'rgba(9,9,11,0.92)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
+            borderTop: '1px solid var(--line)',
             // Difuminado en el borde derecho: aviso de que la tira sigue. No
             // esconde nada (todo se alcanza deslizando), solo lo anuncia.
             WebkitMaskImage: 'linear-gradient(to right, #000 0, #000 calc(100% - 26px), transparent 100%)',
             maskImage: 'linear-gradient(to right, #000 0, #000 calc(100% - 26px), transparent 100%)',
           }}
         >
-          <div className="flex items-stretch px-2 py-1.5 gap-1 min-w-max">
+          <div className="flex items-stretch px-2 py-1.5 gap-0.5 min-w-max">
             {SECTIONS.map((s, i) => {
               const on = activeSection === s.id;
+              const c = colorDe(s.id);
               const newGroup = i > 0 && SECTIONS[i - 1].group !== s.group;
               return (
                 <div key={s.id} className="flex items-stretch">
-                  {newGroup && <span aria-hidden className="self-center mx-1.5" style={{ width: 1, height: 22, background: 'var(--s-3)' }} />}
-                  {/* La activa lleva PASTILLA, no una raya abajo.
-
-                      La raya de 2 px iba en el borde inferior de la barra, que
-                      en un iPhone es justo donde está la barra de inicio: casi
-                      no se veía, y para saber en qué sección estabas había que
-                      leer las etiquetas. Con el fondo y el icono en rojo se sabe
-                      de un vistazo, con el pulgar encima. */}
-                  <button onClick={() => (s.id === 'timer' ? navigate('/mi-esquina/timer') : go(s.id))}
+                  {newGroup && <span aria-hidden className="self-center mx-1" style={{ width: 1, height: 22, background: 'var(--line-2)' }} />}
+                  <button onClick={() => irA(s)}
                     aria-current={on ? 'page' : undefined}
-                    className="relative flex flex-col items-center justify-center gap-0.5 px-2.5 rounded-xl cursor-pointer rk-press rk-nav-tab"
-                    style={{
-                      minHeight: 48, minWidth: 60,
-                      color: on ? '#fff' : 'var(--t-3)',
-                      background: on ? 'rgba(225,6,0,0.14)' : 'transparent',
-                    }}>
-                    {on && <span aria-hidden className="rk-nav-tab-dot" />}
-                    <i className={`${s.icon} text-base`} style={{ color: on ? 'var(--accent)' : undefined }}></i>
-                    <span className={`text-[11px] whitespace-nowrap ${on ? 'font-bold' : 'font-semibold'}`}>{t(s.labelKey)}</span>
+                    className="relative flex flex-col items-center justify-center gap-1 px-2 rounded-xl cursor-pointer rk-press"
+                    style={{ minHeight: 54, minWidth: 62, color: on ? '#fff' : 'var(--t-3)' }}>
+                    <span className="w-8 h-7 rounded-lg flex items-center justify-center text-[17px] transition-colors"
+                      style={{ background: on ? c : 'transparent', color: on ? '#0A0A0B' : c }}>
+                      <i className={s.icon} />
+                    </span>
+                    <span className={`text-[11px] whitespace-nowrap leading-none ${on ? 'font-semibold' : 'font-medium'}`}>{t(s.labelKey)}</span>
                   </button>
                 </div>
               );
             })}
-            {/* Acción rápida al final: registrar lo de hoy sin buscar la sección */}
-            <span aria-hidden className="self-center mx-1.5" style={{ width: 1, height: 22, background: 'var(--s-3)' }} />
-            <button onClick={() => go('actividad', undefined, todayISO())}
-              className="flex flex-col items-center justify-center gap-0.5 px-2.5 rounded-lg cursor-pointer rk-press"
-              style={{ minHeight: 44, minWidth: 58, color: 'var(--accent)' }}>
-              <i className="ri-add-circle-fill text-base"></i>
-              <span className="text-[11px] font-bold whitespace-nowrap">{t('mc_act_s3_cta')}</span>
-            </button>
+            {/* Hueco para que la última sección no quede debajo del botón flotante */}
+            <span aria-hidden style={{ width: 64 }} />
           </div>
         </div>
+
+        {/* Registrar, flotando encima de la tira en el móvil. */}
+        <button onClick={() => setRegistrarAbierto(true)} aria-label={t('mc_ql_title')}
+          className="rk-fab lg:hidden" style={{ bottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}>
+          <i className="ri-add-line" />
+        </button>
 
         {/* Main */}
         {/* key = sección: React remonta el contenido y la animación de entrada
             se reproduce en cada cambio, dando sensación de navegación real */}
         {/* La barra de secciones vive ABAJO en móvil: el hueco se reserva con
-            padding inferior (altura de la barra + margen seguro del móvil), no
-            arriba. En escritorio manda la barra lateral y no hace falta. */}
+            padding inferior (altura de la barra, el botón flotante y el margen
+            seguro del móvil). En escritorio manda la barra lateral. */}
         <main
           key={activeSection}
-          className="rk-section-in flex-1 px-4 sm:px-6 lg:px-10 py-8 min-w-0"
-          style={{ paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}
+          className="rk-section-in flex-1 px-4 sm:px-6 lg:px-10 py-6 lg:py-8 min-w-0"
+          style={{ paddingBottom: 'calc(8.5rem + env(safe-area-inset-bottom, 0px))' }}
         >
-
-          {/* Migas de pan: dónde estoy dentro de Mi Esquina y cómo volver al
-              resumen (bloque 4). En el propio resumen no hace falta. */}
-          {activeSection !== 'resumen' && (
-            <PageBreadcrumb
-              root={t('mc_here_root')}
-              section={t(SECTIONS.find((s) => s.id === activeSection)?.labelKey || (activeSection === 'compartir' ? 'mc_nav_share' : 'mc_nav_summary'))}
-              onRoot={() => go('resumen')}
-            />
-          )}
 
           {/* ══════════ RESUMEN ══════════ */}
           {activeSection === 'resumen' && (
@@ -487,16 +519,7 @@ export default function MiEsquinaPage() {
                 <div className="rk-card" style={{ padding: 18 }}>
                   <WeekStrip activeDates={stats.weekActiveDates} done={stats.week} total={4}
                     onDayClick={() => go('agenda', 'plan')} />
-                  {stats.streak > 0 && (
-                    <div className="flex items-center gap-2" style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--s-3)' }}>
-                      <i className="ri-fire-fill" style={{ color: 'var(--accent)', fontSize: 18 }} />
-                      <CountUp value={stats.streak} duration={700} delay={200}
-                        style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, color: 'var(--t-1)', lineHeight: 1 }} />
-                      <span style={{ fontSize: 13, color: 'var(--t-2)' }}>
-                        {t(stats.streak === 1 ? 'mc_streak_line_one' : 'mc_streak_line', { n: stats.streak })}
-                      </span>
-                    </div>
-                  )}
+                  {/* v4: la racha ya va en el saludo y en el menú; aquí se repetía. */}
                 </div>
               </Reveal>
 
@@ -525,6 +548,12 @@ export default function MiEsquinaPage() {
               {/* Plan activo */}
               <Reveal delay={200}>
                 <SummaryAiLine profile={profile} onOpen={() => go('asesor', 'plan')} />
+              </Reveal>
+
+              {/* ¿Cómo llegas hoy? Energía, agujetas y sueño. El asesor lo lee para
+                  ajustar la carga, y hasta ahora no había dónde escribirlo. */}
+              <Reveal delay={220}>
+                <DailyCheckin profile={profile} showToast={showToast} />
               </Reveal>
 
               {/* Próxima pelea (PRO; el componente devuelve null si no hay combate) */}
@@ -612,7 +641,7 @@ export default function MiEsquinaPage() {
           {/* ══ NUTRICIÓN ══ — resumen (nivel 1) → pantalla de trabajo (nivel 2) */}
           {activeSection === 'nutricion' && (
             <NutritionHub profile={profile} showToast={showToast} isHobby={isHobby}
-              onGoWeight={() => go('peso')} />
+              onGoWeight={() => go('peso')} initialTab={pendingTab} />
           )}
         </main>
       </div>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type Profile } from '@/lib/supabase';
 import HubTabs, { type HubTab } from './HubTabs';
+import { SECTION_COLOR } from '../lib/sectionTheme';
 import StrengthSummary from './StrengthSummary';
 import StrengthLog from './StrengthLog';
 import StrengthProgram from './StrengthProgram';
@@ -94,7 +95,7 @@ export default function FuerzaSection({ profile, showToast, onGoAsesor, onLogged
         <i className="ri-arrow-left-line" />{t('mc_str_back_summary')}
       </button>
 
-      <HubTabs tabs={WORK_TABS} active={tab} onChange={setTab} />
+      <HubTabs tabs={WORK_TABS} active={tab} onChange={setTab} color={SECTION_COLOR.fuerza} />
 
       {tab === 'registrar' && (
         <>

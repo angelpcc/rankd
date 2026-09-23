@@ -6,6 +6,7 @@ import { SkeletonBox } from '@/components/base/Skeleton';
 import { type StrengthPayload, type ActivityPayload, activityKindCfg, exerciseLines, KIND_META, strengthTitle } from '../lib/dayPlan';
 import { leerUnidad } from '@/lib/units';
 import { loadTodayTraining, type PlannedEntry } from '../lib/todayTraining';
+import { tinte } from '../lib/sectionTheme';
 
 // "Tu siguiente acción" — el elemento PRINCIPAL del Resumen y el ÚNICO CTA rojo
 // de la pantalla. Es una PhotoCard (fondo a sangre + degradado + texto) cuyo
@@ -252,40 +253,62 @@ export default function TodayCard({ profile, mode, onStart, onCreatePlan, onLogW
   // otro caso no hay tarjeta de entreno: ni "ya entrenaste", ni sugerencia, ni
   // sustituto. Se cae a los estados que no hablan de entrenar (peso) o a nada.
   //
-  // Fuerza y Actividad son DOS tarjetas separadas y cada una lleva a SU
-  // sección, no a la Agenda: el usuario que ve "hoy toca correr" quiere el
-  // formulario de actividad, no un calendario.
+  // Cada entreno lleva a SU sección, no a la Agenda: el usuario que ve "hoy
+  // toca correr" quiere el formulario de actividad, no un calendario.
+  //
+  // ── v4: UNA TARJETA, UNA FILA POR ENTRENO ──
+  //
+  // Eran dos fotos a sangre apiladas (fuerza y actividad), cada una con su botón
+  // rojo: en el móvil llenaban la pantalla entera y había dos acciones
+  // principales compitiendo. Ahora la foto es del primero y el resto de lo que
+  // toca hoy va debajo, en filas, cada una con su botón.
+  //
+  // Por qué no vuelve el problema de antes ("al terminar la actividad aparecía
+  // Pierna"): aquello pasaba porque solo se VEÍA uno y el resto iba escondido
+  // en un "+N". Aquí se ve todo desde el principio; al resolver uno, los demás
+  // ya estaban a la vista.
   if (pendStr.length > 0 || pendAct.length > 0) {
-    /** Una tarjeta de pendiente. `extra` es el "+N" DENTRO de su propio tipo. */
-    const card = (
-      x: TrainToday, extra: number, image: string,
-      chipKey: string, ctaKey: string, onGo: () => void,
-    ) => (
-      <PhotoCard
-        primary
-        image={image}
-        icon={x.icon}
-        chips={<>
-          {pill(t(chipKey))}
-          {extra > 0 && pill(`+${extra}`, 'ghost')}
-        </>}
-        title={x.title.toUpperCase()}
-        subtitle={x.note || t('mc_hoy_pending_desc')}
-        footer={cta(t(ctaKey), 'ri-play-fill', onGo)}
-      />
-    );
+    const items = [
+      ...pendStr.map((x) => ({ ...x, tipo: 'str' as const, go: onGoStrength })),
+      ...pendAct.map((x) => ({ ...x, tipo: 'act' as const, go: () => onLogToday(x.actKind) })),
+    ];
+    const [hero, ...resto] = items;
+    const colorTipo = (tipo: 'str' | 'act') => (tipo === 'str' ? KIND_META.strength.hex : KIND_META.activity.hex);
 
     return con(
-      <div className="space-y-4">
-        {pendStr.length > 0 && card(
-          pendStr[0], pendStr.length - 1, '/images/fuerza.webp',
-          'mc_hoy_p_str', 'mc_hoy_p_cta_str', onGoStrength,
+      <PhotoCard
+        primary
+        image={hero.tipo === 'str' ? '/images/fuerza.webp' : '/images/correr.webp'}
+        icon={hero.icon}
+        chips={<>
+          {pill(t(hero.tipo === 'str' ? 'mc_hoy_p_str' : 'mc_hoy_p_act'))}
+          {resto.length > 0 && pill(t('mc_hoy_more_today', { count: resto.length }), 'ghost')}
+        </>}
+        title={hero.title.toUpperCase()}
+        subtitle={hero.note || t('mc_hoy_pending_desc')}
+        footer={(
+          <div className="space-y-2.5">
+            {cta(t(hero.tipo === 'str' ? 'mc_hoy_p_cta_str' : 'mc_hoy_p_cta_act'), 'ri-play-fill', hero.go)}
+            {resto.map((x, i) => (
+              <button key={i} onClick={x.go}
+                className="rk-press w-full flex items-center gap-3 text-left rounded-xl px-3 py-2.5 cursor-pointer transition-colors"
+                style={{ background: 'rgba(10,10,11,0.62)', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', minHeight: 52 }}>
+                <span className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: tinte(colorTipo(x.tipo), 0.16), color: colorTipo(x.tipo) }}>
+                  <i className={x.icon} />
+                </span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-sm font-semibold text-white truncate">{x.title}</span>
+                  <span className="block text-xs truncate" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                    {t(x.tipo === 'str' ? 'mc_hoy_p_str' : 'mc_hoy_p_act')}{x.note ? ` · ${x.note}` : ''}
+                  </span>
+                </span>
+                <i className="ri-play-circle-line text-xl flex-shrink-0" style={{ color: 'rgba(255,255,255,0.75)' }} />
+              </button>
+            ))}
+          </div>
         )}
-        {pendAct.length > 0 && card(
-          pendAct[0], pendAct.length - 1, '/images/correr.webp',
-          'mc_hoy_p_act', 'mc_hoy_p_cta_act', () => onLogToday(pendAct[0].actKind),
-        )}
-      </div>
+      />,
     );
   }
 

@@ -15,8 +15,13 @@ export default {
         },
       },
       fontFamily: {
+        // v4: Inter para leer, Bebas para cifras y titulares, Barlow Condensed
+        // para etiquetas en mayúsculas, Unbounded solo para el logotipo.
+        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
         unbounded: ['Unbounded', 'sans-serif'],
         inter: ['Inter', 'sans-serif'],
+        display: ['"Bebas Neue"', 'sans-serif'],
+        label: ['"Barlow Condensed"', 'sans-serif'],
       },
     },
   },

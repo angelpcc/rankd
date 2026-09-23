@@ -109,6 +109,14 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
   const [aiOk, setAiOk] = useState<boolean | null>(null);
   const [fighter, setFighter] = useState<Record<string, unknown>>({});
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  // La caja de texto crece con lo que se escribe, hasta su tope (maxHeight).
+  const areaRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = areaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
+  }, [texto]);
 
   const weekStart = useMemo(() => currentWeekStart(), []);
   const today = useMemo(() => {
@@ -363,14 +371,14 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
             No la tenía: el chat empezaba en un cuadro de texto suelto y no se
             sabía con qué estabas hablando. La misma que Consulta a propósito —
             son dos conversaciones de lo mismo y tienen que parecerlo. */}
-        <div className="px-4 py-3 border-b border-white/[0.07] flex items-center gap-3 flex-shrink-0">
+        <div className="px-4 sm:px-5 py-3 flex items-center gap-3 flex-shrink-0" style={{ borderBottom: '1px solid var(--line)' }}>
           <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-xl rk-ai-avatar">
             <i className="ri-calendar-todo-line text-lg" />
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-bold text-white truncate">{t('mc_pc_head_title')}</h3>
-            <p className="text-[11px] text-zinc-500 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full rk-alive" style={{ background: '#E10600', color: '#E10600' }} />
+            <h3 className="text-sm font-semibold text-white truncate">{t('mc_pc_head_title')}</h3>
+            <p className="text-xs flex items-center gap-1.5 truncate" style={{ color: 'var(--t-3)' }}>
+              <span className="w-1.5 h-1.5 rounded-full rk-alive flex-shrink-0" style={{ background: '#4ade80', color: '#4ade80' }} />
               {t('mc_pc_head_sub')}
             </p>
           </div>
@@ -401,25 +409,26 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
         </div>
 
         <div className="rk-chat-wrap flex-1 min-h-0">
-        <div ref={scrollRef} className={`h-full overflow-y-auto space-y-3 px-4 py-4 ${turnos.length > 0 ? 'rk-chat-abajo' : ''}`}>
+        <div ref={scrollRef} className={`h-full overflow-y-auto space-y-5 px-4 sm:px-6 py-5 ${turnos.length > 0 ? 'rk-chat-abajo' : ''}`}>
           {turnos.length === 0 && (
             <div className="py-6 text-center anim-scale-in">
-              <div className="w-14 h-14 mx-auto mb-3 flex items-center justify-center rounded-2xl anim-float rk-ai-avatar">
-                <i className="ri-chat-voice-line text-2xl" />
+              <div className="w-14 h-14 mx-auto mb-4 flex items-center justify-center rounded-2xl rk-ai-avatar">
+                <i className="ri-calendar-todo-line text-2xl" />
               </div>
-              <p className="text-sm text-zinc-300 leading-relaxed max-w-sm mx-auto">{t('mc_pc_intro')}</p>
+              <p className="text-xl sm:text-2xl font-bold text-white tracking-tight">{t('mc_pc_welcome')}</p>
+              <p className="text-sm mt-2 leading-relaxed max-w-md mx-auto" style={{ color: 'var(--t-2)' }}>{t('mc_pc_intro')}</p>
               {/* Las sugerencias como tarjetas y no como pastillas: son frases
                   largas, y en pastilla se parten en dos líneas y quedan rotas. */}
-              <div className="grid gap-1.5 mt-4 max-w-sm mx-auto">
+              <div className="grid gap-2 mt-6 max-w-md mx-auto">
                 {[
                   { icon: 'ri-focus-3-line', s: t('mc_pc_sug_1') },
                   { icon: 'ri-sun-line', s: t('mc_pc_sug_2') },
                   { icon: 'ri-fire-line', s: t('mc_pc_sug_3') },
                 ].map(({ icon, s }) => (
                   <button key={s} onClick={() => enviar(s)} disabled={enviando || sinIA}
-                    className="rk-chip flex items-center gap-2.5 text-left text-xs text-zinc-300 bg-white/[0.04] border border-white/10 hover:border-white/25 hover:text-white hover:bg-white/[0.07] rounded-xl px-3 py-2.5 cursor-pointer disabled:opacity-50">
-                    <i className={`${icon} text-base flex-shrink-0`} style={{ color: 'var(--accent)' }} />
-                    <span className="min-w-0">{s}</span>
+                    className="rk-chip rk-quick-tile !flex-row !items-center !gap-3 !p-3 disabled:opacity-50">
+                    <i className={`${icon} text-lg flex-shrink-0`} style={{ color: '#C4B5FD' }} />
+                    <span className="min-w-0 text-sm leading-snug" style={{ color: 'var(--t-1)' }}>{s}</span>
                   </button>
                 ))}
               </div>
@@ -433,15 +442,16 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
             const abre = !mio && (i === 0 || turnos[i - 1].role === 'user');
             return (
             <div key={i}>
-              <div className={`flex items-end gap-2 ${mio ? 'justify-end' : 'justify-start'} ${mio ? 'rk-msg-mine' : 'rk-msg-yours'}`}>
+              <div className={`flex items-start gap-3 ${mio ? 'justify-end' : 'justify-start'} ${mio ? 'rk-msg-mine' : 'rk-msg-yours'}`}>
                 {!mio && (
-                  <div className={`w-7 h-7 flex-shrink-0 rounded-lg flex items-center justify-center ${abre ? 'rk-ai-avatar' : 'opacity-0'}`}>
-                    <i className="ri-sparkling-2-line text-sm" />
+                  <div className={`w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center ${abre ? 'rk-ai-avatar' : 'opacity-0'}`}>
+                    <i className="ri-sparkling-2-fill text-sm" />
                   </div>
                 )}
-                <div className={`max-w-[85%] rk-ai-burbuja px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${mio
-                  ? 'rk-bubble-mine rounded-2xl rounded-br-md'
-                  : `rk-bubble-theirs text-zinc-200 rounded-2xl ${abre ? 'rounded-bl-md' : ''}`}`}>
+                {/* v4: la respuesta, sin globo y a todo lo ancho (ver .rk-bubble-theirs). */}
+                <div className={`text-[15px] leading-relaxed whitespace-pre-wrap ${mio
+                  ? 'max-w-[82%] rk-bubble-mine rounded-2xl rounded-tr-md px-4 py-2.5'
+                  : 'flex-1 min-w-0 rk-ai-burbuja rk-bubble-theirs pt-1'}`}>
                   {x.image && (
                     x.image.esPdf
                       ? <span className="flex items-center gap-2 mb-1.5 rounded-xl px-3 py-2" style={{ background: 'rgba(0,0,0,0.22)' }}>
@@ -465,11 +475,11 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
           })}
 
           {enviando && (
-            <div className="flex items-end gap-2 justify-start rk-msg-yours">
-              <div className="w-7 h-7 flex-shrink-0 rounded-lg flex items-center justify-center rk-ai-avatar">
-                <i className="ri-sparkling-2-line text-sm" />
+            <div className="flex items-start gap-3 justify-start rk-msg-yours">
+              <div className="w-8 h-8 flex-shrink-0 rounded-lg flex items-center justify-center rk-ai-avatar">
+                <i className="ri-sparkling-2-fill text-sm" />
               </div>
-              <div className="rk-bubble-theirs rounded-2xl rounded-bl-md px-3.5 py-2.5 flex items-center gap-2">
+              <div className="pt-2 flex items-center gap-2">
                 <div className="w-3.5 h-3.5 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
                 <span className="text-xs text-zinc-400">{t('mc_pc_thinking')}</span>
               </div>
@@ -487,24 +497,26 @@ export default function PlanChat({ profile, showToast, onGoAgenda }: Props) {
             él solo, puede crecer sin empujar nada.
             fontSize 16 no es un capricho de diseño: por debajo de 16px, Safari
             de iPhone AMPLÍA la página entera al tocar el campo. */}
-        <div className="px-4 pb-4 pt-3 flex-shrink-0" style={{ borderTop: '1px solid var(--s-3)' }}>
-          {foto && <FotoPendiente foto={foto} onQuitar={() => setFoto(null)} />}
-          <textarea value={texto} onChange={(e) => setTexto(e.target.value)} rows={2} maxLength={2000}
-            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar(); } }}
-            placeholder={t('mc_pc_ph')} disabled={sinIA}
-            className="w-full bg-white/[0.04] border border-white/10 text-white rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-red-500 resize-none disabled:opacity-50"
-            style={{ fontSize: 16 }} />
-          <div className="flex items-center justify-between gap-2 mt-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <PhotoAttach foto={foto} onFoto={setFoto} disabled={enviando || sinIA}
-                onError={(m) => showToast(m, 'error')} />
-              <VoiceButton onResult={(s) => setTexto((p) => (p ? `${p} ${s}` : s))} />
+        <div className="px-3 sm:px-4 pt-2 pb-3 flex-shrink-0">
+          {/* v4: una sola caja, como en Consulta. El texto crece al escribir. */}
+          <div className="rk-composer">
+            {foto && <div className="px-3 pt-3"><FotoPendiente foto={foto} onQuitar={() => setFoto(null)} /></div>}
+            <textarea ref={areaRef} value={texto} onChange={(e) => setTexto(e.target.value)} rows={1} maxLength={2000}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar(); } }}
+              placeholder={t('mc_pc_ph')} disabled={sinIA}
+              className="w-full text-white px-4 pt-3 pb-1 disabled:opacity-50 block"
+              style={{ fontSize: 16, lineHeight: 1.5, maxHeight: 180 }} />
+            <div className="flex items-center justify-between gap-2 px-2 pb-2">
+              <div className="flex items-center gap-1 min-w-0">
+                <PhotoAttach foto={foto} onFoto={setFoto} disabled={enviando || sinIA}
+                  onError={(m) => showToast(m, 'error')} />
+                <VoiceButton onResult={(s) => setTexto((p) => (p ? `${p} ${s}` : s))} />
+              </div>
+              <button onClick={() => enviar()} disabled={enviando || (!texto.trim() && !foto) || sinIA}
+                aria-label={t('mc_pc_send_btn')} className="rk-send">
+                <i className="ri-arrow-up-line" />
+              </button>
             </div>
-            <button onClick={() => enviar()} disabled={enviando || (!texto.trim() && !foto) || sinIA}
-              className="rk-btn rk-btn-primary flex-shrink-0 flex items-center gap-2 disabled:opacity-50"
-              style={{ minHeight: 46, padding: '0 1.1rem' }}>
-              <i className="ri-send-plane-fill" />{t('mc_pc_send_btn')}
-            </button>
           </div>
         </div>
         {sinIA && <p className="text-[11px] text-[#C9A84C] px-4 pb-4 -mt-2 leading-relaxed">{t('mc_pc_no_ai')}</p>}

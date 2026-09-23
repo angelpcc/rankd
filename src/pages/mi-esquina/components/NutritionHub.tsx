@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase, type Profile } from '@/lib/supabase';
 import { isMissingColumn } from '@/lib/dbState';
 import HubTabs, { HubTab } from '@/pages/mi-esquina/components/HubTabs';
+import { SECTION_COLOR } from '../lib/sectionTheme';
 import MealLog from '@/pages/mi-esquina/components/MealLog';
 import FoodPhotoAnalyzer from '@/pages/mi-esquina/components/FoodPhotoAnalyzer';
 import type { NutritionAnalysis } from '@/services/nutritionAnalysis';
@@ -33,6 +34,12 @@ interface Props {
   isHobby: boolean;
   /** Puente al Progreso › Peso desde el bloque de agua y desde la Guía. */
   onGoWeight: () => void;
+  /**
+   * Pestaña con la que abrir, ya dentro de la pantalla de trabajo. La usa el
+   * registro rápido: "apuntar una comida" tiene que llevar al diario, no al
+   * resumen para que desde ahí se busque el botón.
+   */
+  initialTab?: string;
 }
 
 interface NutritionGuideItem { icon: string; t: string; b: string }
@@ -45,19 +52,27 @@ interface NutritionGuideItem { icon: string; t: string; b: string }
  *    Suplementos · Guía. El aviso sanitario queda FUERA de las tabs.
  * El "Asesor" de nutrición se retiró: ahora es una sección de primer nivel.
  */
-export default function NutritionHub({ profile, showToast, isHobby, onGoWeight }: Props) {
+export default function NutritionHub({ profile, showToast, isHobby, onGoWeight, initialTab }: Props) {
   const { t } = useTranslation();
   // PROMPT 1 — dos niveles: 'summary' = resumen (anillos de macros + diario
   // compacto), 'work' = pantalla de trabajo con pestañas. El Asesor de
   // nutrición se retiró de aquí: ahora hay una sección "Asesor" de primer nivel.
-  const [view, setView] = useState<'summary' | 'work'>('summary');
+  const [view, setView] = useState<'summary' | 'work'>(initialTab ? 'work' : 'summary');
   // Sube cuando el Asesor de comida apunta un plato en el diario. El resumen
   // de macros de arriba está montado siempre y carga una sola vez: sin esto
   // seguía diciendo 0 kcal después de apuntar y parecía que no había pasado
   // nada. (MealLog no lo necesita: se desmonta al cambiar de pestaña y vuelve
   // a cargar solo.)
   const [diaryKey, setDiaryKey] = useState(0);
-  const [tab, setTab] = useState<'diario' | 'plan' | 'foto' | 'agua' | 'suplementos' | 'guia'>('diario');
+  type TabId = 'diario' | 'plan' | 'foto' | 'agua' | 'suplementos' | 'guia';
+  const [tab, setTab] = useState<TabId>((initialTab as TabId) || 'diario');
+
+  // Si se vuelve a pedir una pestaña con la sección ya abierta, se va a ella.
+  useEffect(() => {
+    if (!initialTab) return;
+    setView('work');
+    setTab(initialTab as TabId);
+  }, [initialTab]);
 
   // "Plan" va justo detrás del diario: es lo que se consulta a diario para
   // saber qué toca comer, antes que la foto o el agua.
@@ -123,7 +138,7 @@ export default function NutritionHub({ profile, showToast, isHobby, onGoWeight }
       {/* Resumen del día — compacto en una línea. */}
       <TodayMacrosSummary profile={profile} refreshKey={diaryKey} />
 
-      <HubTabs tabs={TABS} active={tab} onChange={(id) => setTab(id as typeof tab)} />
+      <HubTabs tabs={TABS} active={tab} onChange={(id) => setTab(id as typeof tab)} color={SECTION_COLOR.nutricion} />
 
       {/* ── DIARIO ── */}
       {tab === 'diario' && (
