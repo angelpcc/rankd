@@ -159,7 +159,7 @@ export default function BrandsPage() {
             <div className="w-8 h-[2px] bg-[#E10600]"></div>
             <span className="text-[#E10600] text-xs font-bold tracking-[0.25em] uppercase font-inter">{isHobby ? t('br_shop_eyebrow') : t('fd_directory')}</span>
           </div>
-          <h1 className="font-unbounded font-black text-white leading-tight mb-3" style={{ fontSize: 'clamp(2.2rem, 5vw, 3.8rem)' }}>
+          <h1 className="rk-head-title mb-3" style={{ fontSize: 'clamp(32px, 4.4vw, 52px)', maxWidth: 'none' }}>
             {isHobby ? t('br_shop_title') : t('brands_page_title')}
           </h1>
           <p className="text-white/70 text-sm md:text-base max-w-xl font-inter leading-relaxed mb-8">
@@ -180,7 +180,7 @@ export default function BrandsPage() {
                   <i className={`${stat.icon} text-[#E10600] text-sm`}></i>
                 </div>
                 <div>
-                  <span className="text-white font-bold text-lg font-unbounded">{stat.value}</span>
+                  <span className="text-white font-bold text-lg tracking-tight">{stat.value}</span>
                   <span className="text-white/60 text-xs font-inter ml-1.5">{stat.label}</span>
                 </div>
               </div>
@@ -322,7 +322,7 @@ export default function BrandsPage() {
         {!loading && brands.length === 0 && (
           <div className="flex flex-col items-center justify-center py-32 px-6 text-center">
             <div className="mb-6"><EmptyArt kind="people" size={120} /></div>
-            <h2 className="font-unbounded font-bold text-white text-xl mb-3">
+            <h2 className="tracking-tight font-bold text-white text-xl mb-3">
               {t('brands_empty_registered')}
             </h2>
             <p className="text-zinc-400 text-sm font-inter leading-relaxed max-w-md">
@@ -334,7 +334,7 @@ export default function BrandsPage() {
         {!loading && brands.length > 0 && filtered.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
             <div className="mb-5"><EmptyArt kind="search" size={104} /></div>
-            <h3 className="font-unbounded font-bold text-white text-base mb-2">{t('brands_no_results_title')}</h3>
+            <h3 className="tracking-tight font-bold text-white text-base mb-2">{t('brands_no_results_title')}</h3>
             <p className="text-zinc-400 text-sm font-inter mb-6">{t('brands_no_results_desc')}</p>
             <button
               onClick={() => { setSearch(''); setCategoryFilter(''); setDisciplineFilter(''); handleTypeChange('all'); }}
@@ -418,7 +418,7 @@ export default function BrandsPage() {
                   <div className="w-6 h-[2px] bg-[#E10600]"></div>
                   <span className="text-[#E10600] text-xs font-bold tracking-[0.25em] uppercase font-inter">{t('brands_cta_eyebrow')}</span>
                 </div>
-                <h3 className="font-unbounded font-bold text-white text-lg md:text-xl leading-tight mb-2">
+                <h3 className="tracking-tight font-bold text-white text-lg md:text-xl leading-tight mb-2">
                   {t('brands_cta_publish')}
                 </h3>
                 <p className="text-white/70 text-sm font-inter leading-relaxed max-w-md">

@@ -135,39 +135,31 @@ export default function OpportunitiesPage() {
     <div className="min-h-screen bg-[#070707]">
       <Navbar />
 
-      {/* Hero cinematográfico */}
-      <div className="relative bg-zinc-950 pt-24 sm:pt-28 pb-10 sm:pb-16 px-4 overflow-hidden">
-        {/* BG decorativo */}
-        {/* Foto de fondo (Unsplash, licencia libre, uso comercial) + oscurecido para legibilidad */}
-        <img src="/images/correr-2.webp" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ opacity: 0.18, objectPosition: 'center 30%' }} />
-        <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(9,9,11,0.84) 0%, rgba(9,9,11,0.6) 45%, rgba(9,9,11,0.96) 100%)' }} />
-        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 70% 50%, rgba(225,6,0,0.10) 0%, transparent 55%)' }} />
-        <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: 'linear-gradient(90deg, #E10600 0%, rgba(225,6,0,0.4) 50%, transparent 100%)' }} />
+      {/* ── Cabecera ──
+          v4: más compacta, y los contadores por tipo pasan a ser FILTROS. Antes
+          eran números sueltos ("0 Combate · 0 Sparring") que solo informaban;
+          ahora tocas "Patrocinio" y la lista se queda en patrocinios. Van
+          sincronizados con el desplegable de tipo de más abajo (mismo estado). */}
+      <div className="relative pt-24 sm:pt-28 pb-8 sm:pb-10 px-4 overflow-hidden" style={{ borderBottom: '1px solid var(--line)' }}>
+        <img src="/images/correr-2.webp" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ opacity: 0.14, objectPosition: 'center 30%' }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(9,9,11,0.7) 0%, rgba(9,9,11,0.92) 70%, #09090B 100%)' }} />
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(700px 300px at 0% 0%, rgba(225,6,0,0.14), transparent 70%)' }} />
 
         <div className="relative max-w-6xl mx-auto">
-          <div className="flex flex-col gap-4 sm:gap-6">
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-[2px] bg-[#E10600]" />
-                <span className="text-[#E10600] text-xs font-bold tracking-[0.25em] uppercase">{t('opp_eyebrow')}</span>
-              </div>
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">{t('opp_page_title')}</h1>
-              <p className="text-zinc-300 mt-2 sm:mt-3 text-sm sm:text-base max-w-xl leading-relaxed">{t('opp_page_desc')}</p>
+          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+            <div className="min-w-0">
+              <p className="rk-head-eyebrow" style={{ color: 'var(--accent)' }}><span aria-hidden className="rk-head-dash" />{t('opp_eyebrow')}</p>
+              <h1 className="rk-head-title" style={{ fontSize: 'clamp(32px, 4.4vw, 52px)' }}>{t('opp_page_title')}</h1>
+              <p className="rk-head-sub">{t('opp_page_desc')}</p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-shrink-0">
               {profile && profile.user_type !== 'fighter' && (
-                <button
-                  onClick={() => navigate('/dashboard')}
-                  className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl transition-colors cursor-pointer whitespace-nowrap shadow-lg shadow-red-600/30"
-                >
+                <button onClick={() => navigate('/dashboard')} className="rk-btn rk-btn-primary">
                   <i className="ri-add-line"></i> {t('opp_page_publish')}
                 </button>
               )}
               {!user && (
-                <button
-                  onClick={() => navigate('/auth')}
-                  className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl transition-colors cursor-pointer whitespace-nowrap shadow-lg shadow-red-600/30"
-                >
+                <button onClick={() => navigate('/auth')} className="rk-btn rk-btn-primary">
                   <i className="ri-login-box-line"></i>
                   <span className="hidden sm:inline">{t('opp_page_join')}</span>
                   <span className="sm:hidden">{t('opp_page_join_short')}</span>
@@ -176,18 +168,22 @@ export default function OpportunitiesPage() {
             </div>
           </div>
 
-          {/* Stats bar */}
-          <div className="flex items-center gap-4 sm:gap-6 mt-6 sm:mt-8 pt-5 sm:pt-6 border-t border-zinc-800 overflow-x-auto">
-            <div className="text-center flex-shrink-0">
-              <p className="text-2xl sm:text-3xl font-black text-white">{opportunities.length}</p>
-              <p className="text-xs text-zinc-400 mt-0.5 uppercase tracking-wider">{t('opp_page_active')}</p>
-            </div>
-            {(['combate','sparring','contrato','patrocinio'] as const).map((tt) => (
-              <div key={tt} className="text-center flex-shrink-0">
-                <p className="text-lg sm:text-xl font-bold text-red-400">{opportunities.filter(o => o.type === tt).length}</p>
-                <p className="text-xs text-zinc-400 mt-0.5 capitalize">{typeLabels[tt]}</p>
-              </div>
-            ))}
+          {/* Tipos: cada uno es un filtro. Solo los que tienen algo, y "Todas". */}
+          <div role="tablist" className="flex gap-2 mt-7 overflow-x-auto rk-noscroll-x -mx-4 px-4 sm:mx-0 sm:px-0">
+            {[{ id: '', label: t('opp_type_all'), n: opportunities.length },
+              ...(['combate', 'sparring', 'contrato', 'patrocinio', 'campamento', 'entrenamiento', 'scouting'] as const)
+                .map((tt) => ({ id: tt, label: typeLabels[tt], n: opportunities.filter((o) => o.type === tt).length }))
+                .filter((x) => x.n > 0)].map((x) => {
+              const on = filterType === x.id;
+              return (
+                <button key={x.id || 'todas'} role="tab" aria-selected={on} onClick={() => setFilterType(x.id)}
+                  className="rk-press flex-shrink-0 inline-flex items-center gap-2 rounded-xl px-3.5 cursor-pointer transition-colors"
+                  style={{ minHeight: 42, background: on ? 'rgba(225,6,0,0.14)' : 'rgba(255,255,255,0.04)', border: `1px solid ${on ? 'rgba(225,6,0,0.45)' : 'var(--line-2)'}`, color: on ? '#fff' : 'var(--t-2)' }}>
+                  <span className="text-sm font-semibold first-letter:uppercase">{x.label}</span>
+                  <span className="text-xs font-bold rounded-md px-1.5 py-0.5" style={{ background: on ? 'rgba(225,6,0,0.3)' : 'rgba(255,255,255,0.07)', color: on ? '#fff' : 'var(--t-3)' }}>{x.n}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

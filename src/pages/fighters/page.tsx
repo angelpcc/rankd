@@ -340,11 +340,10 @@ export default function FightersDirectoryPage() {
                   <span className="text-xs text-zinc-400">· {data.length} {t('fighters_dir_registered')}</span>
                 )}
               </div>
-              <h1 className="rk-h1" style={{ color: '#fff', margin: 0 }}>
-                {t('fighters_dir_discover')}<br />
-                <span className="rk-red-glow">{t('fighters_dir_champion')}</span>
+              <h1 className="rk-head-title" style={{ fontSize: 'clamp(32px, 4.4vw, 52px)', maxWidth: 'none' }}>
+                {t('fighters_dir_discover')} <span style={{ color: 'var(--accent)' }}>{t('fighters_dir_champion')}</span>
               </h1>
-              <div className="rk-rule" style={{ width: 88, margin: '20px 0' }} />
+              <div style={{ height: 16 }} />
               <p className="rk-body max-w-lg" style={{ margin: 0 }}>
                 {t('fighters_dir_desc')}
               </p>

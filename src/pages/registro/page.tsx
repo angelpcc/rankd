@@ -127,7 +127,7 @@ export default function RegistroPage() {
 
           {/* Headline */}
           <h1
-            className="font-unbounded font-black text-white leading-[1.06] mb-5 sm:mb-6"
+            className="tracking-tight font-black text-white leading-[1.06] mb-5 sm:mb-6"
             style={{ fontSize: 'clamp(1.7rem, 4vw, 3.6rem)' }}
           >
             {t('registro_headline_1')}<br />
@@ -178,7 +178,7 @@ export default function RegistroPage() {
         <div className="w-full max-w-[400px]">
           {/* Form header */}
           <div className="mb-6 sm:mb-8">
-            <h2 className="text-2xl font-bold text-white font-unbounded mb-2">
+            <h2 className="text-2xl font-bold text-white tracking-tight mb-2">
               {t('registro_form_title')}
             </h2>
             <p className="text-white/35 text-sm font-inter">
@@ -191,7 +191,7 @@ export default function RegistroPage() {
               <div className="w-12 h-12 flex items-center justify-center rounded-full bg-green-500/15 mx-auto mb-4">
                 <i className="ri-check-line text-green-400 text-2xl" />
               </div>
-              <h3 className="text-white font-bold font-unbounded text-lg mb-2">{t('registro_success_title')}</h3>
+              <h3 className="text-white font-bold tracking-tight text-lg mb-2">{t('registro_success_title')}</h3>
               <p className="text-white/50 text-sm font-inter leading-relaxed">{success}</p>
               <button
                 onClick={() => navigate('/auth')}

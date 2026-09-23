@@ -132,7 +132,7 @@ export default function Opportunities() {
               style={{ background: 'rgba(225,6,0,0.08)', border: '1px solid rgba(225,6,0,0.15)' }}>
               <i className="ri-boxing-line text-2xl text-[#E10600]" />
             </div>
-            <h3 className="font-unbounded font-bold text-white text-sm mb-3">{t('opp_home_empty_title')}</h3>
+            <h3 className="tracking-tight font-bold text-white text-sm mb-3">{t('opp_home_empty_title')}</h3>
             <p className="text-white/55 text-sm font-inter leading-relaxed max-w-sm mb-8">{t('opp_home_empty_desc')}</p>
             <button onClick={() => navigate('/auth')}
               className="inline-flex items-center gap-2 bg-[#E10600] text-white font-semibold text-sm px-6 py-3 rounded-full hover:bg-red-700 transition-colors cursor-pointer whitespace-nowrap font-inter">
@@ -184,7 +184,7 @@ export default function Opportunities() {
                     </div>
 
                     {/* Título */}
-                    <h3 className="text-white font-unbounded font-bold text-sm leading-snug mb-2 group-hover:text-[#E10600] transition-colors">
+                    <h3 className="text-white tracking-tight font-bold text-sm leading-snug mb-2 group-hover:text-[#E10600] transition-colors">
                       {opp.title}
                     </h3>
                     {opp.description && (

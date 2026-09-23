@@ -194,10 +194,10 @@ export default function NewsPage() {
             <span className="w-1.5 h-1.5 rounded-full bg-[#E10600] animate-pulse"></span>
             <span className="text-[#E10600] text-xs font-bold tracking-[0.25em] uppercase" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>{t('news_live')}</span>
           </div>
-          <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 'clamp(40px, 8vw, 78px)', lineHeight: 0.9, color: 'white', letterSpacing: 1 }}>
-            {t('news_title_pre')} <span style={{ color: '#E10600', textShadow: '0 0 45px rgba(225,6,0,0.5)' }}>{t('news_title_hl')}</span>
+          <h1 className="rk-head-title" style={{ fontSize: 'clamp(32px, 4.4vw, 52px)', maxWidth: 'none' }}>
+            {t('news_title_pre')} <span style={{ color: 'var(--accent)' }}>{t('news_title_hl')}</span>
           </h1>
-          <p className="mt-3 text-base sm:text-lg max-w-xl" style={{ fontFamily: "'Barlow Condensed', sans-serif", color: 'rgba(255,255,255,0.65)' }}>
+          <p className="mt-3 text-base sm:text-lg max-w-xl" style={{ color: 'var(--t-2)' }}>
             {t('news_sub')}
           </p>
 

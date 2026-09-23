@@ -46,7 +46,7 @@ export default function BrandsSection() {
                     ) : (
                       <div className="w-14 h-14 rounded-xl flex items-center justify-center"
                         style={{ background: 'rgba(225,6,0,0.1)', border: '1px solid rgba(225,6,0,0.15)' }}>
-                        <span className="font-unbounded font-bold text-[#E10600] text-lg">{initials}</span>
+                        <span className="tracking-tight font-bold text-[#E10600] text-lg">{initials}</span>
                       </div>
                     )}
                     {brand.category && (
@@ -57,7 +57,7 @@ export default function BrandsSection() {
                     )}
                   </div>
                   <div className="p-4" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                    <h3 className="font-unbounded font-bold text-white text-xs mb-1">{brand.name}</h3>
+                    <h3 className="tracking-tight font-bold text-white text-xs mb-1">{brand.name}</h3>
                     <p className="text-white/55 text-xs font-inter leading-relaxed line-clamp-2">{brand.description}</p>
                   </div>
                 </div>
@@ -71,7 +71,7 @@ export default function BrandsSection() {
               style={{ background: 'rgba(225,6,0,0.08)', border: '1px solid rgba(225,6,0,0.15)' }}>
               <i className="ri-store-2-line text-2xl text-[#E10600]" />
             </div>
-            <h3 className="font-unbounded font-bold text-white text-sm mb-3">{t('brands_empty_title')}</h3>
+            <h3 className="tracking-tight font-bold text-white text-sm mb-3">{t('brands_empty_title')}</h3>
             <p className="text-white/55 text-sm font-inter leading-relaxed max-w-sm mb-8">{t('brands_coming_soon_home')}</p>
             <button onClick={() => navigate('/brands')}
               className="inline-flex items-center gap-2 text-white/65 font-semibold text-sm px-6 py-3 rounded-full hover:text-white transition-colors cursor-pointer font-inter"

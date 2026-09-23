@@ -90,13 +90,13 @@ export default function BrandDirectoryCard({ brand, rating, seekingSponsor }: Pr
           {brand.logo_url ? (
             <img src={brand.logo_url} alt={brand.name} className="w-full h-full object-contain p-1" />
           ) : (
-            <span className="font-unbounded font-bold text-white text-base">{initials}</span>
+            <span className="tracking-tight font-bold text-white text-base">{initials}</span>
           )}
         </div>
 
         {/* Info */}
         <div className="flex-1 min-w-0">
-          <h3 className="font-unbounded font-bold text-white text-sm leading-tight truncate">{brand.name}</h3>
+          <h3 className="tracking-tight font-bold text-white text-sm leading-tight truncate">{brand.name}</h3>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             {brand.category && <span className="text-xs text-white/45 font-inter truncate">{brand.category}</span>}
             {rating && rating.n > 0 && <span className="text-[11px] text-[#C9A84C] flex items-center gap-0.5 flex-shrink-0"><i className="ri-star-fill"></i>{rating.avg.toFixed(1)}</span>}

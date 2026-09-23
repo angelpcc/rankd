@@ -27,7 +27,7 @@ export default function BrandCard({ brand }: BrandCardProps) {
           />
         ) : (
           <div className="w-20 h-20 rounded-2xl bg-[#E10600]/10 flex items-center justify-center">
-            <span className="font-unbounded font-bold text-[#E10600] text-2xl">{initials}</span>
+            <span className="tracking-tight font-bold text-[#E10600] text-2xl">{initials}</span>
           </div>
         )}
         {brand.category && (
@@ -39,7 +39,7 @@ export default function BrandCard({ brand }: BrandCardProps) {
 
       {/* Content */}
       <div className="p-5">
-        <h3 className="font-unbounded font-bold text-white text-sm mb-2">{brand.name}</h3>
+        <h3 className="tracking-tight font-bold text-white text-sm mb-2">{brand.name}</h3>
         <p className="text-gray-400 text-xs font-inter leading-relaxed line-clamp-3 mb-4">
           {brand.description}
         </p>

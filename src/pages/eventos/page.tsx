@@ -171,10 +171,10 @@ export default function EventosPage() {
             <span style={{ flex: '0 0 34px', height: 1, background: 'rgba(255,255,255,0.16)' }} />
             <span className="rk-eyebrow">{t('evp_eyebrow')}</span>
           </div>
-          <h1 className="rk-h1" style={{ color: '#fff', margin: 0 }}>
-            {t('evp_title')} <span className="rk-red-glow">{t('evp_title_2')}</span>
+          <h1 className="rk-head-title" style={{ fontSize: 'clamp(32px, 4.4vw, 52px)', maxWidth: 'none' }}>
+            {t('evp_title')} <span style={{ color: 'var(--accent)' }}>{t('evp_title_2')}</span>
           </h1>
-          <div className="rk-rule" style={{ width: 88, margin: '20px 0' }} />
+          <div style={{ height: 14 }} />
           <p className="rk-body max-w-xl" style={{ margin: 0 }}>
             {t('evp_hero_sub')}
           </p>

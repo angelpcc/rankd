@@ -310,22 +310,30 @@ export default function FighterDashboard({ profile }: Props) {
             </div>
           </div>
 
-          <nav className="flex-1 p-3 space-y-1">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => tab.id === 'training' ? navigate('/mi-esquina') : setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer text-left ${activeTab === tab.id ? 'bg-red-600 text-white' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
-              >
-                <i className={`${tab.icon} text-base flex-shrink-0`}></i>
-                <span className="flex-1">{tab.label}</span>
-                {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-red-600/20 text-red-400'}`}>
-                    {tab.badge}
+          {/* v4: el mismo menú que Mi Esquina y los demás paneles (.rk-side-item):
+              baldosa de icono y la activa con barra a la izquierda, no un bloque rojo. */}
+          <nav className="flex-1 p-3 space-y-0.5">
+            {tabs.map((tab) => {
+              const on = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => tab.id === 'training' ? navigate('/mi-esquina') : setActiveTab(tab.id)}
+                  aria-current={on ? 'page' : undefined}
+                  className="rk-side-item rk-press" style={{ ['--sec' as string]: '#E10600' }}
+                >
+                  <span className="rk-side-icon" style={{ background: on ? '#E10600' : 'rgba(225,6,0,0.1)', color: on ? '#fff' : '#ff4a45' }}>
+                    <i className={tab.icon}></i>
                   </span>
-                )}
-              </button>
-            ))}
+                  <span className="flex-1">{tab.label}</span>
+                  {tab.badge !== undefined && tab.badge > 0 && (
+                    <span className="text-[11px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: on ? 'rgba(225,6,0,0.3)' : 'rgba(225,6,0,0.16)', color: on ? '#fff' : '#ff4a45' }}>
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </nav>
 
           <div className="p-3 border-t border-zinc-800 space-y-2">

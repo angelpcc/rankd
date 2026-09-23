@@ -483,7 +483,7 @@ export default function AuthPage() {
           {mode === 'login' ? (
             <form onSubmit={handleLogin} className="space-y-5">
               <div className="mb-6">
-                <h1 className="text-xl font-bold text-white mb-1 font-unbounded">{t('auth_login_title')}</h1>
+                <h1 className="text-xl font-bold text-white mb-1 tracking-tight">{t('auth_login_title')}</h1>
                 <p className="text-white/55 text-sm font-inter">{t('auth_login_subtitle')}</p>
               </div>
               {googleBlock}
@@ -518,7 +518,7 @@ export default function AuthPage() {
           ) : mode === 'forgot' ? (
             <form onSubmit={handleForgot} className="space-y-5">
               <div className="mb-6">
-                <h1 className="text-xl font-bold text-white mb-1 font-unbounded">{t('auth_forgot_title')}</h1>
+                <h1 className="text-xl font-bold text-white mb-1 tracking-tight">{t('auth_forgot_title')}</h1>
                 <p className="text-white/55 text-sm font-inter">{t('auth_forgot_subtitle')}</p>
               </div>
               <div>
@@ -545,7 +545,7 @@ export default function AuthPage() {
           ) : mode === 'reset' ? (
             <form onSubmit={handleReset} className="space-y-5">
               <div className="mb-6">
-                <h1 className="text-xl font-bold text-white mb-1 font-unbounded">{t('auth_reset_title')}</h1>
+                <h1 className="text-xl font-bold text-white mb-1 tracking-tight">{t('auth_reset_title')}</h1>
                 <p className="text-white/55 text-sm font-inter">{t('auth_reset_subtitle')}</p>
               </div>
               <div>
@@ -577,7 +577,7 @@ export default function AuthPage() {
                         {oauthChoose ? t('auth_oauth_badge') : t('auth_step_1_of_2')}
                       </span>
                     </div>
-                    <h1 className="text-xl font-bold text-white mb-1 font-unbounded">{oauthChoose ? t('auth_oauth_choose_title') : t('auth_who_title')}</h1>
+                    <h1 className="text-xl font-bold text-white mb-1 tracking-tight">{oauthChoose ? t('auth_oauth_choose_title') : t('auth_who_title')}</h1>
                     <p className="text-white/55 text-sm font-inter">{oauthChoose ? t('auth_oauth_choose_subtitle') : t('auth_who_subtitle')}</p>
                   </div>
 
@@ -696,7 +696,7 @@ export default function AuthPage() {
                         <i className="ri-arrow-left-line text-sm"></i>
                       </button>
                       <div className="min-w-0">
-                        <h1 className="text-xl font-bold text-white font-unbounded">{t('auth_register_step2_title')}</h1>
+                        <h1 className="text-xl font-bold text-white tracking-tight">{t('auth_register_step2_title')}</h1>
                         <button type="button" onClick={() => { setStep(1); setError(''); }} className="flex items-center gap-1.5 text-xs text-white/55 hover:text-white/85 font-inter cursor-pointer transition-colors mt-0.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#E10600]"></span>
                           {userType === 'fighter' && athleteMode === 'hobby' ? t('auth_mode_hobby_label') : (TYPE_LABEL_KEYS[userType || ''] ? t(TYPE_LABEL_KEYS[userType || '']) : '')} · {t('auth_change')}

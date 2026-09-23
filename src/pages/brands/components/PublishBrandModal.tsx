@@ -143,7 +143,7 @@ export default function PublishBrandModal({ onClose, onSuccess }: PublishBrandMo
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.07] flex-shrink-0" style={{ background: 'linear-gradient(160deg, rgba(225,6,0,0.10) 0%, transparent 70%)' }}>
           <div>
-            <h2 className="font-unbounded font-bold text-white text-base">{t('br_publish')}</h2>
+            <h2 className="tracking-tight font-bold text-white text-base">{t('br_publish')}</h2>
             <p className="text-zinc-400 text-xs font-inter mt-0.5">
               {step === 'type' ? t('br_choose_type') : t(badge.labelKey)}
             </p>
@@ -159,7 +159,7 @@ export default function PublishBrandModal({ onClose, onSuccess }: PublishBrandMo
               <div className="w-16 h-16 flex items-center justify-center mx-auto mb-4 rounded-full bg-green-500/12 border border-green-500/30">
                 <i className="ri-check-line text-3xl text-green-400"></i>
               </div>
-              <h3 className="font-unbounded font-bold text-white text-base mb-2">{t('br_registered')}</h3>
+              <h3 className="tracking-tight font-bold text-white text-base mb-2">{t('br_registered')}</h3>
               <p className="text-zinc-400 text-sm font-inter leading-relaxed max-w-xs mx-auto">
                 {t('br_registered_desc')}
               </p>
@@ -186,7 +186,7 @@ export default function PublishBrandModal({ onClose, onSuccess }: PublishBrandMo
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-unbounded font-bold text-white text-sm">{t(opt.titleKey)}</span>
+                          <span className="tracking-tight font-bold text-white text-sm">{t(opt.titleKey)}</span>
                           {brandType === opt.value && (
                             <span className={`w-5 h-5 flex items-center justify-center rounded-full flex-shrink-0 ${opt.value === 'product' ? 'bg-[#E10600]' : opt.value === 'service' ? 'bg-amber-500' : 'bg-emerald-500'}`}>
                               <i className="ri-check-line text-white text-xs"></i>

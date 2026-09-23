@@ -186,7 +186,7 @@ export default function Navbar() {
             {navLinks.map((link) => (
               <li key={link.href}>
                 <a href={link.href} onClick={(e) => { e.preventDefault(); handleNav(link.href); }}
-                  style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', color: 'rgba(255,255,255,0.68)', textDecoration: 'none', transition: 'color 0.2s', cursor: 'pointer' }}
+                  style={{ fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em', color: 'rgba(255,255,255,0.68)', textDecoration: 'none', transition: 'color 0.2s', cursor: 'pointer' }}
                   onMouseEnter={(e) => (e.currentTarget as HTMLAnchorElement).style.color = 'white'}
                   onMouseLeave={(e) => (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.68)'}>
                   {link.labelKey ? t(link.labelKey) : link.label}
@@ -209,16 +209,16 @@ export default function Navbar() {
                   </button>
                 )}
                 <NotificationBell userId={user.id} />
-                <button onClick={() => navigate(isHobby ? '/mi-esquina' : '/dashboard')} style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.85)', background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.13)', borderRadius: 8, padding: '9px 18px', cursor: 'pointer', transition: 'all 0.28s cubic-bezier(0.22,1,0.36,1)', backdropFilter: 'blur(10px)' }}>
+                <button onClick={() => navigate(isHobby ? '/mi-esquina' : '/dashboard')} style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em', color: 'rgba(255,255,255,0.85)', background: 'rgba(255,255,255,0.055)', border: '1px solid rgba(255,255,255,0.13)', borderRadius: 8, padding: '9px 18px', cursor: 'pointer', transition: 'all 0.28s cubic-bezier(0.22,1,0.36,1)', backdropFilter: 'blur(10px)' }}>
                   <span style={{ width: 20, height: 20, background: '#E10600', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'white', fontWeight: 900 }}>{(profile.full_name || 'U')[0].toUpperCase()}</span>
                   {t('nav_my_profile')}
                 </button>
-                <button onClick={() => signOut()} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 12, letterSpacing: 2, color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer', textTransform: 'uppercase' }}>{t('nav_sign_out')}</button>
+                <button onClick={() => signOut()} style={{ fontFamily: 'var(--font-ui)', fontSize: 14, letterSpacing: '-0.01em', color: 'rgba(255,255,255,0.4)', background: 'none', border: 'none', cursor: 'pointer' }}>{t('nav_sign_out')}</button>
               </>
             ) : (
               <>
-                <button onClick={() => navigate('/auth')} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 600, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.color = 'white'} onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.6)'}>{t('nav_sign_in')}</button>
-                <button onClick={() => navigate('/auth')} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'white', background: '#E10600', border: 'none', borderRadius: 6, padding: '10px 22px', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 24px rgba(225,6,0,0.4)' }} onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#b50009'; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 6px 32px rgba(225,6,0,0.55)'; }} onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#E10600'; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 24px rgba(225,6,0,0.4)'; }}>
+                <button onClick={() => navigate('/auth')} style={{ fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em', color: 'rgba(255,255,255,0.6)', background: 'none', border: 'none', cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={(e) => (e.currentTarget as HTMLButtonElement).style.color = 'white'} onMouseLeave={(e) => (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.6)'}>{t('nav_sign_in')}</button>
+                <button onClick={() => navigate('/auth')} style={{ fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em', color: 'white', background: '#E10600', border: 'none', borderRadius: 10, padding: '9px 18px', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 24px rgba(225,6,0,0.4)' }} onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#b50009'; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 6px 32px rgba(225,6,0,0.55)'; }} onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#E10600'; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 24px rgba(225,6,0,0.4)'; }}>
                   {t('nav_create_account')} →
                 </button>
               </>
@@ -254,7 +254,7 @@ export default function Navbar() {
             </p>
             {exploreLinks.map((link) => (
               <a key={link.href} href={link.href} onClick={(e) => { e.preventDefault(); handleNav(link.href); }}
-                style={{ display: 'flex', alignItems: 'center', gap: 14, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 600, letterSpacing: 1.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.82)', textDecoration: 'none', padding: '13px 8px', borderRadius: 12 }}
+                style={{ display: 'flex', alignItems: 'center', gap: 14, fontFamily: 'var(--font-ui)', fontSize: 16, fontWeight: 600, letterSpacing: '-0.01em', color: 'rgba(255,255,255,0.82)', textDecoration: 'none', padding: '13px 8px', borderRadius: 12 }}
                 onTouchStart={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(255,255,255,0.05)'; }}
                 onTouchEnd={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; }}>
                 <i className={link.icon} style={{ fontSize: 19, color: '#E10600', width: 22, textAlign: 'center', flexShrink: 0 }} />
@@ -272,7 +272,7 @@ export default function Navbar() {
                   const admin = link.href === '/admin';
                   return (
                     <a key={link.href} href={link.href} onClick={(e) => { e.preventDefault(); handleNav(link.href); }}
-                      style={{ display: 'flex', alignItems: 'center', gap: 14, fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 600, letterSpacing: 1.5, textTransform: 'uppercase', color: admin ? '#C9A84C' : 'rgba(255,255,255,0.82)', textDecoration: 'none', padding: '13px 8px', borderRadius: 12 }}>
+                      style={{ display: 'flex', alignItems: 'center', gap: 14, fontFamily: 'var(--font-ui)', fontSize: 16, fontWeight: 600, letterSpacing: '-0.01em', color: admin ? '#C9A84C' : 'rgba(255,255,255,0.82)', textDecoration: 'none', padding: '13px 8px', borderRadius: 12 }}>
                       <i className={link.icon} style={{ fontSize: 19, color: admin ? '#C9A84C' : '#E10600', width: 22, textAlign: 'center', flexShrink: 0 }} />
                       {t(link.labelKey)}
                     </a>
@@ -287,13 +287,13 @@ export default function Navbar() {
 
             {user && profile ? (
               <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <button onClick={() => { navigate(isHobby ? '/mi-esquina' : '/dashboard'); setMenuOpen(false); }} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'white', background: '#E10600', border: 'none', borderRadius: 10, padding: '15px', cursor: 'pointer' }}>{t('nav_my_profile')}</button>
-                <button onClick={() => { signOut(); setMenuOpen(false); }} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, color: 'rgba(255,255,255,0.45)', background: 'none', border: 'none', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 2 }}>{t('nav_sign_out')}</button>
+                <button onClick={() => { navigate(isHobby ? '/mi-esquina' : '/dashboard'); setMenuOpen(false); }} style={{ fontFamily: 'var(--font-ui)', fontSize: 16, fontWeight: 600, letterSpacing: '-0.01em', color: 'white', background: '#E10600', border: 'none', borderRadius: 10, padding: '15px', cursor: 'pointer' }}>{t('nav_my_profile')}</button>
+                <button onClick={() => { signOut(); setMenuOpen(false); }} style={{ fontFamily: 'var(--font-ui)', fontSize: 14, color: 'rgba(255,255,255,0.45)', background: 'none', border: 'none', cursor: 'pointer', letterSpacing: '-0.01em' }}>{t('nav_sign_out')}</button>
               </div>
             ) : (
               <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <button onClick={() => { navigate('/auth'); setMenuOpen(false); }} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'white', background: '#E10600', border: 'none', borderRadius: 10, padding: '16px', cursor: 'pointer', boxShadow: '0 4px 24px rgba(225,6,0,0.4)' }}>{t('nav_create_account')}</button>
-                <button onClick={() => { navigate('/auth'); setMenuOpen(false); }} style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 600, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', background: 'none', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 10, padding: '14px', cursor: 'pointer' }}>{t('nav_sign_in')}</button>
+                <button onClick={() => { navigate('/auth'); setMenuOpen(false); }} style={{ fontFamily: 'var(--font-ui)', fontSize: 16, fontWeight: 600, letterSpacing: '-0.01em', color: 'white', background: '#E10600', border: 'none', borderRadius: 10, padding: '16px', cursor: 'pointer', boxShadow: '0 4px 24px rgba(225,6,0,0.4)' }}>{t('nav_create_account')}</button>
+                <button onClick={() => { navigate('/auth'); setMenuOpen(false); }} style={{ fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', color: 'rgba(255,255,255,0.6)', background: 'none', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 10, padding: '14px', cursor: 'pointer' }}>{t('nav_sign_in')}</button>
               </div>
             )}
           </div>
