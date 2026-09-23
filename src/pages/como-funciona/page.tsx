@@ -204,8 +204,14 @@ export default function ComoFuncionaPage() {
                   </div>
                 )}
                 <div className="grid sm:grid-cols-2 gap-2 sm:gap-3">
-                  {g.blocks.map((b) => (
-                    <div key={b.titleKey} className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-3 sm:p-4">
+                  {g.blocks.map((b, bi) => (
+                    // Si el grupo tiene un número IMPAR de bloques, el último
+                    // ocupa las dos columnas. Si no, en dos columnas quedaba
+                    // solo a la izquierda con media fila vacía al lado: con
+                    // tres bloques, 2 + 1 y un agujero. Así cuadra con 3, 5 o
+                    // los que haya, sin tocar el contenido de cada perfil.
+                    <div key={b.titleKey}
+                      className={`rounded-xl border border-white/[0.08] bg-white/[0.02] p-3 sm:p-4 ${bi === g.blocks.length - 1 && g.blocks.length % 2 === 1 ? 'sm:col-span-2' : ''}`}>
                       <div className="flex items-center gap-2.5 mb-1 sm:mb-1.5">
                         <i className={`${b.icon} text-base flex-shrink-0`} style={{ color: activeRole.accent }}></i>
                         <h4 className="text-sm font-bold text-white leading-tight">{t(b.titleKey)}</h4>
