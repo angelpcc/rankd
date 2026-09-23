@@ -26,6 +26,11 @@ export default function DashMobileNav({ tabs, activeId, onSelect, accent = 'red'
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const activeText = accent === 'gold' ? 'text-[#C9A84C]' : 'text-red-400';
+  // Fondo de la pestaña activa y color del punto de arriba. Mismo lenguaje
+  // que la barra de Mi Esquina: el mismo gesto tiene que verse igual en
+  // toda la app, sea peleador, marca o promotora.
+  const activeBg = accent === 'gold' ? 'rgba(201,168,76,0.14)' : 'rgba(225,6,0,0.14)';
+  const dotColor = accent === 'gold' ? '#C9A84C' : 'var(--accent)';
   const badgeBg = accent === 'gold' ? 'bg-[#C9A84C] text-zinc-950' : 'bg-red-600 text-white';
   const sheetActive = accent === 'gold'
     ? 'bg-[#C9A84C]/15 border-[#C9A84C]/40 text-[#C9A84C]'
@@ -44,8 +49,14 @@ export default function DashMobileNav({ tabs, activeId, onSelect, accent = 'red'
     <button
       key={tab.id}
       onClick={() => onSelect(tab.id)}
-      className={`flex-1 min-w-0 flex flex-col items-center gap-0.5 py-2 px-1 text-[10px] font-medium transition-colors cursor-pointer relative ${activeId === tab.id ? activeText : 'text-zinc-500'}`}
+      aria-current={activeId === tab.id ? 'page' : undefined}
+      // La activa solo cambiaba el color de la letra: en una barra con cinco
+      // iconos iguales de tamaño, no se sabía dónde estabas sin leer. Ahora
+      // lleva fondo y el punto arriba, como en Mi Esquina.
+      style={{ minHeight: 52, background: activeId === tab.id ? activeBg : 'transparent' }}
+      className={`rk-press rk-nav-tab flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 py-2 px-1 mx-0.5 my-1 rounded-xl text-[10px] cursor-pointer relative ${activeId === tab.id ? `${activeText} font-bold` : 'text-zinc-500 font-medium'}`}
     >
+      {activeId === tab.id && <span aria-hidden className="rk-nav-tab-dot" style={{ background: dotColor, boxShadow: `0 0 8px ${dotColor}` }} />}
       <i className={`${tab.icon} text-lg`}></i>
       <span className="truncate max-w-full leading-tight">{tab.label}</span>
       {tab.badge !== undefined && tab.badge > 0 && (
@@ -97,7 +108,8 @@ export default function DashMobileNav({ tabs, activeId, onSelect, accent = 'red'
         {needsMore && (
           <button
             onClick={() => setSheetOpen(true)}
-            className={`flex-1 min-w-0 flex flex-col items-center gap-0.5 py-2 px-1 text-[10px] font-medium transition-colors cursor-pointer relative ${overflowActive ? activeText : 'text-zinc-500'}`}
+            style={{ minHeight: 52, background: overflowActive ? activeBg : 'transparent' }}
+            className={`rk-press rk-nav-tab flex-1 min-w-0 flex flex-col items-center justify-center gap-0.5 py-2 px-1 mx-0.5 my-1 rounded-xl text-[10px] cursor-pointer relative ${overflowActive ? `${activeText} font-bold` : 'text-zinc-500 font-medium'}`}
           >
             <i className="ri-menu-line text-lg" />
             <span className="truncate max-w-full leading-tight">{t('dash_more')}</span>
