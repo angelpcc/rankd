@@ -43,6 +43,7 @@ export default {
   mc_bx_local_only: 'These workouts live only on this device: migration 0057 has not been applied.',
 
   mc_bx_mine: 'Your boxing workouts',
+  mc_bx_deleted: 'Session deleted',
   mc_bx_total: '{{n}} min in total',
   mc_bx_more: 'and {{n}} more round(s)',
   mc_bx_start: 'Start',

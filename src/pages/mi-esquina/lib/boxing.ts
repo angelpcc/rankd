@@ -234,7 +234,9 @@ export async function deleteBoxingSession(profileId: string, id: string): Promis
   if (!id.startsWith('bx_')) {
     const { error } = await supabase.from('boxing_sessions').delete().eq('id', id);
     // Si la tabla no existe, la copia local es la única que había: se sigue.
-    if (error && !isMissingTable(error)) return;
+    // Con cualquier otro error se LANZA: antes volvía en silencio y la pantalla
+    // decía "borrado" de un entreno que seguía en la base.
+    if (error && !isMissingTable(error)) throw error;
   }
   writeLocal(profileId, readLocal(profileId).filter((s) => s.id !== id));
 }

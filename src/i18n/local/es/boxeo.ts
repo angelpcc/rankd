@@ -43,6 +43,7 @@ export default {
   mc_bx_local_only: 'Estos entrenos están solo en este dispositivo: falta aplicar la migración 0057.',
 
   mc_bx_mine: 'Tus entrenos de boxeo',
+  mc_bx_deleted: 'Entreno borrado',
   mc_bx_total: '{{n}} min en total',
   mc_bx_more: 'y {{n}} asalto(s) más',
   mc_bx_start: 'Empezar',

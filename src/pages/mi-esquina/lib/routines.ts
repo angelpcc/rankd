@@ -20,7 +20,7 @@
 // ════════════════════════════════════════════════════════════════
 
 import { supabase } from '@/lib/supabase';
-import { writeDroppingMissingColumns } from '@/lib/dbState';
+import { isMissingTable, writeDroppingMissingColumns } from '@/lib/dbState';
 import {
   muscleGroupOf, trackingModeOf, weightModeOf,
   type MuscleGroup, type TrackingMode, type WeightMode,
@@ -327,11 +327,17 @@ export async function loadRoutineById(profileId: string, id: string): Promise<Ro
   return routines.find((r) => r.id === id) ?? null;
 }
 
+/**
+ * Borra una rutina. Lanza si la base no la ha borrado: quien la llama la quita
+ * de la lista al momento y, si esto falla, tiene que poder volver a ponerla en
+ * vez de decir "borrada" de algo que sigue ahí.
+ */
 export async function deleteRoutine(profileId: string, id: string): Promise<void> {
-  writeLocal(profileId, readLocal(profileId).filter((x) => x.id !== id));
   if (!id.startsWith('rt_')) {
-    await supabase.from('workout_routines').delete().eq('id', id);
+    const { error } = await supabase.from('workout_routines').delete().eq('id', id);
+    if (error && !isMissingTable(error)) throw error;
   }
+  writeLocal(profileId, readLocal(profileId).filter((x) => x.id !== id));
 }
 
 // ── Guardar la sesión entrenada ────────────────────────────────

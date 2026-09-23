@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase, type Profile } from '@/lib/supabase';
 import Reveal from '@/components/base/Reveal';
 import {
-  BOXING_PLACES, boxingSummary, boxingTotalMin, loadBoxingSessions, saveBoxingSession,
+  BOXING_PLACES, boxingSummary, boxingTotalMin, deleteBoxingSession, loadBoxingSessions, saveBoxingSession,
   type BoxingPlace, type BoxingSession,
 } from '../lib/boxing';
 import { checkBoxingAvailable, generateBoxingSession } from '@/services/boxingAdvisor';
@@ -231,6 +231,18 @@ export default function BoxingStudio({ profile, showToast }: Props) {
     setPorColocar(guardada.session);
   };
 
+  /** Quita un entreno guardado de la lista. Se quita al momento y, si falla, vuelve. */
+  const borrarSesion = async (s: BoxingSession) => {
+    setSessions((l) => l.filter((x) => x.id !== s.id));
+    try {
+      await deleteBoxingSession(profile.id, s.id);
+      showToast(t('mc_bx_deleted'));
+    } catch {
+      setSessions((l) => [s, ...l]);
+      showToast(t('error_save'), 'error');
+    }
+  };
+
   /**
    * Abre el temporizador con ESTA sesión ya configurada.
    *
@@ -423,6 +435,14 @@ export default function BoxingStudio({ profile, showToast }: Props) {
                       ))}
                     </div>
                   </div>
+                  {/* Borrar. `deleteBoxingSession` estaba escrito y no lo llamaba
+                      nadie: cada entreno generado se quedaba en la lista para
+                      siempre. Los días de la Agenda que lo usan conservan su
+                      bloque; lo que se pierde es solo el guion guardado. */}
+                  <button onClick={() => borrarSesion(s)} aria-label={t('mc_delete')}
+                    className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg text-zinc-600 hover:text-red-400 hover:bg-red-500/10 cursor-pointer transition-colors">
+                    <i className="ri-delete-bin-line text-sm" />
+                  </button>
                 </div>
                 {s.script.length > 0 && (
                   <ol className="mt-3 space-y-1.5">
